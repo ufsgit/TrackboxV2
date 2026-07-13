@@ -1,0 +1,23 @@
+<div class="settings-page">
+  <div class="settings-nav">
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team')">
+      <i class="bi bi-people me-2"></i>Teams Management
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'branch'" (click)="setActiveTab('branch')">
+      <i class="bi bi-building me-2"></i>Branch Management
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'department'" (click)="setActiveTab('department')">
+      <i class="bi bi-diagram-3 me-2"></i>Department Management
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'status'" (click)="setActiveTab('status')">
+      <i class="bi bi-tag me-2"></i>Status Management
+    </a>
+  </div>
+
+  <div class="settings-content">
+    <app-teams-management *ngIf="activeTab === 'team'"></app-teams-management>
+    <app-branch-management *ngIf="activeTab === 'branch'"></app-branch-management>
+    <app-department-management *ngIf="activeTab === 'department'"></app-department-management>
+    <app-status-management *ngIf="activeTab === 'status'"></app-status-management>
+  </div>
+</div>

@@ -87,6 +87,7 @@ app.use('/api/integrations', require('./src/routes/integrations.routes'));
 app.use('/api/analytics', require('./src/routes/analytics.routes'));
 app.use('/api/affiliates', require('./src/routes/affiliates.routes'));
 app.use('/api/settings', require('./src/routes/settings.routes'));
+app.use('/api/system-settings', require('./src/routes/system-settings.routes'));
 app.use('/api/media-library', require('./src/routes/media-library.routes'));
 app.use('/api/courses', require('./src/routes/courses.routes'));
 app.use('/api/attendance', require('./src/routes/attendance.routes'));

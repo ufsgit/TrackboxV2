@@ -434,9 +434,34 @@
           <div class="user-role">{{ user.role | titlecase }}</div>
         </div>
       </div>
-      <button class="logout-btn" (click)="logout()" [title]="isCollapsed ? 'Logout' : 'Logout'">
-        <i class="bi bi-box-arrow-right"></i>
-      </button>
+      <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
+        <button class="logout-btn" (click)="toggleSystemSettingsMenu($event)" [class.gear-rotating]="showSystemSettingsMenu" [title]="isCollapsed ? 'System Settings' : 'System Settings'">
+          <i class="bi bi-gear"></i>
+        </button>
+        
+        <!-- System Settings Popup Menu -->
+        <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
+          <div class="popup-header">
+            System Settings
+          </div>
+          <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-people"></i> Teams Management
+          </a>
+          <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-building"></i> Branch Management
+          </a>
+          <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-diagram-3"></i> Department Management
+          </a>
+          <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-tag"></i> Status Management
+          </a>
+        </div>
+
+        <button class="logout-btn" (click)="logout()" [title]="isCollapsed ? 'Logout' : 'Logout'">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
     </div>
   </aside>
 

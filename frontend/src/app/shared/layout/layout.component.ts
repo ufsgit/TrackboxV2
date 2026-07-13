@@ -135,6 +135,16 @@ export class LayoutComponent implements OnInit {
     if (!target.closest('.department-switcher')) {
       this.isDepartmentDropdownOpen = false;
     }
+    if (!target.closest('.system-settings-wrapper')) {
+      this.showSystemSettingsMenu = false;
+    }
+  }
+
+  showSystemSettingsMenu = false;
+
+  toggleSystemSettingsMenu(event: Event) {
+    event.stopPropagation();
+    this.showSystemSettingsMenu = !this.showSystemSettingsMenu;
   }
 
   toggleSidebar() {
@@ -175,7 +185,9 @@ export class LayoutComponent implements OnInit {
     this.isDepartmentDropdownOpen = false;
     this.updateCheckInStatus();
     
-    if (dept === 'CRM') {
+    if (dept === 'System Settings') {
+      this.router.navigate(['/system-settings/teams']);
+    } else if (dept === 'CRM') {
       this.router.navigate(['/crm-dashboard']);
     } else if (dept === 'Leads') {
       this.router.navigate(['/lead-dashboard']);
