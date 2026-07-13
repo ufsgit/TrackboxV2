@@ -1,0 +1,108 @@
+<div class="flow-editor-wrapper">
+  <div class="flow-nav d-flex justify-content-between align-items-center p-3">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-outline-secondary btn-sm" routerLink="/chatbots">
+        <i class="bi bi-arrow-left"></i> Back
+      </button>
+      <h5 class="m-0 font-weight-bold" *ngIf="bot">{{ bot.name }} <small class="text-muted">/ Workflow Editor</small></h5>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary btn-sm px-4" (click)="saveFlow()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+        <i class="bi bi-cloud-check" *ngIf="!saving"></i> Save Workflow
+      </button>
+    </div>
+  </div>
+
+  <div class="flow-main">
+    <!-- Toolbar -->
+    <div class="flow-toolbar p-3">
+      <p class="small text-muted mb-3 uppercase fw-bold" style="font-size: 10px; letter-spacing: 1px;">DRAG & DROP NODES</p>
+      <div class="node-tool" *ngFor="let nt of nodeTypes" (click)="addNode(nt.type)">
+        <div class="icon-circle" [style.background-color]="nt.color">
+          <i class="bi {{ nt.icon }}"></i>
+        </div>
+        <span>{{ nt.label }}</span>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="flow-canvas">
+      <div *ngIf="nodes.length === 0" class="canvas-placeholder">
+        <i class="bi bi-diagram-3 display-1 text-light mb-4"></i>
+        <h3>Empty Canvas</h3>
+        <p class="text-muted">Click a tool on the left to add your first node.</p>
+      </div>
+
+      <div class="node-card" *ngFor="let node of nodes" 
+           [class.selected]="selectedNode?.id === node.id"
+           (click)="selectNode(node)">
+        <div class="node-status-bar" [style.background-color]="getTypeInfo(node.type).color"></div>
+        <div class="node-body">
+          <div class="node-icon">
+            <i class="bi {{ getTypeInfo(node.type).icon }}"></i>
+          </div>
+          <div class="node-content">
+            <p class="small fw-bold mb-1">{{ getTypeInfo(node.type).label }}</p>
+            <p class="node-text-preview">{{ node.content }}</p>
+          </div>
+        </div>
+        <div class="node-footer" *ngIf="node.type === 'interactive'">
+            <span class="badge bg-light text-dark border">{{ node.buttons?.length || 0 }} Buttons</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Properties Panel -->
+    <div class="flow-properties p-4" *ngIf="selectedNode">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h6 class="m-0 fw-bold">Node Settings</h6>
+        <button class="btn btn-icon btn-sm text-danger" (click)="deleteNode(selectedNode.id)">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+
+      <div class="form-group mb-3">
+        <label class="small text-muted mb-1">Display Text</label>
+        <textarea class="form-control form-control-sm" [(ngModel)]="selectedNode.content" rows="4"></textarea>
+      </div>
+
+      <!-- Interactive Options with per-button routing -->
+      <div *ngIf="selectedNode.type === 'interactive'" class="mt-4">
+        <label class="small text-muted mb-2 d-block fw-bold">Buttons & Routing (Max 3)</label>
+        <div *ngFor="let btn of selectedNode.buttons; let i = index" class="btn-route-item mb-3 p-2 border rounded-3 bg-light">
+          <div class="d-flex gap-2 mb-2">
+            <span class="badge text-bg-secondary align-self-center">{{ i + 1 }}</span>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="btn.title" placeholder="Button label (max 20 chars)" maxlength="20">
+            <button class="btn btn-icon btn-sm text-danger" (click)="selectedNode.buttons.splice(i, 1)" *ngIf="selectedNode.buttons.length > 1">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="small text-muted" style="white-space:nowrap">→ Leads to:</span>
+            <select class="form-select form-select-sm" [(ngModel)]="btn.next">
+              <option [ngValue]="null">-- End Flow --</option>
+              <option *ngFor="let n of nodes" [ngValue]="n.id" [hidden]="n.id === selectedNode.id">
+                {{ getTypeInfo(n.type).label }}: {{ n.content | slice:0:25 }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm w-100 mt-1"
+                (click)="addButton()"
+                *ngIf="selectedNode.buttons.length < 3">
+          <i class="bi bi-plus"></i> Add Option
+        </button>
+      </div>
+
+      <!-- Next Node Logic (hidden for interactive since buttons handle routing) -->
+      <div class="form-group mt-4" *ngIf="selectedNode.type !== 'end' && selectedNode.type !== 'transfer' && selectedNode.type !== 'interactive'">
+        <label class="small text-muted mb-1">Next Step</label>
+        <select class="form-select form-select-sm" [(ngModel)]="selectedNode.next">
+          <option [ngValue]="null">-- End Flow --</option>
+          <option *ngFor="let n of nodes" [ngValue]="n.id" [hidden]="n.id === selectedNode.id">{{ n.content | slice:0:30 }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>

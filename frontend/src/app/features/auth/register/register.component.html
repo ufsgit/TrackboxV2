@@ -1,0 +1,120 @@
+<div class="register-page">
+  <div class="register-card">
+    <div class="register-header">
+      <h1>Join WLink</h1>
+      <p>Start your 14-day free trial</p>
+    </div>
+
+    <div class="error-message" *ngIf="error">
+      {{ error }}
+    </div>
+
+    <form (submit)="onSubmit()">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="businessName">Business Name</label>
+          <div class="input-wrapper">
+            <i class="bi bi-building"></i>
+            <input 
+              type="text" 
+              id="businessName" 
+              name="businessName"
+              [(ngModel)]="data.businessName" 
+              class="form-control" 
+              placeholder="Acme Inc."
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <div class="input-wrapper">
+            <i class="bi bi-person"></i>
+            <input 
+              type="text" 
+              id="name" 
+              name="name"
+              [(ngModel)]="data.name" 
+              class="form-control" 
+              placeholder="John Doe"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="whatsappNumber">WhatsApp Number</label>
+          <div class="input-wrapper">
+            <i class="bi bi-whatsapp"></i>
+            <input 
+              type="text" 
+              id="whatsappNumber" 
+              name="whatsappNumber"
+              [(ngModel)]="data.whatsappNumber" 
+              class="form-control" 
+              placeholder="+1234567890"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="email">Email Address</label>
+          <div class="input-wrapper">
+            <i class="bi bi-envelope"></i>
+            <input 
+              type="email" 
+              id="email" 
+              name="email"
+              [(ngModel)]="data.email" 
+              class="form-control" 
+              placeholder="name@company.com"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <i class="bi bi-lock"></i>
+            <input 
+              type="password" 
+              id="password" 
+              name="password"
+              [(ngModel)]="data.password" 
+              class="form-control" 
+              placeholder="••••••••"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="referralCode">Referral Code (Optional)</label>
+          <div class="input-wrapper">
+            <i class="bi bi-ticket-perforated"></i>
+            <input 
+              type="text" 
+              id="referralCode" 
+              name="referralCode"
+              [(ngModel)]="data.referralCode" 
+              class="form-control" 
+              placeholder="PROMO123"
+            >
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="register-btn" [disabled]="loading">
+        <span *ngIf="!loading">Create Account</span>
+        <span *ngIf="loading">Creating account...</span>
+      </button>
+    </form>
+
+    <p class="footer-text">
+      Already have an account? <a routerLink="/login">Sign In</a>
+    </p>
+  </div>
+</div>

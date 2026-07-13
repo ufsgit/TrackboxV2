@@ -1,0 +1,165 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-2" style="color: #1e293b;">Live Location Tracking</h2>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">Monitor field staff locations and routes</p>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+        <i class="bi bi-geo-alt-fill"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Active Trackers</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ activeTrackers }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0fdf4; color: #22c55e;">
+        <i class="bi bi-cursor-fill"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Total Distance</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ totalDistance }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fef2f2; color: #ef4444;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">GPS Alerts</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ alerts }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map Placeholder Area -->
+  <div class="map-card" style="background: white; border-radius: 24px; padding: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); position: relative; height: 300px; overflow: hidden;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' opacity=\'0.05\'><path d=\'M0 0l100 100M100 0L0 100\' stroke=\'%23000\' stroke-width=\'1\'/></svg>') repeat; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+      <i class="bi bi-map text-primary" style="font-size: 3rem; opacity: 0.2;"></i>
+      <p style="color: #94a3b8; margin-top: 16px; font-weight: 500;">Live Map Visualization Area</p>
+    </div>
+    
+    <!-- Mock Map Pins -->
+    <div style="position: absolute; top: 40%; left: 30%; font-size: 1.5rem; color: #ef4444; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); animation: pulse 2s infinite;"><i class="bi bi-geo-alt-fill"></i></div>
+    <div style="position: absolute; top: 60%; left: 70%; font-size: 1.5rem; color: #3b82f6; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));"><i class="bi bi-geo-alt-fill"></i></div>
+    <div style="position: absolute; top: 20%; left: 50%; font-size: 1.5rem; color: #22c55e; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));"><i class="bi bi-geo-alt-fill"></i></div>
+  </div>
+
+  <!-- Data Table Section -->
+  <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+    
+    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Tracking Logs</h5>
+      
+      <div style="position: relative; max-width: 300px; width: 100%;">
+        <i class="bi bi-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+        <input type="text" class="form-control" placeholder="Search employee or location..." [(ngModel)]="searchTerm" style="padding-left: 42px; padding-top: 8px; padding-bottom: 8px; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.9rem;">
+      </div>
+    </div>
+    
+    <div class="table-responsive p-0">
+      <table class="table mb-0 modern-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+        <thead>
+          <tr>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Employee</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Role</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Current Location</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Last Ping</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Status</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Distance Today</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let loc of filteredLocations" style="transition: all 0.2s ease;">
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span class="fw-bold" style="color: #1e293b;">{{ loc.employeeName }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; color: #475569;">
+              {{ loc.role }}
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span style="color: #3b82f6;"><i class="bi bi-geo-alt me-1"></i>{{ loc.currentLocation }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; color: #475569; font-size: 0.9rem;">
+              <i class="bi bi-clock me-1 opacity-50"></i>{{ loc.lastPing }}
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span [class]="getStatusClass(loc.status)">{{ loc.status }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #475569; font-weight: 500;">
+              {{ loc.distanceToday }}
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: center;">
+              <button class="btn btn-sm btn-light" (click)="viewRoute(loc)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569;" title="View Route History">
+                <i class="bi bi-signpost-split text-primary"></i> Route
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Route History Modal -->
+<div *ngIf="isModalOpen && selectedEmployee" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+  <div style="width: 100%; max-width: 500px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden;">
+      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h5 class="fw-bold mb-1" style="color: #1e293b; font-size: 1.15rem;">Route History</h5>
+          <p class="text-muted mb-0" style="font-size: 0.85rem;">{{ selectedEmployee.employeeName }} ({{ selectedEmployee.distanceToday }})</p>
+        </div>
+        <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close" style="font-size: 0.85rem;"></button>
+      </div>
+      <div style="padding: 24px;">
+        <div style="position: relative; padding-left: 24px; border-left: 2px solid #e2e8f0; margin-left: 12px;">
+          <div *ngFor="let point of mockRoutePoints; let last = last" style="position: relative; margin-bottom: 24px;">
+            <div style="position: absolute; left: -31px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: white; border: 3px solid #3b82f6;"></div>
+            <div style="color: #64748b; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">{{ point.time }}</div>
+            <div style="color: #1e293b; font-weight: 500;">{{ point.location }}</div>
+          </div>
+          <!-- Current Location -->
+          <div style="position: relative;">
+            <div style="position: absolute; left: -31px; top: 0; width: 14px; height: 14px; border-radius: 50%; background: #ef4444; border: 3px solid #fca5a5; box-shadow: 0 0 0 4px rgba(239,68,68,0.2);"></div>
+            <div style="color: #ef4444; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">{{ selectedEmployee.lastPing }}</div>
+            <div style="color: #1e293b; font-weight: 500;">{{ selectedEmployee.currentLocation }} (Current)</div>
+          </div>
+        </div>
+      </div>
+      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-light" (click)="closeModal()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; color: #475569; border: 1px solid #e2e8f0; background: white;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+</style>

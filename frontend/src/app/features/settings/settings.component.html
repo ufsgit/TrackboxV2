@@ -1,0 +1,883 @@
+<div class="settings-page">
+  <div class="settings-nav">
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'whatsapp'" (click)="setActiveTab('whatsapp')">
+      <i class="bi bi-cpu me-2"></i>Channels Manager
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team'); loadTeam()">
+      <i class="bi bi-people me-2"></i>Team
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'lead-fields'" (click)="setActiveTab('lead-fields'); loadLeadFields()">
+      <i class="bi bi-list-columns me-2"></i>Lead Fields
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'api'" (click)="setActiveTab('api')">
+      <i class="bi bi-code-slash me-2"></i>API & Webhooks
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'integrations'" (click)="setActiveTab('integrations')">
+      <i class="bi bi-plug me-2"></i>Integrations
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'courses'" (click)="setActiveTab('courses')">
+      <i class="bi bi-journal-bookmark me-2"></i>Courses
+    </a>
+    <!-- 
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'billing'" (click)="activeTab = 'billing'; loadBilling()">
+      <i class="bi bi-credit-card me-2"></i>Billing
+    </a>
+    -->
+  </div>
+
+  <div class="settings-content">
+
+    <!-- ===================== CHANNELS MANAGER ===================== -->
+    <div *ngIf="activeTab === 'whatsapp'">
+      <!-- Upper Intro Section -->
+      <div class="channels-header-card">
+        <div class="channels-intro-left">
+          <div class="intro-icon">
+            <i class="bi bi-cpu"></i>
+          </div>
+          <div>
+            <h3>Connected Channels Hub</h3>
+            <p>Connect and manage multiple social media accounts for WhatsApp, Instagram, and Facebook Messenger. Route incoming messages dynamically to your workspace.</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" (click)="openAddChannel()">
+          <i class="bi bi-plus-lg"></i> Connect New Channel
+        </button>
+      </div>
+
+      <!-- Live Notification Banner -->
+      <div class="alert-info-box" *ngIf="saveSuccess">
+        <i class="bi bi-check-circle-fill"></i> {{ saveSuccess }}
+      </div>
+      <div class="alert-error-box" *ngIf="saveError">
+        <i class="bi bi-x-circle-fill"></i> {{ saveError }}
+      </div>
+
+      <!-- Channels Grid -->
+      <div class="channels-grid-layout mt-4">
+        <!-- Loop over socialAccounts -->
+        <div class="channel-card-premium" *ngFor="let account of socialAccounts"
+          [class.whatsapp]="account.platform === 'whatsapp'"
+          [class.instagram]="account.platform === 'instagram'"
+          [class.facebook]="account.platform === 'facebook'">
+          <!-- Card Glowing Border effect -->
+          <div class="card-glow"></div>
+          
+          <div class="channel-card-body">
+            <!-- Platform Logo & Status -->
+            <div class="channel-header-row">
+              <div class="platform-meta">
+                <div class="platform-badge-icon"
+                  [style.color]="account.platform === 'whatsapp' ? '#25D366' : (account.platform === 'instagram' ? '#E1306C' : '#0084FF')">
+                  <i class="bi"
+                    [class.bi-whatsapp]="account.platform === 'whatsapp'"
+                    [class.bi-instagram]="account.platform === 'instagram'"
+                    [class.bi-messenger]="account.platform === 'facebook'"></i>
+                </div>
+                <div>
+                  <h4 class="channel-title">{{ account.account_name || 'Unnamed Channel' }}</h4>
+                  <span class="platform-text-tag">{{ account.platform === 'facebook' ? 'MESSENGER' : (account.platform | uppercase) }}</span>
+                </div>
+              </div>
+
+              <!-- Active Status Toggle Switch -->
+              <div class="status-toggle-wrap">
+                <span class="status-indicator-text" [class.active]="account.is_active">{{ account.is_active ? 'Active' : 'Disabled' }}</span>
+                <label class="switch">
+                  <input type="checkbox" [checked]="account.is_active" (change)="toggleSocialAccountActive(account)">
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Details List -->
+            <div class="channel-details-box mt-3">
+              <!-- WhatsApp details -->
+              <div class="detail-row" *ngIf="account.platform === 'whatsapp'">
+                <span class="detail-label">Phone Number</span>
+                <span class="detail-val">{{ account.phone_number || '—' }}</span>
+              </div>
+              <div class="detail-row" *ngIf="account.platform === 'whatsapp'">
+                <span class="detail-label">Phone ID</span>
+                <span class="detail-val font-mono">{{ account.phone_id || '—' }}</span>
+              </div>
+              <div class="detail-row" *ngIf="account.platform === 'whatsapp'">
+                <span class="detail-label">WABA ID</span>
+                <span class="detail-val font-mono">{{ account.waba_id || '—' }}</span>
+              </div>
+              <!-- Instagram details -->
+              <div class="detail-row" *ngIf="account.platform === 'instagram'">
+                <span class="detail-label">IG Account ID</span>
+                <span class="detail-val font-mono">{{ account.account_id || '—' }}</span>
+              </div>
+              <div class="detail-row" *ngIf="account.platform === 'instagram'">
+                <span class="detail-label">Facebook Page ID</span>
+                <span class="detail-val font-mono">{{ account.app_id || '—' }}</span>
+              </div>
+              <!-- Facebook Messenger details -->
+              <div class="detail-row" *ngIf="account.platform === 'facebook'">
+                <span class="detail-label">Facebook Page ID</span>
+                <span class="detail-val font-mono">{{ account.app_id || account.account_id || '—' }}</span>
+              </div>
+              <div class="detail-row" *ngIf="account.platform === 'facebook'">
+                <span class="detail-label">Token Status</span>
+                <span class="detail-val" style="color: #0084FF;">{{ account.token ? '● Configured' : '○ Missing' }}</span>
+              </div>
+            </div>
+
+            <!-- Connection Test Result Area -->
+            <div class="connection-test-result mt-3 animate-fade-in" *ngIf="account.testResult">
+              <div class="test-badge" [class.success]="account.testResult.success" [class.failed]="!account.testResult.success">
+                <i class="bi" [class.bi-check-circle-fill]="account.testResult.success" [class.bi-exclamation-triangle-fill]="!account.testResult.success"></i>
+                <span>{{ account.testResult.message }}</span>
+              </div>
+            </div>
+
+            <!-- Card Actions footer -->
+            <div class="channel-card-footer mt-4">
+              <button class="btn btn-sm btn-action-test" (click)="testSocialAccountConnection(account)" [disabled]="account.testing">
+                <i class="bi bi-arrow-repeat spin" *ngIf="account.testing"></i>
+                <i class="bi bi-wifi" *ngIf="!account.testing"></i>
+                {{ account.testing ? 'Testing...' : 'Test Connection' }}
+              </button>
+              
+              <div class="action-btn-group">
+                <button class="btn btn-sm btn-icon-edit" (click)="openEditChannel(account)" title="Edit Credentials">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-sm btn-icon-delete" (click)="deleteSocialAccount(account.id)" title="Disconnect Channel">
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State if no accounts exist -->
+        <div class="channels-empty-state" *ngIf="socialAccounts.length === 0">
+          <div class="empty-state-icon">
+            <i class="bi bi-hdd-network-fill"></i>
+          </div>
+          <h4>No Channels Connected Yet</h4>
+          <p>Bring WLink to life by connecting your first social media communication channel.</p>
+          <button class="btn btn-primary mt-3" (click)="openAddChannel()">
+            <i class="bi bi-plus-lg"></i> Connect Your First Channel
+          </button>
+        </div>
+      </div>
+
+      <!-- Webhook Configuration -->
+      <div class="webhook-section mt-5">
+        <h4 class="section-title">Developer Webhook URLs</h4>
+        <p class="section-desc">To receive inbound messages, copy these URLs and paste them into your Meta Developer Dashboard Webhook Configuration.</p>
+
+        <div class="webhook-cards mt-3">
+          <!-- WhatsApp Webhook -->
+          <div class="webhook-card">
+            <div class="webhook-card-header">
+              <div class="webhook-icon whatsapp"><i class="bi bi-whatsapp"></i></div>
+              <div>
+                <h5>WhatsApp Webhook Endpoint</h5>
+                <p>Receives messages, statuses, delivery & read events</p>
+              </div>
+            </div>
+            <div class="copy-input">
+              <input type="text" class="form-control" [value]="webhookUrl" readonly>
+              <button class="copy-btn" (click)="copyToClipboard(webhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+            </div>
+          </div>
+
+          <!-- Instagram Webhook -->
+          <div class="webhook-card">
+            <div class="webhook-card-header">
+              <div class="webhook-icon instagram"><i class="bi bi-instagram"></i></div>
+              <div>
+                <h5>Instagram Webhook Endpoint</h5>
+                <p>Receives direct messages & story replies</p>
+              </div>
+            </div>
+            <div class="copy-input">
+              <input type="text" class="form-control" [value]="igWebhookUrl" readonly>
+              <button class="copy-btn" (click)="copyToClipboard(igWebhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+            </div>
+          </div>
+
+          <!-- Verify Token -->
+          <div class="webhook-card">
+            <div class="webhook-card-header">
+              <div class="webhook-icon token"><i class="bi bi-shield-lock"></i></div>
+              <div>
+                <h5>Verify Token</h5>
+                <p>Configure this exact verification token in your Meta App Settings</p>
+              </div>
+            </div>
+            <div class="copy-input">
+              <input type="text" class="form-control" [value]="business.fb_verify_token || 'wlink_fb_verify_token'" readonly>
+              <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'wlink_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide-in Drawer Modal overlay for Adding/Editing Channels -->
+      <div class="channel-modal-overlay" *ngIf="showAddChannelModal" (click)="closeChannelModal()">
+        <div class="channel-modal-drawer" (click)="$event.stopPropagation()">
+          <div class="drawer-header">
+            <div>
+              <h3>{{ editingAccount ? 'Edit Channel Credentials' : 'Connect New Channel' }}</h3>
+              <p>{{ editingAccount ? 'Update settings for this social connection' : 'Add another social profile/API link to this account' }}</p>
+            </div>
+            <button class="close-drawer-btn" (click)="closeChannelModal()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <div class="drawer-body">
+            <!-- Platform Selection Segment (Only editable on create) -->
+            <div class="form-group mb-4">
+              <label class="form-label">Platform Selection</label>
+              <div class="platform-segment" *ngIf="!editingAccount">
+                <label class="segment-option" [class.selected]="newChannel.platform === 'whatsapp'">
+                  <input type="radio" name="platform" value="whatsapp" [(ngModel)]="newChannel.platform">
+                  <i class="bi bi-whatsapp"></i> WhatsApp
+                </label>
+                <label class="segment-option" [class.selected]="newChannel.platform === 'instagram'">
+                  <input type="radio" name="platform" value="instagram" [(ngModel)]="newChannel.platform">
+                  <i class="bi bi-instagram"></i> Instagram
+                </label>
+                <label class="segment-option" [class.selected]="newChannel.platform === 'facebook'">
+                  <input type="radio" name="platform" value="facebook" [(ngModel)]="newChannel.platform">
+                  <i class="bi bi-messenger"></i> Messenger
+                </label>
+              </div>
+              <div class="selected-platform-locked" *ngIf="editingAccount">
+                <i class="bi"
+                  [class.bi-whatsapp]="editingAccount.platform === 'whatsapp'"
+                  [class.bi-instagram]="editingAccount.platform === 'instagram'"
+                  [class.bi-messenger]="editingAccount.platform === 'facebook'"></i>
+                <span>{{ editingAccount.platform === 'facebook' ? 'MESSENGER' : (editingAccount.platform | uppercase) }} (Locked)</span>
+              </div>
+            </div>
+
+            <!-- Shared Fields -->
+            <div class="form-group mb-3">
+              <label class="form-label">Connection Name</label>
+              <input type="text" class="form-control" [(ngModel)]="newChannel.account_name" placeholder="e.g., Main Support, Marketing IG" required>
+              <span class="form-hint">Internal name to easily identify this account inside the workspace</span>
+            </div>
+
+            <!-- Platform Specific Form Fields: WHATSAPP -->
+            <div *ngIf="newChannel.platform === 'whatsapp'">
+              <div class="form-group mb-3">
+                <label class="form-label">WhatsApp Phone Number</label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.phone_number" placeholder="e.g., +919876543210" required>
+                <span class="form-hint">Include country code without any spaces or plus sign</span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Phone Number ID</label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.phone_id" placeholder="15-digit Meta phone ID" required>
+                <span class="form-hint">From Meta Developer Dashboard → WhatsApp → API Setup</span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">WhatsApp Business Account ID (WABA ID)</label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.waba_id" placeholder="15-digit WABA ID" required>
+                <span class="form-hint">Found in Meta Developer Dashboard or WhatsApp Business Manager</span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Permanent Access Token</label>
+                <div class="token-input">
+                  <input [type]="showToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token" placeholder="EAABxyz..." required>
+                  <button class="toggle-visibility" (click)="showToken = !showToken">
+                    <i class="bi" [class.bi-eye]="!showToken" [class.bi-eye-slash]="showToken"></i>
+                  </button>
+                </div>
+                <span class="form-hint">Meta developer Access Token with <code>whatsapp_business_messaging</code> scope</span>
+              </div>
+            </div>
+
+            <!-- Platform Specific Form Fields: INSTAGRAM -->
+            <div *ngIf="newChannel.platform === 'instagram'">
+              <div class="form-group mb-3">
+                <label class="form-label">Instagram Business Account ID</label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.account_id" placeholder="IG Account ID" required>
+                <span class="form-hint">Instagram Account ID linked to Facebook Page</span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Facebook Page ID</label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.app_id" placeholder="Facebook Page ID" required>
+                <span class="form-hint">Page ID linked to this Instagram Business account</span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Facebook Page Access Token</label>
+                <div class="token-input">
+                  <input [type]="showIgToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token" placeholder="EAAS..." required>
+                  <button class="toggle-visibility" (click)="showIgToken = !showIgToken">
+                    <i class="bi" [class.bi-eye]="!showIgToken" [class.bi-eye-slash]="showIgToken"></i>
+                  </button>
+                </div>
+                <span class="form-hint">Page Access Token with <code>instagram_basic</code> and <code>instagram_manage_messages</code></span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Instagram App ID <span class="optional">(optional)</span></label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.app_secret" placeholder="Instagram/Meta App ID">
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Instagram App Secret <span class="optional">(optional)</span></label>
+                <div class="token-input">
+                  <input [type]="showIgSecret ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.verify_token" placeholder="Instagram/Meta App Secret">
+                  <button class="toggle-visibility" (click)="showIgSecret = !showIgSecret">
+                    <i class="bi" [class.bi-eye]="!showIgSecret" [class.bi-eye-slash]="showIgSecret"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Platform Specific Form Fields: FACEBOOK MESSENGER -->
+            <div *ngIf="newChannel.platform === 'facebook'">
+              <div class="form-group mb-3">
+                <label class="form-label">Facebook Page ID</label>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.app_id" placeholder="e.g., 1139806642546903" required>
+                <span class="form-hint">Found in your Facebook Page Settings → About → Page ID</span>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label">Facebook Page Access Token</label>
+                <div class="token-input">
+                  <input [type]="showFbToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token" placeholder="EAABxyz..." required>
+                  <button class="toggle-visibility" (click)="showFbToken = !showFbToken">
+                    <i class="bi" [class.bi-eye]="!showFbToken" [class.bi-eye-slash]="showFbToken"></i>
+                  </button>
+                </div>
+                <span class="form-hint">Page Access Token with <code>pages_messaging</code> and <code>pages_read_engagement</code> permissions</span>
+              </div>
+
+              <div class="fb-messenger-info-box">
+                <i class="bi bi-info-circle-fill" style="color: #0084FF;"></i>
+                <div>
+                  <strong>Webhook Setup Reminder</strong>
+                  <p>After saving, go to your Meta Developer Dashboard → Messenger → Webhooks and subscribe to <code>messages</code> and <code>messaging_postbacks</code> events using the webhook URL from the API &amp; Webhooks tab.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drawer Footer Actions -->
+          <div class="drawer-footer">
+            <button class="btn btn-outline-secondary" (click)="closeChannelModal()" [disabled]="saving">Cancel</button>
+            <button class="btn btn-primary" (click)="saveSocialAccount()" [disabled]="saving || !newChannel.account_name || !newChannel.token">
+              <span *ngIf="saving"><i class="bi bi-arrow-repeat spin"></i> Saving...</span>
+              <span *ngIf="!saving"><i class="bi bi-check-lg"></i> {{ editingAccount ? 'Update Credentials' : 'Connect Channel' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== PROFILE ===================== -->
+    <div *ngIf="activeTab === 'profile'" class="profile-tab">
+      <h3 class="section-title">My Profile</h3>
+      <p class="section-desc">Manage your personal information and account settings.</p>
+
+      <div class="profile-layout">
+        <!-- Avatar Card -->
+        <div class="profile-avatar-card">
+          <div class="profile-avatar-circle">
+            <span>{{ business.name ? business.name[0] : 'A' }}</span>
+          </div>
+          <h4 class="profile-display-name">Admin User</h4>
+          <span class="profile-role-badge">Administrator</span>
+          <p class="profile-email-muted">admin&#64;demo.com</p>
+        </div>
+
+        <!-- Profile Form Card -->
+        <div class="profile-form-card">
+          <div class="profile-form-field">
+            <label>Full Name</label>
+            <input type="text" class="form-control" value="Admin User">
+          </div>
+
+          <div class="profile-form-field">
+            <label>Email Address</label>
+            <input type="email" class="form-control" value="admin@demo.com" disabled>
+            <span class="form-hint">Email cannot be changed. Contact support if needed.</span>
+          </div>
+
+          <div class="profile-form-field">
+            <label>Role</label>
+            <input type="text" class="form-control" value="Admin" disabled>
+          </div>
+
+          <div class="profile-form-actions">
+            <button class="btn btn-primary"><i class="bi bi-check-lg"></i> Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== BUSINESS ===================== -->
+    <div *ngIf="activeTab === 'business'" class="business-tab">
+      <h3 class="section-title">Business Settings</h3>
+      <p class="section-desc">Configure your organization's details and subscription.</p>
+
+      <div class="business-form-card">
+        <div class="business-form-grid">
+          <div class="profile-form-field">
+            <label>Business Name</label>
+            <input type="text" class="form-control" [(ngModel)]="business.name" placeholder="Your Business Name">
+          </div>
+
+          <div class="profile-form-field">
+            <label>Current Plan</label>
+            <div class="plan-indicator">
+              <input type="text" class="form-control" [value]="business.plan | titlecase" disabled>
+              <span class="plan-tag">Active</span>
+            </div>
+          </div>
+
+          <div class="profile-form-field">
+            <label>Green Tick Status</label>
+            <input type="text" class="form-control" [value]="business.green_tick_status | titlecase" disabled>
+            <span class="form-hint">Verification is managed by Meta. Apply via Business Manager.</span>
+          </div>
+
+          <div class="profile-form-field">
+            <label>Business ID</label>
+            <input type="text" class="form-control" [value]="business.id || '—'" disabled>
+          </div>
+        </div>
+
+        <div class="profile-form-actions">
+          <button class="btn btn-primary" (click)="saveWhatsAppConfig()"><i class="bi bi-check-lg"></i> Save Business Info</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TEAM ===================== -->
+    <div *ngIf="activeTab === 'team'" class="team-tab">
+      <div class="team-header-container">
+        <div>
+          <h3 class="section-title">Team Members</h3>
+          <p class="section-desc">Manage your team's access, roles, and invitations.</p>
+        </div>
+        <button class="btn btn-primary" (click)="showInvite = !showInvite">
+          <i class="bi bi-person-plus-fill me-2"></i> Invite Agent
+        </button>
+      </div>
+
+      <!-- Invite Form Card -->
+      <div *ngIf="showInvite" class="invite-form-card mb-4">
+        <h5>Invite New Team Member</h5>
+        <div class="invite-form-grid">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" class="form-control" [(ngModel)]="newAgent.name" placeholder="E.g. Jane Doe">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" class="form-control" [(ngModel)]="newAgent.email" placeholder="jane@example.com">
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select class="form-select" [(ngModel)]="newAgent.role">
+              <option value="agent">Agent (Chat Only)</option>
+              <option value="admin">Admin (Full Access)</option>
+            </select>
+          </div>
+          <div class="form-group d-flex align-items-end">
+            <button class="btn btn-primary w-100" (click)="inviteAgent()">
+              <i class="bi bi-send-fill me-2"></i> Send Invite
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Members Table Card -->
+      <div class="team-table-card">
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let member of team">
+              <td>
+                <div class="member-cell">
+                  <div class="member-avatar">
+                    {{ member.name ? member.name[0] : 'U' }}
+                  </div>
+                  <div>
+                    <div class="member-name">{{ member.name }}</div>
+                    <div class="member-email">{{ member.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="role-badge" [class.role-admin]="member.role === 'admin'" [class.role-agent]="member.role === 'agent'">
+                  {{ member.role }}
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [class.status-active]="member.is_active" [class.status-inactive]="!member.is_active">
+                  <span class="status-dot"></span> {{ member.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <button class="action-btn text-danger" (click)="removeAgent(member.id)" title="Remove Member">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="team.length === 0">
+              <td colspan="4" class="text-center py-5 text-muted">
+                <i class="bi bi-people mb-2" style="font-size: 2rem;"></i>
+                <p class="mb-0">No team members added yet.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== API & WEBHOOKS ===================== -->
+    <div *ngIf="activeTab === 'api'">
+      <h3 class="section-title">API Configuration</h3>
+      <p class="section-desc">Paste these callback URLs into your Meta Developer Dashboard for each platform.</p>
+
+      <div class="webhook-cards">
+        <!-- WhatsApp Webhook -->
+        <div class="webhook-card">
+          <div class="webhook-card-header">
+            <div class="webhook-icon whatsapp"><i class="bi bi-whatsapp"></i></div>
+            <div>
+              <h5>WhatsApp Webhook URL</h5>
+              <p>Messages, delivery receipts & read events</p>
+            </div>
+          </div>
+          <div class="copy-input">
+            <input type="text" class="form-control" [value]="webhookUrl" readonly>
+            <button class="copy-btn" (click)="copyToClipboard(webhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+          </div>
+        </div>
+
+        <!-- Instagram Webhook -->
+        <div class="webhook-card">
+          <div class="webhook-card-header">
+            <div class="webhook-icon instagram"><i class="bi bi-instagram"></i></div>
+            <div>
+              <h5>Instagram Webhook URL</h5>
+              <p>Direct messages & story replies</p>
+            </div>
+          </div>
+          <div class="copy-input">
+            <input type="text" class="form-control" [value]="igWebhookUrl" readonly>
+            <button class="copy-btn" (click)="copyToClipboard(igWebhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+          </div>
+        </div>
+
+        <!-- Facebook Messenger Webhook -->
+        <div class="webhook-card">
+          <div class="webhook-card-header">
+            <div class="webhook-icon facebook"><i class="bi bi-facebook"></i></div>
+            <div>
+              <h5>Facebook Messenger Webhook URL</h5>
+              <p>Page messages & postback events</p>
+            </div>
+          </div>
+          <div class="copy-input">
+            <input type="text" class="form-control" [value]="fbWebhookUrl" readonly>
+            <button class="copy-btn" (click)="copyToClipboard(fbWebhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+          </div>
+        </div>
+
+        <!-- Verify Token -->
+        <div class="webhook-card">
+          <div class="webhook-card-header">
+            <div class="webhook-icon token"><i class="bi bi-shield-lock"></i></div>
+            <div>
+              <h5>Verify Token</h5>
+              <p>Shared verification token for all Meta webhooks</p>
+            </div>
+          </div>
+          <div class="copy-input">
+            <input type="text" class="form-control" [value]="business.fb_verify_token || 'wlink_fb_verify_token'" readonly>
+            <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'wlink_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== INTEGRATIONS ===================== -->
+    <div *ngIf="activeTab === 'integrations'" class="integrations-tab">
+      <div class="team-header-container">
+        <div>
+          <h3 class="section-title mb-0">App Integrations</h3>
+          <p class="section-desc">Connect WLink with your favorite tools and platforms.</p>
+        </div>
+      </div>
+
+      <div class="integrations-grid">
+        <div class="integration-card-pro" *ngFor="let intg of integrations" [class.connected]="isIntegrated(intg.key)">
+          <div class="intg-header">
+            <div class="intg-icon-wrapper" [style.color]="intg.color">
+              <i class="bi" [ngClass]="intg.icon"></i>
+            </div>
+            <span class="intg-status" *ngIf="isIntegrated(intg.key)">
+              <i class="bi bi-check-circle-fill"></i> Connected
+            </span>
+          </div>
+          
+          <div class="intg-body">
+            <h4>{{ intg.name }}</h4>
+            <p>{{ intg.desc }}</p>
+          </div>
+          
+          <div class="intg-footer">
+            <button class="btn w-100" 
+              [class.btn-connect]="!isIntegrated(intg.key)" 
+              [class.btn-manage]="isIntegrated(intg.key)"
+              (click)="connectIntegration(intg.key)">
+              {{ isIntegrated(intg.key) ? 'Manage Settings' : 'Connect App' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== LEAD FIELDS ===================== -->
+    <div *ngIf="activeTab === 'lead-fields'" class="lead-fields-tab">
+      <!-- Header -->
+      <div class="team-header-container">
+        <div>
+          <h3 class="section-title mb-0">Lead Field Manager</h3>
+          <p class="section-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns, dates, text fields and more.</p>
+        </div>
+        <button class="btn btn-primary" (click)="openAddFieldModal()">
+          <i class="bi bi-plus-lg me-2"></i> Add New Field
+        </button>
+      </div>
+
+      <!-- Alerts -->
+      <div class="alert-info-box mt-3" *ngIf="saveSuccess">
+        <i class="bi bi-check-circle-fill"></i> {{ saveSuccess }}
+      </div>
+      <div class="alert-error-box mt-3" *ngIf="saveError">
+        <i class="bi bi-x-circle-fill"></i> {{ saveError }}
+      </div>
+
+      <!-- Loading -->
+      <div class="text-center py-5" *ngIf="leadFieldsLoading">
+        <div class="spinner-border text-success"></div>
+      </div>
+
+      <!-- Fields Table -->
+      <div class="team-table-card mt-4" *ngIf="!leadFieldsLoading">
+
+        <!-- Empty state -->
+        <div *ngIf="leadFields.length === 0" class="lf-empty-state">
+          <div class="lf-empty-icon"><i class="bi bi-list-columns"></i></div>
+          <h4>No Custom Fields Yet</h4>
+          <p>Add fields like &quot;Course Selected&quot;, &quot;Date of Birth&quot;, &quot;City&quot;, etc. to enrich your lead profiles.</p>
+          <button class="btn btn-primary mt-2" (click)="openAddFieldModal()">
+            <i class="bi bi-plus-lg me-2"></i> Add Your First Field
+          </button>
+        </div>
+
+        <!-- Fields List -->
+        <table class="table custom-table" *ngIf="leadFields.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Field Label</th>
+              <th>Type</th>
+              <th>Options / Info</th>
+              <th>Required</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let field of leadFields; let i = index">
+              <td class="text-muted" style="font-size:0.8rem;">{{ i + 1 }}</td>
+              <td>
+                <div class="lf-field-name">
+                  <i class="bi" [ngClass]="getFieldTypeIcon(field.field_type)"></i>
+                  <span>{{ field.label }}</span>
+                </div>
+                <div class="lf-field-key">key: {{ field.field_key }}</div>
+              </td>
+              <td>
+                <span class="lf-type-badge" [attr.data-type]="field.field_type">
+                  {{ getFieldTypeLabel(field.field_type) }}
+                </span>
+              </td>
+              <td class="text-muted" style="font-size:0.82rem;">
+                <span *ngIf="field.field_type === 'dropdown' && field.options?.length">
+                  {{ field.options.join(', ') }}
+                </span>
+                <span *ngIf="field.field_type !== 'dropdown'" style="color:#cbd5e1;">—</span>
+              </td>
+              <td>
+                <span class="lf-req-badge" [class.required]="field.is_required" [class.optional]="!field.is_required">
+                  {{ field.is_required ? 'Required' : 'Optional' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <button class="action-btn text-primary me-2" (click)="openEditFieldModal(field)" title="Edit Field">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="action-btn text-danger" (click)="deleteLeadField(field.id)" title="Delete Field">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Info Box -->
+      <div class="lf-info-box mt-4" *ngIf="leadFields.length > 0">
+        <i class="bi bi-lightbulb-fill"></i>
+        <div>
+          <strong>How it works:</strong> These fields appear in the <em>Lead Details</em> panel when you click the eye icon on any contact, and also in the Add/Edit Contact form. Values are stored per contact.
+        </div>
+      </div>
+
+      <!-- Add / Edit Field Modal -->
+      <div class="custom-modal" *ngIf="showAddFieldModal">
+        <div class="modal-backdrop" (click)="closeFieldModal()"></div>
+        <div class="lf-modal-card shadow-lg">
+          <div class="lf-modal-header">
+            <div>
+              <h4 class="mb-0">{{ editingField ? 'Edit Field' : 'Add New Field' }}</h4>
+              <p class="text-muted small mb-0">{{ editingField ? 'Update this custom lead field' : 'Define a new field for your lead profiles' }}</p>
+            </div>
+            <button class="close-btn" (click)="closeFieldModal()">&times;</button>
+          </div>
+
+          <div class="lf-modal-body">
+            <!-- Label -->
+            <div class="form-group mb-4">
+              <label class="lf-form-label">Field Label <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="newField.label" placeholder="e.g. Course Selected, Date of Birth, City">
+              <span class="form-hint">This label will be shown on the contact detail panel and forms.</span>
+            </div>
+
+            <!-- Field Type -->
+            <div class="form-group mb-4">
+              <label class="lf-form-label">Field Type <span class="text-danger">*</span></label>
+              <div class="lf-type-grid">
+                <label class="lf-type-option" *ngFor="let ft of FIELD_TYPES"
+                  [class.selected]="newField.field_type === ft.value">
+                  <input type="radio" name="fieldType" [value]="ft.value" [(ngModel)]="newField.field_type">
+                  <i class="bi" [ngClass]="ft.icon"></i>
+                  <span>{{ ft.label }}</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Dropdown Options (only for dropdown) -->
+            <div class="form-group mb-4" *ngIf="newField.field_type === 'dropdown'">
+              <label class="lf-form-label">Dropdown Options <span class="text-danger">*</span></label>
+              <textarea class="form-control" rows="5" [(ngModel)]="newField.options"
+                placeholder="Enter each option on a new line:
+Engineering
+Medical
+Arts
+Commerce"></textarea>
+              <span class="form-hint">One option per line. These will appear as choices in the dropdown.</span>
+            </div>
+
+            <!-- Required Toggle -->
+            <div class="lf-required-toggle">
+              <div>
+                <div class="lf-toggle-label">Required Field</div>
+                <div class="lf-toggle-hint">Contact cannot be saved without filling this field</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="newField.is_required">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="lf-modal-footer">
+            <button class="btn btn-outline-secondary" (click)="closeFieldModal()" [disabled]="fieldSaving">Cancel</button>
+            <button class="btn btn-primary" (click)="saveLeadField()" [disabled]="fieldSaving || !newField.label">
+              <span *ngIf="fieldSaving"><i class="bi bi-arrow-repeat spin"></i> Saving...</span>
+              <span *ngIf="!fieldSaving"><i class="bi bi-check-lg me-1"></i>{{ editingField ? 'Update Field' : 'Add Field' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== BILLING ===================== -->
+    <div *ngIf="activeTab === 'billing'" class="billing-tab">
+      <div class="team-header-container">
+        <div>
+          <h3 class="section-title mb-0">Billing & Subscription</h3>
+          <p class="section-desc">Manage your plan, payment methods, and billing history.</p>
+        </div>
+      </div>
+
+      <!-- Current Subscription Banner -->
+      <div class="current-plan-banner" *ngIf="billingData">
+        <div class="banner-left">
+          <div class="plan-icon"><i class="bi bi-star-fill"></i></div>
+          <div>
+            <h4 class="mb-1">Current Plan: <strong>{{ (billingData.plan || 'Starter') | titlecase }}</strong></h4>
+            <p class="mb-0 text-muted small">Your next billing date is <strong>Oct 1, 2026</strong>. <a href="#" class="text-primary text-decoration-none fw-bold">View invoices</a></p>
+          </div>
+        </div>
+        <div class="banner-right">
+          <button class="btn btn-outline-secondary btn-sm me-2">Cancel Plan</button>
+          <button class="btn btn-primary btn-sm">Update Payment Method</button>
+        </div>
+      </div>
+
+      <h4 class="mt-5 mb-4" style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.2rem; color: #0f172a;">Available Plans</h4>
+
+      <div class="plan-grid" *ngIf="billingData">
+        <div class="plan-card" *ngFor="let plan of billingPlans" [class.current]="billingData.plan === plan.key">
+          <div class="plan-badge" *ngIf="billingData.plan === plan.key">Current Plan</div>
+          <h4>{{ plan.name }}</h4>
+          <p class="plan-desc text-muted small mb-4">Perfect for {{ plan.name === 'Starter' ? 'small businesses' : plan.name === 'Pro' ? 'growing teams' : 'large enterprises' }}</p>
+          
+          <div class="plan-price">
+            <span class="currency">₹</span>{{ plan.price }}<span class="period">/mo</span>
+          </div>
+          
+          <ul class="plan-features">
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.contacts | number }}</strong> Contacts</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.broadcasts }}</strong> Broadcasts/mo</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.agents }}</strong> Team Members</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Basic Support</li>
+          </ul>
+          
+          <button class="btn w-100 mt-auto" 
+            [class.btn-primary]="billingData.plan !== plan.key" 
+            [class.btn-outline-secondary]="billingData.plan === plan.key" 
+            [disabled]="billingData.plan === plan.key">
+            {{ billingData.plan === plan.key ? 'Active Plan' : 'Upgrade to ' + plan.name }}
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ===================== COURSES ===================== -->
+    <div *ngIf="activeTab === 'courses'">
+      <app-course-management></app-course-management>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,145 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header & Filters -->
+  <style>
+    .custom-export-dropdown { position: relative; display: inline-block; }
+    .custom-export-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 1050;
+      background: white;
+      min-width: 140px;
+      margin-top: 8px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 8px 0;
+      list-style: none;
+      border: 1px solid #e2e8f0;
+    }
+    .custom-export-menu a {
+      display: block;
+      padding: 8px 16px;
+      color: #1e293b;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .custom-export-menu a:hover {
+      background-color: #f8fafc;
+    }
+    .custom-export-dropdown:focus-within .custom-export-menu {
+      display: block;
+    }
+  </style>
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
+    <!-- Left side: Title and Dates -->
+    <div style="display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+      <div>
+        <h2 class="fw-bold mb-1" style="color: #1e293b; margin: 0;">Installation Report</h2>
+        <p class="text-muted mb-0" style="font-size: 0.95rem; margin: 0;">Analyze installation metrics and trends</p>
+      </div>
+      
+      <div style="background-color: #e2e8f0; width: 2px; height: 40px; margin: 0 8px;"></div>
+      
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 0.875rem; font-weight: 600; color: #6c757d; white-space: nowrap; margin: 0;">Start Date</label>
+          <input type="date" class="form-control" [(ngModel)]="startDate" style="border-radius: 8px; border: 1px solid #cbd5e1; width: auto; background: white;">
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 0.875rem; font-weight: 600; color: #6c757d; white-space: nowrap; margin: 0;">End Date</label>
+          <input type="date" class="form-control" [(ngModel)]="endDate" style="border-radius: 8px; border: 1px solid #cbd5e1; width: auto; background: white;">
+        </div>
+        <button class="btn btn-primary" (click)="generateReport()" style="border-radius: 8px; font-weight: 600; padding: 8px 24px; height: 100%;">
+          Generate
+        </button>
+      </div>
+    </div>
+    
+    <!-- Right side: Buttons -->
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <div class="custom-export-dropdown">
+        <button class="btn btn-outline-secondary" type="button" style="border-radius: 8px; font-weight: 600; padding: 8px 24px;">
+          <i class="bi bi-download me-2"></i> Export
+        </button>
+        <ul class="custom-export-menu">
+          <li><a href="javascript:void(0)" (click)="exportReport('PDF')"><i class="bi bi-file-pdf text-danger me-2"></i> PDF</a></li>
+          <li><a href="javascript:void(0)" (click)="exportReport('Excel')"><i class="bi bi-file-excel text-success me-2"></i> Excel</a></li>
+          <li><a href="javascript:void(0)" (click)="exportReport('CSV')"><i class="bi bi-file-text text-secondary me-2"></i> CSV</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Chart -->
+    <div class="col-12">
+      <div class="chart-card h-100" style="background: white; border-radius: 24px; padding: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8);">
+        <h5 class="fw-bold mb-4" style="color: #1e293b;">Installations Over Time</h5>
+        <div style="height: 350px;">
+          <canvas baseChart [data]="barChartData" [options]="barChartOptions" [type]="barChartType"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table Section -->
+    <div class="col-12">
+      <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+        <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+          <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Detailed Metrics</h5>
+        </div>
+        
+        <div class="table-responsive p-0">
+          <table class="table mb-0 modern-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+            <thead>
+              <tr>
+                <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Period</th>
+                <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Total</th>
+                <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Completed</th>
+                <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Pending</th>
+                <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Avg Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of reportData" style="transition: all 0.2s ease;">
+                <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; font-weight: 600; color: #334155;">
+                  {{ row.date }}
+                </td>
+                <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #475569;">
+                  {{ row.total }}
+                </td>
+                <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: 600; color: #22c55e;">
+                  {{ row.completed }}
+                </td>
+                <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right; font-weight: 600; color: #f59e0b;">
+                  {{ row.pending }}
+                </td>
+                <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #475569;">
+                  {{ row.avgTime }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Toast Notification -->
+<div *ngIf="toastMessage" class="toast-notification" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 9999; display: flex; align-items: center; gap: 12px; animation: slideInUp 0.3s ease-out;">
+  <i class="bi bi-info-circle-fill text-info fs-5"></i>
+  <span style="font-weight: 500;">{{ toastMessage }}</span>
+  <button class="btn-close btn-close-white ms-auto" (click)="toastMessage = null" style="font-size: 0.75rem;"></button>
+</div>
+
+<style>
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+</style>

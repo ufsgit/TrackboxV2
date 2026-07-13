@@ -1,0 +1,365 @@
+<div class="templates-page">
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 style="font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">Message Templates</h2>
+      <p class="text-muted mt-1">Manage your pre-approved WhatsApp and RCS message templates.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-light shadow-sm fw-bold px-4 py-2" (click)="syncTemplates()" [disabled]="loading" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+        <i class="bi bi-arrow-repeat me-2" [class.spin]="loading"></i> Sync from Meta
+      </button>
+      <button class="btn btn-primary px-4 py-2 shadow-sm" (click)="showModal = true" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
+        <i class="bi bi-plus-lg me-2"></i> Create Template
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ META APPROVAL GUIDE ═══════════════════════════════════════════ -->
+  <div class="approval-guide-banner mb-4">
+    <div class="guide-header" (click)="showGuide = !showGuide" style="cursor:pointer;">
+      <div class="guide-header-left">
+        <div class="guide-icon"><i class="bi bi-shield-check"></i></div>
+        <div>
+          <h5 class="mb-0">📋 How to Get Your Template Approved by Meta</h5>
+          <p class="mb-0">Follow these rules to avoid rejection and get approved fast.</p>
+        </div>
+      </div>
+      <i class="bi" [ngClass]="showGuide ? 'bi-chevron-up' : 'bi-chevron-down'" style="font-size:1.1rem; color:#6366f1;"></i>
+    </div>
+
+    <div class="guide-body" *ngIf="showGuide">
+
+      <!-- Quick Rules Grid -->
+      <div class="guide-rules-grid">
+
+        <!-- Name -->
+        <div class="guide-rule-card">
+          <div class="rule-icon" style="background:rgba(99,102,241,0.08); color:#6366f1;">
+            <i class="bi bi-input-cursor-text"></i>
+          </div>
+          <div>
+            <div class="rule-title">Template Name</div>
+            <div class="rule-desc">Use only <strong>lowercase letters, numbers and underscores</strong>. No spaces or special characters.</div>
+            <div class="rule-examples">
+              <span class="ex-good">✅ order_confirmation</span>
+              <span class="ex-good">✅ welcome_v2</span>
+              <span class="ex-bad">❌ Order Confirmation</span>
+              <span class="ex-bad">❌ welcome-msg!</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category -->
+        <div class="guide-rule-card">
+          <div class="rule-icon" style="background:rgba(16,185,129,0.08); color:#059669;">
+            <i class="bi bi-tag"></i>
+          </div>
+          <div>
+            <div class="rule-title">Category Selection</div>
+            <div class="rule-desc">Pick the <strong>correct category</strong> — Meta checks if content matches.</div>
+            <div class="rule-examples">
+              <span class="ex-good">✅ UTILITY — orders, OTPs, reminders</span>
+              <span class="ex-good">✅ MARKETING — offers, promotions</span>
+              <span class="ex-good">✅ AUTHENTICATION — login codes</span>
+              <span class="ex-bad">❌ Using UTILITY for pure promotions</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="guide-rule-card">
+          <div class="rule-icon" style="background:rgba(245,158,11,0.08); color:#b45309;">
+            <i class="bi bi-chat-text"></i>
+          </div>
+          <div>
+            <div class="rule-title">Body Text Rules</div>
+            <div class="rule-desc">Be clear and honest. Avoid spam-trigger words and excessive caps.</div>
+            <div class="rule-examples">
+              <span class="ex-good">✅ "Hi &#123;&#123;1&#125;&#125;, your order #&#123;&#123;2&#125;&#125; has been confirmed."</span>
+              <span class="ex-bad">❌ "BUY NOW!!! LIMITED OFFER!!!"</span>
+              <span class="ex-bad">❌ Vague variables like "Click &#123;&#123;1&#125;&#125;" with no context</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Variables -->
+        <div class="guide-rule-card">
+          <div class="rule-icon" style="background:rgba(6,182,212,0.08); color:#0891b2;">
+            <i class="bi bi-braces"></i>
+          </div>
+          <div>
+            <div class="rule-title">Variables &#123;&#123;1&#125;&#125;</div>
+            <div class="rule-desc">Variables must be sequential starting from <code>&#123;&#123;1&#125;&#125;</code>. The surrounding text must make the variable's meaning obvious.</div>
+            <div class="rule-examples">
+              <span class="ex-good">✅ "Hello &#123;&#123;1&#125;&#125;, your OTP is &#123;&#123;2&#125;&#125;."</span>
+              <span class="ex-bad">❌ Starting at &#123;&#123;2&#125;&#125; or skipping numbers</span>
+              <span class="ex-bad">❌ Entire body is just "&#123;&#123;1&#125;&#125;"</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="guide-rule-card">
+          <div class="rule-icon" style="background:rgba(124,58,237,0.08); color:#7c3aed;">
+            <i class="bi bi-card-text"></i>
+          </div>
+          <div>
+            <div class="rule-title">Footer (Marketing)</div>
+            <div class="rule-desc">For <strong>MARKETING</strong> templates, always include an opt-out line in the footer. Meta may reject without it.</div>
+            <div class="rule-examples">
+              <span class="ex-good">✅ "Reply STOP to unsubscribe"</span>
+              <span class="ex-good">✅ "To opt out, reply STOP"</span>
+              <span class="ex-bad">❌ Leaving footer empty on marketing templates</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="guide-rule-card">
+          <div class="rule-icon" style="background:rgba(239,68,68,0.08); color:#dc2626;">
+            <i class="bi bi-ui-checks"></i>
+          </div>
+          <div>
+            <div class="rule-title">Buttons (Optional)</div>
+            <div class="rule-desc">Max 3 buttons. Button text must match the button action clearly.</div>
+            <div class="rule-examples">
+              <span class="ex-good">✅ Quick Reply: "Yes" / "No" / "Stop"</span>
+              <span class="ex-good">✅ URL: "Track Order" → your website</span>
+              <span class="ex-bad">❌ URL button with a non-HTTPS link</span>
+              <span class="ex-bad">❌ More than 3 buttons</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Tips Row -->
+      <div class="guide-tips-row mt-4">
+        <div class="guide-tip tip-green">
+          <i class="bi bi-lightning-charge-fill"></i>
+          <div><strong>Fastest Approval:</strong> Use UTILITY category with transactional content (orders, appointments, OTPs). Usually approved within minutes.</div>
+        </div>
+        <div class="guide-tip tip-blue">
+          <i class="bi bi-arrow-repeat"></i>
+          <div><strong>After Creating:</strong> Click <strong>Submit to Meta</strong> on the template card. Then use <strong>Sync from Meta</strong> to check approval status.</div>
+        </div>
+        <div class="guide-tip tip-red">
+          <i class="bi bi-x-octagon-fill"></i>
+          <div><strong>Auto-Rejected By Meta:</strong> Deceptive content, phishing URLs, drug/weapon references, political content, adult content.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+  <div class="template-grid">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="text-center py-5 w-100" style="grid-column: 1 / -1;">
+      <div class="spinner-border text-primary"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && templates.length === 0" class="empty-state" style="grid-column: 1 / -1;">
+      <i class="bi bi-file-earmark-text icon d-block"></i>
+      <h3>No Templates Found</h3>
+      <p>Create or sync templates from Meta to start sending broadcasts.</p>
+    </div>
+
+    <!-- Template Cards -->
+    <div *ngFor="let t of templates" class="template-card" [class.approved]="(t.status || '').toUpperCase() === 'APPROVED'" [class.pending]="(t.status || '').toUpperCase() === 'PENDING' || !t.status" [class.rejected]="(t.status || '').toUpperCase() === 'REJECTED'">
+      <div class="template-header">
+        <span class="category-badge">{{ t.category }}</span>
+        <span class="status-badge" [ngClass]="'status-' + (t.status || 'pending').toLowerCase()">
+          <i class="bi bi-circle-fill" style="font-size: 0.4rem; margin-right: 2px;"></i>
+          {{ t.status || 'PENDING' }}
+        </span>
+      </div>
+      
+      <div class="template-body">
+        <h5 class="template-name d-flex align-items-center gap-2">
+          <i class="bi bi-chat-left-text text-muted" style="font-size: 0.95rem;"></i>
+          {{ t.name }}
+        </h5>
+        
+        <!-- Beautiful Mini WhatsApp Chat Bubble Preview -->
+        <div class="template-preview-chat-bg">
+          <div class="mini-wa-bubble shadow-sm">
+            <div class="preview-header" *ngIf="t.header_content">{{ t.header_content }}</div>
+            <div class="preview-body">{{ t.body }}</div>
+            <div class="preview-footer" *ngIf="t.footer">{{ t.footer }}</div>
+            <div class="time-stamp-wa">
+              <span>12:30 PM</span>
+              <i class="bi bi-check2-all"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="template-footer-actions">
+        <div class="small text-muted fw-semibold"><i class="bi bi-globe me-1"></i> {{ t.language }}</div>
+        <button class="btn btn-icon text-danger btn-sm" (click)="deleteTemplate(t.id)" style="background: rgba(239, 68, 68, 0.05); width: 32px; height: 32px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center;">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Template Modal -->
+<div class="custom-modal" *ngIf="showModal">
+  <div class="modal-backdrop" (click)="showModal = false"></div>
+  <div class="modal-card modal-card-wide shadow-lg">
+    <div class="modal-header bg-light">
+      <h4 class="mb-0">Create WhatsApp Template</h4>
+      <button class="close-btn" (click)="showModal = false">&times;</button>
+    </div>
+    
+    <div class="modal-body p-0 modal-body-split">
+      <!-- Left Column: Form Section -->
+      <div class="modal-form-side">
+        <div class="form-group mb-4 pb-2 pt-2">
+          <label class="form-label fw-bold text-dark mb-2 d-block" style="font-size: 0.95rem; display: block !important;">Template Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control form-control-lg premium-input w-100" [(ngModel)]="newTemplate.name" placeholder="e.g. welcome_message">
+          <p class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i> Use lowercase, underscores only.</p>
+        </div>
+
+        <div class="d-flex gap-4 w-100 mb-4 pb-2" style="display: flex !important; flex-direction: row !important; width: 100% !important;">
+          <div style="flex: 1 !important; min-width: 0;">
+            <label class="form-label fw-bold text-dark mb-2 d-block" style="font-size: 0.95rem; display: block !important;">Category</label>
+            <select class="form-select form-select-lg premium-input" [(ngModel)]="newTemplate.category" style="width: 100% !important; display: block !important;">
+              <option value="MARKETING">Marketing</option>
+              <option value="UTILITY">Utility</option>
+              <option value="AUTHENTICATION">Authentication</option>
+            </select>
+          </div>
+          <div style="flex: 1 !important; min-width: 0;">
+            <label class="form-label fw-bold text-dark mb-2 d-block" style="font-size: 0.95rem; display: block !important;">Language</label>
+            <select class="form-select form-select-lg premium-input" [(ngModel)]="newTemplate.language" style="width: 100% !important; display: block !important;">
+              <option value="en_US">English (US)</option>
+              <option value="hi_IN">Hindi</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mb-4 pb-2">
+          <label class="form-label fw-bold text-dark mb-2 d-block" style="font-size: 0.95rem; display: block !important;">Header <span class="text-muted fw-normal">(Optional)</span></label>
+          <input type="text" class="form-control form-control-lg premium-input w-100" [(ngModel)]="newTemplate.header_content" placeholder="Header text">
+        </div>
+
+        <div class="form-group mb-4 pb-2">
+          <label class="form-label fw-bold text-dark mb-2 d-block" style="font-size: 0.95rem; display: block !important;">Body Text <span class="text-danger">*</span></label>
+          <textarea class="form-control form-control-lg premium-input w-100" rows="4" [(ngModel)]="newTemplate.body" placeholder="Hello {{1}}, welcome to WLink!"></textarea>
+          <p class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i> Use {{1}}, {{2}} for variables.</p>
+        </div>
+
+        <div class="form-group mb-4 pb-2">
+          <label class="form-label fw-bold text-dark mb-2 d-block" style="font-size: 0.95rem; display: block !important;">Footer <span class="text-muted fw-normal">(Optional)</span></label>
+          <input type="text" class="form-control form-control-lg premium-input w-100" [(ngModel)]="newTemplate.footer" placeholder="Footer text">
+        </div>
+
+        <div class="form-group mb-4 pb-2 border-top pt-4">
+          <label class="form-label d-flex justify-content-between align-items-center fw-bold text-dark mb-3" style="font-size: 0.95rem; display: flex !important; justify-content: space-between !important; align-items: center !important;">
+            Interactive Buttons
+            <button class="btn btn-sm btn-outline-primary" (click)="addButton()" [disabled]="newTemplate.buttons?.length >= 3" style="border-radius: 8px; font-weight: 600;">
+              <i class="bi bi-plus"></i> Add Button
+            </button>
+          </label>
+          <div *ngFor="let btn of newTemplate.buttons; let i = index" class="d-flex gap-2 mb-3 p-3 border rounded bg-light align-items-center">
+            <select class="form-select premium-input w-auto mb-0" [(ngModel)]="btn.type" style="padding: 10px 30px 10px 12px; font-size: 0.85rem; border-radius: 8px;">
+              <option value="QUICK_REPLY">Quick Reply</option>
+              <option value="URL">Visit Website</option>
+              <option value="PHONE_NUMBER">Call Phone</option>
+            </select>
+            <div class="flex-grow-1">
+              <input type="text" class="form-control premium-input mb-2" [(ngModel)]="btn.text" placeholder="Button Text (e.g. Stop, Visit)" style="padding: 10px 12px; font-size: 0.85rem; border-radius: 8px;">
+              <input *ngIf="btn.type === 'URL'" type="text" class="form-control premium-input" [(ngModel)]="btn.url" placeholder="https://..." style="padding: 10px 12px; font-size: 0.85rem; border-radius: 8px;">
+              <input *ngIf="btn.type === 'PHONE_NUMBER'" type="text" class="form-control premium-input" [(ngModel)]="btn.phone_number" placeholder="+1234567890" style="padding: 10px 12px; font-size: 0.85rem; border-radius: 8px;">
+            </div>
+            <button class="btn btn-icon text-danger align-self-start mt-1" (click)="removeButton(i)" style="background: rgba(239, 68, 68, 0.05); width: 32px; height: 32px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <p class="small text-muted mt-2 mb-0" *ngIf="!newTemplate.buttons || newTemplate.buttons.length === 0">
+            <i class="bi bi-info-circle me-1"></i> No buttons added. You can add up to 3 buttons.
+          </p>
+        </div>
+      </div>
+
+      <!-- Right Column: Smartphone Live Preview Mockup -->
+      <div class="modal-preview-side">
+        <!-- Phone Outline -->
+        <div class="shadow-lg border" style="background-color: #efeae2; border-radius: 36px; width: 100%; max-width: 330px; height: 500px; overflow: hidden; border: 8px solid #1e293b !important; display: flex; flex-direction: column; position: relative; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3) !important;">
+          <!-- Top Notch/Speaker area of Phone -->
+          <div style="background-color: #1e293b; height: 20px; width: 100%; display: flex; justify-content: center; align-items: center;">
+            <div style="width: 70px; height: 4px; background: #475569; border-radius: 2px;"></div>
+          </div>
+          <!-- WhatsApp App Header -->
+          <div class="d-flex align-items-center gap-2 px-3 py-2 text-white shadow-sm" style="background: #075E54; width: 100%; height: 52px;">
+            <i class="bi bi-chevron-left" style="font-size: 0.85rem;"></i>
+            <div style="background: #128C7E; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; color: white;">
+              W
+            </div>
+            <div class="flex-grow-1" style="min-width: 0;">
+              <div class="fw-bold text-truncate" style="font-size: 0.85rem; line-height: 1.2;">WLink Business</div>
+              <div style="font-size: 0.65rem; opacity: 0.85; font-weight: 500;">online</div>
+            </div>
+          </div>
+          <!-- WhatsApp Chat Area -->
+          <div class="flex-grow-1 p-3 d-flex flex-column justify-content-between" style="background-image: radial-gradient(#dfdcd6 1px, transparent 1px); background-size: 15px 15px; background-color: #efeae2; overflow-y: auto;">
+            <div class="d-flex flex-column align-items-start gap-1 w-100">
+              
+              <!-- WhatsApp Bubble -->
+              <div class="wa-message-bubble shadow-sm w-100" style="margin-bottom: 8px;">
+                <!-- Header (dynamic) -->
+                <div class="fw-bold mb-1 text-dark" style="font-size: 0.85rem;" *ngIf="newTemplate.header_content">
+                  {{ newTemplate.header_content }}
+                </div>
+                <!-- Body (dynamic) -->
+                <div class="text-secondary" style="font-size: 0.8rem; white-space: pre-wrap; word-break: break-word;">
+                  {{ newTemplate.body || 'This is your message body. Variables like {{1}} will be populated live.' }}
+                </div>
+                <!-- Footer (dynamic) -->
+                <div class="text-muted mt-2" style="font-size: 0.7rem; border-top: 1px dashed #e2e8f0; padding-top: 6px;" *ngIf="newTemplate.footer">
+                  {{ newTemplate.footer }}
+                </div>
+                <!-- Time & Read Status -->
+                <div class="text-end text-muted mt-1 d-flex align-items-center justify-content-end gap-1" style="font-size: 0.6rem;">
+                  <span>12:30 PM</span>
+                  <i class="bi bi-check2-all text-primary" style="font-size: 0.75rem;"></i>
+                </div>
+              </div>
+
+              <!-- Action Buttons Preview -->
+              <div class="d-flex flex-column gap-1 w-100" *ngIf="newTemplate.buttons?.length > 0">
+                <div *ngFor="let btn of newTemplate.buttons" class="d-flex align-items-center justify-content-center py-2 px-3 bg-white border rounded shadow-sm text-primary fw-semibold" style="font-size: 0.75rem; cursor: pointer; border-color: #e2e8f0 !important; background: #ffffff !important; transition: background 0.2s;">
+                  <i class="bi me-2" [class.bi-reply-fill]="btn.type === 'QUICK_REPLY'" [class.bi-box-arrow-up-right]="btn.type === 'URL'" [class.bi-telephone-fill]="btn.type === 'PHONE_NUMBER'" style="color: #3b82f6;"></i>
+                  {{ btn.text || 'Button label' }}
+                </div>
+              </div>
+
+            </div>
+            
+            <!-- Bottom Chat Bar Mockup -->
+            <div class="d-flex align-items-center gap-2 w-100 mt-2">
+              <div class="flex-grow-1 bg-white rounded-pill px-3 py-1 shadow-sm d-flex align-items-center justify-content-between" style="height: 28px; border: 1px solid #e2e8f0;">
+                <span class="text-muted" style="font-size: 0.7rem;">Message</span>
+                <i class="bi bi-emoji-smile text-muted" style="font-size: 0.8rem;"></i>
+              </div>
+              <div style="background: #128C7E; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-mic-fill text-white" style="font-size: 0.7rem;"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer bg-light border-top-0 p-4">
+      <button class="btn btn-light px-4 py-2 shadow-sm" (click)="showModal = false" style="border-radius: 12px; font-weight: 600;">Cancel</button>
+      <button class="btn btn-primary px-5 py-2 shadow-sm ms-3" (click)="saveTemplate()" [disabled]="!newTemplate.name || !newTemplate.body" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
+        Submit for Approval
+      </button>
+    </div>
+  </div>
+</div>

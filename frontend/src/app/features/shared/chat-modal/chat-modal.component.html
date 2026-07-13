@@ -1,0 +1,12 @@
+<div class="chat-modal-overlay" (click)="closeModal()">
+  <div class="chat-modal-card" (click)="$event.stopPropagation()">
+    <!-- Wrapper for Inbox component -->
+    <div class="embedded-inbox-wrapper">
+      <app-inbox 
+        [isEmbedded]="true" 
+        [embeddedConvoId]="convoId" 
+        (closeEmbedded)="closeModal()">
+      </app-inbox>
+    </div>
+  </div>
+</div>

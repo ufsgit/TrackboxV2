@@ -1,0 +1,234 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-2" style="color: #1e293b;">Employees Directory</h2>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">Manage employee records and access</p>
+    </div>
+    <button class="btn btn-primary" (click)="addEmployee()" style="padding: 10px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); border: none; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+      <i class="bi bi-person-plus-fill me-2"></i> Add Employee
+    </button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Total Employees</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ totalEmployees }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0fdf4; color: #22c55e;">
+        <i class="bi bi-person-check-fill"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Active</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ activeEmployees }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fffbeb; color: #f59e0b;">
+        <i class="bi bi-person-rolodex"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">On Leave</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ onLeaveEmployees }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fef2f2; color: #ef4444;">
+        <i class="bi bi-person-dash-fill"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Inactive</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ inactiveEmployees }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table Section -->
+  <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+    
+    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">All Employees</h5>
+      
+      <div style="position: relative; max-width: 300px; width: 100%;">
+        <i class="bi bi-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+        <input type="text" class="form-control" placeholder="Search employees..." [(ngModel)]="searchTerm" (ngModelChange)="filterEmployees()" style="padding-left: 42px; padding-top: 8px; padding-bottom: 8px; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.9rem;">
+      </div>
+    </div>
+    
+    <div class="table-responsive p-0">
+      <table class="table mb-0 modern-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+        <thead>
+          <tr>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">ID</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Employee</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Department / Role</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Status</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let emp of filteredEmployees" style="transition: all 0.2s ease;">
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span class="fw-bold" style="color: #3b82f6;">{{ emp.id }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <div style="font-weight: 600; color: #1e293b;">{{ emp.name }}</div>
+              <div style="font-size: 0.85rem; color: #64748b;">{{ emp.email }}</div>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <div style="color: #475569; font-weight: 500;">{{ emp.department }}</div>
+              <div style="font-size: 0.85rem; color: #94a3b8;">{{ emp.role }}</div>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; cursor: pointer;" (click)="toggleStatus(emp)" title="Click to toggle status">
+              <span *ngIf="emp.status === 'Active'" class="badge rounded-pill bg-success-subtle text-success px-3 py-2">Active</span>
+              <span *ngIf="emp.status === 'Inactive'" class="badge rounded-pill bg-danger-subtle text-danger px-3 py-2">Inactive</span>
+              <span *ngIf="emp.status === 'On Leave'" class="badge rounded-pill bg-warning-subtle text-warning px-3 py-2">On Leave</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right;">
+              <div class="d-flex justify-content-end align-items-center">
+                <button class="btn btn-sm btn-light" (click)="editEmployee(emp)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569;" title="Edit Employee">
+                  <i class="bi bi-pencil-fill text-primary"></i>
+                </button>
+                <button class="btn btn-sm btn-light" (click)="confirmDelete(emp.id)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; margin-left: 8px;" title="Delete Employee">
+                  <i class="bi bi-trash-fill text-danger"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredEmployees.length === 0">
+            <td colspan="5" class="text-center py-5 text-muted">
+              No employees found matching your search.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add/Edit Employee Modal -->
+<div *ngIf="showEmployeeModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+  <div style="width: 100%; max-width: 600px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;">
+      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center;">
+        <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">{{ isEditing ? 'Edit Employee' : 'Add New Employee' }}</h5>
+        <button type="button" class="btn-close" (click)="closeEmployeeModal()" aria-label="Close" style="font-size: 0.85rem;"></button>
+      </div>
+      <div style="padding: 24px;">
+        <div class="row g-3">
+          
+          <div class="col-md-6">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Employee ID</label>
+            <input type="text" class="form-control" [(ngModel)]="employeeForm.id" disabled style="background: #f8fafc;">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Join Date</label>
+            <input type="date" class="form-control" [(ngModel)]="employeeForm.joinDate">
+          </div>
+
+          <div class="col-md-12">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Full Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="employeeForm.name" placeholder="E.g. John Doe">
+          </div>
+          
+          <div class="col-md-12">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Email Address <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" [(ngModel)]="employeeForm.email" placeholder="john@company.com">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Department <span class="text-danger">*</span></label>
+            <select class="form-select" [(ngModel)]="employeeForm.department">
+              <option value="" disabled selected>Select Department</option>
+              <option value="IT Support">IT Support</option>
+              <option value="HR">HR</option>
+              <option value="Finance">Finance</option>
+              <option value="Sales">Sales</option>
+              <option value="Operations">Operations</option>
+            </select>
+          </div>
+          
+          <div class="col-md-6">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Role <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="employeeForm.role" placeholder="E.g. Sales Executive">
+          </div>
+
+          <div class="col-md-12">
+            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Status</label>
+            <select class="form-select" [(ngModel)]="employeeForm.status">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="On Leave">On Leave</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn btn-light" (click)="closeEmployeeModal()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px;">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="saveEmployee()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">{{ isEditing ? 'Save Changes' : 'Create Employee' }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+  <div style="width: 100%; max-width: 400px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; text-align: center; padding: 32px 24px;">
+      <div style="width: 64px; height: 64px; border-radius: 50%; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 20px;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <h5 class="fw-bold mb-2" style="color: #1e293b;">Delete Employee?</h5>
+      <p class="text-muted mb-4">Are you sure you want to remove this employee? This action cannot be undone.</p>
+      
+      <div style="display: flex; justify-content: center; gap: 12px;">
+        <button type="button" class="btn btn-light" (click)="cancelDelete()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; color: #475569; width: 120px;">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="executeDelete()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; width: 120px;">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Toast Notification -->
+<div *ngIf="toastMessage" class="toast-notification" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 9999; display: flex; align-items: center; gap: 12px; animation: slideInUp 0.3s ease-out;">
+  <i class="bi bi-info-circle-fill text-info fs-5"></i>
+  <span style="font-weight: 500;">{{ toastMessage }}</span>
+  <button class="btn-close btn-close-white ms-auto" (click)="toastMessage = null" style="font-size: 0.75rem;"></button>
+</div>
+
+<style>
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+.form-control, .form-select {
+  border-radius: 8px; 
+  padding: 10px 14px; 
+  border: 1px solid #e2e8f0; 
+  font-size: 0.95rem;
+}
+</style>

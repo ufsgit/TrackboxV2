@@ -1,0 +1,160 @@
+<div class="chatbot-container">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 style="font-weight: 800; color: #0f172a; margin:0;">Chatbots & AI</h2>
+      <p class="text-muted mt-1">Automate your customer engagement with AI-powered conversational flows.</p>
+    </div>
+    <button class="btn btn-primary px-4 py-2 shadow-sm" (click)="resetModal(); showModal = true" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
+      <i class="bi bi-robot me-2"></i> Create New Bot
+    </button>
+  </div>
+
+  <div class="chatbot-page">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="text-center py-5 w-100" style="grid-column: 1 / -1;">
+      <div class="spinner-border text-primary"></div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && bots.length === 0" class="d-flex justify-content-center align-items-center w-100" style="grid-column: 1 / -1; min-height: 400px;">
+      <div class="empty-state text-center" style="max-width: 400px; padding: 40px 20px; display: flex; flex-direction: column; align-items: center;">
+        <i class="bi bi-robot icon d-block mb-3" style="font-size: 3rem; color: #10B981; background: rgba(16, 185, 129, 0.1); width: 100px; height: 100px; line-height: 100px; border-radius: 50%; margin: 0 auto;"></i>
+        <h3 style="font-size: 1.5rem; font-weight: 800; color: #111827;">No Chatbots Yet</h3>
+        <p style="color: #6B7280; margin-bottom: 24px;">Create your first automated assistant to start engaging users 24/7.</p>
+        <button class="btn btn-primary px-4 py-2 shadow-sm" (click)="resetModal(); showModal = true" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
+          <i class="bi bi-plus-circle me-2"></i>Create Bot
+        </button>
+      </div>
+    </div>
+
+    <!-- Bot Cards -->
+    <div *ngFor="let bot of bots" class="bot-card" [class.paused]="!bot.is_active">
+      <div class="bot-header">
+        <div class="bot-icon" [ngClass]="'icon-' + bot.channel">
+          <i class="bi" [class.bi-robot]="bot.ai_enabled" [class.bi-chat-dots]="!bot.ai_enabled"></i>
+        </div>
+        <div class="ai-badge ms-3" *ngIf="bot.ai_enabled">AI Powered</div>
+        <div class="ms-auto d-flex gap-2">
+          <button class="btn btn-icon btn-sm text-primary" (click)="openEditModal(bot)" style="background: rgba(59, 130, 246, 0.05);">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-icon btn-sm text-danger" (click)="deleteBot(bot.id)" style="background: rgba(239, 68, 68, 0.05);">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="d-flex flex-column mb-auto">
+        <h3 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-bottom: 12px; letter-spacing: -0.01em;">{{ bot.name }}</h3>
+        
+        <div class="mb-4">
+          <div class="channel-tag" [ngClass]="'tag-' + bot.channel">
+            <i class="bi" [class.bi-whatsapp]="bot.channel === 'whatsapp'"
+                          [class.bi-instagram]="bot.channel === 'instagram'"
+                          [class.bi-facebook]="bot.channel === 'facebook'"></i> 
+            {{ bot.channel === 'facebook' ? 'MESSENGER' : bot.channel | uppercase }}
+          </div>
+        </div>
+        
+        <div class="bot-stats">
+          <div class="mini-stat">
+            <label>Sessions</label>
+            <span>{{ bot.messages }}</span>
+          </div>
+          <div class="mini-stat">
+            <label>Avg Accuracy</label>
+            <span>{{ bot.accuracy }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bot-actions mt-4">
+        <button class="btn-flow" [routerLink]="['/chatbots', bot.id, 'flow']">
+          <i class="bi bi-diagram-3"></i> Edit Workflow
+        </button>
+        <div class="d-flex align-items-center gap-3">
+          <span class="small fw-bold" [style.color]="bot.is_active ? '#10B981' : '#94a3b8'" style="font-size: 0.9rem;">{{ bot.is_active ? 'Active' : 'Paused' }}</span>
+          <label class="toggle mb-0" style="margin-top: 2px;">
+            <input type="checkbox" [checked]="bot.is_active" (change)="toggleBot(bot)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Bot Modal -->
+<div class="custom-modal" *ngIf="showModal">
+  <div class="modal-backdrop" (click)="resetModal()"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h4>{{ editingBotId ? 'Edit AI Assistant' : 'Create AI Assistant' }}</h4>
+      <button class="close-btn" (click)="resetModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Assistant Name -->
+      <div class="modal-field">
+        <label>Assistant Name <span class="required">*</span></label>
+        <input type="text" class="form-control premium-input" [(ngModel)]="newBot.name" placeholder="e.g. Sales Helper">
+      </div>
+
+      <!-- Trigger Keywords -->
+      <div class="modal-field">
+        <label>Trigger Keywords <span class="label-hint">(comma separated)</span></label>
+        <input type="text" class="form-control premium-input" [(ngModel)]="newBot.trigger_keywords" placeholder="hi, hello, price, help">
+      </div>
+
+      <!-- Channel -->
+      <div class="modal-field">
+        <label>Channel</label>
+        <select class="form-control premium-input" [(ngModel)]="newBot.channel">
+          <option value="whatsapp">WhatsApp</option>
+          <option value="facebook">Facebook Messenger</option>
+          <option value="instagram">Instagram</option>
+        </select>
+      </div>
+
+      <!-- System Prompt (only if AI enabled) -->
+      <div class="modal-field" *ngIf="newBot.ai_enabled">
+        <label>Assistant Personality <span class="label-hint">(System Prompt)</span></label>
+        <textarea class="form-control premium-input" rows="3" [(ngModel)]="newBot.openai_system_prompt" placeholder="Describe how the bot should behave..."></textarea>
+        <p class="field-hint"><i class="bi bi-info-circle"></i> Example: 'You are a helpful travel assistant. Be polite and concise.'</p>
+      </div>
+
+      <!-- Toggle Settings -->
+      <div class="toggle-settings">
+        <div class="toggle-setting-card" [class.active]="newBot.ai_enabled">
+          <div class="toggle-setting-text">
+            <span class="toggle-setting-label">
+              Enable Conversational AI (GPT-4)
+              <span class="beta-tag">BETA</span>
+            </span>
+            <p>If enabled, the bot will intelligently understand and generate responses to users outside of fixed menu flows.</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" [(ngModel)]="newBot.ai_enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-setting-card" [class.active]="newBot.is_welcome">
+          <div class="toggle-setting-text">
+            <span class="toggle-setting-label">Set as Welcome Bot</span>
+            <p>If enabled, this bot will automatically trigger when a user sends their very first message.</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" [(ngModel)]="newBot.is_welcome">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="resetModal()">Cancel</button>
+      <button class="btn btn-success" (click)="saveBot()">{{ editingBotId ? 'Update Assistant' : 'Create Assistant' }}</button>
+    </div>
+  </div>
+</div>

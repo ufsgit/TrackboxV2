@@ -1,0 +1,199 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-2" style="color: #1e293b;">Pending Approvals</h2>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">Review and manage employee requests</p>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+        <i class="bi bi-calendar2-x"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Pending Leaves</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ pendingLeave }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0fdf4; color: #22c55e;">
+        <i class="bi bi-receipt"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Pending Expenses</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ pendingExpense }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fffbeb; color: #f59e0b;">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Pending Time-off</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ pendingTimeOff }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table Section -->
+  <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+    
+    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">All Requests</h5>
+      
+      <div style="position: relative; max-width: 300px; width: 100%;">
+        <i class="bi bi-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+        <input type="text" class="form-control" placeholder="Search requests..." [(ngModel)]="searchTerm" style="padding-left: 42px; padding-top: 8px; padding-bottom: 8px; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.9rem;">
+      </div>
+    </div>
+    
+    <div class="table-responsive p-0">
+      <table class="table mb-0 modern-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+        <thead>
+          <tr>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">ID</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Employee</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Type</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Date Submitted</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Amount/Days</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Status</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let req of filteredRequests" style="transition: all 0.2s ease;">
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span class="fw-bold" style="color: #3b82f6;">{{ req.id }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span class="fw-bold" style="color: #1e293b;">{{ req.employeeName }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span [class]="getTypeClass(req.type)">{{ req.type }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; color: #475569;">
+              {{ req.dateSubmitted | date:'mediumDate' }}
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; color: #475569; font-weight: 500;">
+              {{ req.amountOrDays }}
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span [class]="getStatusClass(req.status)">{{ req.status }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right;">
+              <div class="d-flex justify-content-end align-items-center">
+                <button class="btn btn-sm btn-light" (click)="viewDetails(req)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569;" title="View Details">
+                  <i class="bi bi-eye text-primary"></i>
+                </button>
+                <button class="btn btn-sm btn-light" *ngIf="req.status === 'Pending'" (click)="approve(req)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; margin-left: 8px;" title="Approve">
+                  <i class="bi bi-check-lg text-success"></i>
+                </button>
+                <button class="btn btn-sm btn-light" *ngIf="req.status === 'Pending'" (click)="reject(req)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; margin-left: 8px;" title="Reject">
+                  <i class="bi bi-x-lg text-danger"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Details Modal -->
+<div *ngIf="isModalOpen && selectedRequest" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+  <div style="width: 100%; max-width: 500px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden;">
+      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center;">
+        <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Request Details</h5>
+        <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close" style="font-size: 0.85rem;"></button>
+      </div>
+      <div style="padding: 24px;">
+        
+        <div class="mb-4">
+          <label style="display: block; margin-bottom: 4px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Employee</label>
+          <div style="color: #1e293b; font-size: 1.05rem; font-weight: 500;">{{ selectedRequest.employeeName }}</div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-6">
+            <label style="display: block; margin-bottom: 4px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Type</label>
+            <span [class]="getTypeClass(selectedRequest.type)">{{ selectedRequest.type }}</span>
+          </div>
+          <div class="col-6">
+            <label style="display: block; margin-bottom: 4px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Date Submitted</label>
+            <div style="color: #1e293b; font-weight: 500;">{{ selectedRequest.dateSubmitted }}</div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label style="display: block; margin-bottom: 4px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Reason / Details</label>
+          <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; color: #334155; font-size: 0.95rem;">
+            {{ selectedRequest.reason }} ({{ selectedRequest.amountOrDays }})
+          </div>
+        </div>
+
+        <div class="mb-2" *ngIf="selectedRequest.attachment">
+          <label style="display: block; margin-bottom: 4px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Attachment</label>
+          <div style="display: flex; align-items: center; gap: 8px; color: #3b82f6; font-weight: 500;">
+            <i class="bi bi-file-earmark-pdf"></i> {{ selectedRequest.attachment }}
+          </div>
+        </div>
+
+      </div>
+      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end; gap: 12px;">
+        <ng-container *ngIf="selectedRequest.status === 'Pending'">
+          <button type="button" class="btn btn-outline-danger" (click)="reject(selectedRequest)" style="border-radius: 10px; font-weight: 600; padding: 10px 24px;">Reject</button>
+          <button type="button" class="btn btn-success" (click)="approve(selectedRequest)" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.2);">Approve</button>
+        </ng-container>
+        <ng-container *ngIf="selectedRequest.status !== 'Pending'">
+          <button type="button" class="btn btn-light" (click)="closeModal()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; color: #475569; border: 1px solid #e2e8f0; background: white;">Close</button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Toast Notification -->
+<div *ngIf="toastMessage" class="toast-notification" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 9999; display: flex; align-items: center; gap: 12px; animation: slideInUp 0.3s ease-out;">
+  <i class="bi bi-info-circle-fill text-info fs-5"></i>
+  <span style="font-weight: 500;">{{ toastMessage }}</span>
+  <button class="btn-close btn-close-white ms-auto" (click)="toastMessage = null" style="font-size: 0.75rem;"></button>
+</div>
+
+<style>
+.text-purple { color: #9333ea; }
+.bg-purple-subtle { background-color: #f3e8ff; }
+.border-purple-subtle { border-color: #d8b4fe; }
+
+.text-teal { color: #0d9488; }
+.bg-teal-subtle { background-color: #ccfbf1; }
+.border-teal-subtle { border-color: #5eead4; }
+
+.text-orange { color: #ea580c; }
+.bg-orange-subtle { background-color: #ffedd5; }
+.border-orange-subtle { border-color: #fdba74; }
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+</style>

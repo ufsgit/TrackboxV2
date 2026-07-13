@@ -1,0 +1,97 @@
+<div class="course-card animate-fade-in">
+  <div class="course-header">
+    <h6>Courses</h6>
+    <button class="btn btn-primary rounded-pill px-4 shadow-sm" (click)="openAddModal()" style="font-weight: 500;">
+      <i class="bi bi-plus-lg me-1"></i> Add Course
+    </button>
+  </div>
+  
+  <div class="table-container">
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && courses.length === 0" class="empty-state">
+      <i class="bi bi-journal-x"></i>
+      <p class="mb-0 fw-medium">No courses found. Add a course to get started.</p>
+    </div>
+
+    <table class="custom-table" *ngIf="!loading && courses.length > 0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Amount</th>
+          <th>Duration</th>
+          <th>Description</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let course of courses">
+          <td class="fw-medium text-dark">{{ course.name }}</td>
+          <td class="fw-semibold text-primary">{{ course.amount | currency:'INR':'symbol':'1.0-0' }}</td>
+          <td><span class="badge bg-light text-dark border">{{ course.duration || '-' }}</span></td>
+          <td class="text-truncate text-muted" style="max-width: 250px;" title="{{ course.description }}">
+            {{ course.description || '-' }}
+          </td>
+          <td>
+            <div class="d-flex justify-content-end">
+              <button class="btn btn-sm btn-light text-primary rounded-circle px-2 py-1" style="margin-right: 12px !important;" title="Edit" (click)="editCourse(course)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-light text-danger rounded-circle px-2 py-1" title="Delete" (click)="deleteCourse(course)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Custom Centered Add Course Modal -->
+<div class="custom-modal-backdrop" *ngIf="showAddModal">
+  <div class="custom-modal-dialog">
+    <div class="custom-modal-header">
+      <h5 class="modal-title fw-bold text-dark m-0">{{ isEditMode ? 'Edit Course' : 'Add New Course' }}</h5>
+      <button type="button" class="btn-close" aria-label="Close" (click)="closeAddModal()"></button>
+    </div>
+    
+    <div class="custom-modal-body">
+      <div class="mb-4">
+        <label class="form-label text-muted fs-sm fw-medium">Course Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newCourse.name" placeholder="e.g., Digital Marketing">
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3 mb-md-0">
+          <label class="form-label text-muted fs-sm fw-medium">Amount <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-0 text-muted">₹</span>
+            <input type="number" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newCourse.amount" placeholder="5000">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-muted fs-sm fw-medium">Duration</label>
+          <input type="text" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newCourse.duration" placeholder="e.g., 3 Months">
+        </div>
+      </div>
+
+      <div class="mb-2">
+        <label class="form-label text-muted fs-sm fw-medium">Description</label>
+        <textarea class="form-control bg-light border-0" rows="3" [(ngModel)]="newCourse.description" placeholder="Short description of the course..."></textarea>
+      </div>
+    </div>
+    
+    <div class="custom-modal-footer">
+      <button type="button" class="btn btn-light rounded-pill px-4 fw-medium" (click)="closeAddModal()">Cancel</button>
+      <button type="button" class="btn btn-primary rounded-pill px-4 fw-medium" (click)="saveCourse()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        {{ saving ? 'Saving...' : (isEditMode ? 'Update Course' : 'Save Course') }}
+      </button>
+    </div>
+  </div>
+</div>

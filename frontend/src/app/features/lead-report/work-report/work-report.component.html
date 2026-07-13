@@ -1,0 +1,146 @@
+<div class="report-container flex flex-col gap-20">
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-1">Work Report</h2>
+      <p class="text-muted mb-0">Overview of team productivity and lead conversion</p>
+    </div>
+    
+    <div class="flex items-center gap-16" style="flex-wrap: wrap;">
+      <select class="form-select premium-select shadow-sm" [(ngModel)]="dateRange" (change)="onFilterChange()">
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="this_week">This Week</option>
+        <option value="this_month">This Month</option>
+        <option value="last_month">Last Month</option>
+      </select>
+      
+      <select class="form-select premium-select shadow-sm" [(ngModel)]="selectedAgent" (change)="onFilterChange()">
+        <option value="all">All Agents</option>
+        <option value="alice">Alice Smith</option>
+        <option value="bob">Bob Johnson</option>
+        <option value="charlie">Charlie Brown</option>
+      </select>
+      
+      <button class="btn btn-primary shadow-sm" (click)="onFilterChange()">
+        <i class="bi bi-arrow-clockwise me-2"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-4">
+    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+      <div class="kpi-icon bg-primary-soft text-primary">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-info">
+        <h6 class="kpi-title">Total Leads Handled</h6>
+        <h3 class="kpi-value">{{ totalLeads | number }}</h3>
+        <span class="kpi-trend text-success"><i class="bi bi-arrow-up-right"></i> 12%</span>
+      </div>
+    </div>
+    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+      <div class="kpi-icon bg-warning-soft text-warning">
+        <i class="bi bi-telephone-outbound-fill"></i>
+      </div>
+      <div class="kpi-info">
+        <h6 class="kpi-title">Follow-ups Completed</h6>
+        <h3 class="kpi-value">{{ followUpsCompleted | number }}</h3>
+        <span class="kpi-trend text-success"><i class="bi bi-arrow-up-right"></i> 5%</span>
+      </div>
+    </div>
+    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+      <div class="kpi-icon bg-success-soft text-success">
+        <i class="bi bi-trophy-fill"></i>
+      </div>
+      <div class="kpi-info">
+        <h6 class="kpi-title">Total Conversions</h6>
+        <h3 class="kpi-value">{{ totalConversions | number }}</h3>
+        <span class="kpi-trend text-danger"><i class="bi bi-arrow-down-right"></i> 2%</span>
+      </div>
+    </div>
+    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+      <div class="kpi-icon bg-info-soft text-info">
+        <i class="bi bi-percent"></i>
+      </div>
+      <div class="kpi-info">
+        <h6 class="kpi-title">Conversion Rate</h6>
+        <h3 class="kpi-value">{{ conversionRate }}%</h3>
+        <span class="kpi-trend text-success"><i class="bi bi-arrow-up-right"></i> 1.5%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="grid" style="grid-template-columns: 2fr 1fr;">
+    <div class="chart-card h-100">
+      <div class="chart-header">
+        <h5>Work Activity Trend</h5>
+        <button class="btn btn-sm btn-light"><i class="bi bi-download"></i></button>
+      </div>
+      <div class="chart-body" style="position: relative; height: 300px; width: 100%;">
+        <canvas id="activityChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card h-100">
+      <div class="chart-header">
+        <h5>Lead Funnel</h5>
+      </div>
+      <div class="chart-body" style="position: relative; height: 300px; width: 100%;">
+        <canvas id="funnelChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 & Table -->
+  <div class="grid" style="grid-template-columns: 1fr 1.5fr;">
+    <div class="chart-card h-100">
+      <div class="chart-header">
+        <h5>Agent Performance</h5>
+      </div>
+      <div class="chart-body" style="position: relative; height: 300px; width: 100%;">
+        <canvas id="agentChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card h-100" style="padding-bottom: 0; overflow: hidden; display: flex; flex-direction: column;">
+      <div class="chart-header" style="border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 0;">
+        <h5>Recent Activities</h5>
+        <a href="javascript:void(0)" class="text-primary text-decoration-none small fw-bold">View All</a>
+      </div>
+      <div style="flex: 1; overflow: auto; padding-top: 16px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Lead</th>
+              <th>Action Taken</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let act of recentActivities">
+              <td>
+                <div class="flex items-center gap-8">
+                  <div class="avatar-sm bg-primary-soft text-primary" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    {{ act.agent.charAt(0) }}
+                  </div>
+                  <span class="fw-semibold">{{ act.agent }}</span>
+                </div>
+              </td>
+              <td style="color: var(--text-muted);">{{ act.lead }}</td>
+              <td>{{ act.action }}</td>
+              <td style="color: var(--text-muted); font-size: 0.8rem;">{{ act.time | date:'MMM d, h:mm a' }}</td>
+              <td>
+                <span class="badge" [ngClass]="{'badge-success': act.status === 'Completed', 'badge-warning': act.status === 'Pending'}">
+                  {{ act.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,237 @@
+.affiliate-page {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(17, 24, 39, 0.05), 0 8px 10px -6px rgba(17, 24, 39, 0.01);
+  min-height: calc(100vh - 120px);
+}
+
+.page-header {
+  padding: 32px 32px 24px;
+  background: transparent;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  margin-bottom: 0 !important;
+}
+
+/* Custom copyable referral code capsule badge */
+.referral-code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px dashed rgba(99, 102, 241, 0.3);
+  padding: 6px 6px 6px 14px;
+  border-radius: 14px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.referral-code-badge:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: #6366f1;
+  transform: translateY(-1px);
+}
+
+.referral-code-badge .label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.referral-code-badge .code {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #4f46e5;
+  letter-spacing: 0.5px;
+}
+
+.btn-copy-code {
+  background: white;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  color: #4f46e5;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.05);
+}
+
+.referral-code-badge:hover .btn-copy-code {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.25);
+}
+
+/* Metric Analytics Cards */
+.affiliate-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding: 32px;
+}
+
+.aff-card {
+  padding: 24px;
+  background: white;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px -2px rgba(17, 24, 39, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.aff-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+}
+
+.aff-card.card-referrals::before { background: linear-gradient(180deg, #6366F1, #4F46E5); }
+.aff-card.card-earnings::before { background: linear-gradient(180deg, #10B981, #059669); }
+.aff-card.card-payout::before { background: linear-gradient(180deg, #F59E0B, #D97706); }
+
+.aff-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(17, 24, 39, 0.08);
+}
+
+.aff-card.card-referrals:hover { border-color: rgba(99, 102, 241, 0.25); }
+.aff-card.card-earnings:hover { border-color: rgba(16, 185, 129, 0.25); }
+.aff-card.card-payout:hover { border-color: rgba(245, 158, 11, 0.25); }
+
+.aff-card h4 {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.aff-card .value {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+/* Stat Icon Badges */
+.stat-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.02);
+}
+
+.referrals-icon {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+}
+
+.earnings-icon {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+}
+
+.payout-icon {
+  background: rgba(245, 158, 11, 0.08);
+  color: #d97706;
+}
+
+/* Referred Businesses Table Section Styles */
+.table-section {
+  padding: 0 32px 32px;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+}
+
+.table-container {
+  background: white;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table th {
+  padding: 16px 24px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.data-table td {
+  padding: 20px 24px;
+  font-size: 0.85rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  font-weight: 500;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background-color: #fafbfc;
+}
+
+/* Glowing Indicator Badges */
+.badge-status {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-status.paid {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.badge-status.pending {
+  background: rgba(245, 158, 11, 0.08);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}

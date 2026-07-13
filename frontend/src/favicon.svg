@@ -1,0 +1,16 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Connecting link paths forming W -->
+  <path d="M25 32 L40 68 L50 44 L60 68 L75 32" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Node connectors -->
+  <circle cx="25" cy="32" r="7" fill="#ffffff" />
+  <circle cx="50" cy="44" r="7" fill="#818cf8" />
+  <circle cx="75" cy="32" r="7" fill="#38bdf8" />
+  
+  <defs>
+    <linearGradient id="logo-glow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+  </defs>
+</svg>

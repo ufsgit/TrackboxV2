@@ -1,0 +1,69 @@
+<div class="leave-request-container">
+  <div class="page-header">
+    <h2 class="page-title">{{ moduleName }} Leave Request</h2>
+    <p class="page-subtitle">Submit your time off request easily for the {{ moduleName }} module.</p>
+  </div>
+
+  <div class="card premium-card">
+    <div class="card-body">
+      <form (ngSubmit)="submitRequest()">
+        
+        <!-- Date Selection -->
+        <div class="row">
+          <div class="col-md-6 form-group mb-4">
+            <label for="fromDate" class="premium-label">From Date <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <i class="bi bi-calendar-event input-icon"></i>
+              <input type="date" id="fromDate" class="premium-input" name="fromDate" [(ngModel)]="request.fromDate" required>
+            </div>
+          </div>
+          <div class="col-md-6 form-group mb-4">
+            <label for="toDate" class="premium-label">To Date <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <i class="bi bi-calendar-event input-icon"></i>
+              <input type="date" id="toDate" class="premium-input" name="toDate" [(ngModel)]="request.toDate" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leave Type Segmented Control -->
+        <div class="form-group mb-4">
+          <label class="premium-label">Leave Type <span class="required">*</span></label>
+          <div class="segmented-control mt-2">
+            <input type="radio" id="fullDay" name="leaveType" value="Full Day" [(ngModel)]="request.type">
+            <label for="fullDay" class="segment-label">
+              <i class="bi bi-sun-fill me-2"></i> Full Day
+            </label>
+
+            <input type="radio" id="halfDay" name="leaveType" value="Half Day" [(ngModel)]="request.type">
+            <label for="halfDay" class="segment-label">
+              <i class="bi bi-brightness-alt-high-fill me-2"></i> Half Day
+            </label>
+          </div>
+        </div>
+
+        <!-- Reason -->
+        <div class="form-group mb-5">
+          <label for="leaveReason" class="premium-label">Reason <span class="required">*</span></label>
+          <textarea id="leaveReason" class="premium-textarea" rows="4" name="reason" [(ngModel)]="request.reason" placeholder="Briefly describe the reason for your leave..." required></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button type="button" class="btn-premium btn-secondary" (click)="resetForm()">Cancel</button>
+          <button type="submit" class="btn-premium btn-primary" [disabled]="!isValid()">
+            Submit Request <i class="bi bi-arrow-right ms-2"></i>
+          </button>
+        </div>
+
+      </form>
+      
+      <!-- Success Message (Overlay or Inline) -->
+      <div class="success-message" [class.show]="submitted">
+        <i class="bi bi-check-circle-fill success-icon"></i>
+        <span>Your leave request has been submitted successfully!</span>
+      </div>
+
+    </div>
+  </div>
+</div>

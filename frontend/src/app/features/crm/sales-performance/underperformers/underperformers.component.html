@@ -1,0 +1,109 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-2" style="color: #1e293b;">Underperformers Tracker</h2>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">Identify reps needing coaching and track Performance Improvement Plans (PIPs)</p>
+    </div>
+  </div>
+
+  <!-- KPI Cards (3 Cards) -->
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+    
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-red" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fef2f2; color: #ef4444;">
+        <i class="bi bi-exclamation-triangle"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Reps Below 50%</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">2</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-orange" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fff7ed; color: #f97316;">
+        <i class="bi bi-journal-medical"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Active PIPs</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">1</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-blue" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+        <i class="bi bi-graph-down-arrow"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Total Shortfall</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">₹60K</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Data Table -->
+  <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Action Items</h5>
+      
+      <div class="flex gap-2" style="gap: 10px;">
+         <input type="text" [(ngModel)]="searchTerm" class="form-control" placeholder="Search..." style="border-radius: 12px; padding: 8px 16px; border: 1px solid #e2e8f0; font-size: 0.9rem; min-width: 250px;">
+      </div>
+    </div>
+    
+    <div class="table-responsive p-0">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 900px;">
+        <thead>
+          <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Record ID</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Assignee</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Target</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Attainment</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Shortfall</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of filteredUnderperformers; let last = last" [ngStyle]="{'border-bottom': last ? 'none' : '1px solid #f1f5f9'}" style="transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+            <td style="padding: 20px 32px; color: #64748b; font-size: 0.9rem; font-weight: 600;">
+              {{ u.id }}
+            </td>
+            <td style="padding: 20px 20px;">
+              <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 0.85rem;">
+                  {{ u.assignee.charAt(0) }}
+                </div>
+                <div>
+                  {{ u.assignee }}
+                  <div style="font-size: 0.8rem; color: #64748b; font-weight: normal;">{{ u.role }}</div>
+                </div>
+              </div>
+            </td>
+            <td style="padding: 20px 20px; color: #475569; font-size: 0.95rem; font-weight: 600;">
+              {{ u.target }}
+            </td>
+            <td style="padding: 20px 20px; font-weight: 800; color: #ef4444; font-size: 0.95rem;">
+              {{ u.currentAttainment }}
+            </td>
+            <td style="padding: 20px 20px; font-weight: 700; color: #f97316; font-size: 0.95rem;">
+              {{ u.shortfall }}
+            </td>
+            <td style="padding: 20px 20px;">
+              <span [ngClass]="getStatusClass(u.status)" style="font-size: 0.8rem; font-weight: 600;">
+                {{ u.status }}
+              </span>
+            </td>
+            <td style="padding: 20px 32px; text-align: right;">
+              <button class="btn btn-sm btn-light" (click)="scheduleMeeting(u.assignee)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; font-weight: 600;" title="Schedule 1-on-1">
+                <i class="bi bi-calendar-plus me-1"></i> Meet
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

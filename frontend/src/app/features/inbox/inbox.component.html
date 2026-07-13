@@ -1,0 +1,873 @@
+<div class="inbox-container" (click)="showAttachMenu = false; showEmojiPicker = false; showChannelFilter = false">
+
+  <!-- Sidebar: Conversation List -->
+  <div class="inbox-sidebar" *ngIf="!isEmbedded">
+    <div class="sidebar-header">
+      <div class="sidebar-title-row">
+        <div class="sidebar-title">
+          <h4>Inbox</h4>
+          <span class="convo-count">{{ conversations.length }}</span>
+        </div>
+        <div class="sidebar-actions">
+          <div class="dropdown">
+            <button class="filter-btn" type="button" (click)="showChannelFilter = !showChannelFilter">
+              <i class="bi" [ngClass]="{
+                'bi-whatsapp': currentChannel === 'whatsapp',
+                'bi-instagram': currentChannel === 'instagram',
+                'bi-facebook': currentChannel === 'messenger',
+                'bi-globe': currentChannel === 'website',
+                'bi-funnel': !currentChannel
+              }"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" [class.show]="showChannelFilter">
+              <li><a class="dropdown-item" href="javascript:void(0)" (click)="filterByChannel('')"
+                  [class.active-filter]="!currentChannel">
+                  <i class="bi bi-collection me-3 text-muted"></i> All Channels
+                </a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="javascript:void(0)" (click)="filterByChannel('whatsapp')"
+                  [class.active-filter]="currentChannel === 'whatsapp'">
+                  <i class="bi bi-whatsapp me-3" style="color: #25D366;"></i> WhatsApp
+                </a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" (click)="filterByChannel('instagram')"
+                  [class.active-filter]="currentChannel === 'instagram'">
+                  <i class="bi bi-instagram me-3" style="color: #E1306C;"></i> Instagram
+                </a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)" (click)="filterByChannel('messenger')"
+                  [class.active-filter]="currentChannel === 'messenger'">
+                  <i class="bi bi-messenger me-3" style="color: #0084FF;"></i> Messenger
+                </a></li>
+              <li><a class="dropdown-item" href="javascript:void(0)"
+                  (click)="filterByChannel('website'); showChannelFilter = false"
+                  [class.active-filter]="currentChannel === 'website'">
+                  <i class="bi bi-globe me-3" style="color: #3B82F6;"></i> Website Widget
+                </a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Search conversations..." [(ngModel)]="searchQuery" (input)="onSearch()">
+      </div>
+
+      <!-- Chat Assignment Switcher -->
+      <div class="chat-type-switcher">
+        <button class="switcher-btn" [class.active]="currentAssignment === 'all'" (click)="filterByAssignment('all')">
+          <i class="bi bi-chat-left-text-fill"></i> All Chats
+        </button>
+        <button class="switcher-btn" [class.active]="currentAssignment === 'me'" (click)="filterByAssignment('me')">
+          <i class="bi bi-person-badge-fill"></i> Assigned to Me
+        </button>
+      </div>
+    </div>
+
+    <!-- Channel Filter Tabs -->
+    <div class="channel-tabs">
+      <button class="channel-tab tab-all" [class.active]="!currentChannel" (click)="filterByChannel('')">All</button>
+      <button class="channel-tab tab-whatsapp" [class.active]="currentChannel === 'whatsapp'"
+        (click)="filterByChannel('whatsapp')">
+        <i class="bi bi-whatsapp"></i> WhatsApp
+      </button>
+      <button class="channel-tab tab-instagram" [class.active]="currentChannel === 'instagram'"
+        (click)="filterByChannel('instagram')">
+        <i class="bi bi-instagram"></i> Instagram
+      </button>
+      <button class="channel-tab tab-messenger" [class.active]="currentChannel === 'messenger'"
+        (click)="filterByChannel('messenger')">
+        <i class="bi bi-messenger"></i> Messenger
+      </button>
+    </div>
+
+    <div class="conversation-list">
+      <div *ngIf="loadingConvos" class="loading-state">
+        <div class="spinner-border spinner-border-sm text-primary"></div>
+        <span>Loading conversations...</span>
+      </div>
+
+      <div *ngIf="!loadingConvos && conversations.length === 0" class="empty-convos">
+        <i class="bi bi-inbox"></i>
+        <p>No conversations yet</p>
+      </div>
+
+      <div *ngFor="let convo of conversations" class="convo-item" [ngClass]="{
+             'active': selectedConvo?.id === convo.id,
+             'active-whatsapp': selectedConvo?.id === convo.id && convo.channel === 'whatsapp',
+             'active-instagram': selectedConvo?.id === convo.id && convo.channel === 'instagram',
+             'active-messenger': selectedConvo?.id === convo.id && convo.channel === 'messenger'
+           }" (click)="selectConversation(convo)">
+        <div class="convo-avatar-wrap">
+          <div class="convo-avatar">{{ convo.contact_name?.charAt(0) || 'C' }}</div>
+          <div class="channel-indicator" [ngClass]="{
+            'ch-whatsapp': convo.channel === 'whatsapp',
+            'ch-instagram': convo.channel === 'instagram',
+            'ch-messenger': convo.channel === 'messenger',
+            'ch-web': convo.channel === 'website'
+          }">
+            <i class="bi" [ngClass]="{
+              'bi-whatsapp': convo.channel === 'whatsapp',
+              'bi-instagram': convo.channel === 'instagram',
+              'bi-messenger': convo.channel === 'messenger',
+              'bi-globe': convo.channel === 'website'
+            }"></i>
+          </div>
+        </div>
+        <div class="convo-info">
+          <div class="convo-top">
+            <span class="convo-name">{{ convo.contact_name || convo.contact_phone }}</span>
+            <span class="convo-time">{{ convo.last_message_at | date:'shortTime' }}</span>
+          </div>
+          <div class="convo-bottom">
+            <span class="convo-msg">{{ convo.last_message || 'No messages yet' }}</span>
+            <span class="unread-badge" *ngIf="convo.unread_count > 0">{{ convo.unread_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main: Chat Area -->
+  <div class="chat-area" [ngClass]="{
+    'theme-whatsapp': selectedConvo?.channel === 'whatsapp',
+    'theme-instagram': selectedConvo?.channel === 'instagram',
+    'theme-messenger': selectedConvo?.channel === 'messenger'
+  }" *ngIf="selectedConvo; else noSelect">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-avatar">{{ selectedConvo.contact_name?.charAt(0) }}</div>
+        <div class="chat-user-info">
+          <div class="chat-user-name">{{ selectedConvo.contact_name }}</div>
+          <div class="chat-user-status">
+            <span class="status-dot online"></span>
+            <i class="bi" [ngClass]="{
+              'bi-whatsapp': selectedConvo.channel === 'whatsapp',
+              'bi-instagram': selectedConvo.channel === 'instagram',
+              'bi-messenger': selectedConvo.channel === 'messenger',
+              'bi-globe': selectedConvo.channel === 'website'
+            }"></i>
+            {{ selectedConvo.contact_phone }}
+          </div>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="header-action-btn resolve-btn" (click)="updateStatus('resolved')" title="Resolve conversation">
+          <i class="bi bi-check-circle"></i>
+          <span>Resolve</span>
+        </button>
+        <div class="dropdown">
+          <button class="header-action-btn" type="button" (click)="showHeaderMenu = !showHeaderMenu"
+            title="More options">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0" [class.show]="showHeaderMenu">
+            <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="assignToMe(); showHeaderMenu = false">
+                <i class="bi bi-person-check me-2"></i> Assign to Me
+              </a></li>
+            <li><a class="dropdown-item py-2" href="javascript:void(0)">
+                <i class="bi bi-envelope-open me-2"></i> Mark as Unread
+              </a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item py-2 text-danger" href="javascript:void(0)"
+                (click)="deleteSelectedConversation(); showHeaderMenu = false">
+                <i class="bi bi-trash me-2"></i> Delete Conversation
+              </a></li>
+          </ul>
+        </div>
+        <button class="header-action-btn" (click)="toggleSidebar()" title="Toggle contact details">
+          <i class="bi" [ngClass]="showSidebar ? 'bi-info-circle-fill' : 'bi-info-circle'"></i>
+        </button>
+        <button *ngIf="isEmbedded" class="header-action-btn" style="color: #ef4444;" (click)="closeEmbedded.emit()" title="Close chat">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-messages" #scrollMe>
+      <div *ngIf="loadingMessages" class="messages-loading">
+        <div class="spinner-border text-primary spinner-border-sm"></div>
+        <span>Loading messages...</span>
+      </div>
+
+      <div class="messages-date-divider" *ngIf="messages.length > 0">
+        <span>Today</span>
+      </div>
+
+      <div *ngFor="let msg of messages" class="msg-wrapper" [class.sent]="msg.direction === 'outbound'">
+        <div class="msg-bubble">
+          <div class="msg-content">
+            <ng-container *ngIf="msg.message_type === 'audio' || msg.message_type === 'voice'">
+              <audio controls [src]="getMediaUrl(msg.media_url)" style="max-width: 250px; outline: none;"></audio>
+            </ng-container>
+            <ng-container *ngIf="msg.message_type === 'image'">
+              <img [src]="getMediaUrl(msg.media_url)" style="max-width: 250px; border-radius: 8px; cursor: pointer;" />
+              <div *ngIf="msg.content" style="margin-top: 5px;">{{ msg.content }}</div>
+            </ng-container>
+            <ng-container *ngIf="msg.message_type === 'video'">
+              <video controls [src]="getMediaUrl(msg.media_url)" style="max-width: 250px; border-radius: 8px;"></video>
+              <div *ngIf="msg.content" style="margin-top: 5px;">{{ msg.content }}</div>
+            </ng-container>
+            <ng-container *ngIf="msg.message_type === 'document'">
+              <a [href]="getMediaUrl(msg.media_url)" target="_blank"
+                style="display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;">
+                <i class="bi bi-file-earmark-text" style="font-size: 1.5rem;"></i> Download Document
+              </a>
+              <div *ngIf="msg.content" style="margin-top: 5px;">{{ msg.content }}</div>
+            </ng-container>
+            <ng-container
+              *ngIf="msg.message_type !== 'audio' && msg.message_type !== 'voice' && msg.message_type !== 'image' && msg.message_type !== 'video' && msg.message_type !== 'document'">
+              <div *ngIf="msg.message_type === 'template'" class="template-msg-label">
+                <i class="bi bi-file-earmark-text-fill"></i> Template
+              </div>
+              {{ msg.content }}
+            </ng-container>
+          </div>
+          <div class="msg-meta">
+            <span class="msg-time">{{ (msg.sent_at || msg.created_at) | date:'shortTime' }}</span>
+            <span class="msg-status" *ngIf="msg.direction === 'outbound'">
+              <i class="bi" [ngClass]="{
+                'bi-check': msg.status === 'sent',
+                'bi-check-all': msg.status === 'delivered' || msg.status === 'read' || !msg.status,
+                'text-info': msg.status === 'read'
+              }"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="input-actions-left">
+        <div class="emoji-picker-container" *ngIf="showEmojiPicker">
+          <div class="emoji-list">
+            <span *ngFor="let e of emojis" (click)="addEmoji(e)">{{e}}</span>
+          </div>
+        </div>
+        <button class="btn-action" title="Emoji" (click)="toggleEmojiPicker()"><i
+            class="bi bi-emoji-smile"></i></button>
+        <!-- Attach File Dropdown -->
+        <div class="attach-dropdown-wrap" (click)="$event.stopPropagation()">
+          <button class="btn-action" title="Attach file" (click)="toggleAttachMenu()">
+            <i class="bi bi-paperclip"></i>
+          </button>
+          <div class="attach-popup-menu" *ngIf="showAttachMenu" (click)="$event.stopPropagation()">
+            <div class="attach-menu-item" (click)="openSharedLibrary()">
+              <div class="attach-menu-icon purple">
+                <i class="bi bi-folder2-open"></i>
+              </div>
+              <div class="attach-menu-text">
+                <div class="attach-menu-label">Shared Library</div>
+                <div class="attach-menu-sub">Brochures &amp; shared files</div>
+              </div>
+            </div>
+            <div class="attach-menu-item" (click)="attachFromDevice()">
+              <div class="attach-menu-icon blue">
+                <i class="bi bi-laptop"></i>
+              </div>
+              <div class="attach-menu-text">
+                <div class="attach-menu-label">From My Device</div>
+                <div class="attach-menu-sub">Upload a file from your computer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-action" title="Send Template" (click)="openTemplatePicker()"><i
+            class="bi bi-file-earmark-text"></i></button>
+        <button class="btn-action" [class.recording]="isRecording" title="Voice message"
+          (click)="toggleVoiceRecording()">
+          <i class="bi" [ngClass]="isRecording ? 'bi-stop-circle-fill' : 'bi-mic'"></i>
+        </button>
+      </div>
+      <div class="input-wrapper">
+        <input type="text" [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" placeholder="Type a message...">
+      </div>
+      <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim()">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Right: Contact Info Panel -->
+  <div class="contact-info-panel" [class.closed]="!showSidebar" *ngIf="selectedConvo">
+    <div class="panel-header">
+      <span>Contact Details</span>
+      <button class="panel-close-btn" title="Close panel" (click)="toggleSidebar()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="panel-profile">
+        <div class="info-avatar">{{ selectedConvo.contact_name?.charAt(0) }}</div>
+        <h5 class="info-name">{{ selectedConvo.contact_name }}</h5>
+        <p class="info-phone">{{ selectedConvo.contact_phone }}</p>
+        <div class="info-channel-badge" [ngClass]="{
+          'badge-whatsapp': selectedConvo.channel === 'whatsapp',
+          'badge-instagram': selectedConvo.channel === 'instagram',
+          'badge-messenger': selectedConvo.channel === 'messenger'
+        }">
+          <i class="bi" [ngClass]="{
+            'bi-whatsapp': selectedConvo.channel === 'whatsapp',
+            'bi-instagram': selectedConvo.channel === 'instagram',
+            'bi-messenger': selectedConvo.channel === 'messenger',
+            'bi-globe': selectedConvo.channel === 'website'
+          }"></i>
+          {{ selectedConvo.channel || 'whatsapp' | titlecase }}
+        </div>
+      </div>
+
+      <div class="info-divider"></div>
+
+      <div class="info-section">
+        <div class="info-section-title">Contact Information</div>
+        <div class="info-row">
+          <div class="info-row-icon"><i class="bi bi-envelope"></i></div>
+          <div>
+            <div class="info-row-label">Email</div>
+            <div class="info-row-value">{{ selectedConvo.contact_email || 'Not provided' }}</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-row-icon"><i class="bi bi-shield-check"></i></div>
+          <div>
+            <div class="info-row-label">Opt-in Status</div>
+            <div class="info-row-value"><span class="status-chip opted-in">Opted-in</span></div>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-row-icon"><i class="bi bi-chat-square-text"></i></div>
+          <div>
+            <div class="info-row-label">Conversation Status</div>
+            <div class="info-row-value">
+              <span class="status-chip" [ngClass]="{
+                'status-open': selectedConvo.status === 'open',
+                'status-resolved': selectedConvo.status === 'resolved'
+              }">{{ selectedConvo.status || 'open' | titlecase }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="info-row" *ngIf="parsedTags(selectedConvo).length > 0">
+          <div class="info-row-icon"><i class="bi bi-tags"></i></div>
+          <div>
+            <div class="info-row-label">Tags</div>
+            <div class="tags-badge-display">
+              <span *ngFor="let t of parsedTags(selectedConvo)" class="tag-pill-display">
+                {{ t }}
+                <button class="remove-tag-btn" (click)="removeTagFromContact(t)" title="Remove Tag">&times;</button>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="info-row" *ngIf="selectedConvo.assigned_name">
+          <div class="info-row-icon"><i class="bi bi-person-badge"></i></div>
+          <div>
+            <div class="info-row-label">Assigned To</div>
+            <div class="info-row-value">{{ selectedConvo.assigned_name }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-divider"></div>
+
+      <div class="info-section">
+        <div class="info-section-title">Quick Actions</div>
+        <div class="quick-actions-grid">
+          <button class="qa-card" (click)="editContact()">
+            <div class="qa-icon qa-blue"><i class="bi bi-person-lines-fill"></i></div>
+            <span class="qa-label">Edit Contact</span>
+          </button>
+          <button *ngIf="isLead()" class="qa-card" (click)="editLead()">
+            <div class="qa-icon qa-orange" style="color: #f59e0b; background: #fef3c7;"><i class="bi bi-star-fill"></i>
+            </div>
+            <span class="qa-label">Edit Lead</span>
+          </button>
+          <button class="qa-card" (click)="addTag()">
+            <div class="qa-icon qa-violet"><i class="bi bi-tag-fill"></i></div>
+            <span class="qa-label">Add Tag</span>
+          </button>
+          <button class="qa-card" (click)="assignAgent()">
+            <div class="qa-icon qa-indigo"><i class="bi bi-person-plus-fill"></i></div>
+            <span class="qa-label">Assign Agent</span>
+          </button>
+          <button *ngIf="selectedConvo.opted_in !== 0" class="qa-card qa-card-danger" (click)="blockContact()">
+            <div class="qa-icon qa-red"><i class="bi bi-slash-circle-fill"></i></div>
+            <span class="qa-label">Block Contact</span>
+          </button>
+          <button *ngIf="selectedConvo.opted_in === 0" class="qa-card qa-card-success" (click)="unblockContact()">
+            <div class="qa-icon qa-green"><i class="bi bi-check-circle-fill"></i></div>
+            <span class="qa-label">Unblock</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noSelect>
+    <div class="chat-area empty-state">
+      <div class="empty-state-content">
+        <div class="empty-state-icon">
+          <i class="bi bi-chat-square-dots"></i>
+        </div>
+        <h3>Welcome to your Inbox</h3>
+        <p>Select a conversation from the sidebar to start messaging.<br>All your WhatsApp, Instagram, and Messenger
+          chats in one place.</p>
+        <div class="empty-state-channels">
+          <div class="es-channel"><i class="bi bi-whatsapp"></i></div>
+          <div class="es-channel"><i class="bi bi-instagram"></i></div>
+          <div class="es-channel"><i class="bi bi-messenger"></i></div>
+          <div class="es-channel"><i class="bi bi-globe"></i></div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Template Picker Modal -->
+  <div class="premium-modal-overlay" *ngIf="showTemplatePicker" (click)="showTemplatePicker = false">
+    <div class="premium-modal template-picker-modal" (click)="$event.stopPropagation()">
+      <div class="premium-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge template-badge">
+            <i class="bi bi-file-earmark-text-fill"></i>
+          </div>
+          <div>
+            <h5>Send Template</h5>
+            <p>Select an approved WhatsApp template to send</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="showTemplatePicker = false">&times;</button>
+      </div>
+
+      <!-- Search Input -->
+      <div style="padding: 18px 24px 0;">
+        <div class="input-wrapper-with-icon">
+          <i class="bi bi-search"></i>
+          <input type="text" [(ngModel)]="templateSearch" placeholder="Search templates by name or content...">
+        </div>
+      </div>
+
+      <div class="premium-modal-body" style="padding-top: 18px; max-height: 400px; overflow-y: auto;">
+        <div *ngIf="loadingTemplates" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+          <p class="text-muted small mt-2">Loading templates...</p>
+        </div>
+        <div *ngIf="!loadingTemplates && filteredTemplates.length === 0" class="text-center py-4">
+          <div class="modal-icon-badge danger" style="margin: 0 auto 12px; width: 44px; height: 44px;">
+            <i class="bi bi-file-earmark-x"></i>
+          </div>
+          <p class="text-muted mt-2">No approved templates found</p>
+          <p class="text-muted" style="font-size: 0.78rem;">Create and submit templates in the Templates page first</p>
+        </div>
+
+        <div class="template-list" *ngIf="!loadingTemplates && filteredTemplates.length > 0">
+          <div *ngFor="let template of filteredTemplates" class="template-card" (click)="sendTemplate(template)"
+            [class.sending]="sendingTemplate">
+            <div class="template-card-header">
+              <div class="template-card-name">{{ template.name }}</div>
+              <div class="template-card-badges">
+                <span class="template-category-badge">{{ template.category }}</span>
+                <span class="template-lang-badge">{{ template.language || 'en' }}</span>
+              </div>
+            </div>
+            <div class="template-card-body" *ngIf="template.body">
+              {{ template.body.length > 120 ? (template.body.substring(0, 120) + '...') : template.body }}
+            </div>
+            <div class="template-card-footer">
+              <span class="template-status-badge approved">
+                <i class="bi bi-check-circle-fill"></i> Approved
+              </span>
+              <button class="template-send-btn" [disabled]="sendingTemplate">
+                <i class="bi bi-send-fill"></i> Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Picker Modal -->
+  <div class="premium-modal-overlay" *ngIf="showProductPicker" (click)="showProductPicker = false">
+    <div class="premium-modal" (click)="$event.stopPropagation()">
+      <div class="premium-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge primary">
+            <i class="bi bi-bag-fill"></i>
+          </div>
+          <div>
+            <h5>Send Product</h5>
+            <p>Select a product to share with this contact</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="showProductPicker = false">&times;</button>
+      </div>
+
+      <!-- Search Input -->
+      <div style="padding: 18px 24px 0;">
+        <div class="input-wrapper-with-icon">
+          <i class="bi bi-search"></i>
+          <input type="text" [(ngModel)]="productSearch" placeholder="Search products by name or SKU...">
+        </div>
+      </div>
+
+      <div class="premium-modal-body" style="padding-top: 18px;">
+        <div *ngIf="loadingProducts" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+          <p class="text-muted small mt-2">Loading products...</p>
+        </div>
+        <div *ngIf="!loadingProducts && filteredProducts.length === 0" class="text-center py-4">
+          <div class="modal-icon-badge danger" style="margin: 0 auto 12px; width: 44px; height: 44px;">
+            <i class="bi bi-box-seam"></i>
+          </div>
+          <p class="text-muted mt-2">No products found</p>
+        </div>
+
+        <div class="premium-item-list" *ngIf="!loadingProducts && filteredProducts.length > 0">
+          <div *ngFor="let product of filteredProducts" class="premium-item-card" (click)="sendProduct(product)">
+            <div class="premium-item-icon blue">
+              <i class="bi bi-box-seam-fill"></i>
+            </div>
+            <div class="premium-item-details">
+              <div class="premium-item-title">{{ product.name }}</div>
+              <div class="premium-item-subtitle">
+                <span style="font-weight: 700; color: #059669;">₹{{ product.price }}</span>
+                <span style="color: #cbd5e1;">•</span>
+                <span class="stock-dot" [class.in-stock]="product.stock > 0" [class.out-of-stock]="product.stock <= 0"
+                  style="display: inline-block; vertical-align: middle;"></span>
+                <span style="font-size: 0.76rem;">{{ product.stock > 0 ? product.stock + ' in stock' : 'Out of stock'
+                  }}</span>
+              </div>
+            </div>
+            <div class="premium-item-arrow" style="color: #3b82f6;">
+              <i class="bi bi-send-fill"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Picker Modal -->
+  <div class="premium-modal-overlay" *ngIf="showAgentPicker" (click)="showAgentPicker = false">
+    <div class="premium-modal" (click)="$event.stopPropagation()">
+      <div class="premium-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge primary">
+            <i class="bi bi-person-plus-fill"></i>
+          </div>
+          <div>
+            <h5>Assign Agent</h5>
+            <p>Select an agent to handle this conversation</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="showAgentPicker = false">&times;</button>
+      </div>
+      <div class="premium-modal-body" style="padding-top: 18px;">
+        <div *ngIf="loadingAgents" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+          <p class="text-muted small mt-2">Loading agents...</p>
+        </div>
+        <div *ngIf="!loadingAgents && availableAgents.length === 0" class="text-center py-4">
+          <div class="modal-icon-badge danger" style="margin: 0 auto 12px; width: 44px; height: 44px;">
+            <i class="bi bi-person-x"></i>
+          </div>
+          <p class="text-muted mt-2">No active agents found</p>
+        </div>
+
+        <div class="premium-item-list" *ngIf="!loadingAgents && availableAgents.length > 0">
+          <div *ngFor="let agent of availableAgents" class="premium-item-card" (click)="selectAgentToAssign(agent)">
+            <div class="premium-item-icon indigo">
+              <i class="bi bi-person-badge-fill"></i>
+            </div>
+            <div class="premium-item-details">
+              <div class="premium-item-title">{{ agent.name }}</div>
+              <div class="premium-item-subtitle">
+                <span class="role-badge" [ngClass]="agent.role">
+                  {{ agent.role }}
+                </span>
+              </div>
+            </div>
+            <div class="premium-item-arrow">
+              <i class="bi bi-chevron-right"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Media Library Modal -->
+  <div class="premium-modal-overlay" *ngIf="showSharedLibrary"
+    (click)="showSharedLibrary = false; showAttachMenu = false">
+    <div class="premium-modal library-modal" (click)="$event.stopPropagation()">
+      <div class="premium-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+            <i class="bi bi-folder2-open"></i>
+          </div>
+          <div>
+            <h5>Shared Media Library</h5>
+            <p>Pick a file to send to this conversation</p>
+          </div>
+        </div>
+        <div class="library-header-actions">
+          <!-- Upload button -->
+          <label class="btn-upload-lib" [class.uploading]="uploadingToLibrary" title="Upload to library">
+            <i class="bi" [ngClass]="uploadingToLibrary ? 'bi-hourglass-split' : 'bi-cloud-upload'"></i>
+            {{ uploadingToLibrary ? 'Uploading...' : 'Upload' }}
+            <input type="file" hidden (change)="uploadToSharedLibrary($event)"
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+          </label>
+          <button class="modal-close-btn" (click)="showSharedLibrary = false">&times;</button>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div style="padding: 14px 24px 0;">
+        <div class="input-wrapper-with-icon">
+          <i class="bi bi-search"></i>
+          <input type="text" [(ngModel)]="sharedLibrarySearch" placeholder="Search files by name or type...">
+        </div>
+      </div>
+
+      <div class="premium-modal-body" style="padding-top: 16px;">
+        <!-- Loading -->
+        <div *ngIf="loadingSharedLibrary" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+          <p class="text-muted small mt-2">Loading shared library...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loadingSharedLibrary && filteredSharedFiles.length === 0" class="library-empty-state">
+          <div class="library-empty-icon">
+            <i class="bi bi-folder-x"></i>
+          </div>
+          <p class="library-empty-title">No shared files yet</p>
+          <p class="library-empty-sub">Click <strong>Upload</strong> above to add brochures or shared assets that all
+            agents can use.</p>
+        </div>
+
+        <!-- File Grid -->
+        <div class="library-file-grid" *ngIf="!loadingSharedLibrary && filteredSharedFiles.length > 0">
+          <div *ngFor="let file of filteredSharedFiles" class="library-file-card" (click)="sendSharedFile(file)">
+            <!-- File Type Icon -->
+            <div class="lib-file-icon" [class.lib-icon-image]="file.file_type === 'image'"
+              [class.lib-icon-video]="file.file_type === 'video'" [class.lib-icon-audio]="file.file_type === 'audio'"
+              [class.lib-icon-doc]="file.file_type === 'document'">
+              <i class="bi" [ngClass]="{
+                'bi-image-fill': file.file_type === 'image',
+                'bi-camera-video-fill': file.file_type === 'video',
+                'bi-music-note-beamed': file.file_type === 'audio',
+                'bi-file-earmark-fill': file.file_type === 'document'
+              }"></i>
+            </div>
+            <!-- File Info -->
+            <div class="lib-file-info">
+              <div class="lib-file-name" [title]="file.name">{{ file.name }}</div>
+              <div class="lib-file-meta">
+                <span class="lib-type-badge" [class]="'lib-badge-' + file.file_type">{{ file.file_type }}</span>
+                <span *ngIf="file.uploaded_by_name" class="lib-uploader">by {{ file.uploaded_by_name }}</span>
+              </div>
+            </div>
+            <!-- Actions -->
+            <div class="lib-file-actions">
+              <button class="lib-send-btn" title="Send this file">
+                <i class="bi bi-send-fill"></i>
+              </button>
+              <button class="lib-delete-btn" title="Remove from library" (click)="deleteSharedFile(file, $event)">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Contact Modal -->
+  <div class="premium-modal-overlay" *ngIf="showEditContactModal" (click)="showEditContactModal = false">
+    <div class="premium-modal" (click)="$event.stopPropagation()" style="max-width: 700px; width: 90%;">
+      <div class="premium-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge primary">
+            <i class="bi bi-pencil-square"></i>
+          </div>
+          <div>
+            <h5>{{ isEditingLeadMode ? 'Edit Lead Details' : 'Edit Contact Details' }}</h5>
+            <p>Update the information for this conversation</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="showEditContactModal = false">&times;</button>
+      </div>
+      <div class="premium-modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- ── Contact Info ── -->
+        <div style="font-weight:600; margin-bottom:12px; color:#475569; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.05em;"><i class="bi bi-person-fill me-2"></i> Contact Information</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+          <div class="input-field-group">
+            <label>Full Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="editContactForm.name" placeholder="John Doe" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+          </div>
+          <div class="input-field-group">
+            <label>Phone <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="editContactForm.phone" placeholder="+91 9876543210" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+          </div>
+          <div class="input-field-group">
+            <label>Email</label>
+            <input type="email" class="form-control" [(ngModel)]="editContactForm.email" placeholder="john@example.com" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+          </div>
+          <div class="input-field-group">
+            <label>Tags <span style="font-weight:400;color:#94a3b8;">(comma sep.)</span></label>
+            <input type="text" class="form-control" [(ngModel)]="editContactForm.tags" placeholder="VIP, Customer" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+          </div>
+          <div class="input-field-group" style="grid-column: 1 / -1;">
+            <label>Address</label>
+            <textarea class="form-control" rows="2" [(ngModel)]="editContactForm.address" placeholder="123 Main St, City, State" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;"></textarea>
+          </div>
+          <div class="input-field-group">
+            <label>Channel</label>
+            <select class="form-select" [(ngModel)]="editContactForm.channel_preference" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+              <option value="whatsapp">WhatsApp</option>
+              <option value="sms">SMS</option>
+              <option value="rcs">RCS</option>
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="website">Website</option>
+            </select>
+          </div>
+          <div class="input-field-group">
+            <label>Assigned Agent</label>
+            <select class="form-select" [(ngModel)]="editContactForm.assigned_to" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+              <option value="">Unassigned</option>
+              <option *ngFor="let agent of availableAgents" [value]="agent.id">{{ agent.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ── Lead Status ── -->
+        <ng-container *ngIf="isEditingLeadMode">
+          <div style="font-weight:600; margin-bottom:12px; margin-top:24px; color:#475569; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.05em; border-top: 1px solid var(--border); padding-top: 24px;"><i class="bi bi-clipboard2-check me-2"></i> Lead Status & Remarks</div>
+
+          <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+            <div class="input-field-group">
+              <label>Status</label>
+              <select class="form-select" [(ngModel)]="editContactForm.status" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
+                <option value="">-- Select --</option>
+                <option value="New">New</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Interested">Interested</option>
+                <option value="Not Interested">Not Interested</option>
+                <option value="Converted">Converted</option>
+                <option value="Branch">Branch</option>
+                <option value="Sales Loss">Sales Loss</option>
+              </select>
+            </div>
+            <div class="input-field-group">
+              <label>Remark / Note</label>
+              <textarea class="form-control" rows="2" [(ngModel)]="editContactForm.note" placeholder="Enter notes or remarks for this lead..." style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;"></textarea>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+      <div class="premium-modal-footer">
+        <button class="btn-cancel" (click)="showEditContactModal = false">Cancel</button>
+        <button class="btn-primary-gradient" (click)="saveContactEdit()" [disabled]="!editContactForm.name?.trim()">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Tag Modal -->
+  <div class="premium-modal-overlay" *ngIf="showAddTagModal" (click)="showAddTagModal = false">
+    <div class="premium-modal" (click)="$event.stopPropagation()">
+      <div class="premium-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge primary">
+            <i class="bi bi-tag"></i>
+          </div>
+          <div>
+            <h5>Add Custom Tag</h5>
+            <p>Categorize this contact for easy filtering</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="showAddTagModal = false">&times;</button>
+      </div>
+      <div class="premium-modal-body">
+        <div class="input-field-group">
+          <label>Tag Label</label>
+          <div class="input-wrapper-with-icon">
+            <i class="bi bi-tag-fill"></i>
+            <input type="text" [(ngModel)]="newTagName" placeholder="e.g. VIP, Warm Lead, Support..."
+              (keyup.enter)="saveTag()">
+          </div>
+        </div>
+
+        <div class="suggested-tags-container" style="margin-top: 20px;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 10px; display: block;">
+            Select from Suggested or Existing Tags
+          </label>
+          <div class="tags-badge-grid">
+            <span *ngFor="let tag of availableTagsToSelect" class="tag-pill-selectable"
+              [class.selected]="newTagName === tag" (click)="newTagName = tag">
+              {{ tag }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="premium-modal-footer">
+        <button class="btn-cancel" (click)="showAddTagModal = false">Cancel</button>
+        <button class="btn-primary-gradient" (click)="saveTag()" [disabled]="!newTagName.trim()">
+          Add Tag
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Dialog -->
+  <div class="premium-modal-overlay" *ngIf="showConfirmModal" (click)="showConfirmModal = false">
+    <div class="premium-modal confirmation" (click)="$event.stopPropagation()">
+      <div class="premium-modal-header border-0 pb-0">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge" [ngClass]="confirmType">
+            <i class="bi" [ngClass]="{
+              'bi-exclamation-triangle': confirmType === 'danger',
+              'bi-check-circle': confirmType === 'success',
+              'bi-info-circle': confirmType === 'primary'
+            }"></i>
+          </div>
+          <div>
+            <h5>{{ confirmTitle }}</h5>
+            <p>Please confirm your action below</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" (click)="showConfirmModal = false">&times;</button>
+      </div>
+      <div class="premium-modal-body py-3">
+        <p class="confirmation-message">{{ confirmMessage }}</p>
+      </div>
+      <div class="premium-modal-footer border-0 pt-0">
+        <button class="btn-cancel" (click)="showConfirmModal = false">Cancel</button>
+        <button class="btn-confirm-action" [ngClass]="confirmType" (click)="confirmActionCallback()">
+          Confirm Action
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium Toast Notification Container -->
+  <div class="premium-toast-container">
+    <div *ngFor="let toast of toasts" class="premium-toast" [ngClass]="toast.type">
+      <div class="toast-icon">
+        <i class="bi" [ngClass]="{
+          'bi-check-circle-fill': toast.type === 'success',
+          'bi-exclamation-circle-fill': toast.type === 'danger',
+          'bi-info-circle-fill': toast.type === 'info'
+        }"></i>
+      </div>
+      <div class="toast-message">{{ toast.message }}</div>
+      <button class="toast-close" (click)="removeToast(toast.id)">&times;</button>
+    </div>
+  </div>
+</div>

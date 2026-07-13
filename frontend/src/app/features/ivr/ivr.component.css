@@ -1,0 +1,197 @@
+.ivr-page {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(17, 24, 39, 0.05), 0 8px 10px -6px rgba(17, 24, 39, 0.01);
+  min-height: calc(100vh - 120px);
+}
+
+.page-header {
+  padding: 32px 32px 24px;
+  background: transparent;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  margin-bottom: 0 !important;
+}
+
+.ivr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+  padding: 32px;
+}
+
+.ivr-card {
+  position: relative;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 24px;
+  padding: 28px;
+  background: white;
+  box-shadow: 0 4px 12px -2px rgba(17, 24, 39, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 32px; /* room for status line */
+}
+
+/* Status specific top indicators */
+.ivr-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  transition: all 0.3s;
+}
+
+.ivr-card.active-flow::before { background: linear-gradient(90deg, #10B981, #34D399); }
+.ivr-card.paused-flow::before { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+
+/* Status specific hover glows */
+.ivr-card.active-flow:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ivr-card.paused-flow:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+/* Micro IVR Flow Tree Visualizer */
+.flow-preview-tree {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.01);
+}
+
+.flow-tree-line {
+  position: absolute;
+  left: 31px;
+  top: 28px;
+  bottom: 28px;
+  width: 2px;
+  background-image: linear-gradient(180deg, #cbd5e1 50%, transparent 50%);
+  background-size: 2px 8px; /* dashed effect */
+}
+
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 2;
+  transition: all 0.2s;
+}
+
+.flow-step:hover {
+  transform: translateX(4px);
+}
+
+.step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.audio-step {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.key-step {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.15);
+}
+
+.step-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.2;
+}
+
+.step-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Glowing Status Dot Badges */
+.badge-status {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-status.active {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.badge-status.paused {
+  background: rgba(148, 163, 184, 0.08);
+  color: #475569;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+/* Buttons */
+.btn-edit {
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  padding: 8px 16px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.btn-edit:hover {
+  background: #f8fafc;
+  color: #6366f1;
+  border-color: #cbd5e1;
+}
+
+.btn-logs {
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 8px 14px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.btn-logs:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}

@@ -1,0 +1,207 @@
+<div class="analytics-page">
+  <!-- Page Header -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4" style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; width: 100% !important;">
+    <div>
+      <h2 style="font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">Business Analytics</h2>
+      <p class="text-muted mt-1 mb-0">Deep insights into your communication and conversions</p>
+    </div>
+    
+    <div class="d-flex gap-3 align-items-center">
+      <select class="form-select select-range shadow-sm" style="border-radius: 10px; font-weight: 600; font-size: 0.82rem; color: #475569; border: 1px solid #cbd5e1; background: white; padding: 8px 36px 8px 16px;">
+        <option>Last 30 Days</option>
+        <option>Last 7 Days</option>
+        <option>Custom Range</option>
+      </select>
+      <button class="btn btn-export shadow-sm">
+        <i class="bi bi-download me-1"></i> Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Analytics Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card card-messages">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Messages Sent</label>
+          <div class="value">128,450</div>
+        </div>
+        <div class="stat-icon-wrapper messages-icon shadow-sm">
+          <i class="bi bi-chat-left-text-fill"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="metric-card card-open">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Open Rate</label>
+          <div class="value">84.2%</div>
+        </div>
+        <div class="stat-icon-wrapper open-icon shadow-sm">
+          <i class="bi bi-envelope-open-fill"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="metric-card card-click">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Click Rate</label>
+          <div class="value">22.5%</div>
+        </div>
+        <div class="stat-icon-wrapper click-icon shadow-sm">
+          <i class="bi bi-cursor-fill"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card card-revenue">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Revenue Generated</label>
+          <div class="value">₹12,45,000</div>
+        </div>
+        <div class="stat-icon-wrapper revenue-icon shadow-sm">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Animated CSS Mockup Chart -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <h3 class="chart-title">Engagement Over Time</h3>
+      <div class="chart-legend">
+        <span><i class="bi bi-circle-fill text-primary"></i> Delivered</span>
+        <span><i class="bi bi-circle-fill text-purple"></i> Read</span>
+      </div>
+    </div>
+    
+    <div class="chart-canvas-wrapper shadow-sm">
+      <!-- Y-Axis labels -->
+      <div class="y-axis">
+        <span>100k</span>
+        <span>75k</span>
+        <span>50k</span>
+        <span>25k</span>
+        <span>0</span>
+      </div>
+      
+      <!-- Chart area with gridlines & bars -->
+      <div class="chart-area">
+        <!-- Horizontal Gridlines -->
+        <div class="gridlines">
+          <div class="gridline"></div>
+          <div class="gridline"></div>
+          <div class="gridline"></div>
+          <div class="gridline"></div>
+          <div class="gridline"></div>
+        </div>
+        
+        <!-- CSS Bars -->
+        <div class="bars-container">
+          <!-- Mon -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 45%;"></div>
+              <div class="bar bar-read" style="height: 25%;"></div>
+            </div>
+            <span class="x-label">Mon</span>
+          </div>
+          <!-- Tue -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 60%;"></div>
+              <div class="bar bar-read" style="height: 40%;"></div>
+            </div>
+            <span class="x-label">Tue</span>
+          </div>
+          <!-- Wed -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 75%;"></div>
+              <div class="bar bar-read" style="height: 65%;"></div>
+            </div>
+            <span class="x-label">Wed</span>
+          </div>
+          <!-- Thu -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 90%;"></div>
+              <div class="bar bar-read" style="height: 80%;"></div>
+            </div>
+            <span class="x-label">Thu</span>
+          </div>
+          <!-- Fri -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 85%;"></div>
+              <div class="bar bar-read" style="height: 70%;"></div>
+            </div>
+            <span class="x-label">Fri</span>
+          </div>
+          <!-- Sat -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 55%;"></div>
+              <div class="bar bar-read" style="height: 35%;"></div>
+            </div>
+            <span class="x-label">Sat</span>
+          </div>
+          <!-- Sun -->
+          <div class="bar-col">
+            <div class="bar-pair">
+              <div class="bar bar-delivered" style="height: 70%;"></div>
+              <div class="bar bar-read" style="height: 50%;"></div>
+            </div>
+            <span class="x-label">Sun</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Campaign Performance Section -->
+  <div class="table-section-wrapper">
+    <h3 class="section-title">Campaign Performance</h3>
+    <div class="table-container shadow-sm">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Campaign Name</th>
+            <th>Sent</th>
+            <th>Delivered</th>
+            <th>Read</th>
+            <th>Conversion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw-bold" style="color: #0f172a; font-size: 0.92rem;">Summer Sale 2024</td>
+            <td class="fw-bold text-dark">10,000</td>
+            <td class="fw-semibold text-secondary">9,920</td>
+            <td class="fw-semibold text-secondary">8,450</td>
+            <td>
+              <span class="badge-status paid">
+                <i class="bi bi-circle-fill" style="font-size: 0.35rem;"></i> 4.2%
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-bold" style="color: #0f172a; font-size: 0.92rem;">New Arrival SMS</td>
+            <td class="fw-bold text-dark">5,000</td>
+            <td class="fw-semibold text-secondary">4,850</td>
+            <td class="text-muted fw-semibold">N/A</td>
+            <td>
+              <span class="badge-status pending">
+                <i class="bi bi-circle-fill" style="font-size: 0.35rem;"></i> 2.1%
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

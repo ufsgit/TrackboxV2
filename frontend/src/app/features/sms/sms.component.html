@@ -1,0 +1,85 @@
+<div class="sms-page">
+  <!-- Page Header -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4" style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; width: 100% !important;">
+    <div>
+      <h2 style="font-weight: 800; color: #0f172a; margin: 0; letter-spacing: -0.02em;">SMS Campaigns</h2>
+      <p class="text-muted mt-1 mb-0">Send transactional and promotional SMS worldwide</p>
+    </div>
+    <button class="btn btn-primary px-4 py-2 shadow-sm" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #6366F1, #4F46E5); border: none;">
+      <i class="bi bi-chat-right-text-fill me-2"></i> New Campaign
+    </button>
+  </div>
+
+  <!-- Metric Analytics Cards -->
+  <div class="sms-stats">
+    <div class="sms-stat-card card-credits">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Credits Remaining</label>
+          <div class="value">12,450</div>
+        </div>
+        <div class="stat-icon-wrapper credits-icon shadow-sm">
+          <i class="bi bi-wallet2"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="sms-stat-card card-delivery">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Delivery Rate</label>
+          <div class="value">96.8%</div>
+        </div>
+        <div class="stat-icon-wrapper delivery-icon shadow-sm">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="sms-stat-card card-sent">
+      <div class="d-flex justify-content-between align-items-start w-100">
+        <div>
+          <label>Total Sent (Month)</label>
+          <div class="value">45,200</div>
+        </div>
+        <div class="stat-icon-wrapper sent-icon shadow-sm">
+          <i class="bi bi-send-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Campaigns List -->
+  <div class="campaign-list">
+    <h3 class="list-title">Recent SMS Campaigns</h3>
+    
+    <div class="campaign-row" *ngFor="let camp of campaigns" [class.campaign-sent]="camp.status === 'Sent'" [class.campaign-draft]="camp.status === 'Draft'">
+      <!-- Left: Title & Sender ID -->
+      <div class="d-flex align-items-center gap-3">
+        <div class="campaign-icon shadow-sm">
+          <i class="bi bi-chat-text-fill"></i>
+        </div>
+        <div>
+          <div class="campaign-name">{{ camp.name }}</div>
+          <div class="text-muted small" style="font-weight: 500;">Sender: <span class="fw-bold text-dark">{{ camp.senderId }}</span></div>
+        </div>
+      </div>
+      <!-- Center: Status dot badge -->
+      <div>
+        <span class="badge-status" [class.sent]="camp.status === 'Sent'" [class.draft]="camp.status === 'Draft'">
+          <i class="bi bi-circle-fill" style="font-size: 0.35rem;"></i>
+          {{ camp.status }}
+        </span>
+      </div>
+      <!-- Right: Recipient metrics -->
+      <div>
+        <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.8px; margin-bottom: 2px;">Recipients</div>
+        <div class="recipients-count">{{ camp.recipients }}</div>
+      </div>
+      <!-- End: Action details btn -->
+      <div class="text-end">
+        <button class="btn btn-details shadow-sm">Details</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,253 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-2" style="color: #1e293b;">Warranty & Service</h2>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">Track claims and resolve product issues</p>
+    </div>
+    <button class="btn btn-primary" (click)="openRegistrationModal()" style="padding: 10px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); border: none; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+      <i class="bi bi-shield-plus me-2"></i> Register Warranty
+    </button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+    
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Active Warranties</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ activeWarranties }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fef2f2; color: #ef4444;">
+        <i class="bi bi-exclamation-triangle"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Claims This Month</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ claimsThisMonth }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fffbeb; color: #f59e0b;">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Pending Service</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ pendingService }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0fdf4; color: #22c55e;">
+        <i class="bi bi-speedometer"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Avg Resolution</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ avgResolution }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Toggle -->
+  <div class="d-flex justify-content-center mb-4">
+    <div style="background: #f1f5f9; padding: 6px; border-radius: 12px; display: inline-flex; gap: 4px;">
+      <button class="btn" (click)="activeView = 'table'" 
+              [ngStyle]="activeView === 'table' ? {'background': 'white', 'box-shadow': '0 1px 3px rgba(0,0,0,0.1)', 'color': '#3b82f6', 'font-weight': '600'} : {'color': '#64748b', 'font-weight': '500'}" 
+              style="border-radius: 8px; border: none; padding: 8px 24px; transition: all 0.2s;">
+        <i class="bi bi-table me-2"></i>Table View
+      </button>
+      <button class="btn" (click)="activeView = 'chart'" 
+              [ngStyle]="activeView === 'chart' ? {'background': 'white', 'box-shadow': '0 1px 3px rgba(0,0,0,0.1)', 'color': '#3b82f6', 'font-weight': '600'} : {'color': '#64748b', 'font-weight': '500'}" 
+              style="border-radius: 8px; border: none; padding: 8px 24px; transition: all 0.2s;">
+        <i class="bi bi-bar-chart me-2"></i>Chart View
+      </button>
+    </div>
+  </div>
+
+  <!-- Chart Section -->
+  <div *ngIf="activeView === 'chart'" class="chart-card mb-4" style="background: white; border-radius: 24px; padding: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8);">
+    <h5 class="fw-bold mb-4" style="color: #1e293b;">Warranty Claims vs Resolved (2023)</h5>
+    <div style="height: 300px;">
+      <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="lineChartType"></canvas>
+    </div>
+  </div>
+
+  <!-- Data Table Section -->
+  <div *ngIf="activeView === 'table'" class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Recent Warranty Claims</h5>
+      
+      <div style="position: relative; max-width: 300px; width: 100%;">
+        <i class="bi bi-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+        <input type="text" class="form-control" placeholder="Search claims..." [(ngModel)]="searchTerm" style="padding-left: 42px; padding-top: 8px; padding-bottom: 8px; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.9rem;">
+      </div>
+    </div>
+    
+    <div class="table-responsive p-0">
+      <table class="table mb-0 modern-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+        <thead>
+          <tr>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Claim ID</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Customer</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Product / Issue</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">AMC Status</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Spare Parts</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8;">Status</th>
+            <th style="padding: 16px 32px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; background: #faf8f8; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let claim of filteredClaims" style="transition: all 0.2s ease;">
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span class="fw-bold" style="color: #3b82f6;">{{ claim.id }}</span>
+              <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">{{ claim.date }}</div>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; font-weight: 500; color: #1e293b;">
+              {{ claim.customer }}
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; color: #475569;">
+              <div style="font-weight: 600; color: #334155;">{{ claim.product }}</div>
+              <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">{{ claim.issue }}</div>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span [class]="getAmcClass(claim.amcStatus)">{{ claim.amcStatus }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; color: #475569;">
+              <div *ngIf="claim.spareParts.length > 0">
+                <span *ngFor="let part of claim.spareParts" class="badge bg-light text-dark border border-secondary border-opacity-25 rounded-pill me-1 mb-1">{{ part }}</span>
+              </div>
+              <div *ngIf="claim.spareParts.length === 0" style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">None</div>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <span [class]="getStatusClass(claim.status)">{{ claim.status }}</span>
+            </td>
+            <td style="padding: 20px 32px; border-bottom: 1px solid #f1f5f9; text-align: right; white-space: nowrap;">
+              <div class="d-flex justify-content-end align-items-center">
+                <button class="btn btn-sm btn-light" (click)="openApprovalModal(claim, 'Approved')" [disabled]="claim.status === 'Approved'" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569;" title="Approve">
+                  <i class="bi bi-check-lg text-success"></i>
+                </button>
+                <button class="btn btn-sm btn-light" (click)="openApprovalModal(claim, 'Rejected')" [disabled]="claim.status === 'Rejected'" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; margin-left: 8px;" title="Reject">
+                  <i class="bi bi-x-lg text-danger"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Toast Notification -->
+<div *ngIf="toastMessage" class="toast-notification" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 9999; display: flex; align-items: center; gap: 12px; animation: slideInUp 0.3s ease-out;">
+  <i class="bi bi-info-circle-fill text-info fs-5"></i>
+  <span style="font-weight: 500;">{{ toastMessage }}</span>
+  <button class="btn-close btn-close-white ms-auto" (click)="toastMessage = null" style="font-size: 0.75rem;"></button>
+</div>
+
+<style>
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+</style>
+
+<!-- Registration Modal -->
+<div *ngIf="isRegistrationModalOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+  <div style="width: 100%; max-width: 500px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden;">
+      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center;">
+        <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Register New Warranty</h5>
+        <button type="button" class="btn-close" (click)="closeRegistrationModal()" aria-label="Close" style="font-size: 0.85rem;"></button>
+      </div>
+      <div style="padding: 24px;">
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Customer Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="newRegistration.customer" placeholder="Full name" style="border-radius: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem;">
+          </div>
+          <div class="col-md-6">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Product Model <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="newRegistration.product" placeholder="e.g. Router AC1200" style="border-radius: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem;">
+          </div>
+          <div class="col-md-6">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Serial Number</label>
+            <input type="text" class="form-control" [(ngModel)]="newRegistration.serialNumber" placeholder="S/N" style="border-radius: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem;">
+          </div>
+          <div class="col-md-6">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Purchase Date</label>
+            <input type="date" class="form-control" [(ngModel)]="newRegistration.purchaseDate" style="border-radius: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem;">
+          </div>
+          <div class="col-md-6 d-flex align-items-center mt-4 pt-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="amcSwitch" [(ngModel)]="newRegistration.amcIncluded">
+              <label class="form-check-label ms-2" for="amcSwitch" style="font-weight: 500; color: #1e293b;">Include AMC</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn btn-light" (click)="closeRegistrationModal()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; color: #475569; border: 1px solid #e2e8f0; background: white;">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="submitRegistration()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">Register</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Approval Modal -->
+<div *ngIf="isApprovalModalOpen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+  <div style="width: 100%; max-width: 500px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden;">
+      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center;">
+        <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">
+          <span *ngIf="approvalForm.status === 'Approved'" class="text-success"><i class="bi bi-check-circle me-2"></i>Approve Claim</span>
+          <span *ngIf="approvalForm.status === 'Rejected'" class="text-danger"><i class="bi bi-x-circle me-2"></i>Reject Claim</span>
+        </h5>
+        <button type="button" class="btn-close" (click)="closeApprovalModal()" aria-label="Close" style="font-size: 0.85rem;"></button>
+      </div>
+      <div style="padding: 24px;">
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Claim ID</label>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a;">{{ approvalForm.claimId }}</div>
+          </div>
+          
+          <div class="col-md-12" *ngIf="approvalForm.status === 'Approved'">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Required Spare Parts</label>
+            <input type="text" class="form-control" [(ngModel)]="approvalForm.sparePartsRequired" placeholder="e.g. Power Adapter, Screen (comma separated)" style="border-radius: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem;">
+            <small class="text-muted mt-1 d-block">Leave blank if no spare parts are needed.</small>
+          </div>
+
+          <div class="col-md-12">
+            <label style="display: block; margin-bottom: 8px; color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Resolution Notes / Remarks <span class="text-danger" *ngIf="approvalForm.status === 'Rejected'">*</span></label>
+            <textarea class="form-control" [(ngModel)]="approvalForm.notes" rows="3" placeholder="Provide reasoning or next steps..." style="border-radius: 8px; padding: 12px 16px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem; resize: none;"></textarea>
+          </div>
+        </div>
+      </div>
+      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end; gap: 12px;">
+        <button type="button" class="btn btn-light" (click)="closeApprovalModal()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; color: #475569; border: 1px solid #e2e8f0; background: white;">Cancel</button>
+        <button type="button" class="btn" [ngClass]="approvalForm.status === 'Approved' ? 'btn-success' : 'btn-danger'" (click)="submitApproval()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; border: none; color: white;">
+          Confirm {{ approvalForm.status }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

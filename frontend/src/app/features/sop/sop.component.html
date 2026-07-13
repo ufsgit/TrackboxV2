@@ -1,0 +1,63 @@
+<div class="sop-container">
+  <!-- Left Panel: Index -->
+  <aside class="sop-index-panel">
+    <div class="sop-index-header">
+      <h2>SOP Index</h2>
+      <div class="search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" [(ngModel)]="searchQuery" (input)="onSearch()" placeholder="Filter sections...">
+      </div>
+      <div class="settings-toggle">
+        <label>
+          <input type="checkbox" [(ngModel)]="allowMultipleOpen"> Allow multiple open
+        </label>
+      </div>
+    </div>
+    
+    <ul class="sop-index-list">
+      <li *ngFor="let section of filteredData" 
+          [class.active]="activeSectionId === section.id"
+          (click)="toggleSection(section.id)">
+        <span class="index-title">{{ section.title }}</span>
+      </li>
+      <li *ngIf="filteredData.length === 0" class="no-results">
+        No sections found.
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Right Panel: Content -->
+  <main class="sop-content-panel">
+    <div class="sop-content-header">
+      <h1>{{ currentModuleTitle }}</h1>
+      <p class="subtitle">WLink Enterprise Management System</p>
+    </div>
+
+    <div class="sop-content-body" *ngIf="sopData.length > 0; else noContent">
+      <div *ngFor="let section of sopData" 
+           class="sop-section-card" 
+           [id]="section.id"
+           [class.expanded]="isOpen(section.id)"
+           [class.hidden]="searchQuery && !isOpen(section.id) && !filteredData.includes(section)">
+           
+        <div class="section-header" (click)="toggleSection(section.id)">
+          <h3>{{ section.title }}</h3>
+          <i class="bi bi-chevron-down toggle-icon"></i>
+        </div>
+        
+        <div class="section-content-wrapper" [class.open]="isOpen(section.id)">
+          <div class="section-content-inner">
+            <div class="html-content" [innerHTML]="section.content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <ng-template #noContent>
+      <div class="empty-state">
+        <i class="bi bi-book text-muted" style="font-size: 3rem;"></i>
+        <p>No SOP content available.</p>
+      </div>
+    </ng-template>
+  </main>
+</div>

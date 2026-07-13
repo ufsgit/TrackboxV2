@@ -1,0 +1,156 @@
+<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
+  
+  <!-- Header -->
+  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h2 class="fw-bold mb-2" style="color: #1e293b;">Sales Achievements</h2>
+      <p class="text-muted mb-0" style="font-size: 0.95rem;">Review closed deals and revenue milestones</p>
+    </div>
+    <button class="btn btn-primary" (click)="exportReport()" style="padding: 10px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); border: none; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+      <i class="bi bi-cloud-download me-2"></i> Export Report
+    </button>
+  </div>
+
+  <!-- KPI Cards (4 Cards) -->
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+    
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-green" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0fdf4; color: #22c55e;">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Total Revenue</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">₹138.5K</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-blue" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Deals Closed</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">42</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-purple" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #faf5ff; color: #a855f7;">
+        <i class="bi bi-calculator"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Avg. Deal Size</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">₹3.3K</h3>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
+      <div class="stat-icon icon-orange" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fff7ed; color: #f97316;">
+        <i class="bi bi-lightning-charge"></i>
+      </div>
+      <div class="stat-info">
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Win Rate</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">64%</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Data Table -->
+  <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
+    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
+      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Recent Achievements</h5>
+      
+      <div class="flex gap-2" style="gap: 10px;">
+         <input type="text" [(ngModel)]="searchTerm" class="form-control" placeholder="Search achievements..." style="border-radius: 12px; padding: 8px 16px; border: 1px solid #e2e8f0; font-size: 0.9rem; min-width: 250px;">
+      </div>
+    </div>
+    
+    <div class="table-responsive p-0">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 900px;">
+        <thead>
+          <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Date</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Assignee</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Client</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Deal Name</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Revenue</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let achievement of filteredAchievements; let last = last" [ngStyle]="{'border-bottom': last ? 'none' : '1px solid #f1f5f9'}" style="transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+            <td style="padding: 20px 32px; color: #475569; font-size: 0.9rem; font-weight: 500;">
+              {{ achievement.date }}
+            </td>
+            <td style="padding: 20px 20px;">
+              <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">
+                {{ achievement.assignee }}
+              </div>
+            </td>
+            <td style="padding: 20px 20px;">
+              <div style="font-weight: 600; color: #334155; font-size: 0.95rem;">
+                {{ achievement.client }}
+              </div>
+            </td>
+            <td style="padding: 20px 20px; color: #475569; font-size: 0.95rem;">
+              {{ achievement.dealName }}
+            </td>
+            <td style="padding: 20px 20px; font-weight: 800; color: #22c55e; font-size: 0.95rem;">
+              {{ achievement.revenue }}
+            </td>
+            <td style="padding: 20px 20px;">
+              <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2" style="font-size: 0.8rem; font-weight: 600;">
+                {{ achievement.status }}
+              </span>
+            </td>
+            <td style="padding: 20px 32px; text-align: right;">
+              <button class="btn btn-sm btn-light" (click)="openViewModal(achievement)" style="border-radius: 8px; border: 1px solid #e2e8f0; color: #475569;" title="View Details"><i class="bi bi-eye"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- View Details Modal -->
+  <div *ngIf="isViewModalOpen && selectedAchievement" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
+    <div style="background: white; border-radius: 24px; padding: 32px; width: 450px; max-width: 90vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+         <h3 style="font-weight: 800; color: #1e293b; margin: 0; font-size: 1.25rem;">Achievement Details</h3>
+         <button class="btn btn-sm btn-light" (click)="closeViewModal()" style="border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: #f1f5f9;"><i class="bi bi-x-lg"></i></button>
+       </div>
+       
+       <div style="background: #f8fafc; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+         <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+           <span style="color: #64748b; font-weight: 600;">Date</span>
+           <span style="font-weight: 700; color: #0f172a;">{{ selectedAchievement.date }}</span>
+         </div>
+         <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+           <span style="color: #64748b; font-weight: 600;">Assignee</span>
+           <span style="font-weight: 700; color: #0f172a;">{{ selectedAchievement.assignee }}</span>
+         </div>
+         <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+           <span style="color: #64748b; font-weight: 600;">Client</span>
+           <span style="font-weight: 700; color: #0f172a;">{{ selectedAchievement.client }}</span>
+         </div>
+         <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+           <span style="color: #64748b; font-weight: 600;">Deal Name</span>
+           <span style="font-weight: 700; color: #0f172a;">{{ selectedAchievement.dealName }}</span>
+         </div>
+         <div style="height: 1px; background: #e2e8f0; margin: 16px 0;"></div>
+         <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+           <span style="color: #64748b; font-weight: 600;">Revenue</span>
+           <span style="font-weight: 800; color: #22c55e;">{{ selectedAchievement.revenue }}</span>
+         </div>
+         <div style="display: flex; justify-content: space-between;">
+           <span style="color: #64748b; font-weight: 600;">Status</span>
+           <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.75rem;">{{ selectedAchievement.status }}</span>
+         </div>
+       </div>
+
+       <button class="btn btn-primary w-100" (click)="closeViewModal()" style="border-radius: 12px; font-weight: 700; padding: 10px; background: #f1f5f9; color: #334155; border: none;">Close</button>
+    </div>
+  </div>
+</div>
