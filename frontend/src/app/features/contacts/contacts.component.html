@@ -541,13 +541,6 @@
           </select>
         </div>
 
-        <div class="field-row" *ngIf="isAdmin">
-          <label>Assigned Agent</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_to" style="display:block;">
-            <option value="">Unassigned</option>
-            <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
-          </select>
-        </div>
       </div>
 
       <!-- ── Additional Details ── -->
@@ -594,60 +587,54 @@
         </div>
       </div>
 
-      <!-- ── Lead Status ── -->
-      <div class="section-divider" style="border-top: 2px solid #64748b; padding-top: 24px; margin-top: 16px; color: #334155;"><i class="bi bi-clipboard2-check"></i> Lead Status & Remarks</div>
+      <!-- ── Follow Up Details ── -->
+      <div class="section-divider" style="border-top: 2px solid #e2e8f0; padding-top: 24px; margin-top: 16px; color: #4f46e5; font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-calendar2-event-fill" style="color: #6366f1;"></i> Follow Up Details :
+      </div>
 
-      <div class="fields-grid">
+      <div class="fields-grid" style="background: #faf8f8; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
+        
         <div class="field-row">
-          <label>Status</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
-            <option value="">-- Select --</option>
-            <option value="New">New</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Interested">Interested</option>
-            <option value="Not Interested">Not Interested</option>
-            <option value="Converted">Converted</option>
-            <option value="Branch">Branch</option>
-            <option value="Sales Loss">Sales Loss</option>
-          </select>
-        </div>
-
-        <div class="field-row" *ngIf="newContact.status === 'Branch'">
-          <label>Branch</label>
+          <label>Branch <span class="required">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="newContact.branch" style="display:block;">
             <option value="">-- Select Branch --</option>
             <option *ngFor="let b of dummyBranches" [value]="b">{{ b }}</option>
           </select>
         </div>
-        <div class="field-row" *ngIf="newContact.status === 'Branch'">
-          <label>Department</label>
+
+        <div class="field-row">
+          <label>Department <span class="required">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="newContact.department" style="display:block;">
             <option value="">-- Select Department --</option>
             <option *ngFor="let d of dummyDepartments" [value]="d">{{ d }}</option>
           </select>
         </div>
-        <div class="field-row full-width" *ngIf="newContact.status === 'Branch'">
-          <label>Assign To</label>
-          <div style="display: flex; gap: 16px; margin-top: 8px;">
-            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
-              <input type="radio" name="assign_type_add" value="auto" [(ngModel)]="newContact.assign_type"> Auto Assign
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
-              <input type="radio" name="assign_type_add" value="employee" [(ngModel)]="newContact.assign_type"> Select Employee
-            </label>
-          </div>
-        </div>
-        <div class="field-row" *ngIf="newContact.status === 'Branch' && newContact.assign_type === 'employee'">
-          <label>Employee</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
-            <option value="">-- Select Employee --</option>
-            <option *ngFor="let e of dummyEmployees" [value]="e">{{ e }}</option>
+
+        <div class="field-row">
+          <label>Status <span class="required">*</span></label>
+          <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
+            <option value="">-- Select --</option>
+            <option value="New">New</option>
+            <option value="Cold Lead">Cold Lead</option>
+            <option value="Contacted">Contacted</option>
+            <option value="Interested">Interested</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Converted">Converted</option>
+            <option value="Sales Loss">Sales Loss</option>
           </select>
         </div>
-        <div class="field-row full-width" *ngIf="newContact.status === 'Branch' && newContact.assign_type === 'auto'">
-          <div class="alert alert-info py-2 px-3" style="font-size: 0.9rem; margin-bottom: 0;">
-            <i class="bi bi-info-circle me-1"></i> Contact will be automatically assigned to the most suitable employee based on load.
-          </div>
+
+        <div class="field-row">
+          <label>To staff <span class="required">*</span></label>
+          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_to" style="display:block;">
+            <option value="">-- Select Staff --</option>
+            <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label>Follow Up on <span class="required">*</span></label>
+          <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
         </div>
 
         <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
@@ -658,15 +645,11 @@
           </select>
         </div>
 
-        <div class="field-row" *ngIf="newContact.status === 'Interested'">
-          <label>Follow Up Date</label>
-          <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
+        <div class="field-row full-width">
+          <label>Remark <span class="required">*</span></label>
+          <input type="text" class="form-control premium-input" [(ngModel)]="newContact.remark" placeholder="Enter notes or remarks...">
         </div>
 
-        <div class="field-row full-width">
-          <label>Remark / Note</label>
-          <textarea class="form-control premium-input" rows="3" [(ngModel)]="newContact.remark" placeholder="Enter notes or remarks for this lead..."></textarea>
-        </div>
       </div>
     </div>
 
