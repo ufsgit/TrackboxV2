@@ -1,0 +1,11 @@
+<div class="settings-page">
+  <div class="settings-nav">
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team')">
+      <i class="bi bi-people me-2"></i>Team
+    </a>
+  </div>
+
+  <div class="settings-content">
+    <div *ngIf="activeTab === 'team'">
+      <app-teams-management></app-teams-management>
+    </div>

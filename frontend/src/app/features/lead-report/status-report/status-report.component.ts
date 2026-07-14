@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
+import { ApiService } from '../../../core/services/api.service';
 
 Chart.register(...registerables);
 
@@ -114,45 +115,60 @@ Chart.register(...registerables);
 export class StatusReportComponent implements OnInit {
   dateRange: string = 'this_month';
 
-  openLeads = 850;
-  closedWon = 120;
-  closedLost = 45;
+  openLeads = 0;
+  closedWon = 0;
+  closedLost = 0;
 
   pipelineChart: any;
   lossReasonChart: any;
 
-  staleLeads = [
-    { name: 'John Doe', status: 'New', days: 14, assignedTo: 'Alice Smith' },
-    { name: 'Acme Corp', status: 'Contacted', days: 21, assignedTo: 'Bob Johnson' },
-    { name: 'Tech Solutions', status: 'Contacted', days: 18, assignedTo: 'Charlie Brown' },
-    { name: 'Sarah Jenkins', status: 'New', days: 12, assignedTo: 'Eva Green' }
-  ];
+  staleLeads: any[] = [];
+
+  constructor(private api: ApiService) {}
 
   ngOnInit() {
-    setTimeout(() => {
-      this.initPipelineChart();
-      this.initLossReasonChart();
-    }, 100);
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.api.get(`/reports/leads/status?dateRange=${this.dateRange}`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          const data = res.data;
+          this.openLeads = data.openLeads;
+          this.closedWon = data.closedWon;
+          this.closedLost = data.closedLost;
+          this.staleLeads = data.staleLeads;
+
+          this.updateCharts(data);
+        }
+      },
+      error: (err: any) => console.error(err)
+    });
   }
 
   onFilterChange() {
-    this.openLeads = Math.floor(Math.random() * 1000) + 200;
-    if (this.pipelineChart) this.pipelineChart.destroy();
-    if (this.lossReasonChart) this.lossReasonChart.destroy();
-    this.initPipelineChart();
-    this.initLossReasonChart();
+    this.fetchData();
   }
 
-  initPipelineChart() {
+  updateCharts(data: any) {
+    if (this.pipelineChart) this.pipelineChart.destroy();
+    if (this.lossReasonChart) this.lossReasonChart.destroy();
+
+    this.initPipelineChart(data.pipelineLabels, data.pipelineValues);
+    this.initLossReasonChart(data.lossLabels, data.lossValues);
+  }
+
+  initPipelineChart(labels: string[], values: number[]) {
     const ctx = document.getElementById('pipelineChart') as HTMLCanvasElement;
     if (!ctx) return;
     this.pipelineChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['New', 'Contacted', 'Interested', 'In Negotiation', 'Converted'],
+        labels: labels,
         datasets: [{
           label: 'Leads',
-          data: [400, 250, 120, 80, this.closedWon],
+          data: values,
           backgroundColor: [
             '#9CA3AF',
             '#3B82F6',
@@ -167,15 +183,15 @@ export class StatusReportComponent implements OnInit {
     });
   }
 
-  initLossReasonChart() {
+  initLossReasonChart(labels: string[], values: number[]) {
     const ctx = document.getElementById('lossReasonChart') as HTMLCanvasElement;
     if (!ctx) return;
     this.lossReasonChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Price too high', 'Competitor', 'No Response', 'Other'],
+        labels: labels,
         datasets: [{
-          data: [20, 10, 10, 5],
+          data: values,
           backgroundColor: ['#EF4444', '#F97316', '#6B7280', '#9CA3AF']
         }]
       },

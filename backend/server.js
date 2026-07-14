@@ -71,6 +71,7 @@ app.post('/api/webhooks/ivr/keypress', handleKeyPress);
 // API routes
 app.use('/api/auth', require('./src/routes/auth.routes'));
 app.use('/api/contacts', require('./src/routes/contacts.routes'));
+app.use('/api', require('./src/routes/leads.routes'));
 app.use('/api/conversations', require('./src/routes/conversations.routes'));
 app.use('/api/templates', require('./src/routes/templates.routes'));
 app.use('/api/broadcasts', require('./src/routes/broadcasts.routes'));
@@ -91,7 +92,8 @@ app.use('/api/system-settings', require('./src/routes/system-settings.routes'));
 app.use('/api/media-library', require('./src/routes/media-library.routes'));
 app.use('/api/courses', require('./src/routes/courses.routes'));
 app.use('/api/attendance', require('./src/routes/attendance.routes'));
-
+app.use('/api/applications', require('./src/routes/applications.routes'));
+app.use('/api/reports', require('./src/routes/reports.routes'));
 
 // Socket.IO
 io.on('connection', (socket) => {
@@ -104,7 +106,7 @@ io.on('connection', (socket) => {
 });
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ success: true, message: 'WLink API is running', data: { version: '1.0.0' } }));
+app.get('/api/health', (req, res) => res.json({ success: true, message: 'Trackbox V2 API is running', data: { version: '1.0.0' } }));
 
 // Start
 const PORT = process.env.PORT || 3000;
@@ -115,7 +117,7 @@ async function bootstrap() {
     startBroadcastJob(io);
     startDripJob(io);
     startSmsJob();
-    server.listen(PORT, () => console.log(`🚀 WLink API running on port ${PORT}`));
+    server.listen(PORT, () => console.log(`🚀 Trackbox V2 API running on port ${PORT}`));
   } catch (err) {
     console.error('❌ Startup error:', err);
     process.exit(1);

@@ -1,17 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { CourseManagementComponent } from './course-management/course-management.component';
+import { TeamsManagementComponent } from "../system-settings/components/teams-management/teams-management.component";
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, CourseManagementComponent],
+  imports: [CommonModule, FormsModule, RouterModule, CourseManagementComponent, TeamsManagementComponent],
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css']
 })
 export class SettingsComponent implements OnInit {
+  activeModule = 'leads'; // default
   activeTab = localStorage.getItem('activeSettingsTab') || 'whatsapp';
 
   setActiveTab(tab: string) {
@@ -94,9 +97,18 @@ export class SettingsComponent implements OnInit {
     { key: 'shopify', name: 'Shopify', desc: 'Import your Shopify catalog', icon: 'bi-bag', color: '#95BF47' },
   ];
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private route: ActivatedRoute) {}
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['module']) {
+        this.activeModule = params['module'];
+        if (['hr', 'operation'].includes(this.activeModule)) {
+          this.activeTab = 'team';
+          this.loadTeam();
+        }
+      }
+    });
     this.loadBusiness();
     this.loadSocialAccounts();
     const base = window.location.origin.replace('4200', '3000') + '/api/webhooks';
@@ -112,7 +124,7 @@ export class SettingsComponent implements OnInit {
       },
       error: () => {
         // Use default empty object
-        this.business = { name: '', whatsapp_number: '', whatsapp_token: '', whatsapp_phone_id: '', fb_page_id: '', fb_token: '', ig_account_id: '', ig_token: '', ig_app_id: '', ig_app_secret: '', fb_verify_token: 'wlink_fb_verify_token', waba_id: '' };
+        this.business = { name: '', whatsapp_number: '', whatsapp_token: '', whatsapp_phone_id: '', fb_page_id: '', fb_token: '', ig_account_id: '', ig_token: '', ig_app_id: '', ig_app_secret: '', fb_verify_token: 'trackbox_fb_verify_token', waba_id: '' };
       }
     });
   }
@@ -139,7 +151,7 @@ export class SettingsComponent implements OnInit {
       phone_id: '',
       account_id: '',
       token: '',
-      verify_token: 'wlink_verify_token_' + Math.random().toString(36).substring(2, 9),
+      verify_token: 'trackbox_verify_token_' + Math.random().toString(36).substring(2, 9),
       waba_id: '',
       app_id: '',
       app_secret: ''

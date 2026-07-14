@@ -141,6 +141,7 @@ export class LayoutComponent implements OnInit {
   }
 
   showSystemSettingsMenu = false;
+  showApplicationSettingsSubmenu = false;
 
   toggleSystemSettingsMenu(event: Event) {
     event.stopPropagation();

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
+import { ApiService } from '../../../core/services/api.service';
 
 Chart.register(...registerables);
 
@@ -117,62 +118,78 @@ Chart.register(...registerables);
 export class EnquiryReportComponent implements OnInit {
   dateRange: string = 'this_month';
 
-  totalEnquiries = 3240;
-  highValue = 485;
-  topSource = 'Facebook Ads';
-  avgLeadScore = 72;
+  totalEnquiries = 0;
+  highValue = 0;
+  topSource = 'Loading...';
+  avgLeadScore = 0;
 
   sourceChart: any;
   categoryChart: any;
 
-  recentEnquiries = [
-    { name: 'Global Tech Corp', source: 'Website', product: 'Enterprise CRM Package', score: 95, date: new Date() },
-    { name: 'Alpha Solutions', source: 'Referral', product: 'Marketing Automation', score: 88, date: new Date(Date.now() - 86400000) },
-    { name: 'Omega Retail', source: 'Facebook Ads', product: 'Basic CRM', score: 82, date: new Date(Date.now() - 172800000) },
-    { name: 'Nexus Logistics', source: 'LinkedIn', product: 'Custom Development', score: 91, date: new Date(Date.now() - 259200000) }
-  ];
+  recentEnquiries: any[] = [];
+
+  constructor(private api: ApiService) {}
 
   ngOnInit() {
-    setTimeout(() => {
-      this.initSourceChart();
-      this.initCategoryChart();
-    }, 100);
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.api.get(`/reports/leads/enquiries?dateRange=${this.dateRange}`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          const data = res.data;
+          this.totalEnquiries = data.totalEnquiries;
+          this.highValue = data.highValue;
+          this.topSource = data.topSource;
+          this.avgLeadScore = data.avgLeadScore;
+          this.recentEnquiries = data.recentEnquiries;
+
+          this.updateCharts(data.sources, data.categories);
+        }
+      },
+      error: (err: any) => console.error(err)
+    });
   }
 
   onFilterChange() {
-    this.totalEnquiries = Math.floor(Math.random() * 5000) + 1000;
-    if (this.sourceChart) this.sourceChart.destroy();
-    if (this.categoryChart) this.categoryChart.destroy();
-    this.initSourceChart();
-    this.initCategoryChart();
+    this.fetchData();
   }
 
-  initSourceChart() {
+  updateCharts(sources: any[], categories: any[]) {
+    if (this.sourceChart) this.sourceChart.destroy();
+    if (this.categoryChart) this.categoryChart.destroy();
+
+    this.initSourceChart(sources);
+    this.initCategoryChart(categories);
+  }
+
+  initSourceChart(sources: any[]) {
     const ctx = document.getElementById('sourceChart') as HTMLCanvasElement;
     if (!ctx) return;
     this.sourceChart = new Chart(ctx, {
       type: 'pie',
       data: {
-        labels: ['Facebook Ads', 'Website', 'Google Ads', 'Referral'],
+        labels: sources.map(s => s.label),
         datasets: [{
-          data: [45, 25, 20, 10],
-          backgroundColor: ['#1877F2', '#10B981', '#EA4335', '#F59E0B']
+          data: sources.map(s => s.value),
+          backgroundColor: ['#1877F2', '#10B981', '#EA4335', '#F59E0B', '#8B5CF6']
         }]
       },
       options: { responsive: true, maintainAspectRatio: false }
     });
   }
 
-  initCategoryChart() {
+  initCategoryChart(categories: any[]) {
     const ctx = document.getElementById('categoryChart') as HTMLCanvasElement;
     if (!ctx) return;
     this.categoryChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['CRM Package', 'Marketing Automation', 'Custom Dev', 'Consulting', 'Other'],
+        labels: categories.map(c => c.label),
         datasets: [{
           label: 'Enquiries',
-          data: [850, 620, 410, 200, 150],
+          data: categories.map(c => c.value),
           backgroundColor: '#4F46E5',
           borderRadius: 4
         }]

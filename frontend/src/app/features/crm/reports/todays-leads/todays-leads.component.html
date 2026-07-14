@@ -20,7 +20,7 @@
       </div>
       <div class="stat-info">
         <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Total Leads Today</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">42</h3>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ stats.totalToday }}</h3>
       </div>
     </div>
 
@@ -29,8 +29,8 @@
         <i class="bi bi-person-x"></i>
       </div>
       <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Unassigned Leads</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">15</h3>
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Actioned Leads</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ stats.actioned }}</h3>
       </div>
     </div>
 
@@ -39,8 +39,8 @@
         <i class="bi bi-currency-dollar"></i>
       </div>
       <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Est. Pipeline Value</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">₹245K</h3>
+        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Hot Leads</label>
+        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ stats.hotLeads }}</h3>
       </div>
     </div>
 
@@ -63,14 +63,14 @@
             <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Time</th>
             <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Lead Name</th>
             <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Source</th>
-            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Est. Value</th>
+            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Interest</th>
             <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right;">Assignment</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let l of filteredLeads; let last = last" [ngStyle]="{'border-bottom': last ? 'none' : '1px solid #f1f5f9'}" style="transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
             <td style="padding: 20px 32px; color: #64748b; font-size: 0.9rem; font-weight: 600;">
-              {{ l.time }}
+              {{ l.time | date:'shortTime' }}
             </td>
             <td style="padding: 20px 20px;">
               <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">
@@ -81,11 +81,11 @@
               {{ l.source }}
             </td>
             <td style="padding: 20px 20px; font-weight: 700; color: #22c55e; font-size: 0.95rem;">
-              {{ l.value }}
+              {{ l.interest }}
             </td>
             <td style="padding: 20px 32px; text-align: right;">
-              <span [ngClass]="getAssigneeBadge(l.assignedTo)" style="font-size: 0.8rem; font-weight: 600;">
-                {{ l.assignedTo }}
+              <span [ngClass]="getAssigneeBadge(l.agent)" style="font-size: 0.8rem; font-weight: 600;">
+                {{ l.agent }}
               </span>
             </td>
           </tr>
