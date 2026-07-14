@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ApplicationsService } from '../../core/services/applications.service';
+import { SystemSettingsService } from '../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
@@ -102,11 +104,47 @@ export class ContactsComponent implements OnInit {
   // Custom fields from Settings
   leadFields: any[] = [];
 
+  // Application Settings Data
+  intakes: any[] = [];
+  years: any[] = [];
+  appStatuses: any[] = [];
+  enquiryFors: any[] = [];
+  countries: string[] = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Ireland', 'New Zealand', 'Singapore', 'India', 'China'];
+
+  // Application Data
+  selectedContactApplications: any[] = [];
+  selectedContactLeads: any[] = [];
+  applicationHistory: any[] = [];
+
+  showAddApplicationModal = false;
+  showAppHistoryModal = false;
+  currentApplication: any = {
+    country: '',
+    university: '',
+    course: '',
+    intake_id: '',
+    year_id: '',
+    status_id: '',
+    description: ''
+  };
+
+  showAddLeadModal = false;
+  currentLead: any = {
+    enquiry_for_id: '',
+    status: 'New',
+    loss_reason: '',
+    assigned_to: '',
+    follow_up_date: '',
+    remark: ''
+  };
+
   newContact: any = {
     name: '',
     phone: '',
     email: '',
     address: '',
+    company: '',
+    enquiry_for_id: null,
     status: '',
     remark: '',
     follow_up_date: '',
@@ -165,7 +203,13 @@ export class ContactsComponent implements OnInit {
     return new Date().toISOString().split('T')[0];
   }
 
-  constructor(private api: ApiService, private router: Router, private auth: AuthService) {}
+  constructor(
+    private api: ApiService, 
+    private router: Router, 
+    private auth: AuthService,
+    private appsService: ApplicationsService,
+    private settingsService: SystemSettingsService
+  ) {}
 
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin');
@@ -173,6 +217,14 @@ export class ContactsComponent implements OnInit {
     this.loadTags();
     this.loadLeadFields();
     if (this.isAdmin) this.loadAgents();
+    this.loadApplicationSettings();
+  }
+
+  loadApplicationSettings() {
+    this.settingsService.getIntakes().subscribe({ next: (res: any) => { if(res.success) this.intakes = res.data; }});
+    this.settingsService.getYears().subscribe({ next: (res: any) => { if(res.success) this.years = res.data; }});
+    this.settingsService.getAppStatuses().subscribe({ next: (res: any) => { if(res.success) this.appStatuses = res.data; }});
+    this.settingsService.getEnquiryFors().subscribe({ next: (res: any) => { if(res.success) this.enquiryFors = res.data; }});
   }
 
   loadAgents() {
@@ -281,6 +333,8 @@ export class ContactsComponent implements OnInit {
             interestedProducts: ['Software License', 'Annual Maintenance', 'Consulting', 'Hardware Bundle'][Math.floor(Math.random() * 4)]
           };
           this.generateDummyData();
+          this.loadApplications(contact.id);
+          this.loadLeads(contact.id);
         }
         this.detailLoading = false;
       },
@@ -329,6 +383,98 @@ export class ContactsComponent implements OnInit {
   closeDetailPanel() {
     this.showDetailPanel = false;
     this.selectedContact = null;
+    this.selectedContactApplications = [];
+  }
+
+  // --- APPLICATIONS LOGIC ---
+  loadApplications(contactId: number) {
+    this.appsService.getApplications(contactId).subscribe({
+      next: (res: any) => {
+        if (res.success) this.selectedContactApplications = res.data;
+      }
+    });
+  }
+
+  openAddApplicationModal() {
+    this.currentApplication = { contact_id: this.selectedContact.id, country: '', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
+    this.showAddApplicationModal = true;
+  }
+
+  openEditApplicationModal(app: any) {
+    this.currentApplication = { ...app };
+    this.showAddApplicationModal = true;
+  }
+
+  saveApplication() {
+    if (!this.currentApplication.country || !this.currentApplication.university || !this.currentApplication.course) {
+      Swal.fire('Error', 'Country, University, and Course are required.', 'error');
+      return;
+    }
+
+    if (this.currentApplication.id) {
+      this.appsService.updateApplication(this.currentApplication.id, this.currentApplication).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Application updated' });
+            this.loadApplications(this.selectedContact.id);
+            this.showAddApplicationModal = false;
+          }
+        },
+        error: (err) => Swal.fire('Error', err.error.message || 'Error updating application', 'error')
+      });
+    } else {
+      this.appsService.createApplication(this.currentApplication).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Application created' });
+            this.loadApplications(this.selectedContact.id);
+            this.showAddApplicationModal = false;
+          }
+        },
+        error: (err) => Swal.fire('Error', err.error.message || 'Error creating application', 'error')
+      });
+    }
+  }
+
+  deleteApplication(id: number) {
+    Swal.fire({ title: 'Are you sure?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!' })
+    .then((result) => {
+      if (result.isConfirmed) {
+        this.appsService.deleteApplication(id).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Application deleted' });
+              this.loadApplications(this.selectedContact.id);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  updateApplicationStatus(app: any, statusId: number) {
+    if (app.status_id === statusId) return;
+    const updatedApp = { ...app, status_id: statusId };
+    this.appsService.updateApplication(app.id, updatedApp).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Status updated' });
+          this.loadApplications(this.selectedContact.id);
+        }
+      }
+    });
+  }
+
+  openAppHistoryModal(applicationId: number) {
+    this.applicationHistory = [];
+    this.appsService.getApplicationHistory(applicationId).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.applicationHistory = res.data;
+          this.showAppHistoryModal = true;
+        }
+      }
+    });
   }
 
   openEditFromDetail() {
@@ -347,7 +493,78 @@ export class ContactsComponent implements OnInit {
     }
   }
 
-  // ── History Modal ──────────────────────────────────────────────────────────
+  // ── Leads Management ────────────────────────────────────────────────────────
+
+  loadLeads(contactId: number) {
+    this.api.get(`/contacts/${contactId}/leads`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.selectedContactLeads = res.data;
+        }
+      }
+    });
+  }
+
+  openAddLeadModal() {
+    this.currentLead = {
+      enquiry_for_id: '',
+      status: 'New',
+      loss_reason: '',
+      assigned_to: '',
+      follow_up_date: '',
+      remark: ''
+    };
+    this.showAddLeadModal = true;
+  }
+
+  saveLead() {
+    if (!this.currentLead.status) {
+      Swal.fire('Error', 'Status is required.', 'error');
+      return;
+    }
+
+    if (this.currentLead.id) {
+      this.api.put(`/leads/${this.currentLead.id}`, this.currentLead).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead updated' });
+            this.loadLeads(this.selectedContact.id);
+            this.showAddLeadModal = false;
+          }
+        },
+        error: (err: any) => Swal.fire('Error', err.error.message || 'Error updating lead', 'error')
+      });
+    } else {
+      this.api.post(`/contacts/${this.selectedContact.id}/leads`, this.currentLead).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead created' });
+            this.loadLeads(this.selectedContact.id);
+            this.showAddLeadModal = false;
+          }
+        },
+        error: (err: any) => Swal.fire('Error', err.error.message || 'Error creating lead', 'error')
+      });
+    }
+  }
+
+  deleteLead(id: number) {
+    Swal.fire({ title: 'Are you sure?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!' })
+    .then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`/leads/${id}`).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead deleted' });
+              this.loadLeads(this.selectedContact.id);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // ── Modal Actions ──────────────────────────────────────────────────────────
 
   showHistoryModal = false;
   contactHistory: any[] = [];
@@ -403,7 +620,7 @@ export class ContactsComponent implements OnInit {
   openAddModal() {
     this.editingContactId = null;
     this.newContact = {
-      name: '', phone: '', email: '', address: '',
+      name: '', phone: '', email: '', address: '', company: '', enquiry_for_id: null,
       status: '', remark: '', follow_up_date: '',
       tags: 'lead', channel_preference: 'whatsapp', assigned_to: '',
       branch: '', department: '', assign_type: 'auto', assigned_employee: '', loss_reason: '',
@@ -424,6 +641,8 @@ export class ContactsComponent implements OnInit {
       phone: contact.phone || '',
       email: contact.email || '',
       address: contact.address || '',
+      company: contact.company || '',
+      enquiry_for_id: contact.enquiry_for_id || null,
       status: contact.status || '',
       remark: contact.remark || '',
       follow_up_date: contact.follow_up_date ? new Date(contact.follow_up_date).toISOString().split('T')[0] : '',

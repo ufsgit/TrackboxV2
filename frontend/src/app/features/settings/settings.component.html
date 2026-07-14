@@ -1,21 +1,21 @@
 <div class="settings-page">
   <div class="settings-nav">
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'whatsapp'" (click)="setActiveTab('whatsapp')">
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'whatsapp'" (click)="setActiveTab('whatsapp')">
       <i class="bi bi-cpu me-2"></i>Channels Manager
     </a>
     <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team'); loadTeam()">
       <i class="bi bi-people me-2"></i>Team
     </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'lead-fields'" (click)="setActiveTab('lead-fields'); loadLeadFields()">
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'lead-fields'" (click)="setActiveTab('lead-fields'); loadLeadFields()">
       <i class="bi bi-list-columns me-2"></i>Lead Fields
     </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'api'" (click)="setActiveTab('api')">
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'api'" (click)="setActiveTab('api')">
       <i class="bi bi-code-slash me-2"></i>API & Webhooks
     </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'integrations'" (click)="setActiveTab('integrations')">
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'integrations'" (click)="setActiveTab('integrations')">
       <i class="bi bi-plug me-2"></i>Integrations
     </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'courses'" (click)="setActiveTab('courses')">
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'courses'" (click)="setActiveTab('courses')">
       <i class="bi bi-journal-bookmark me-2"></i>Courses
     </a>
     <!-- 
@@ -159,7 +159,7 @@
             <i class="bi bi-hdd-network-fill"></i>
           </div>
           <h4>No Channels Connected Yet</h4>
-          <p>Bring WLink to life by connecting your first social media communication channel.</p>
+          <p>Bring Trackbox V2 to life by connecting your first social media communication channel.</p>
           <button class="btn btn-primary mt-3" (click)="openAddChannel()">
             <i class="bi bi-plus-lg"></i> Connect Your First Channel
           </button>
@@ -212,8 +212,8 @@
               </div>
             </div>
             <div class="copy-input">
-              <input type="text" class="form-control" [value]="business.fb_verify_token || 'wlink_fb_verify_token'" readonly>
-              <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'wlink_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
+              <input type="text" class="form-control" [value]="business.fb_verify_token || 'trackbox_fb_verify_token'" readonly>
+              <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'trackbox_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
             </div>
           </div>
         </div>
@@ -461,92 +461,7 @@
 
     <!-- ===================== TEAM ===================== -->
     <div *ngIf="activeTab === 'team'" class="team-tab">
-      <div class="team-header-container">
-        <div>
-          <h3 class="section-title">Team Members</h3>
-          <p class="section-desc">Manage your team's access, roles, and invitations.</p>
-        </div>
-        <button class="btn btn-primary" (click)="showInvite = !showInvite">
-          <i class="bi bi-person-plus-fill me-2"></i> Invite Agent
-        </button>
-      </div>
-
-      <!-- Invite Form Card -->
-      <div *ngIf="showInvite" class="invite-form-card mb-4">
-        <h5>Invite New Team Member</h5>
-        <div class="invite-form-grid">
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" class="form-control" [(ngModel)]="newAgent.name" placeholder="E.g. Jane Doe">
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" class="form-control" [(ngModel)]="newAgent.email" placeholder="jane@example.com">
-          </div>
-          <div class="form-group">
-            <label>Role</label>
-            <select class="form-select" [(ngModel)]="newAgent.role">
-              <option value="agent">Agent (Chat Only)</option>
-              <option value="admin">Admin (Full Access)</option>
-            </select>
-          </div>
-          <div class="form-group d-flex align-items-end">
-            <button class="btn btn-primary w-100" (click)="inviteAgent()">
-              <i class="bi bi-send-fill me-2"></i> Send Invite
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Team Members Table Card -->
-      <div class="team-table-card">
-        <table class="table custom-table">
-          <thead>
-            <tr>
-              <th>Member</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let member of team">
-              <td>
-                <div class="member-cell">
-                  <div class="member-avatar">
-                    {{ member.name ? member.name[0] : 'U' }}
-                  </div>
-                  <div>
-                    <div class="member-name">{{ member.name }}</div>
-                    <div class="member-email">{{ member.email }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="role-badge" [class.role-admin]="member.role === 'admin'" [class.role-agent]="member.role === 'agent'">
-                  {{ member.role }}
-                </span>
-              </td>
-              <td>
-                <span class="status-badge" [class.status-active]="member.is_active" [class.status-inactive]="!member.is_active">
-                  <span class="status-dot"></span> {{ member.is_active ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td class="text-end">
-                <button class="action-btn text-danger" (click)="removeAgent(member.id)" title="Remove Member">
-                  <i class="bi bi-trash3"></i>
-                </button>
-              </td>
-            </tr>
-            <tr *ngIf="team.length === 0">
-              <td colspan="4" class="text-center py-5 text-muted">
-                <i class="bi bi-people mb-2" style="font-size: 2rem;"></i>
-                <p class="mb-0">No team members added yet.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <app-teams-management></app-teams-management>
     </div>
 
     <!-- ===================== API & WEBHOOKS ===================== -->
@@ -610,8 +525,8 @@
             </div>
           </div>
           <div class="copy-input">
-            <input type="text" class="form-control" [value]="business.fb_verify_token || 'wlink_fb_verify_token'" readonly>
-            <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'wlink_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
+            <input type="text" class="form-control" [value]="business.fb_verify_token || 'trackbox_fb_verify_token'" readonly>
+            <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'trackbox_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
           </div>
         </div>
       </div>
@@ -622,7 +537,7 @@
       <div class="team-header-container">
         <div>
           <h3 class="section-title mb-0">App Integrations</h3>
-          <p class="section-desc">Connect WLink with your favorite tools and platforms.</p>
+          <p class="section-desc">Connect Trackbox V2 with your favorite tools and platforms.</p>
         </div>
       </div>
 

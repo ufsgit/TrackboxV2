@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ApiService } from '../../../../core/services/api.service';
 
 @Component({
   selector: 'app-todays-leads',
@@ -12,12 +13,24 @@ import { FormsModule } from '@angular/forms';
 export class TodaysLeadsComponent {
   searchTerm: string = '';
   
-  leads = [
-    { id: 'LD-101', name: 'Alpha Innovations', source: 'Website Contact', value: '₹15,000', assignedTo: 'Unassigned', time: '09:15 AM' },
-    { id: 'LD-102', name: 'Beta Solutions', source: 'Referral', value: '₹25,000', assignedTo: 'Jane Doe', time: '10:30 AM' },
-    { id: 'LD-103', name: 'Gamma Dynamics', source: 'LinkedIn Campaign', value: '₹8,000', assignedTo: 'Robert Johnson', time: '11:45 AM' },
-    { id: 'LD-104', name: 'Delta Logistics', source: 'Direct Call', value: '₹45,000', assignedTo: 'Unassigned', time: '01:20 PM' }
-  ];
+  leads: any[] = [];
+  stats: any = { totalToday: 0, actioned: 0, hotLeads: 0 };
+
+  constructor(private api: ApiService) {
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.api.get('/reports/leads/today').subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.leads = res.data.leads;
+          this.stats = res.data;
+        }
+      },
+      error: (err: any) => console.error(err)
+    });
+  }
 
   get filteredLeads() {
     if (!this.searchTerm) return this.leads;

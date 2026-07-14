@@ -30,10 +30,11 @@ const updateBusiness = async (req, res) => {
 const getTeam = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.name, u.email, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, b.name as branch_name, d.name as department_name 
+      `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, b.name as branch_name, d.name as department_name, des.name as designation_name
        FROM users u 
        LEFT JOIN branches b ON u.branch_id = b.id 
        LEFT JOIN departments d ON u.department_id = d.id 
+       LEFT JOIN designations des ON u.designation_id = des.id
        WHERE u.business_id=? ORDER BY u.created_at ASC`,
       [req.user.businessId]
     );
@@ -43,24 +44,24 @@ const getTeam = async (req, res) => {
 
 const inviteAgent = async (req, res) => {
   try {
-    const { name, email, role, password, branch_id, department_id, is_active } = req.body;
+    const { name, email, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active } = req.body;
     const [existing] = await pool.query('SELECT id FROM users WHERE email=?', [email]);
     if (existing.length) return res.status(409).json({ success: false, message: 'Email already in use', data: null });
-    const hash = await bcrypt.hash(password || 'WLink@123', 10);
+    const hash = await bcrypt.hash(password || 'Trackbox@123', 10);
     const [result] = await pool.query(
-      'INSERT INTO users (business_id, name, email, password_hash, role, branch_id, department_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.businessId, name, email, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1]
+      'INSERT INTO users (business_id, name, email, username, employee_code, designation_id, date_of_joining, password_hash, role, branch_id, department_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.businessId, name, email, username || null, employee_code || null, designation_id || null, date_of_joining || null, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1]
     );
-    const [rows] = await pool.query('SELECT id, name, email, role, is_active, branch_id, department_id, created_at FROM users WHERE id=?', [result.insertId]);
+    const [rows] = await pool.query('SELECT id, name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at FROM users WHERE id=?', [result.insertId]);
     res.status(201).json({ success: true, data: rows[0], message: 'Agent invited' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
 
 const updateAgent = async (req, res) => {
   try {
-    const { name, role, is_active, branch_id, department_id, password } = req.body;
-    let query = 'UPDATE users SET name=?, role=?, is_active=?, branch_id=?, department_id=?';
-    let params = [name, role, is_active === false ? 0 : 1, branch_id || null, department_id || null];
+    const { name, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password } = req.body;
+    let query = 'UPDATE users SET name=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?';
+    let params = [name, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null];
     
     if (password) {
       const hash = await bcrypt.hash(password, 10);

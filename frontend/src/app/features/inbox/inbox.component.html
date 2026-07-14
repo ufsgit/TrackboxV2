@@ -291,7 +291,7 @@
   </div>
 
   <!-- Right: Contact Info Panel -->
-  <div class="contact-info-panel" [class.closed]="!showSidebar" *ngIf="selectedConvo">
+  <div class="contact-info-panel" [class.closed]="!showSidebar" *ngIf="selectedConvo && !isEmbedded">
     <div class="panel-header">
       <span>Contact Details</span>
       <button class="panel-close-btn" title="Close panel" (click)="toggleSidebar()">

@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
   imports: [CommonModule, FormsModule],
   template: `
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
-      <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Status Management</h3>
+      <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Lead Status</h3>
       <button class="btn btn-primary" (click)="openStatusModal()" style="display: flex; align-items: center; gap: 8px;">
         <i class="bi bi-plus-lg"></i> Add Status
       </button>
@@ -80,15 +80,24 @@ import Swal from 'sweetalert2';
               <input type="text" class="form-control" [(ngModel)]="currentStatus.color" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; flex: 1;">
             </div>
           </div>
-          <div style="display: flex; flex-direction: column;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Follow-up Required?</label>
-            <select class="form-control" [(ngModel)]="currentStatus.follow_needed" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-              <option value="Won">Won</option>
-              <option value="Loss">Loss</option>
-            </select>
-          </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                <input type="checkbox" id="followUpCheck" [ngModel]="currentStatus.follow_needed === 'Yes'" (ngModelChange)="currentStatus.follow_needed = $event ? 'Yes' : 'No'" style="width: 18px; height: 18px;">
+                <label for="followUpCheck" style="font-weight: 500; font-size: 0.9rem; cursor: pointer;">Follow-up Required?</label>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                <input type="checkbox" id="transferCheck" [(ngModel)]="currentStatus.transfer" style="width: 18px; height: 18px;">
+                <label for="transferCheck" style="font-weight: 500; font-size: 0.9rem; cursor: pointer;">Transfer to Department?</label>
+              </div>
+              
+              <div *ngIf="currentStatus.transfer" style="margin-top: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Select Department</label>
+                <select class="form-control" [(ngModel)]="currentStatus.department_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+                  <option value="">Select Department</option>
+                  <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
+                </select>
+              </div>
+            </div>
         </div>
         
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
@@ -113,7 +122,8 @@ import Swal from 'sweetalert2';
 })
 export class StatusManagementComponent implements OnInit {
   statuses: any[] = [];
-  currentStatus: any = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0 };
+  departments: any[] = [];
+  currentStatus: any = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0, transfer: false, department_id: '' };
   showStatusModal: boolean = false;
   searchTerm: string = '';
 
@@ -121,11 +131,18 @@ export class StatusManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadStatuses();
+    this.loadDepartments();
   }
 
   loadStatuses() {
     this.settingsService.getStatuses().subscribe({
       next: (res: any) => { if (res.success) this.statuses = res.data; }
+    });
+  }
+
+  loadDepartments() {
+    this.settingsService.getDepartments().subscribe({
+      next: (res: any) => { if (res.success) this.departments = res.data; }
     });
   }
 
@@ -135,8 +152,8 @@ export class StatusManagementComponent implements OnInit {
     return this.statuses.filter(s => s.name.toLowerCase().includes(term));
   }
 
-  openStatusModal() { this.currentStatus = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0 }; this.showStatusModal = true; }
-  editStatusModal(status: any) { this.currentStatus = { ...status }; this.showStatusModal = true; }
+  openStatusModal() { this.currentStatus = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0, transfer: false, department_id: '' }; this.showStatusModal = true; }
+  editStatusModal(status: any) { this.currentStatus = { ...status, transfer: !!status.transfer }; this.showStatusModal = true; }
   closeStatusModal() { this.showStatusModal = false; }
 
   saveStatus() { 
