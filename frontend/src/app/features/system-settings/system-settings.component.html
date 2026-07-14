@@ -12,6 +12,15 @@
     <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'status'" (click)="setActiveTab('status')">
       <i class="bi bi-tag me-2"></i>Lead Status
     </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'intake'" (click)="setActiveTab('intake')">
+      <i class="bi bi-calendar3 me-2"></i>Intake Management
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'year'" (click)="setActiveTab('year')">
+      <i class="bi bi-calendar-year me-2"></i>Year Management
+    </a>
+    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'app-status'" (click)="setActiveTab('app-status')">
+      <i class="bi bi-mortarboard me-2"></i>Application Status
+    </a>
   </div>
 
   <div class="settings-content">
@@ -19,5 +28,8 @@
     <app-branch-management *ngIf="activeTab === 'branch'"></app-branch-management>
     <app-department-management *ngIf="activeTab === 'department'"></app-department-management>
     <app-status-management *ngIf="activeTab === 'status'"></app-status-management>
+    <app-intake-management *ngIf="activeTab === 'intake'"></app-intake-management>
+    <app-year-management *ngIf="activeTab === 'year'"></app-year-management>
+    <app-app-status-management *ngIf="activeTab === 'app-status'"></app-app-status-management>
   </div>
 </div>

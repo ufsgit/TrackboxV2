@@ -99,6 +99,7 @@ export class ContactsComponent implements OnInit {
   branches: any[] = [];
   departments: any[] = [];
   employees: any[] = [];
+  leadStatuses: any[] = [];
   dummyLossReasons = ['Price too high', 'Bought from competitor', 'No longer needed', 'Missing features', 'Poor communication'];
 
   // Custom fields from Settings
@@ -111,8 +112,20 @@ export class ContactsComponent implements OnInit {
   enquiryFors: any[] = [];
   countries: string[] = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Ireland', 'New Zealand', 'Singapore', 'India', 'China'];
 
-  // Application Data
+  // Dynamic Filtering Helpers
+  getFilteredDepartments(branchName: string) {
+    if (!branchName) return [];
+    const branch = this.branches.find(b => b.name === branchName);
+    if (!branch) return [];
+    return this.departments.filter(d => d.branch_id === branch.id);
+  }
+
+  getFilteredEmployees(branchName: string, departmentName: string) {
+    if (!branchName || !departmentName) return [];
+    return this.employees.filter(e => e.branch_name === branchName && e.department_name === departmentName);
+  }  // Application Data
   selectedContactApplications: any[] = [];
+  loadingApplications: boolean = false;
   selectedContactLeads: any[] = [];
   applicationHistory: any[] = [];
 
@@ -220,6 +233,19 @@ export class ContactsComponent implements OnInit {
     this.loadApplicationSettings();
     this.loadBranches();
     this.loadDepartments();
+    this.loadLeadStatuses();
+  }
+
+  /** Returns true if the given status name has transfer=true in DB */
+  isTransferStatus(statusName: string): boolean {
+    const found = this.leadStatuses.find(s => s.name === statusName);
+    return found ? !!found.transfer : false;
+  }
+
+  /** Returns true if the given status name has follow_needed='Yes' in DB */
+  isFollowupStatus(statusName: string): boolean {
+    const found = this.leadStatuses.find(s => s.name === statusName);
+    return found ? (found.follow_needed === 'Yes' || found.follow_needed === true || found.follow_needed === 1) : false;
   }
 
   loadApplicationSettings() {
@@ -252,6 +278,14 @@ export class ContactsComponent implements OnInit {
     this.api.get('/system-settings/departments').subscribe({
       next: (res: any) => {
         if (res.success) this.departments = res.data;
+      }
+    });
+  }
+
+  loadLeadStatuses() {
+    this.settingsService.getStatuses().subscribe({
+      next: (res: any) => {
+        if (res.success) this.leadStatuses = res.data;
       }
     });
   }
@@ -535,8 +569,33 @@ export class ContactsComponent implements OnInit {
       loss_reason: '',
       assigned_to: '',
       follow_up_date: '',
-      remark: ''
+      remark: '',
+      branch: '',
+      department: '',
+      assign_type: 'auto'
     };
+    this.showAddLeadModal = true;
+  }
+
+  openEditLeadModal(lead: any) {
+    this.currentLead = { ...lead };
+    if (this.currentLead.follow_up_date) {
+      this.currentLead.follow_up_date = new Date(this.currentLead.follow_up_date).toISOString().split('T')[0];
+    }
+    
+    // Resolve branch & department from assigned_to employee if it exists
+    this.currentLead.branch = '';
+    this.currentLead.department = '';
+    this.currentLead.assign_type = 'auto';
+
+    if (this.currentLead.assigned_to) {
+      const emp = this.employees.find((e: any) => e.id === this.currentLead.assigned_to);
+      if (emp) {
+        this.currentLead.branch = emp.branch_name;
+        this.currentLead.department = emp.department_name;
+        this.currentLead.assign_type = 'employee';
+      }
+    }
     this.showAddLeadModal = true;
   }
 
@@ -546,8 +605,28 @@ export class ContactsComponent implements OnInit {
       return;
     }
 
-    if (this.currentLead.id) {
-      this.api.put(`/leads/${this.currentLead.id}`, this.currentLead).subscribe({
+    const payload = { ...this.currentLead };
+
+    if (!this.isFollowupStatus(payload.status)) {
+      payload.follow_up_date = null;
+    }
+
+    if (this.isTransferStatus(payload.status)) {
+      if (payload.assign_type === 'auto') {
+        const emps = this.getFilteredEmployees(payload.branch, payload.department);
+        payload.assigned_to = emps.length ? emps[0].id : null;
+      }
+    } else {
+      payload.assigned_to = null;
+      payload.remark = null;
+    }
+
+    if (payload.status !== 'Sales Loss') {
+      payload.loss_reason = null;
+    }
+
+    if (payload.id) {
+      this.api.put(`/leads/${payload.id}`, payload).subscribe({
         next: (res: any) => {
           if (res.success) {
             Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead updated' });
@@ -558,7 +637,7 @@ export class ContactsComponent implements OnInit {
         error: (err: any) => Swal.fire('Error', err.error.message || 'Error updating lead', 'error')
       });
     } else {
-      this.api.post(`/contacts/${this.selectedContact.id}/leads`, this.currentLead).subscribe({
+      this.api.post(`/contacts/${this.selectedContact.id}/leads`, payload).subscribe({
         next: (res: any) => {
           if (res.success) {
             Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead created' });
@@ -871,6 +950,28 @@ export class ContactsComponent implements OnInit {
     this.quickStatusContactId = null;
   }
 
+  openContactDetailFromQuickStatus() {
+    const contactId = this.quickStatusContactId;
+    this.closeQuickStatusModal();
+    if (contactId) {
+      const contact = this.contacts.find((c: any) => c.id === contactId);
+      if (contact) {
+        this.openDetailPanel(contact);
+      }
+    }
+  }
+
+  openContactHistoryFromQuickStatus() {
+    const contactId = this.quickStatusContactId;
+    this.closeQuickStatusModal();
+    if (contactId) {
+      const contact = this.contacts.find((c: any) => c.id === contactId);
+      if (contact) {
+        this.openHistoryModal(contact);
+      }
+    }
+  }
+
   saveQuickStatus() {
     if (!this.quickStatusContactId) return;
     
@@ -887,15 +988,21 @@ export class ContactsComponent implements OnInit {
 
     this.quickStatusLoading = true;
 
-    // We can use the existing update API endpoint. We only pass the fields we want to update.
+    // Support auto assign logic before saving
+    let finalAssignedEmployee = this.quickStatusData.assigned_employee;
+    if (this.isTransferStatus(this.quickStatusData.status) && this.quickStatusData.assign_type === 'auto') {
+      const emps = this.getFilteredEmployees(this.quickStatusData.branch, this.quickStatusData.department);
+      if (emps.length > 0) finalAssignedEmployee = emps[0].id;
+    }
+
     const updateData = {
       status: this.quickStatusData.status,
       remark: this.quickStatusData.remark,
-      follow_up_date: this.quickStatusData.status === 'Interested' ? this.quickStatusData.follow_up_date : null,
-      branch: this.quickStatusData.status === 'Branch' ? this.quickStatusData.branch : null,
-      department: this.quickStatusData.status === 'Branch' ? this.quickStatusData.department : null,
-      assign_type: this.quickStatusData.status === 'Branch' ? this.quickStatusData.assign_type : null,
-      assigned_employee: this.quickStatusData.status === 'Branch' && this.quickStatusData.assign_type === 'employee' ? this.quickStatusData.assigned_employee : null,
+      follow_up_date: this.isFollowupStatus(this.quickStatusData.status) ? this.quickStatusData.follow_up_date : null,
+      branch: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch : null,
+      department: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department : null,
+      assign_type: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.assign_type : null,
+      assigned_employee: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
       loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
     };
 

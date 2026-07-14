@@ -4,6 +4,9 @@ import { TeamsManagementComponent } from './components/teams-management/teams-ma
 import { BranchManagementComponent } from './components/branch-management/branch-management.component';
 import { DepartmentManagementComponent } from './components/department-management/department-management.component';
 import { StatusManagementComponent } from './components/status-management/status-management.component';
+import { IntakeManagementComponent } from './components/intake-management/intake-management.component';
+import { YearManagementComponent } from './components/year-management/year-management.component';
+import { AppStatusManagementComponent } from './components/app-status-management/app-status-management.component';
 
 @Component({
   selector: 'app-system-settings',
@@ -13,7 +16,10 @@ import { StatusManagementComponent } from './components/status-management/status
     TeamsManagementComponent, 
     BranchManagementComponent, 
     DepartmentManagementComponent, 
-    StatusManagementComponent
+    StatusManagementComponent,
+    IntakeManagementComponent,
+    YearManagementComponent,
+    AppStatusManagementComponent
   ],
   templateUrl: './system-settings.component.html',
   styleUrls: ['./system-settings.component.css']

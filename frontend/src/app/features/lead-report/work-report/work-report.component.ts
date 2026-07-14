@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
-
+// import { ReportAnimationService } from '../../../../core/services/report-animation.service';
 
 Chart.register(...registerables);
 

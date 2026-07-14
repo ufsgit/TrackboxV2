@@ -205,7 +205,8 @@
       <div class="detail-tabs">
         <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Quotation'" (click)="detailActiveTab = 'Quotation'">Quotation</button>
+        <!-- <button class="tab-btn" [class.active]="detailActiveTab === 'Quotation'" (click)="detailActiveTab = 'Quotation'">Quotation</button> -->
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
       </div>
       <!-- Tab Content Area -->
@@ -354,6 +355,92 @@
         </div>
       </div>
 
+        <!-- APPLICATION TAB -->
+        <div *ngIf="detailActiveTab === 'Application'" class="tab-pane">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0 text-dark fw-bold">Applications</h5>
+            <button class="btn btn-primary btn-sm rounded-3 shadow-sm px-3" (click)="openAddApplicationModal()">
+              <i class="bi bi-plus-circle me-1"></i> Add Application
+            </button>
+          </div>
+
+          <div *ngIf="loadingApplications" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Loading applications...</p>
+          </div>
+
+          <div *ngIf="!loadingApplications && selectedContactApplications.length === 0" class="text-center py-5 bg-light rounded-4 border-dashed">
+            <div class="mb-3">
+              <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+            </div>
+            <h6 class="text-dark fw-bold">No applications found</h6>
+            <p class="text-muted small mb-0">Get started by creating a new application for this lead.</p>
+          </div>
+
+          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="modern-table-container">
+            <table class="table modern-table mb-0">
+              <thead>
+                <tr>
+                  <th>University &amp; Course</th>
+                  <th>Country</th>
+                  <th>Intake/Year</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let app of selectedContactApplications" class="align-middle align-items-center table-row-hover">
+                  <td>
+                    <div class="fw-bold text-dark">{{ app.university }}</div>
+                    <div class="small text-muted">{{ app.course }}</div>
+                  </td>
+                  <td>
+                    <span class="d-flex align-items-center gap-2">
+                      <i class="bi bi-geo-alt text-primary"></i> {{ app.country }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="text-dark">{{ app.intake_name || 'N/A' }}</div>
+                    <div class="small text-muted">{{ app.year_name || 'N/A' }}</div>
+                  </td>
+                  <td>
+                    <!-- Clickable status to quickly update -->
+                    <div class="dropdown">
+                      <button class="btn btn-sm dropdown-toggle rounded-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                              [style.background-color]="(app.status_color || '#e2e8f0') + '20'" 
+                              [style.color]="app.status_color || '#475569'" 
+                              style="font-weight: 600; font-size: 0.8rem; border: none; padding: 4px 12px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px;" [style.background-color]="app.status_color || '#64748b'"></span>
+                        {{ app.status_name || 'No Status' }}
+                      </button>
+                      <ul class="dropdown-menu shadow-sm border-0" style="border-radius: 12px; font-size: 0.85rem;">
+                        <li><h6 class="dropdown-header">Change Status</h6></li>
+                        <li *ngFor="let s of appStatuses">
+                          <button class="dropdown-item d-flex align-items-center gap-2 py-2" (click)="updateApplicationStatus(app, s.id)">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="s.color"></span>
+                            {{ s.name }}
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-light text-primary me-2 rounded-3 shadow-none border-0" (click)="openAppHistoryModal(app.id)" title="View History">
+                      <i class="bi bi-clock-history"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light text-primary me-2 rounded-3 shadow-none border-0" (click)="openEditApplicationModal(app)" title="Edit">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light text-danger rounded-3 shadow-none border-0" (click)="deleteApplication(app.id)" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- PURCHASE ORDERS TAB -->
         <div *ngIf="detailActiveTab === 'Purchase Orders'" class="tab-pane">
           <div class="modern-table-container">
@@ -496,6 +583,7 @@
                     {{ lead.follow_up_date | date }}
                   </td>
                   <td>
+                    <button class="btn btn-sm btn-icon text-primary me-1" title="Edit" (click)="openEditLeadModal(lead)"><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-sm btn-icon text-danger" title="Delete" (click)="deleteLead(lead.id)"><i class="bi bi-trash"></i></button>
                   </td>
                 </tr>
@@ -688,67 +776,76 @@
         </div>
       </div>
 
-      <!-- ── Follow Up Details ── -->
+      <!-- ── Status & Assignment ── -->
       <div class="section-divider" style="border-top: 2px solid #e2e8f0; padding-top: 24px; margin-top: 16px; color: #4f46e5; font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-calendar2-event-fill" style="color: #6366f1;"></i> Follow Up Details :
+        <i class="bi bi-arrow-right-circle-fill" style="color: #6366f1;"></i> Status &amp; Assignment :
       </div>
 
       <div class="fields-grid" style="background: #faf8f8; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
-        
-        <div class="field-row">
-          <label>Branch <span class="required">*</span></label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.branch" style="display:block;">
-            <option value="">-- Select Branch --</option>
-            <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
-          </select>
-        </div>
 
+        <!-- Status Dropdown (dynamic from DB) -->
         <div class="field-row">
-          <label>Department <span class="required">*</span></label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.department" style="display:block;">
-            <option value="">-- Select Department --</option>
-            <option *ngFor="let d of departments" [value]="d.name">{{ d.name }}</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label>Status <span class="required">*</span></label>
+          <label>Status</label>
           <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
             <option value="">-- Select --</option>
-            <option value="New">New</option>
-            <option value="Cold Lead">Cold Lead</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Interested">Interested</option>
-            <option value="Not Interested">Not Interested</option>
-            <option value="Converted">Converted</option>
-            <option value="Sales Loss">Sales Loss</option>
+            <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
           </select>
         </div>
 
-        <div class="field-row">
-          <label>To staff <span class="required">*</span></label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_to" style="display:block;">
-            <option value="">-- Select Staff --</option>
-            <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
-          </select>
-        </div>
+        <!-- Transfer For Department fields -->
+        <ng-container *ngIf="isTransferStatus(newContact.status)">
+          <div class="field-row">
+            <label>Branch</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''" style="display:block;">
+              <option value="">-- Select Branch --</option>
+              <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label>Department</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''" style="display:block;">
+              <option value="">-- Select Department --</option>
+              <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
+            </select>
+          </div>
+          <div class="field-row full-width">
+            <label>Assign To</label>
+            <div style="display: flex; gap: 16px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                <input type="radio" name="assign_type_add" value="auto" [(ngModel)]="newContact.assign_type"> Auto Assign
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                <input type="radio" name="assign_type_add" value="employee" [(ngModel)]="newContact.assign_type"> Select Employee
+              </label>
+            </div>
+          </div>
+          <div class="field-row" *ngIf="newContact.assign_type === 'employee'">
+            <label>Employee</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
+              <option value="">-- Select Employee --</option>
+              <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
+            </select>
+          </div>
+          
+          <div class="field-row full-width">
+            <label>Remark / Note <span class="required">*</span></label>
+            <textarea class="form-control premium-input" [(ngModel)]="newContact.remark" placeholder="Enter notes or remarks for this lead..." rows="3" style="resize: vertical;"></textarea>
+          </div>
+        </ng-container>
 
-        <div class="field-row">
-          <label>Follow Up on <span class="required">*</span></label>
+        <!-- Follow-up Date: shown if status has follow_needed = Yes -->
+        <div class="field-row" *ngIf="isFollowupStatus(newContact.status)">
+          <label>Follow Up Date</label>
           <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
         </div>
-
+        
+        <!-- Sales Loss: show reason -->
         <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
           <label>Loss Reason</label>
           <select class="form-select premium-input" [(ngModel)]="newContact.loss_reason" style="display:block;">
             <option value="">-- Select Reason --</option>
             <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
           </select>
-        </div>
-
-        <div class="field-row full-width">
-          <label>Remark <span class="required">*</span></label>
-          <input type="text" class="form-control premium-input" [(ngModel)]="newContact.remark" placeholder="Enter notes or remarks...">
         </div>
 
       </div>
@@ -829,17 +926,17 @@
 </div>
 
 <!-- ═══════════════════ QUICK STATUS MODAL ═══════════════════ -->
-<div class="custom-modal" *ngIf="showQuickStatusModal">
+<div class="custom-modal center-modal" *ngIf="showQuickStatusModal">
   <div class="modal-backdrop" (click)="closeQuickStatusModal()"></div>
-  <div class="modal-card" style="max-width: 500px;">
+  <div class="modal-card popup-card" style="max-width: 500px;">
     <!-- Header -->
     <div class="modal-header-fs">
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;">
-          <i class="bi bi-pencil-square" style="color:#fff;font-size:1.1rem;"></i>
+        <div style="width:40px;height:40px;border-radius:10px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-pencil-square" style="color:#4f46e5;font-size:1.1rem;"></i>
         </div>
         <div>
-          <h4 style="margin:0;font-size:1.1rem;font-weight:700;">Update Status</h4>
+          <h4>Follow Up Creation</h4>
           <p style="margin:0;font-size:0.8rem;color:#64748b;">Quickly update lead status and remarks</p>
         </div>
       </div>
@@ -850,69 +947,80 @@
     <div class="modal-body-scroll p-4">
       <div class="field-row mb-3">
         <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Status</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.status" style="display:block; width: 100%;">
-          <option value="">-- Select --</option>
-          <option value="New">New</option>
-          <option value="Contacted">Contacted</option>
-          <option value="Interested">Interested</option>
-          <option value="Not Interested">Not Interested</option>
-          <option value="Converted">Converted</option>
-          <option value="Branch">Assign to Branch</option>
-          <option value="Sales Loss">Sales Loss</option>
-        </select>
-      </div>
-      
-      <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Branch'">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Branch</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.branch" style="display:block; width: 100%;">
-          <option value="">-- Select Branch --</option>
-          <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+        <select class="form-select premium-input" [(ngModel)]="quickStatusData.status" style="width: 100%;">
+          <option *ngFor="let status of leadStatuses" [value]="status.name">{{ status.name }}</option>
         </select>
       </div>
 
-      <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Branch'">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Department</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.department" style="display:block; width: 100%;">
-          <option value="">-- Select Department --</option>
-          <option *ngFor="let d of departments" [value]="d.name">{{ d.name }}</option>
-        </select>
-      </div>
-
-      <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Branch'">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.assigned_employee" style="display:block; width: 100%;">
-          <option value="">-- Select Employee --</option>
-          <option *ngFor="let e of employees" [value]="e.name">{{ e.name }}</option>
-        </select>
-      </div>
-
-      <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Sales Loss'">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Loss Reason</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.loss_reason" style="display:block; width: 100%;">
-          <option value="">-- Select Reason --</option>
-          <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
-        </select>
-      </div>
-
-      <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Interested'">
+      <!-- Follow Up Date: shown when status has follow_needed = Yes -->
+      <div class="field-row mb-3" *ngIf="isFollowupStatus(quickStatusData.status)">
         <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Follow Up Date</label>
         <input type="date" class="form-control premium-input" [(ngModel)]="quickStatusData.follow_up_date" [min]="today" style="width: 100%;">
       </div>
 
-      <div class="field-row mb-3">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Remark / Note</label>
-        <textarea class="form-control premium-input" rows="3" [(ngModel)]="quickStatusData.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%;"></textarea>
+      <!-- Transfer to Department fields -->
+      <ng-container *ngIf="isTransferStatus(quickStatusData.status)">
+        <div class="field-row mb-3">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Branch</label>
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.branch" style="width: 100%;">
+            <option value="">Select Branch</option>
+            <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row mb-3" *ngIf="quickStatusData.branch">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Department</label>
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.department" style="width: 100%;">
+            <option value="">Select Department</option>
+            <option *ngFor="let d of getFilteredDepartments(quickStatusData.branch)" [value]="d.name">{{ d.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row mb-3" *ngIf="quickStatusData.department">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Assign To</label>
+          <div class="d-flex gap-4">
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="radio" name="qs_assign_type" value="auto" [(ngModel)]="quickStatusData.assign_type"> Auto Assign
+            </label>
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="radio" name="qs_assign_type" value="employee" [(ngModel)]="quickStatusData.assign_type"> Select Employee
+            </label>
+          </div>
+        </div>
+
+        <div class="field-row mb-3" *ngIf="quickStatusData.department && quickStatusData.assign_type === 'employee'">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee</label>
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.assigned_employee" style="width: 100%;">
+            <option value="">Select Employee</option>
+            <option *ngFor="let e of getFilteredEmployees(quickStatusData.branch, quickStatusData.department)" [value]="e.id">{{ e.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row mb-3">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Remark / Note</label>
+          <textarea class="form-control premium-input" rows="3" [(ngModel)]="quickStatusData.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%;"></textarea>
+        </div>
+      </ng-container>
+
+      <!-- Sales Loss reason -->
+      <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Sales Loss'">
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Loss Reason</label>
+        <select class="form-select premium-input" [(ngModel)]="quickStatusData.loss_reason" style="width: 100%;">
+          <option value="">-- Select Reason --</option>
+          <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
+        </select>
       </div>
     </div>
     
     <!-- Footer -->
-    <div class="modal-footer-fs">
-      <button class="btn btn-light px-4 py-2" (click)="closeQuickStatusModal()" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
-      <button class="btn px-4 py-2 ms-2" (click)="saveQuickStatus()" [disabled]="quickStatusLoading" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none;">
+    <div class="modal-footer-fs d-flex justify-content-end gap-2" style="padding: 16px;">
+      <button class="btn btn-primary px-4 py-2" (click)="openContactDetailFromQuickStatus()" style="border-radius:6px;font-weight:600;background-color:#3b82f6;border:none;">VIEW PROFILE</button>
+      <button class="btn px-4 py-2" (click)="openContactHistoryFromQuickStatus()" style="border-radius:6px;font-weight:600;background-color:#ef4444;color:#fff;border:none;">HISTORY</button>
+      <button class="btn px-4 py-2" (click)="saveQuickStatus()" [disabled]="quickStatusLoading" style="border-radius:6px;font-weight:600;background-color:#10b981;color:#fff;border:none;">
         <span *ngIf="quickStatusLoading" class="spinner-border spinner-border-sm me-2"></span>
-        <i class="bi bi-check2-circle me-2" *ngIf="!quickStatusLoading"></i>
-        Save Changes
+        SAVE
       </button>
+      <button class="btn px-4 py-2" (click)="closeQuickStatusModal()" style="border-radius:6px;font-weight:600;background-color:#475569;color:#fff;border:none;">CLOSE</button>
     </div>
   </div>
 </div>
@@ -921,6 +1029,105 @@
 <div *ngIf="toastMessage" style="position: fixed; bottom: 32px; right: 32px; background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); z-index: 9999; display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
   <i class="bi bi-info-circle-fill text-primary" style="font-size: 1.2rem; color: #60a5fa !important;"></i>
   <span style="font-weight: 600; font-size: 0.95rem;">{{ toastMessage }}</span>
+</div>
+
+<!-- ═══════════════════ ADD/EDIT LEAD MODAL ═══════════════════ -->
+<div class="custom-modal center-modal" *ngIf="showAddLeadModal">
+  <div class="modal-backdrop" (click)="showAddLeadModal = false"></div>
+  <div class="modal-card popup-card">
+    <div class="modal-header-fs">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-funnel-fill" style="color:#fff;font-size:1.1rem;"></i>
+        </div>
+        <div>
+          <h4>{{ currentLead.id ? 'Edit Lead' : 'Add Lead' }}</h4>
+          <p style="margin:0;font-size:0.8rem;color:#64748b;">Fill in lead details</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="showAddLeadModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
+    </div>
+    <div class="modal-body-scroll p-4">
+      <div class="field-row mb-3">
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Product/Service <span class="text-danger">*</span></label>
+        <select class="form-select premium-input" [(ngModel)]="currentLead.enquiry_for_id" style="width: 100%;">
+          <option value="">-- Select Product/Service --</option>
+          <option *ngFor="let opt of enquiryFors" [value]="opt.id">{{ opt.name }}</option>
+        </select>
+      </div>
+
+      <div class="field-row mb-3">
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Status</label>
+        <select class="form-select premium-input" [(ngModel)]="currentLead.status" style="width: 100%;">
+          <option *ngFor="let status of leadStatuses" [value]="status.name">{{ status.name }}</option>
+        </select>
+      </div>
+
+      <!-- Follow Up Date: shown when status has follow_needed = Yes -->
+      <div class="field-row mb-3" *ngIf="isFollowupStatus(currentLead.status)">
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Follow Up Date</label>
+        <input type="date" class="form-control premium-input" [(ngModel)]="currentLead.follow_up_date" [min]="today" style="width: 100%;">
+      </div>
+
+      <!-- Transfer logic: shown when status has transfer = true -->
+      <ng-container *ngIf="isTransferStatus(currentLead.status)">
+        <div class="field-row mb-3">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Branch</label>
+          <select class="form-select premium-input" [(ngModel)]="currentLead.branch" style="width: 100%;">
+            <option value="">Select Branch</option>
+            <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row mb-3" *ngIf="currentLead.branch">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Department</label>
+          <select class="form-select premium-input" [(ngModel)]="currentLead.department" style="width: 100%;">
+            <option value="">Select Department</option>
+            <option *ngFor="let d of getFilteredDepartments(currentLead.branch)" [value]="d.name">{{ d.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row mb-3" *ngIf="currentLead.department">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Assign To</label>
+          <div class="d-flex gap-4">
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="radio" name="assign_type" value="auto" [(ngModel)]="currentLead.assign_type"> Auto Assign
+            </label>
+            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
+              <input type="radio" name="assign_type" value="employee" [(ngModel)]="currentLead.assign_type"> Select Employee
+            </label>
+          </div>
+        </div>
+
+        <div class="field-row mb-3" *ngIf="currentLead.department && currentLead.assign_type === 'employee'">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee</label>
+          <select class="form-select premium-input" [(ngModel)]="currentLead.assigned_to" style="width: 100%;">
+            <option value="">Select Employee</option>
+            <option *ngFor="let e of getFilteredEmployees(currentLead.branch, currentLead.department)" [value]="e.id">{{ e.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row mb-3">
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Remark / Note</label>
+          <textarea class="form-control premium-input" rows="3" [(ngModel)]="currentLead.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%;"></textarea>
+        </div>
+      </ng-container>
+
+      <!-- Sales Loss reason -->
+      <div class="field-row mb-3" *ngIf="currentLead.status === 'Sales Loss'">
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Loss Reason</label>
+        <select class="form-select premium-input" [(ngModel)]="currentLead.loss_reason" style="width: 100%;">
+          <option value="">-- Select Reason --</option>
+          <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="modal-footer-fs">
+      <button class="btn btn-light px-4 py-2" (click)="showAddLeadModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
+      <button class="btn px-4 py-2 ms-2" (click)="saveLead()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;">Save Lead</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════ ADD/EDIT APPLICATION MODAL ═══════════════════ -->
@@ -939,53 +1146,46 @@
       </div>
       <button class="close-btn" (click)="showAddApplicationModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
     </div>
-    <div class="modal-body-scroll">
-      <div class="fields-grid">
-        
-        <div class="field-row">
-          <label>Country <span class="required">*</span></label>
+    <div class="modal-body-scroll" style="padding: 24px;">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold small text-secondary">Country <span class="text-danger">*</span></label>
           <input type="text" list="countryList" class="form-control premium-input" [(ngModel)]="currentApplication.country" placeholder="Select Country">
           <datalist id="countryList">
             <option *ngFor="let c of countries" [value]="c"></option>
           </datalist>
         </div>
-
-        <div class="field-row">
-          <label>University <span class="required">*</span></label>
+        <div class="col-md-6">
+          <label class="form-label fw-bold small text-secondary">University <span class="text-danger">*</span></label>
           <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.university" placeholder="University Name">
         </div>
-
-        <div class="field-row full-width">
-          <label>Course <span class="required">*</span></label>
+        <div class="col-md-12">
+          <label class="form-label fw-bold small text-secondary">Course <span class="text-danger">*</span></label>
           <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.course" placeholder="Course Name">
         </div>
-
-        <div class="field-row">
-          <label>Intake</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.intake_id" style="display:block;">
+        <div class="col-md-6">
+          <label class="form-label fw-bold small text-secondary">Intake</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.intake_id">
             <option value="">Select Intake</option>
             <option *ngFor="let i of intakes" [value]="i.id">{{ i.name }}</option>
           </select>
         </div>
-
-        <div class="field-row">
-          <label>Year</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.year_id" style="display:block;">
+        <div class="col-md-6">
+          <label class="form-label fw-bold small text-secondary">Year</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.year_id">
             <option value="">Select Year</option>
             <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
           </select>
         </div>
-        
-        <div class="field-row full-width">
-          <label>Status</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.status_id" style="display:block;">
+        <div class="col-md-12">
+          <label class="form-label fw-bold small text-secondary">Status</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.status_id">
             <option value="">Select Status</option>
             <option *ngFor="let s of appStatuses" [value]="s.id">{{ s.name }}</option>
           </select>
         </div>
-
-        <div class="field-row full-width">
-          <label>Description</label>
+        <div class="col-md-12">
+          <label class="form-label fw-bold small text-secondary">Description</label>
           <textarea class="form-control premium-input" rows="3" [(ngModel)]="currentApplication.description" placeholder="Notes regarding this application..."></textarea>
         </div>
       </div>
