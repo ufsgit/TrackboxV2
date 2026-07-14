@@ -52,6 +52,7 @@ export class ContactsComponent implements OnInit {
   showChatModal = false;
   activeChatContactId: number | null = null;
   activeChatConvoId: number | null = null;
+  activeChatContact: any = null;
 
   // Pagination
   currentPage = 1;
@@ -815,6 +816,7 @@ export class ContactsComponent implements OnInit {
   }
 
   goToChat(contact: any) {
+    this.activeChatContact = contact;
     this.api.post('/conversations', { 
       contact_id: contact.id, 
       channel: contact.channel_preference || 'whatsapp' 
@@ -827,6 +829,7 @@ export class ContactsComponent implements OnInit {
         }
       },
       error: (err: any) => {
+        this.activeChatContact = null;
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -835,6 +838,15 @@ export class ContactsComponent implements OnInit {
         });
       }
     });
+  }
+
+  closeChatModal() {
+    this.showChatModal = false;
+    const contact = this.activeChatContact;
+    this.activeChatContact = null;
+    if (contact) {
+      this.openDetailPanel(contact);
+    }
   }
 
   // ═══════════════════ QUICK STATUS MODAL ═══════════════════

@@ -185,12 +185,7 @@
           <div class="header-text">
             <h3>{{ selectedContact.name }}</h3>
             <div class="header-badges">
-              <span class="badge-status" [class.opted-in]="selectedContact.opted_in" [class.pending]="!selectedContact.opted_in">
-                <i class="bi bi-circle-fill" style="font-size: 0.35rem;"></i>
-                {{ selectedContact.opted_in ? 'Opted-in' : 'Pending' }}
-              </span>
               <span class="tag-pill" *ngFor="let tag of selectedContact.tags">{{ tag }}</span>
-              <span class="ai-score-badge"><i class="bi bi-robot"></i> AI Score: {{ selectedContact.aiScore }}/100</span>
             </div>
           </div>
         </div>
@@ -211,13 +206,7 @@
         <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Quotation'" (click)="detailActiveTab = 'Quotation'">Quotation</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Purchase Orders'" (click)="detailActiveTab = 'Purchase Orders'">Purchase Orders</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Contact History'" (click)="detailActiveTab = 'Contact History'">Contact History</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Notes'" (click)="detailActiveTab = 'Notes'">Notes</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Activities'" (click)="detailActiveTab = 'Activities'">Activities</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Applications'" (click)="detailActiveTab = 'Applications'">Applications</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Leads'" (click)="detailActiveTab = 'Leads'">Leads</button>
       </div>
       <!-- Tab Content Area -->
       <div class="detail-modal-body">
@@ -653,15 +642,6 @@
           </select>
         </div>
 
-        <!-- Hidden Assigned Agent 
-        <div class="field-row" *ngIf="isAdmin">
-          <label>Assigned Agent</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_to" style="display:block;">
-            <option value="">Unassigned</option>
-            <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
-          </select>
-        </div>
-        -->
       </div>
 
       <!-- ── Additional Details ── -->
@@ -708,44 +688,54 @@
         </div>
       </div>
 
-      <!-- ── Lead Status ── -->
-      <div class="section-divider" style="border-top: 2px solid #64748b; padding-top: 24px; margin-top: 16px; color: #334155;"><i class="bi bi-clipboard2-check"></i> Lead Status & Remarks</div>
+      <!-- ── Follow Up Details ── -->
+      <div class="section-divider" style="border-top: 2px solid #e2e8f0; padding-top: 24px; margin-top: 16px; color: #4f46e5; font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-calendar2-event-fill" style="color: #6366f1;"></i> Follow Up Details :
+      </div>
 
-      <div class="fields-grid">
+      <div class="fields-grid" style="background: #faf8f8; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
+        
         <div class="field-row">
-          <label>Status</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
-            <option value="">-- Select --</option>
-            <option value="New">New</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Interested">Interested</option>
-            <option value="Not Interested">Not Interested</option>
-            <option value="Converted">Converted</option>
-            <option value="Branch">Branch</option>
-            <option value="Sales Loss">Sales Loss</option>
-          </select>
-        </div>
-
-        <div class="field-row" *ngIf="newContact.status === 'Branch'">
-          <label>Branch</label>
+          <label>Branch <span class="required">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="newContact.branch" style="display:block;">
             <option value="">-- Select Branch --</option>
             <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
           </select>
         </div>
-        <div class="field-row" *ngIf="newContact.status === 'Branch'">
-          <label>Department</label>
+
+        <div class="field-row">
+          <label>Department <span class="required">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="newContact.department" style="display:block;">
             <option value="">-- Select Department --</option>
             <option *ngFor="let d of departments" [value]="d.name">{{ d.name }}</option>
           </select>
         </div>
-        <div class="field-row" *ngIf="newContact.status === 'Branch'">
-          <label>Employee</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
-            <option value="">-- Select Employee --</option>
-            <option *ngFor="let e of employees" [value]="e.name">{{ e.name }}</option>
+
+        <div class="field-row">
+          <label>Status <span class="required">*</span></label>
+          <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
+            <option value="">-- Select --</option>
+            <option value="New">New</option>
+            <option value="Cold Lead">Cold Lead</option>
+            <option value="Contacted">Contacted</option>
+            <option value="Interested">Interested</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Converted">Converted</option>
+            <option value="Sales Loss">Sales Loss</option>
           </select>
+        </div>
+
+        <div class="field-row">
+          <label>To staff <span class="required">*</span></label>
+          <select class="form-select premium-input" [(ngModel)]="newContact.assigned_to" style="display:block;">
+            <option value="">-- Select Staff --</option>
+            <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label>Follow Up on <span class="required">*</span></label>
+          <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
         </div>
 
         <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
@@ -756,15 +746,11 @@
           </select>
         </div>
 
-        <div class="field-row" *ngIf="newContact.status === 'Interested'">
-          <label>Follow Up Date</label>
-          <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
+        <div class="field-row full-width">
+          <label>Remark <span class="required">*</span></label>
+          <input type="text" class="form-control premium-input" [(ngModel)]="newContact.remark" placeholder="Enter notes or remarks...">
         </div>
 
-        <div class="field-row full-width">
-          <label>Remark / Note</label>
-          <textarea class="form-control premium-input" rows="3" [(ngModel)]="newContact.remark" placeholder="Enter notes or remarks for this lead..."></textarea>
-        </div>
       </div>
     </div>
 
@@ -1055,5 +1041,5 @@
   *ngIf="showChatModal" 
   [contactId]="activeChatContactId!" 
   [convoId]="activeChatConvoId!"
-  (close)="showChatModal = false">
+  (close)="closeChatModal()">
 </app-chat-modal>

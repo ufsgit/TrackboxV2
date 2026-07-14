@@ -111,22 +111,17 @@ Chart.register(...registerables);
             <span style="font-size: 0.85rem; color: #64748b;">Count of leads by current status</span>
           </div>
           
-          <div class="chart-body flex flex-col items-center py-5 px-4" style="background-color: #fafaf9;">
-            
-            <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center;">
+          <div class="chart-body flex flex-col items-center py-5 px-4" style="background-color: #fafaf9; min-height: 480px;">
+
+            <div *ngIf="!isLoading" style="width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center;">
               <ng-container *ngFor="let stage of funnelStages; let i = index">
-                
-                <!-- Funnel Stage Card -->
-                <div class="funnel-stage" [ngStyle]="{'background': stage.gradient, 'width': (100 - i * 5) + '%'}">
+                <div class="funnel-stage build-up" [ngStyle]="{'background': stage.gradient, 'width': (100 - i * 5) + '%', 'animation-delay': (i * 0.18) + 's'}">
                   <span class="stage-name">{{ stage.name }}</span>
                   <span class="stage-count">{{ stage.count | number }}</span>
                 </div>
-                
-                <!-- Animated Arrow Connector -->
-                <div class="funnel-arrow" *ngIf="i < funnelStages.length - 1">
+                <div class="funnel-arrow build-up" *ngIf="i < funnelStages.length - 1" [style.animation-delay]="(i * 0.18 + 0.09) + 's'">
                   <i class="bi bi-chevron-down"></i>
                 </div>
-                
               </ng-container>
             </div>
 
@@ -139,8 +134,10 @@ Chart.register(...registerables);
             <h5 class="fw-bold m-0" style="color: #1e293b; font-size: 1.15rem;">Upcoming Follow-up Distribution</h5>
             <span style="font-size: 0.85rem; color: #64748b;">Scheduled activities over the next 7 days</span>
           </div>
-          <div class="chart-body" style="position: relative; flex-grow: 1; padding: 20px; min-height: 450px;">
-            <canvas #followUpCanvas id="followUpChart" style="display: block; width: 100%; height: 100%;"></canvas>
+          <div class="chart-body" style="position: relative; flex-grow: 1; padding: 20px; min-height: 450px; overflow: hidden;">
+            <div [class.chart-grow-up]="!isLoading" [class.chart-hidden]="isLoading">
+              <canvas #followUpCanvas id="followUpChart" style="display: block; width: 100%; height: 100%;"></canvas>
+            </div>
           </div>
         </div>
 
@@ -148,6 +145,46 @@ Chart.register(...registerables);
     </div>
   `,
   styles: [`
+    /* ── Build-Up Entrance Animation ── */
+    .build-up {
+      animation: growUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes growUp {
+      0% {
+        opacity: 0;
+        transform: scaleY(0) translateY(20px);
+        max-height: 0;
+      }
+      100% {
+        opacity: 1;
+        transform: scaleY(1) translateY(0);
+        max-height: 200px;
+      }
+    }
+
+    /* ── Chart Grow Up ── */
+    .chart-hidden {
+      opacity: 0;
+      transform: scaleY(0);
+      transform-origin: bottom center;
+      height: 100%;
+    }
+    .chart-grow-up {
+      height: 100%;
+      animation: chartReveal 0.8s cubic-bezier(0.34, 1.3, 0.64, 1) 0.3s both;
+    }
+    @keyframes chartReveal {
+      0% {
+        opacity: 0;
+        transform: scaleY(0);
+        transform-origin: bottom center;
+      }
+      100% {
+        opacity: 1;
+        transform: scaleY(1);
+        transform-origin: bottom center;
+      }
+    }
     /* 3D Stats Grid */
     .stats-grid {
       display: grid;
@@ -331,6 +368,7 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   hideMarkedItems = true; // Added variable to hide marked items
   // hideMarkedItems = false; 
   dateRange: string = 'this_month';
+  isLoading = true;
 
   // KPI Data
   totalLeads = 1250;
@@ -355,15 +393,6 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   followUpChart: any;
 
   ngOnInit() {
-    // Initial animation
-    this.animateValue('totalLeads', 0, 1250, 1200);
-    this.animateValue('pendingFollowUps', 0, 45, 1200);
-    this.animateValue('todaysFollowUps', 0, 120, 1200);
-    this.animateValue('upcomingFollowUps', 0, 340, 1200);
-    this.animateValue('wonDeals', 0, 10, 1200);
-    this.animateValue('lostDeals', 0, 7, 1200);
-    this.animateValue('quotations', 0, 25, 1200);
-    this.animateValue('purchaseOrders', 0, 12, 1200);
   }
 
   animateValue(propName: any, start: number, end: number, duration: number) {
@@ -387,31 +416,49 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    setTimeout(() => {
-      this.initFollowUpChart();
-    }, 200);
+    this.onFilterChange(true);
   }
 
-  onFilterChange() {
-    this.animateValue('totalLeads', this.totalLeads, Math.floor(Math.random() * 2000) + 500, 1000);
-    this.animateValue('pendingFollowUps', this.pendingFollowUps, Math.floor(Math.random() * 80), 1000);
-    this.animateValue('todaysFollowUps', this.todaysFollowUps, Math.floor(Math.random() * 150), 1000);
-    this.animateValue('upcomingFollowUps', this.upcomingFollowUps, Math.floor(Math.random() * 400), 1000);
-    this.animateValue('wonDeals', this.wonDeals, Math.floor(Math.random() * 50), 1000);
-    this.animateValue('lostDeals', this.lostDeals, Math.floor(Math.random() * 20), 1000);
-    this.animateValue('quotations', this.quotations, Math.floor(Math.random() * 80), 1000);
-    this.animateValue('purchaseOrders', this.purchaseOrders, Math.floor(Math.random() * 30), 1000);
+  onFilterChange(isInitial = false) {
+    this.isLoading = true;
+    if (this.followUpChart) {
+      this.followUpChart.destroy();
+      this.followUpChart = null;
+    }
 
-    let current = Math.floor(Math.random() * 400) + 100;
-    this.funnelStages.forEach((stage, i) => {
-      stage.count = current;
-      if (i < this.funnelStages.length - 2) {
-        current = Math.floor(current * (Math.random() * 0.2 + 0.7)); // smooth dropoff
+    setTimeout(() => {
+      this.isLoading = false;
+
+      if (isInitial) {
+        this.animateValue('totalLeads', 0, 1250, 1200);
+        this.animateValue('pendingFollowUps', 0, 45, 1200);
+        this.animateValue('todaysFollowUps', 0, 120, 1200);
+        this.animateValue('upcomingFollowUps', 0, 340, 1200);
+        this.animateValue('wonDeals', 0, 10, 1200);
+        this.animateValue('lostDeals', 0, 7, 1200);
+        this.animateValue('quotations', 0, 25, 1200);
+        this.animateValue('purchaseOrders', 0, 12, 1200);
+      } else {
+        this.animateValue('totalLeads', this.totalLeads, Math.floor(Math.random() * 2000) + 500, 1000);
+        this.animateValue('pendingFollowUps', this.pendingFollowUps, Math.floor(Math.random() * 80), 1000);
+        this.animateValue('todaysFollowUps', this.todaysFollowUps, Math.floor(Math.random() * 150), 1000);
+        this.animateValue('upcomingFollowUps', this.upcomingFollowUps, Math.floor(Math.random() * 400), 1000);
+        this.animateValue('wonDeals', this.wonDeals, Math.floor(Math.random() * 50), 1000);
+        this.animateValue('lostDeals', this.lostDeals, Math.floor(Math.random() * 20), 1000);
+        this.animateValue('quotations', this.quotations, Math.floor(Math.random() * 80), 1000);
+        this.animateValue('purchaseOrders', this.purchaseOrders, Math.floor(Math.random() * 30), 1000);
       }
-    });
 
-    if (this.followUpChart) this.followUpChart.destroy();
-    this.initFollowUpChart();
+      let current = Math.floor(Math.random() * 400) + 100;
+      this.funnelStages.forEach((stage, i) => {
+        stage.count = current;
+        if (i < this.funnelStages.length - 2) {
+          current = Math.floor(current * (Math.random() * 0.2 + 0.7)); // smooth dropoff
+        }
+      });
+
+      setTimeout(() => this.initFollowUpChart(), 50);
+    }, 1500);
   }
 
   initFollowUpChart() {
