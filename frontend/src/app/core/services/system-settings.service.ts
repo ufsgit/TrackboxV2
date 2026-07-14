@@ -92,6 +92,12 @@ export class SystemSettingsService {
   updateEnquiryFor(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/enquiry-fors/${id}`, data); }
   deleteEnquiryFor(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/enquiry-fors/${id}`); }
 
+  // --- DOCUMENT TYPES ---
+  getDocumentTypes(): Observable<any> { return this.http.get(`${this.apiUrl}/document-types`); }
+  createDocumentType(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/document-types`, data); }
+  updateDocumentType(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/document-types/${id}`, data); }
+  deleteDocumentType(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/document-types/${id}`); }
+
   // --- TEAMS (Users) ---
   // Using the existing settings endpoint but wrapped here for convenience
   getTeams(): Observable<any> {

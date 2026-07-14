@@ -449,11 +449,11 @@
     <div class="user-section" *ngIf="user$ | async as user">
       <div class="user-profile-clickable" routerLink="/settings" title="Account Settings">
         <div class="user-avatar">
-          {{ user.name[0] | uppercase }}
+          {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
         </div>
         <div class="user-info" *ngIf="!isCollapsed">
-          <div class="user-name">{{ user.name | titlecase }}</div>
-          <div class="user-role">{{ user.role | titlecase }}</div>
+          <div class="user-name">{{ (user?.name | titlecase) || 'User' }}</div>
+          <div class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</div>
         </div>
       </div>
       <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
@@ -495,6 +495,9 @@
           </div>
           <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
             <i class="bi bi-question-circle"></i> Enquiry For
+          </a>
+          <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-file-earmark-text"></i> Document Type
           </a>
         </div>
 

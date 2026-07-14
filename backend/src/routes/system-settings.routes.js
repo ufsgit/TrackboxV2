@@ -53,4 +53,10 @@ router.post('/enquiry-fors', requireRole('admin', 'superadmin'), c.createEnquiry
 router.put('/enquiry-fors/:id', requireRole('admin', 'superadmin'), c.updateEnquiryFor);
 router.delete('/enquiry-fors/:id', requireRole('admin', 'superadmin'), c.deleteEnquiryFor);
 
+// Document Types
+router.get('/document-types', c.getDocumentTypes);
+router.post('/document-types', requireRole('admin', 'superadmin'), c.createDocumentType);
+router.put('/document-types/:id', requireRole('admin', 'superadmin'), c.updateDocumentType);
+router.delete('/document-types/:id', requireRole('admin', 'superadmin'), c.deleteDocumentType);
+
 module.exports = router;

@@ -352,6 +352,44 @@ const deleteEnquiryFor = async (req, res) => {
   }
 };
 
+// DOCUMENT TYPES
+const getDocumentTypes = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM document_types WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const createDocumentType = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const [result] = await pool.query('INSERT INTO document_types (name, description, business_id) VALUES (?, ?, ?)', [name, description || null, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM document_types WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Document type created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const updateDocumentType = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    await pool.query('UPDATE document_types SET name=?, description=? WHERE id=? AND business_id=?', [name, description || null, req.params.id, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM document_types WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Document type updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const deleteDocumentType = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM document_types WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Document type deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
@@ -360,5 +398,6 @@ module.exports = {
   getIntakes, createIntake, updateIntake, deleteIntake,
   getYears, createYear, updateYear, deleteYear,
   getAppStatuses, createAppStatus, updateAppStatus, deleteAppStatus,
-  getEnquiryFors, createEnquiryFor, updateEnquiryFor, deleteEnquiryFor
+  getEnquiryFors, createEnquiryFor, updateEnquiryFor, deleteEnquiryFor,
+  getDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType
 };

@@ -96,6 +96,7 @@ export const routes: Routes = [
       { path: 'system-settings/years', loadComponent: () => import('./features/system-settings/components/year-management/year-management.component').then(m => m.YearManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/app-statuses', loadComponent: () => import('./features/system-settings/components/app-status-management/app-status-management.component').then(m => m.AppStatusManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/enquiry-fors', loadComponent: () => import('./features/system-settings/components/enquiry-for-management/enquiry-for-management.component').then(m => m.EnquiryForManagementComponent), data: { roles: ['admin', 'superadmin'] } },
+      { path: 'system-settings/document-type', loadComponent: () => import('./features/system-settings/components/document-type-management/document-type-management.component').then(m => m.DocumentTypeManagementComponent), data: { roles: ['admin', 'superadmin'] } }, // Trigger rebuild
       { path: 'analytics', component: AnalyticsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'affiliates', component: AffiliatesComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'templates', component: TemplatesComponent, data: { roles: ['admin', 'superadmin'] } },

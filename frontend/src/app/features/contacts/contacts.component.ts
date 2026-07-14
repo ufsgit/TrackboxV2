@@ -95,6 +95,54 @@ export class ContactsComponent implements OnInit {
   dummyNotes: any[] = [];
   dummyActivities: any[] = [];
   dummyHistory: any[] = [];
+  
+  // File Upload Modal
+  showUploadDocumentModal = false;
+  uploadDocData: any = { documentType: '', file: null, fileName: '', notes: '' };
+  documentOptions = ['Passport', 'Visa', 'Offer Letter', 'Resume', 'Other'];
+
+  openUploadDocumentModal() {
+    this.uploadDocData = { documentType: '', file: null, fileName: '', notes: '' };
+    this.showUploadDocumentModal = true;
+  }
+
+  closeUploadDocumentModal() {
+    this.showUploadDocumentModal = false;
+  }
+
+  onFileSelected(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      const file = event.target.files[0];
+      this.uploadDocData.file = file;
+      this.uploadDocData.fileName = file.name;
+    }
+  }
+
+  saveDocument() {
+    if (!this.uploadDocData.documentType) {
+      Swal.fire('Error', 'Please select a document type.', 'error');
+      return;
+    }
+    if (!this.uploadDocData.file) {
+      Swal.fire('Error', 'Please choose a file.', 'error');
+      return;
+    }
+    this.dummyDocuments.push({
+      name: this.uploadDocData.fileName,
+      type: this.uploadDocData.fileName.split('.').pop() || 'file',
+      size: (this.uploadDocData.file.size / 1024 / 1024).toFixed(1) + ' MB'
+    });
+    this.showAction('Document uploaded successfully!');
+    this.closeUploadDocumentModal();
+  }
+
+  clearDocument() {
+    this.uploadDocData = { documentType: '', file: null, fileName: '', notes: '' };
+    const nativeInput = document.getElementById('fileUploadInputNative') as HTMLInputElement;
+    if (nativeInput) {
+      nativeInput.value = '';
+    }
+  }
 
   branches: any[] = [];
   departments: any[] = [];

@@ -11,16 +11,16 @@
 
     <form (submit)="onSubmit()">
       <div class="form-group">
-        <label for="email">Email Address</label>
+        <label for="email">Email Address or Username</label>
         <div class="input-wrapper">
-          <i class="bi bi-envelope"></i>
+          <i class="bi bi-person"></i>
           <input 
-            type="email" 
+            type="text" 
             id="email" 
             name="email"
             [(ngModel)]="email" 
             class="form-control" 
-            placeholder="name@company.com"
+            placeholder="name@company.com or admin"
             required
           >
         </div>
