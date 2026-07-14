@@ -4,11 +4,11 @@
       <div class="logo-container" routerLink="/lead-dashboard" style="cursor: pointer;" title="Go to Dashboard">
         <div class="logo-icon">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width: 100%; height: 100%; display: block;">
-            <!-- Connecting link paths forming W -->
-            <path d="M25 32 L40 68 L50 44 L60 68 L75 32" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- Connecting link paths forming T -->
+            <path d="M25 32 L75 32 M50 32 L50 68" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
             <!-- Node connectors -->
             <circle cx="25" cy="32" r="7" fill="#ffffff" />
-            <circle cx="50" cy="44" r="7" fill="#818cf8" />
+            <circle cx="50" cy="68" r="7" fill="#818cf8" />
             <circle cx="75" cy="32" r="7" fill="#38bdf8" />
             
             <defs>
@@ -20,7 +20,7 @@
             </defs>
           </svg>
         </div>
-        <div class="logo-text" *ngIf="!isCollapsed">WLink<span class="logo-dot">.</span></div>
+        <div class="logo-text" *ngIf="!isCollapsed">Trackbox V2<span class="logo-dot">.</span></div>
       </div>
       <button class="collapse-toggle" (click)="toggleSidebar()" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
         <i class="bi" [class.bi-chevron-left]="!isCollapsed" [class.bi-chevron-right]="isCollapsed"></i>
@@ -44,12 +44,14 @@
         <a class="dept-dropdown-item" [class.active]="activeDepartment === 'CRM'" (click)="setDepartment('CRM')">
           <i class="bi bi-briefcase"></i> CRM
         </a>
+        <!--
         <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Operation'" (click)="setDepartment('Operation')">
           <i class="bi bi-tools"></i> Operation
         </a>
         <a class="dept-dropdown-item" [class.active]="activeDepartment === 'HR'" (click)="setDepartment('HR')">
           <i class="bi bi-people"></i> HR
         </a>
+        -->
       </div>
     </div>
 
@@ -129,32 +131,37 @@
         </a>
         
         <!-- Reports Menu -->
-        <div class="nav-group">
-          <a href="#" class="nav-item has-submenu" (click)="toggleReports($event)" [class.active]="isReportsOpen" [title]="isCollapsed ? 'Reports' : ''">
+        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isReportsOpen" *ngIf="!isCollapsed" (click)="toggleReports($event)">
+          <div class="nav-item-content">
             <i class="bi bi-bar-chart-line"></i>
-            <span *ngIf="!isCollapsed">Reports</span>
-            <i class="bi bi-chevron-down submenu-icon ms-auto" *ngIf="!isCollapsed" [class.rotated]="isReportsOpen" style="font-size: 0.8rem; width: auto; margin-left: auto;"></i>
-          </a>
-          <div class="submenu" *ngIf="isReportsOpen && !isCollapsed" style="padding-left: 2rem;">
-            <a routerLink="/reports/work" routerLinkActive="active" class="nav-item submenu-item" style="padding: 8px 12px; font-size: 0.85rem;" [title]="isCollapsed ? 'Work Report' : ''">
-              <i class="bi bi-dot"></i> Work report
-            </a>
-            <a routerLink="/reports/conversation" routerLinkActive="active" class="nav-item submenu-item" style="padding: 8px 12px; font-size: 0.85rem;" [title]="isCollapsed ? 'Conversation Report' : ''">
-              <i class="bi bi-dot"></i> Conversation report
-            </a>
-            <a routerLink="/reports/employee" routerLinkActive="active" class="nav-item submenu-item" style="padding: 8px 12px; font-size: 0.85rem;" [title]="isCollapsed ? 'Employee Report' : ''">
-              <i class="bi bi-dot"></i> Employee report
-            </a>
-            <a routerLink="/reports/enquiry" routerLinkActive="active" class="nav-item submenu-item" style="padding: 8px 12px; font-size: 0.85rem;" [title]="isCollapsed ? 'Enquiry Report' : ''">
-              <i class="bi bi-dot"></i> Enquiry report
-            </a>
-            <a routerLink="/reports/status" routerLinkActive="active" class="nav-item submenu-item" style="padding: 8px 12px; font-size: 0.85rem;" [title]="isCollapsed ? 'Status Report' : ''">
-              <i class="bi bi-dot"></i> Status report
-            </a>
+            <span>Reports</span>
           </div>
+          <i class="bi" [ngClass]="isReportsOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        </a>
+        <div class="submenu" *ngIf="isReportsOpen && !isCollapsed">
+          <a routerLink="/reports/work" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Work Report' : ''">
+            <span class="bullet">&bull;</span>
+            <span>Work report</span>
+          </a>
+          <a routerLink="/reports/conversation" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Conversation Report' : ''">
+            <span class="bullet">&bull;</span>
+            <span>Conversation report</span>
+          </a>
+          <a routerLink="/reports/employee" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Employee Report' : ''">
+            <span class="bullet">&bull;</span>
+            <span>Employee report</span>
+          </a>
+          <a routerLink="/reports/enquiry" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Enquiry Report' : ''">
+            <span class="bullet">&bull;</span>
+            <span>Enquiry report</span>
+          </a>
+          <a routerLink="/reports/status" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Status Report' : ''">
+            <span class="bullet">&bull;</span>
+            <span>Status report</span>
+          </a>
         </div>
 
-        <a routerLink="/settings" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
+        <a routerLink="/settings" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
           <i class="bi bi-gear"></i>
           <span *ngIf="!isCollapsed">Settings</span>
         </a>
@@ -197,7 +204,7 @@
         </a>
 
         <!-- Sales Performance -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.active]="isSalesPerformanceOpen" *ngIf="!isCollapsed" (click)="toggleSalesPerformance($event)">
+        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isSalesPerformanceOpen" *ngIf="!isCollapsed" (click)="toggleSalesPerformance($event)">
           <div class="nav-item-content">
             <i class="bi bi-graph-up-arrow"></i>
             <span>Sales Performance</span>
@@ -228,7 +235,7 @@
         </div>
 
         <!-- Reports -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.active]="isReportsOpen" *ngIf="!isCollapsed" (click)="toggleReports($event)">
+        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isReportsOpen" *ngIf="!isCollapsed" (click)="toggleReports($event)">
           <div class="nav-item-content">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
@@ -278,6 +285,11 @@
           </a>
         </div>
         
+        <a routerLink="/crm-settings" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
+          <i class="bi bi-gear"></i>
+          <span *ngIf="!isCollapsed">Settings</span>
+        </a>
+
         <div class="nav-divider"></div>
         <a routerLink="/sop" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
           <i class="bi bi-journal-text"></i>
@@ -315,7 +327,7 @@
         </a>
 
         <!-- Reports -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.active]="isOperationReportsOpen" *ngIf="!isCollapsed" (click)="toggleOperationReports($event)">
+        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isOperationReportsOpen" *ngIf="!isCollapsed" (click)="toggleOperationReports($event)">
           <div class="nav-item-content">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
@@ -345,6 +357,11 @@
           </a>
         </div>
         
+        <a routerLink="/settings" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
+          <i class="bi bi-gear"></i>
+          <span *ngIf="!isCollapsed">Settings</span>
+        </a>
+
         <div class="nav-divider"></div>
         <a routerLink="/sop" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
           <i class="bi bi-journal-text"></i>
@@ -382,7 +399,7 @@
         </a>
 
         <!-- Reports -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.active]="isHrReportsOpen" *ngIf="!isCollapsed" (click)="toggleHrReports($event)">
+        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isHrReportsOpen" *ngIf="!isCollapsed" (click)="toggleHrReports($event)">
           <div class="nav-item-content">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
@@ -416,6 +433,11 @@
           </a>
         </div>
         
+        <a routerLink="/settings" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
+          <i class="bi bi-gear"></i>
+          <span *ngIf="!isCollapsed">Settings</span>
+        </a>
+
         <div class="nav-divider"></div>
         <a routerLink="/sop" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
           <i class="bi bi-journal-text"></i>
@@ -441,20 +463,38 @@
         
         <!-- System Settings Popup Menu -->
         <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
-          <div class="popup-header">
-            System Settings
-          </div>
           <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-people"></i> Teams Management
+            <i class="bi bi-people"></i> Teams & Users
           </a>
           <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-building"></i> Branch Management
+            <i class="bi bi-building"></i> Branch
           </a>
           <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-diagram-3"></i> Department Management
+            <i class="bi bi-diagram-3"></i> Department
           </a>
           <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-tag"></i> Status Management
+            <i class="bi bi-activity"></i> Status
+          </a>
+          <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-person-badge"></i> Designation
+          </a>
+          <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
+            <i class="bi bi-gear-fill"></i> Application Settings
+            <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
+          </a>
+          <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
+            <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-calendar3"></i> Intake
+            </a>
+            <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-calendar-event"></i> Year
+            </a>
+            <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-tags"></i> Application Status
+            </a>
+          </div>
+          <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-question-circle"></i> Enquiry For
           </a>
         </div>
 
@@ -554,7 +594,7 @@
       <div class="support-modal-body">
         <!-- Support channels grid -->
         <div class="support-grid">
-          <a href="https://docs.wlink.demo" target="_blank" class="support-card">
+          <a href="https://docs.trackbox.demo" target="_blank" class="support-card">
             <div class="support-card-icon docs">
               <i class="bi bi-book"></i>
             </div>
@@ -576,7 +616,7 @@
             <i class="bi bi-arrow-right-short support-arrow"></i>
           </div>
 
-          <a href="mailto:support@wlink.demo" class="support-card">
+          <a href="mailto:support@trackbox.demo" class="support-card">
             <div class="support-card-icon email">
               <i class="bi bi-envelope"></i>
             </div>

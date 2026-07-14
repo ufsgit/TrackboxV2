@@ -189,9 +189,11 @@
   display: none;
 }
 
-.nav-item:hover {
+.nav-item:hover, .nav-item.expanded {
   background: #f1f5f9;
   color: #0f172a;
+}
+.nav-item:hover {
   transform: translateX(4px);
 }
 
@@ -1115,3 +1117,14 @@
 .system-settings-popup .popup-item.active i {
   color: #4F46E5;
 }
+
+.system-settings-popup .submenu-container {
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+.system-settings-popup .sub-item {
+  padding-left: 36px;
+  font-size: 0.85rem;
+}
+

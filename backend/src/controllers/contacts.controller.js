@@ -75,15 +75,15 @@ const getContact = async (req, res) => {
 
 const createContact = async (req, res) => {
   try {
-    const { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date } = req.body;
+    const { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id } = req.body;
     const bizId = req.user.businessId;
     let assignTo = assigned_to || null;
     if (req.user.role === 'agent') {
       assignTo = req.user.userId;
     }
     const [result] = await pool.query(
-      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, status, remark, follow_up_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, status || null, remark || null, follow_up_date || null]
+      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, status, remark, follow_up_date, enquiry_for_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, status || null, remark || null, follow_up_date || null, enquiry_for_id || null]
     );
     const contactId = result.insertId;
 
@@ -129,7 +129,7 @@ const updateContact = async (req, res) => {
     let updates = [];
     let params = [];
 
-    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'status', 'remark', 'follow_up_date'];
+    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'status', 'remark', 'follow_up_date', 'enquiry_for_id'];
     
     for (const key of allowedFields) {
       if (updateFields[key] !== undefined) {

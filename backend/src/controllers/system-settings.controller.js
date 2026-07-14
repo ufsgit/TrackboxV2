@@ -117,10 +117,10 @@ const getStatuses = async (req, res) => {
 
 const createStatus = async (req, res) => {
   try {
-    const { name, color, follow_needed, sequence } = req.body;
+    const { name, color, follow_needed, sequence, transfer, department_id } = req.body;
     const [result] = await pool.query(
-      'INSERT INTO statuses (name, color, follow_needed, sequence) VALUES (?, ?, ?, ?)',
-      [name, color || '#000000', follow_needed || 'Yes', sequence || 0]
+      'INSERT INTO statuses (name, color, follow_needed, sequence, transfer, department_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null]
     );
     const [rows] = await pool.query('SELECT * FROM statuses WHERE id=?', [result.insertId]);
     res.status(201).json({ success: true, data: rows[0], message: 'Status created' });
@@ -132,10 +132,10 @@ const createStatus = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   try {
-    const { name, color, follow_needed, sequence } = req.body;
+    const { name, color, follow_needed, sequence, transfer, department_id } = req.body;
     await pool.query(
-      'UPDATE statuses SET name=?, color=?, follow_needed=?, sequence=? WHERE id=?',
-      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, req.params.id]
+      'UPDATE statuses SET name=?, color=?, follow_needed=?, sequence=?, transfer=?, department_id=? WHERE id=?',
+      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null, req.params.id]
     );
     const [rows] = await pool.query('SELECT * FROM statuses WHERE id=?', [req.params.id]);
     res.json({ success: true, data: rows[0], message: 'Status updated' });
@@ -155,8 +155,210 @@ const deleteStatus = async (req, res) => {
   }
 };
 
+// DESIGNATIONS
+const getDesignations = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM designations ORDER BY name ASC');
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    console.log('get designations error: ',err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const createDesignation = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const [result] = await pool.query('INSERT INTO designations (name) VALUES (?)', [name]);
+    const [rows] = await pool.query('SELECT * FROM designations WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Designation created' });
+  } catch (err) {
+    console.log('create designations error: ',err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateDesignation = async (req, res) => {
+  try {
+    const { name } = req.body;
+    await pool.query('UPDATE designations SET name=? WHERE id=?', [name, req.params.id]);
+    const [rows] = await pool.query('SELECT * FROM designations WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Designation updated' });
+  } catch (err) {
+    console.log('update designations error: ',err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteDesignation = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM designations WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: null, message: 'Designation deleted' });
+  } catch (err) {
+    console.log('delete designations error: ',err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// INTAKES
+const getIntakes = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM intakes WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const createIntake = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const [result] = await pool.query('INSERT INTO intakes (name, business_id) VALUES (?, ?)', [name, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM intakes WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Intake created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const updateIntake = async (req, res) => {
+  try {
+    const { name } = req.body;
+    await pool.query('UPDATE intakes SET name=? WHERE id=? AND business_id=?', [name, req.params.id, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM intakes WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Intake updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const deleteIntake = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM intakes WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Intake deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// YEARS
+const getYears = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM years WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const createYear = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const [result] = await pool.query('INSERT INTO years (name, business_id) VALUES (?, ?)', [name, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM years WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Year created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const updateYear = async (req, res) => {
+  try {
+    const { name } = req.body;
+    await pool.query('UPDATE years SET name=? WHERE id=? AND business_id=?', [name, req.params.id, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM years WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Year updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const deleteYear = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM years WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Year deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// APPLICATION STATUSES
+const getAppStatuses = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM application_statuses WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const createAppStatus = async (req, res) => {
+  try {
+    const { name, color } = req.body;
+    const [result] = await pool.query('INSERT INTO application_statuses (name, color, business_id) VALUES (?, ?, ?)', [name, color || '#000000', req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM application_statuses WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Status created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const updateAppStatus = async (req, res) => {
+  try {
+    const { name, color } = req.body;
+    await pool.query('UPDATE application_statuses SET name=?, color=? WHERE id=? AND business_id=?', [name, color || '#000000', req.params.id, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM application_statuses WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Status updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const deleteAppStatus = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM application_statuses WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Status deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// ENQUIRY FORS
+const getEnquiryFors = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM enquiry_fors WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const createEnquiryFor = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const [result] = await pool.query('INSERT INTO enquiry_fors (name, business_id) VALUES (?, ?)', [name, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM enquiry_fors WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Enquiry for created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const updateEnquiryFor = async (req, res) => {
+  try {
+    const { name } = req.body;
+    await pool.query('UPDATE enquiry_fors SET name=? WHERE id=? AND business_id=?', [name, req.params.id, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM enquiry_fors WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Enquiry for updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const deleteEnquiryFor = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM enquiry_fors WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Enquiry for deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
-  getStatuses, createStatus, updateStatus, deleteStatus
+  getStatuses, createStatus, updateStatus, deleteStatus,
+  getDesignations, createDesignation, updateDesignation, deleteDesignation,
+  getIntakes, createIntake, updateIntake, deleteIntake,
+  getYears, createYear, updateYear, deleteYear,
+  getAppStatuses, createAppStatus, updateAppStatus, deleteAppStatus,
+  getEnquiryFors, createEnquiryFor, updateEnquiryFor, deleteEnquiryFor
 };

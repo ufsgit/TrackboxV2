@@ -124,7 +124,7 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow-sm" [class.show]="openDropdownId === contact.id" style="border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
                 <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="openDetailPanel(contact)"><i class="bi bi-eye me-2 text-info"></i> View Details</a></li>
-                <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="goToChat(contact)"><i class="bi bi-chat-dots me-2 text-primary"></i> Message</a></li>
+                <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="$event.stopPropagation(); goToChat(contact)"><i class="bi bi-chat-dots me-2 text-primary"></i> Message</a></li>
                 <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="openHistoryModal(contact)"><i class="bi bi-clock-history me-2 text-secondary"></i> History</a></li>
                 <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="openEditModal(contact)"><i class="bi bi-pencil me-2 text-primary"></i> Edit</a></li>
                 <li><hr class="dropdown-divider"></li>
@@ -216,8 +216,9 @@
         <button class="tab-btn" [class.active]="detailActiveTab === 'Contact History'" (click)="detailActiveTab = 'Contact History'">Contact History</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Notes'" (click)="detailActiveTab = 'Notes'">Notes</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Activities'" (click)="detailActiveTab = 'Activities'">Activities</button>
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Applications'" (click)="detailActiveTab = 'Applications'">Applications</button>
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Leads'" (click)="detailActiveTab = 'Leads'">Leads</button>
       </div>
-
       <!-- Tab Content Area -->
       <div class="detail-modal-body">
         
@@ -473,6 +474,109 @@
           </div>
         </div>
 
+        <!-- LEADS TAB -->
+        <div *ngIf="detailActiveTab === 'Leads'" class="tab-pane">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 style="margin:0;"><i class="bi bi-funnel"></i> Leads</h5>
+            <button class="btn btn-primary btn-sm" (click)="openAddLeadModal()"><i class="bi bi-plus"></i> Add Lead</button>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover align-middle custom-table">
+              <thead>
+                <tr>
+                  <th>Product/Service</th>
+                  <th>Status</th>
+                  <th>Assigned To</th>
+                  <th>Follow-up</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let lead of selectedContactLeads">
+                  <td>
+                    <div style="font-weight: 600;">{{ lead.enquiry_for_name || 'N/A' }}</div>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ lead.status }}</span>
+                  </td>
+                  <td>
+                    {{ lead.assigned_to_name || 'Unassigned' }}
+                  </td>
+                  <td>
+                    {{ lead.follow_up_date | date }}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-icon text-danger" title="Delete" (click)="deleteLead(lead.id)"><i class="bi bi-trash"></i></button>
+                  </td>
+                </tr>
+                <tr *ngIf="selectedContactLeads.length === 0">
+                  <td colspan="5" class="text-center text-muted py-4">No leads found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- APPLICATIONS TAB -->
+        <div *ngIf="detailActiveTab === 'Applications'" class="tab-pane">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 style="margin:0;"><i class="bi bi-mortarboard-fill"></i> Applications</h5>
+            <button class="btn btn-primary btn-sm" (click)="openAddApplicationModal()"><i class="bi bi-plus"></i> Add Application</button>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+              <thead style="background: #f8fafc;">
+                <tr>
+                  <th>University & Course</th>
+                  <th>Country</th>
+                  <th>Intake & Year</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let app of selectedContactApplications">
+                  <td>
+                    <div style="font-weight: 600;">{{ app.university }}</div>
+                    <div style="font-size: 0.85rem; color: #64748b;">{{ app.course }}</div>
+                  </td>
+                  <td>{{ app.country }}</td>
+                  <td>
+                    <div>{{ app.intake_name || '-' }}</div>
+                    <div style="font-size: 0.85rem; color: #64748b;">{{ app.year_name || '-' }}</div>
+                  </td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                              [style.backgroundColor]="app.status_color || '#e2e8f0'" 
+                              [style.color]="'#fff'" style="border:none; border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; font-weight: 500;">
+                        {{ app.status_name || 'Select Status' }}
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li *ngFor="let status of appStatuses">
+                          <a class="dropdown-item" href="javascript:void(0)" (click)="updateApplicationStatus(app, status.id)">
+                            <span [style.color]="status.color" style="font-size:1.2rem; vertical-align:middle; margin-right:4px;">&bull;</span> {{ status.name }}
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-icon text-info me-1" title="View History" (click)="openAppHistoryModal(app.id)"><i class="bi bi-clock-history"></i></button>
+                    <button class="btn btn-sm btn-icon text-primary me-1" title="Edit" (click)="openEditApplicationModal(app)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-icon text-danger" title="Delete" (click)="deleteApplication(app.id)"><i class="bi bi-trash"></i></button>
+                  </td>
+                </tr>
+                <tr *ngIf="selectedContactApplications.length === 0">
+                  <td colspan="5" class="text-center text-muted py-4">No applications found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </ng-container>
   </div>
@@ -527,6 +631,14 @@
         <div class="field-row full-width">
           <label>Address</label>
           <textarea class="form-control premium-input" rows="2" [(ngModel)]="newContact.address" placeholder="123 Main St, City, State"></textarea>
+        </div>
+
+        <div class="field-row">
+          <label>Enquiry For</label>
+          <select class="form-select premium-input" [(ngModel)]="newContact.enquiry_for_id" style="display:block;">
+            <option [ngValue]="null">-- Select Enquiry For --</option>
+            <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
+          </select>
         </div>
 
         <div class="field-row">
@@ -855,6 +967,119 @@
 <div *ngIf="toastMessage" style="position: fixed; bottom: 32px; right: 32px; background: #1e293b; color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); z-index: 9999; display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
   <i class="bi bi-info-circle-fill text-primary" style="font-size: 1.2rem; color: #60a5fa !important;"></i>
   <span style="font-weight: 600; font-size: 0.95rem;">{{ toastMessage }}</span>
+</div>
+
+<!-- ═══════════════════ ADD/EDIT APPLICATION MODAL ═══════════════════ -->
+<div class="custom-modal center-modal" *ngIf="showAddApplicationModal">
+  <div class="modal-backdrop" (click)="showAddApplicationModal = false"></div>
+  <div class="modal-card popup-card">
+    <div class="modal-header-fs">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-mortarboard-fill" style="color:#fff;font-size:1.1rem;"></i>
+        </div>
+        <div>
+          <h4>{{ currentApplication.id ? 'Edit Application' : 'Add Application' }}</h4>
+          <p style="margin:0;font-size:0.8rem;color:#64748b;">Fill in application details</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="showAddApplicationModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
+    </div>
+    <div class="modal-body-scroll">
+      <div class="fields-grid">
+        
+        <div class="field-row">
+          <label>Country <span class="required">*</span></label>
+          <input type="text" list="countryList" class="form-control premium-input" [(ngModel)]="currentApplication.country" placeholder="Select Country">
+          <datalist id="countryList">
+            <option *ngFor="let c of countries" [value]="c"></option>
+          </datalist>
+        </div>
+
+        <div class="field-row">
+          <label>University <span class="required">*</span></label>
+          <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.university" placeholder="University Name">
+        </div>
+
+        <div class="field-row full-width">
+          <label>Course <span class="required">*</span></label>
+          <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.course" placeholder="Course Name">
+        </div>
+
+        <div class="field-row">
+          <label>Intake</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.intake_id" style="display:block;">
+            <option value="">Select Intake</option>
+            <option *ngFor="let i of intakes" [value]="i.id">{{ i.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label>Year</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.year_id" style="display:block;">
+            <option value="">Select Year</option>
+            <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
+          </select>
+        </div>
+        
+        <div class="field-row full-width">
+          <label>Status</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.status_id" style="display:block;">
+            <option value="">Select Status</option>
+            <option *ngFor="let s of appStatuses" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+
+        <div class="field-row full-width">
+          <label>Description</label>
+          <textarea class="form-control premium-input" rows="3" [(ngModel)]="currentApplication.description" placeholder="Notes regarding this application..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer-fs">
+      <button class="btn btn-light px-4 py-2" (click)="showAddApplicationModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
+      <button class="btn btn-primary px-4 py-2 ms-2" (click)="saveApplication()" style="border-radius:10px;font-weight:700;">Save Application</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ APPLICATION HISTORY MODAL ═══════════════════ -->
+<div class="custom-modal center-modal" *ngIf="showAppHistoryModal">
+  <div class="modal-backdrop" (click)="showAppHistoryModal = false"></div>
+  <div class="modal-card popup-card">
+    <div class="modal-header-fs">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-clock-history" style="color:#4f46e5;font-size:1.1rem;"></i>
+        </div>
+        <div>
+          <h4>Application History</h4>
+          <p style="margin:0;font-size:0.8rem;color:#64748b;">Timeline of changes</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="showAppHistoryModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
+    </div>
+    <div class="modal-body-scroll" style="background:#f8fafc; padding:24px;">
+      <div class="timeline" style="position:relative; margin-left:16px;">
+        <div *ngFor="let hist of applicationHistory" style="position:relative; padding-bottom:24px; padding-left:32px; border-left:2px solid #e2e8f0;">
+          <div style="position:absolute; left:-7px; top:4px; width:12px; height:12px; border-radius:50%; background:#4f46e5; border:2px solid #fff; box-shadow:0 0 0 2px #e0e7ff;"></div>
+          <div style="background:#fff; border-radius:8px; padding:12px 16px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+              <h6 style="margin:0; font-weight:600; color:#1e293b; font-size:0.95rem;">{{ hist.action }}</h6>
+              <span style="font-size:0.75rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:12px;">{{ hist.created_at | date:'MMM d, y, h:mm a' }}</span>
+            </div>
+            <p style="margin:0 0 8px 0; font-size:0.9rem; color:#475569;">{{ hist.details }}</p>
+            <div style="font-size:0.8rem; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-person-fill"></i> By: <span style="color:#64748b; font-weight:500;">{{ hist.user_name || 'System' }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="applicationHistory.length === 0" class="text-center text-muted">
+          No history found for this application.
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Embedded Chat Modal -->

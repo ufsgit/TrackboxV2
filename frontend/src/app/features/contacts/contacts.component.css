@@ -401,6 +401,19 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+.center-modal {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.popup-card {
+  max-width: 600px;
+  max-height: 90vh;
+  height: auto;
+  border-radius: 16px;
+}
+
 .modal-header {
   padding: 24px 32px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);

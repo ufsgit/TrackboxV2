@@ -474,6 +474,113 @@ async function runMigrations() {
     FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
   )`);
 
+  // Create designations table
+  await pool.query(`CREATE TABLE IF NOT EXISTS designations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+  )`);
+
+  // Alter statuses table safely to add transfer and department_id
+  try { await pool.query("ALTER TABLE statuses ADD COLUMN transfer BOOLEAN DEFAULT FALSE"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE statuses ADD COLUMN department_id INT NULL"); } catch (e) { /* Ignore if exists */ }
+
+  // Alter users table safely to add new fields
+  try { await pool.query("ALTER TABLE users ADD COLUMN username VARCHAR(255) UNIQUE NULL"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE users ADD COLUMN employee_code VARCHAR(100) NULL"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE users ADD COLUMN designation_id INT NULL"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE users ADD COLUMN date_of_joining DATE NULL"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE users ADD COLUMN department_id INT NULL"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE users ADD COLUMN branch_id INT NULL"); } catch (e) { /* Ignore if exists */ }
+
+  // Applications Module Tables
+  await pool.query(`CREATE TABLE IF NOT EXISTS intakes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    business_id INT NOT NULL
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS years (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    business_id INT NOT NULL
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS application_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    color VARCHAR(50) DEFAULT '#000000',
+    business_id INT NOT NULL
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    country VARCHAR(255),
+    university VARCHAR(255),
+    course VARCHAR(255),
+    intake_id INT NULL,
+    year_id INT NULL,
+    status_id INT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (intake_id) REFERENCES intakes(id) ON DELETE SET NULL,
+    FOREIGN KEY (year_id) REFERENCES years(id) ON DELETE SET NULL,
+    FOREIGN KEY (status_id) REFERENCES application_statuses(id) ON DELETE SET NULL
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS application_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    application_id INT NOT NULL,
+    changed_by INT NULL,
+    action VARCHAR(255),
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  // Create enquiry_fors table
+  await pool.query(`CREATE TABLE IF NOT EXISTS enquiry_fors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  )`);
+
+  // Add enquiry_for_id to contacts if it doesn't exist
+  const [enqCol] = await pool.query("SHOW COLUMNS FROM contacts LIKE 'enquiry_for_id'");
+  if (enqCol.length === 0) {
+    await pool.query("ALTER TABLE contacts ADD COLUMN enquiry_for_id INT NULL");
+    try {
+      await pool.query("ALTER TABLE contacts ADD CONSTRAINT fk_contacts_enquiry_for FOREIGN KEY (enquiry_for_id) REFERENCES enquiry_fors(id) ON DELETE SET NULL");
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Create leads table for 1-to-many relationship with contacts
+  await pool.query(`CREATE TABLE IF NOT EXISTS leads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    enquiry_for_id INT NULL,
+    status VARCHAR(100) DEFAULT 'New',
+    loss_reason VARCHAR(255) NULL,
+    assigned_to INT NULL,
+    follow_up_date DATE NULL,
+    remark TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (enquiry_for_id) REFERENCES enquiry_fors(id) ON DELETE SET NULL,
+    FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
   console.log('✅ Database migrations completed');
 
   await seedData();

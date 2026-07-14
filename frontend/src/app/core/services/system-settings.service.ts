@@ -54,6 +54,44 @@ export class SystemSettingsService {
     return this.http.delete(`${this.apiUrl}/statuses/${id}`);
   }
 
+  // --- DESIGNATIONS ---
+  getDesignations(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/designations`);
+  }
+  createDesignation(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/designations`, data);
+  }
+  updateDesignation(id: number, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/designations/${id}`, data);
+  }
+  deleteDesignation(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/designations/${id}`);
+  }
+
+  // --- INTAKES ---
+  getIntakes(): Observable<any> { return this.http.get(`${this.apiUrl}/intakes`); }
+  createIntake(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/intakes`, data); }
+  updateIntake(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/intakes/${id}`, data); }
+  deleteIntake(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/intakes/${id}`); }
+
+  // --- YEARS ---
+  getYears(): Observable<any> { return this.http.get(`${this.apiUrl}/years`); }
+  createYear(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/years`, data); }
+  updateYear(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/years/${id}`, data); }
+  deleteYear(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/years/${id}`); }
+
+  // --- APPLICATION STATUSES ---
+  getAppStatuses(): Observable<any> { return this.http.get(`${this.apiUrl}/app-statuses`); }
+  createAppStatus(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/app-statuses`, data); }
+  updateAppStatus(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/app-statuses/${id}`, data); }
+  deleteAppStatus(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/app-statuses/${id}`); }
+
+  // --- ENQUIRY FORS ---
+  getEnquiryFors(): Observable<any> { return this.http.get(`${this.apiUrl}/enquiry-fors`); }
+  createEnquiryFor(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/enquiry-fors`, data); }
+  updateEnquiryFor(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/enquiry-fors/${id}`, data); }
+  deleteEnquiryFor(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/enquiry-fors/${id}`); }
+
   // --- TEAMS (Users) ---
   // Using the existing settings endpoint but wrapped here for convenience
   getTeams(): Observable<any> {
