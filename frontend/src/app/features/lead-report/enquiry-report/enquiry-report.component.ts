@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
 import { ApiService } from '../../../core/services/api.service';
 
+
 Chart.register(...registerables);
 
 @Component({
@@ -198,3 +199,4 @@ export class EnquiryReportComponent implements OnInit {
     });
   }
 }
+

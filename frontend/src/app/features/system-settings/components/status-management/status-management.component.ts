@@ -34,6 +34,7 @@ import Swal from 'sweetalert2';
         <thead>
           <tr>
             <th>STATUS NAME</th>
+            <th>TYPE</th>
             <th>COLOR</th>
             <th>FOLLOW-UP REQUIRED</th>
             <th>ACTIONS</th>
@@ -45,6 +46,12 @@ import Swal from 'sweetalert2';
               <span class="status-badge" [ngStyle]="{'background-color': status.color + '20', 'color': status.color}">
                 {{ status.name }}
               </span>
+            </td>
+            <td>
+              <span *ngIf="status.type" class="badge" [ngStyle]="{'background': status.type === 'sale' ? '#10B981' : '#EF4444'}">
+                {{ status.type === 'sale' ? 'Sale' : 'Sale Lost' }}
+              </span>
+              <span *ngIf="!status.type" style="color:#94a3b8;">—</span>
             </td>
             <td><code>{{ status.color }}</code></td>
             <td style="color: #334155; font-weight: 500;">
@@ -70,6 +77,15 @@ import Swal from 'sweetalert2';
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Status Name</label>
           <input type="text" class="form-control" [(ngModel)]="currentStatus.name" placeholder="e.g. Won, Follow-up" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Type</label>
+          <select class="form-control" [(ngModel)]="currentStatus.type" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            <option value="">-- Select Type --</option>
+            <option value="sale">Sale</option>
+            <option value="sale_lost">Sale Lost</option>
+          </select>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
@@ -123,7 +139,7 @@ import Swal from 'sweetalert2';
 export class StatusManagementComponent implements OnInit {
   statuses: any[] = [];
   departments: any[] = [];
-  currentStatus: any = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0, transfer: false, department_id: '' };
+  currentStatus: any = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0, transfer: false, department_id: '', type: '' };
   showStatusModal: boolean = false;
   searchTerm: string = '';
 
@@ -152,7 +168,7 @@ export class StatusManagementComponent implements OnInit {
     return this.statuses.filter(s => s.name.toLowerCase().includes(term));
   }
 
-  openStatusModal() { this.currentStatus = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0, transfer: false, department_id: '' }; this.showStatusModal = true; }
+  openStatusModal() { this.currentStatus = { name: '', color: '#4F46E5', follow_needed: 'Yes', sequence: 0, transfer: false, department_id: '', type: '' }; this.showStatusModal = true; }
   editStatusModal(status: any) { this.currentStatus = { ...status, transfer: !!status.transfer }; this.showStatusModal = true; }
   closeStatusModal() { this.showStatusModal = false; }
 

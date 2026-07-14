@@ -117,10 +117,10 @@ const getStatuses = async (req, res) => {
 
 const createStatus = async (req, res) => {
   try {
-    const { name, color, follow_needed, sequence, transfer, department_id } = req.body;
+    const { name, color, follow_needed, sequence, transfer, department_id, type } = req.body;
     const [result] = await pool.query(
-      'INSERT INTO statuses (name, color, follow_needed, sequence, transfer, department_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null]
+      'INSERT INTO statuses (name, color, follow_needed, sequence, transfer, department_id, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null, type || null]
     );
     const [rows] = await pool.query('SELECT * FROM statuses WHERE id=?', [result.insertId]);
     res.status(201).json({ success: true, data: rows[0], message: 'Status created' });
@@ -132,10 +132,10 @@ const createStatus = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   try {
-    const { name, color, follow_needed, sequence, transfer, department_id } = req.body;
+    const { name, color, follow_needed, sequence, transfer, department_id, type } = req.body;
     await pool.query(
-      'UPDATE statuses SET name=?, color=?, follow_needed=?, sequence=?, transfer=?, department_id=? WHERE id=?',
-      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null, req.params.id]
+      'UPDATE statuses SET name=?, color=?, follow_needed=?, sequence=?, transfer=?, department_id=?, type=? WHERE id=?',
+      [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null, type || null, req.params.id]
     );
     const [rows] = await pool.query('SELECT * FROM statuses WHERE id=?', [req.params.id]);
     res.json({ success: true, data: rows[0], message: 'Status updated' });

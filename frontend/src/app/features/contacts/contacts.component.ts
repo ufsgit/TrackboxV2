@@ -43,7 +43,7 @@ export class ContactsComponent implements OnInit {
     follow_up_date: '',
     branch: '',
     department: '',
-    assign_type: 'auto',
+    assign_type: 'employee',
     assigned_employee: '',
     loss_reason: ''
   };
@@ -95,9 +95,9 @@ export class ContactsComponent implements OnInit {
   dummyActivities: any[] = [];
   dummyHistory: any[] = [];
 
-  dummyBranches = ['Head Office', 'North Branch', 'South Branch', 'East Branch', 'West Branch'];
-  dummyDepartments = ['Sales', 'Marketing', 'Support', 'IT', 'HR'];
-  dummyEmployees = ['Alice Smith', 'Bob Johnson', 'Charlie Brown', 'David Lee', 'Eva Green'];
+  branches: any[] = [];
+  departments: any[] = [];
+  employees: any[] = [];
   dummyLossReasons = ['Price too high', 'Bought from competitor', 'No longer needed', 'Missing features', 'Poor communication'];
 
   // Custom fields from Settings
@@ -152,7 +152,7 @@ export class ContactsComponent implements OnInit {
     assigned_to: '',
     branch: '',
     department: '',
-    assign_type: 'auto',
+    assign_type: 'employee',
     assigned_employee: '',
     loss_reason: '',
     custom_field_values: {} as Record<string, string>
@@ -215,8 +215,10 @@ export class ContactsComponent implements OnInit {
     this.loadContacts();
     this.loadTags();
     this.loadLeadFields();
-    if (this.isAdmin) this.loadAgents();
+    this.loadAgents();
     this.loadApplicationSettings();
+    this.loadBranches();
+    this.loadDepartments();
   }
 
   loadApplicationSettings() {
@@ -228,7 +230,28 @@ export class ContactsComponent implements OnInit {
 
   loadAgents() {
     this.api.get('/settings/team').subscribe({
-      next: (res: any) => this.agents = res.data.filter((u: any) => u.role === 'agent')
+      next: (res: any) => {
+        if (res.success) {
+          this.agents = res.data.filter((u: any) => u.role === 'agent');
+          this.employees = res.data;
+        }
+      }
+    });
+  }
+
+  loadBranches() {
+    this.api.get('/system-settings/branches').subscribe({
+      next: (res: any) => {
+        if (res.success) this.branches = res.data;
+      }
+    });
+  }
+
+  loadDepartments() {
+    this.api.get('/system-settings/departments').subscribe({
+      next: (res: any) => {
+        if (res.success) this.departments = res.data;
+      }
     });
   }
 
@@ -622,7 +645,7 @@ export class ContactsComponent implements OnInit {
       name: '', phone: '', email: '', address: '', company: '', enquiry_for_id: null,
       status: '', remark: '', follow_up_date: '',
       tags: 'lead', channel_preference: 'whatsapp', assigned_to: '',
-      branch: '', department: '', assign_type: 'auto', assigned_employee: '', loss_reason: '',
+      branch: '', department: '', assign_type: 'employee', assigned_employee: '', loss_reason: '',
       custom_field_values: {}
     };
     // Pre-init custom fields
@@ -650,7 +673,7 @@ export class ContactsComponent implements OnInit {
       assigned_to: contact.assigned_to || '',
       branch: contact.branch || '',
       department: contact.department || '',
-      assign_type: contact.assign_type || 'auto',
+      assign_type: contact.assign_type || 'employee',
       assigned_employee: contact.assigned_employee || '',
       loss_reason: contact.loss_reason || '',
       custom_field_values: {}
@@ -824,7 +847,7 @@ export class ContactsComponent implements OnInit {
       follow_up_date: contact.follow_up_date ? new Date(contact.follow_up_date).toISOString().split('T')[0] : '',
       branch: contact.branch || '',
       department: contact.department || '',
-      assign_type: contact.assign_type || 'auto',
+      assign_type: contact.assign_type || 'employee',
       assigned_employee: contact.assigned_employee || '',
       loss_reason: contact.loss_reason || ''
     };

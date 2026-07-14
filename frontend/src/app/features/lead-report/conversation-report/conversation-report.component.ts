@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
 
+
 Chart.register(...registerables);
 
 @Component({
@@ -188,3 +189,4 @@ export class ConversationReportComponent implements OnInit {
     });
   }
 }
+

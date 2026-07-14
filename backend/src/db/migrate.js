@@ -483,6 +483,7 @@ async function runMigrations() {
   // Alter statuses table safely to add transfer and department_id
   try { await pool.query("ALTER TABLE statuses ADD COLUMN transfer BOOLEAN DEFAULT FALSE"); } catch (e) { /* Ignore if exists */ }
   try { await pool.query("ALTER TABLE statuses ADD COLUMN department_id INT NULL"); } catch (e) { /* Ignore if exists */ }
+  try { await pool.query("ALTER TABLE statuses ADD COLUMN type VARCHAR(50) NULL"); } catch (e) { /* Ignore if exists */ }
 
   // Alter users table safely to add new fields
   try { await pool.query("ALTER TABLE users ADD COLUMN username VARCHAR(255) UNIQUE NULL"); } catch (e) { /* Ignore if exists */ }
