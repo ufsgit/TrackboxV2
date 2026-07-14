@@ -43,6 +43,7 @@ export class EmployeesComponent implements OnInit {
   
   employeeForm: Employee = this.getEmptyEmployee();
   employeeToDelete: string | null = null;
+  selectedTeamMembers: string[] = [];
 
   // Summary Metrics
   get totalEmployees(): number { return this.employees.length; }
@@ -104,12 +105,15 @@ export class EmployeesComponent implements OnInit {
     this.employeeForm = this.getEmptyEmployee();
     this.employeeForm.id = 'EMP-00' + (this.employees.length + 1);
     this.employeeForm.joinDate = new Date().toISOString().split('T')[0];
+    this.selectedTeamMembers = [];
     this.showEmployeeModal = true;
   }
 
   editEmployee(emp: Employee) {
     this.isEditing = true;
     this.employeeForm = { ...emp };
+    // Just mock some selected members for now or initialize to empty
+    this.selectedTeamMembers = []; 
     this.showEmployeeModal = true;
   }
 
@@ -130,6 +134,18 @@ export class EmployeesComponent implements OnInit {
 
   closeEmployeeModal() {
     this.showEmployeeModal = false;
+  }
+
+  isTeamMemberSelected(id: string): boolean {
+    return this.selectedTeamMembers.includes(id);
+  }
+
+  toggleTeamMember(id: string) {
+    if (this.selectedTeamMembers.includes(id)) {
+      this.selectedTeamMembers = this.selectedTeamMembers.filter(mId => mId !== id);
+    } else {
+      this.selectedTeamMembers.push(id);
+    }
   }
 
   toggleStatus(emp: Employee) {

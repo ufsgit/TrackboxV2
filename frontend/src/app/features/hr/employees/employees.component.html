@@ -118,65 +118,81 @@
 
 </div>
 
-<!-- Add/Edit Employee Modal -->
 <div *ngIf="showEmployeeModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out;">
-  <div style="width: 100%; max-width: 600px; margin: 20px; animation: slideUp 0.3s ease-out;">
-    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;">
-      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center;">
+  <div style="width: 100%; max-width: 900px; margin: 20px; animation: slideUp 0.3s ease-out;">
+    <div style="background: white; border-radius: 20px; border: none; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+      <div style="border-bottom: 1px solid #f1f5f9; padding: 24px; background: #faf8f8; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
         <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">{{ isEditing ? 'Edit Employee' : 'Add New Employee' }}</h5>
         <button type="button" class="btn-close" (click)="closeEmployeeModal()" aria-label="Close" style="font-size: 0.85rem;"></button>
       </div>
-      <div style="padding: 24px;">
-        <div class="row g-3">
-          
-          <div class="col-md-6">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Employee ID</label>
-            <input type="text" class="form-control" [(ngModel)]="employeeForm.id" disabled style="background: #f8fafc;">
+      <div style="display: flex; flex-direction: row; overflow: hidden;">
+        
+        <!-- Left Side: Form -->
+        <div style="padding: 24px; flex: 3; border-right: 1px solid #f1f5f9; overflow-y: auto;">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Employee ID</label>
+              <input type="text" class="form-control" [(ngModel)]="employeeForm.id" disabled style="background: #f8fafc;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Join Date</label>
+              <input type="date" class="form-control" [(ngModel)]="employeeForm.joinDate">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Full Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="employeeForm.name" placeholder="E.g. John Doe">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Email Address <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" [(ngModel)]="employeeForm.email" placeholder="john@company.com">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Department <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="employeeForm.department">
+                <option value="" disabled selected>Select Department</option>
+                <option value="IT Support">IT Support</option>
+                <option value="HR">HR</option>
+                <option value="Finance">Finance</option>
+                <option value="Sales">Sales</option>
+                <option value="Operations">Operations</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Role <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="employeeForm.role" placeholder="E.g. Sales Executive">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Status</label>
+              <select class="form-select" [(ngModel)]="employeeForm.status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="On Leave">On Leave</option>
+              </select>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Join Date</label>
-            <input type="date" class="form-control" [(ngModel)]="employeeForm.joinDate">
-          </div>
-
-          <div class="col-md-12">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Full Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" [(ngModel)]="employeeForm.name" placeholder="E.g. John Doe">
-          </div>
-          
-          <div class="col-md-12">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Email Address <span class="text-danger">*</span></label>
-            <input type="email" class="form-control" [(ngModel)]="employeeForm.email" placeholder="john@company.com">
-          </div>
-
-          <div class="col-md-6">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Department <span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="employeeForm.department">
-              <option value="" disabled selected>Select Department</option>
-              <option value="IT Support">IT Support</option>
-              <option value="HR">HR</option>
-              <option value="Finance">Finance</option>
-              <option value="Sales">Sales</option>
-              <option value="Operations">Operations</option>
-            </select>
-          </div>
-          
-          <div class="col-md-6">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Role <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" [(ngModel)]="employeeForm.role" placeholder="E.g. Sales Executive">
-          </div>
-
-          <div class="col-md-12">
-            <label class="form-label" style="color: #64748b; font-weight: 600; font-size: 0.85rem; text-transform: uppercase;">Status</label>
-            <select class="form-select" [(ngModel)]="employeeForm.status">
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="On Leave">On Leave</option>
-            </select>
-          </div>
-
         </div>
+
+        <!-- Right Side: Team Tab -->
+        <div style="padding: 24px; flex: 2; background: #faf8f8; overflow-y: auto;">
+          <h6 style="color: #64748b; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 16px;">Team Assignment</h6>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div *ngFor="let teamEmp of employees" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer;" (click)="toggleTeamMember(teamEmp.id)">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">
+                  {{ teamEmp.name.charAt(0) }}
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">{{ teamEmp.name }}</span>
+                  <span style="font-size: 0.8rem; color: #64748b;">{{ teamEmp.role }}</span>
+                </div>
+              </div>
+              <input type="checkbox" class="form-check-input" [checked]="isTeamMemberSelected(teamEmp.id)" (click)="$event.stopPropagation(); toggleTeamMember(teamEmp.id)" style="width: 1.2rem; height: 1.2rem; cursor: pointer;">
+            </div>
+          </div>
+        </div>
+        
       </div>
-      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end; gap: 12px;">
+      <div style="border-top: 1px solid #f1f5f9; padding: 20px 24px; background: #faf8f8; display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0;">
         <button type="button" class="btn btn-light" (click)="closeEmployeeModal()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px;">Cancel</button>
         <button type="button" class="btn btn-primary" (click)="saveEmployee()" style="border-radius: 10px; font-weight: 600; padding: 10px 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">{{ isEditing ? 'Save Changes' : 'Create Employee' }}</button>
       </div>
