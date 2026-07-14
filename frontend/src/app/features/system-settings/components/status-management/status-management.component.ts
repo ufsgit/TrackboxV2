@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
   imports: [CommonModule, FormsModule],
   template: `
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
-      <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Status Management</h3>
+      <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Lead Status</h3>
       <button class="btn btn-primary" (click)="openStatusModal()" style="display: flex; align-items: center; gap: 8px;">
         <i class="bi bi-plus-lg"></i> Add Status
       </button>
