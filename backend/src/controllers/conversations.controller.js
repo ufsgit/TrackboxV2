@@ -214,7 +214,7 @@ const createConversation = async (req, res) => {
     const { contact_id, channel } = req.body;
     const bizId = req.user.businessId;
     const [existing] = await pool.query(
-      "SELECT id FROM conversations WHERE business_id=? AND contact_id=? AND status='open'",
+      "SELECT id FROM conversations WHERE business_id=? AND contact_id=? ORDER BY last_message_at DESC, id DESC LIMIT 1",
       [bizId, contact_id]
     );
     if (existing.length) return res.json({ success: true, data: existing[0], message: 'Existing conversation' });

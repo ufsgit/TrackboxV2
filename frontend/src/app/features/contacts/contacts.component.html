@@ -185,12 +185,7 @@
           <div class="header-text">
             <h3>{{ selectedContact.name }}</h3>
             <div class="header-badges">
-              <span class="badge-status" [class.opted-in]="selectedContact.opted_in" [class.pending]="!selectedContact.opted_in">
-                <i class="bi bi-circle-fill" style="font-size: 0.35rem;"></i>
-                {{ selectedContact.opted_in ? 'Opted-in' : 'Pending' }}
-              </span>
               <span class="tag-pill" *ngFor="let tag of selectedContact.tags">{{ tag }}</span>
-              <span class="ai-score-badge"><i class="bi bi-robot"></i> AI Score: {{ selectedContact.aiScore }}/100</span>
             </div>
           </div>
         </div>
@@ -211,11 +206,7 @@
         <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Quotation'" (click)="detailActiveTab = 'Quotation'">Quotation</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Purchase Orders'" (click)="detailActiveTab = 'Purchase Orders'">Purchase Orders</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Contact History'" (click)="detailActiveTab = 'Contact History'">Contact History</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Notes'" (click)="detailActiveTab = 'Notes'">Notes</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Activities'" (click)="detailActiveTab = 'Activities'">Activities</button>
       </div>
 
       <!-- Tab Content Area -->
@@ -862,5 +853,5 @@
   *ngIf="showChatModal" 
   [contactId]="activeChatContactId!" 
   [convoId]="activeChatConvoId!"
-  (close)="showChatModal = false">
+  (close)="closeChatModal()">
 </app-chat-modal>
