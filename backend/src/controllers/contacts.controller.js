@@ -85,8 +85,31 @@ const createContact = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    const { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name } = req.body;
+    let { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name } = req.body;
     const bizId = req.user.businessId;
+
+    if (!assigned_to || !branch_id || !department_id) {
+      const query = `
+        SELECT u.branch_id, b.name as branch_name, u.department_id, d.name as department_name 
+        FROM users u 
+        LEFT JOIN branches b ON u.branch_id = b.id 
+        LEFT JOIN departments d ON u.department_id = d.id 
+        WHERE u.id = ?
+      `;
+      const [uRows] = await conn.query(query, [req.user.userId]);
+      if (uRows.length > 0) {
+        if (!assigned_to) assigned_to = req.user.userId;
+        if (!branch_id) { 
+          branch_id = uRows[0].branch_id; 
+          branch_name = uRows[0].branch_name; 
+        }
+        if (!department_id) { 
+          department_id = uRows[0].department_id; 
+          department_name = uRows[0].department_name; 
+        }
+      }
+    }
+
     let assignTo = assigned_to || null;
     if (req.user.role === 'agent') {
       assignTo = req.user.userId;

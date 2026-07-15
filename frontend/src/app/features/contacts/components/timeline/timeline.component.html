@@ -1,0 +1,54 @@
+<div class="timeline-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading timeline...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="alert alert-danger mx-3 mt-3">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error }}
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && timelineEvents.length === 0" class="text-center py-5 text-muted empty-state">
+    <i class="bi bi-clock-history mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+    <h4>No History Found</h4>
+    <p>There are no recorded events or follow-ups for this contact yet.</p>
+  </div>
+
+  <!-- Timeline UI -->
+  <div *ngIf="!loading && !error && timelineEvents.length > 0" class="timeline">
+    <div class="timeline-item" *ngFor="let event of timelineEvents">
+      
+      <!-- Icon Marker -->
+      <div class="timeline-marker" [style.backgroundColor]="event.color">
+        <i class="bi" [ngClass]="event.icon"></i>
+      </div>
+
+      <!-- Content Box -->
+      <div class="timeline-content card shadow-sm border-0">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0 fw-bold" [style.color]="event.color">{{ event.title }}</h5>
+            <small class="text-muted fw-medium"><i class="bi bi-clock me-1"></i> {{ event.date | date:'MMM d, y, h:mm a' }}</small>
+          </div>
+          
+          <p class="mb-2 text-dark">{{ event.description }}</p>
+          
+          <div *ngIf="event.details" class="event-details bg-light p-2 rounded mb-2">
+            <small class="text-secondary">{{ event.details }}</small>
+          </div>
+          
+          <div class="mt-3 pt-3 border-top d-flex align-items-center" *ngIf="event.author">
+            <div class="author-avatar me-2">{{ event.author.charAt(0) | uppercase }}</div>
+            <small class="text-muted fw-medium">By {{ event.author }}</small>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
