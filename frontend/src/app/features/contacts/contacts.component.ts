@@ -6,6 +6,7 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApplicationsService } from '../../core/services/applications.service';
 import { SystemSettingsService } from '../../core/services/system-settings.service';
+import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
@@ -18,6 +19,7 @@ import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
   styleUrls: ['./contacts.component.css']
 })
 export class ContactsComponent implements OnInit {
+  baseUrl = environment.socketUrl;
   contacts: any[] = [];
   loading = false;
   showModal = false;
@@ -91,7 +93,7 @@ export class ContactsComponent implements OnInit {
   dummyTimeline: any[] = [];
   dummyQuotations: any[] = [];
   dummyPOs: any[] = [];
-  dummyDocuments: any[] = [];
+  contactDocuments: any[] = [];
   dummyNotes: any[] = [];
   dummyActivities: any[] = [];
   dummyHistory: any[] = [];
@@ -127,13 +129,24 @@ export class ContactsComponent implements OnInit {
       Swal.fire('Error', 'Please choose a file.', 'error');
       return;
     }
-    this.dummyDocuments.push({
-      name: this.uploadDocData.fileName,
-      type: this.uploadDocData.fileName.split('.').pop() || 'file',
-      size: (this.uploadDocData.file.size / 1024 / 1024).toFixed(1) + ' MB'
+
+    const formData = new FormData();
+    formData.append('documentType', this.uploadDocData.documentType);
+    formData.append('notes', this.uploadDocData.notes);
+    formData.append('file', this.uploadDocData.file);
+
+    this.api.upload(`/contacts/${this.selectedContact.id}/documents`, formData).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.showAction('Document uploaded successfully!');
+          this.loadDocuments(this.selectedContact.id);
+          this.closeUploadDocumentModal();
+        }
+      },
+      error: (err) => {
+        Swal.fire('Error', err.error?.message || 'Error uploading document', 'error');
+      }
     });
-    this.showAction('Document uploaded successfully!');
-    this.closeUploadDocumentModal();
   }
 
   clearDocument() {
@@ -282,6 +295,20 @@ export class ContactsComponent implements OnInit {
     this.loadBranches();
     this.loadDepartments();
     this.loadLeadStatuses();
+    this.loadDocumentTypes();
+  }
+
+  loadDocumentTypes() {
+    this.settingsService.getDocumentTypes().subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          if (res.data.length > 0) {
+            this.documentOptions = res.data.map((d: any) => d.name);
+          }
+        }
+      },
+      error: (err) => console.error('Failed to load document types', err)
+    });
   }
 
   /** Returns true if the given status name has transfer=true in DB */
@@ -440,6 +467,8 @@ export class ContactsComponent implements OnInit {
           this.generateDummyData();
           this.loadApplications(contact.id);
           this.loadLeads(contact.id);
+          this.loadDocuments(contact.id);
+          this.loadContactHistory(contact.id);
         }
         this.detailLoading = false;
       },
@@ -463,11 +492,6 @@ export class ContactsComponent implements OnInit {
       { id: 'PO-99124', amount: 9800, date: new Date(Date.now() - 86400000 * 14), status: 'Rejected' },
       { id: 'PO-98001', amount: 45000, date: new Date(Date.now() - 86400000 * 30), status: 'Approved' },
       { id: 'PO-97555', amount: 8200, date: new Date(Date.now() - 86400000 * 45), status: 'Price Modified' }
-    ];
-    this.dummyDocuments = [
-      { name: 'Company_Profile.pdf', type: 'pdf', size: '2.4 MB' },
-      { name: 'Requirements_Doc.docx', type: 'doc', size: '1.1 MB' },
-      { name: 'Site_Photos.zip', type: 'zip', size: '14.5 MB' }
     ];
     this.dummyNotes = [
       { author: 'Sales Team', date: new Date(Date.now() - 86400000 * 4), content: 'Client is very focused on delivery timelines. Needs to be expedited if possible.' },
@@ -496,6 +520,32 @@ export class ContactsComponent implements OnInit {
     this.appsService.getApplications(contactId).subscribe({
       next: (res: any) => {
         if (res.success) this.selectedContactApplications = res.data;
+      }
+    });
+  }
+
+  loadDocuments(contactId: number) {
+    this.api.get(`/contacts/${contactId}/documents`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.contactDocuments = res.data;
+        }
+      }
+    });
+  }
+
+  loadContactHistory(contactId: number) {
+    this.historyLoading = true;
+    this.contactHistory = [];
+    this.api.get(`/contacts/${contactId}/history`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.contactHistory = res.data;
+        }
+        this.historyLoading = false;
+      },
+      error: () => {
+        this.historyLoading = false;
       }
     });
   }
@@ -980,10 +1030,23 @@ export class ContactsComponent implements OnInit {
 
   openQuickStatusModal(contact: any) {
     this.quickStatusContactId = contact.id;
+    
+    let parsedDate = '';
+    if (contact.follow_up_date) {
+      try {
+        const d = new Date(contact.follow_up_date);
+        if (!isNaN(d.getTime())) {
+          parsedDate = d.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        // ignore invalid dates
+      }
+    }
+
     this.quickStatusData = {
       status: contact.status || '',
       remark: contact.remark || '',
-      follow_up_date: contact.follow_up_date ? new Date(contact.follow_up_date).toISOString().split('T')[0] : '',
+      follow_up_date: parsedDate,
       branch: contact.branch || '',
       department: contact.department || '',
       assign_type: contact.assign_type || 'employee',

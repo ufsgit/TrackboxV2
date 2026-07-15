@@ -380,4 +380,60 @@ const getContactHistory = async (req, res) => {
   }
 };
 
-module.exports = { getContacts, getContact, createContact, updateContact, deleteContact, importContacts, exportContacts, optIn, optOut, createOptInLink, handleOptInLink, getUniqueTags, getContactHistory };
+const getContactDocuments = async (req, res) => {
+  try {
+    const contactId = req.params.id;
+    const bizId = req.user.businessId;
+    
+    const [rows] = await pool.query(
+      'SELECT * FROM user_document_upload WHERE contact_id = ? AND business_id = ? ORDER BY created_at DESC',
+      [contactId, bizId]
+    );
+    
+    res.json({ success: true, data: rows, message: 'Documents fetched' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const uploadContactDocument = async (req, res) => {
+  try {
+    const contactId = req.params.id;
+    const bizId = req.user.businessId;
+    const { documentType, notes } = req.body;
+    
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded', data: null });
+    
+    let folder = 'media';
+    if (req.file.mimetype === 'text/csv' || req.file.originalname.endsWith('.csv')) folder = 'csv';
+    const fileUrl = `/uploads/${folder}/${req.file.filename}`;
+    let fileSizeStr = '';
+    if (req.file.size < 1024 * 1024) {
+      fileSizeStr = (req.file.size / 1024).toFixed(1) + ' KB';
+    } else {
+      fileSizeStr = (req.file.size / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    // Determine extension/type visually for the frontend
+    const ext = req.file.originalname.split('.').pop().toLowerCase();
+    let typeIcon = 'file';
+    if (['pdf'].includes(ext)) typeIcon = 'pdf';
+    else if (['doc', 'docx'].includes(ext)) typeIcon = 'doc';
+    else if (['zip', 'rar'].includes(ext)) typeIcon = 'zip';
+
+    const [result] = await pool.query(
+      `INSERT INTO user_document_upload 
+       (contact_id, business_id, document_type, file_name, file_url, file_size, notes, uploaded_by, file_type) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [contactId, bizId, documentType || 'Other', req.file.originalname, fileUrl, fileSizeStr, notes || '', req.user.userId || null, typeIcon]
+    );
+
+    const [docs] = await pool.query('SELECT * FROM user_document_upload WHERE id = ?', [result.insertId]);
+
+    res.json({ success: true, data: docs[0], message: 'Document uploaded' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+module.exports = { getContacts, getContact, createContact, updateContact, deleteContact, importContacts, exportContacts, optIn, optOut, createOptInLink, handleOptInLink, getUniqueTags, getContactHistory, getContactDocuments, uploadContactDocument };

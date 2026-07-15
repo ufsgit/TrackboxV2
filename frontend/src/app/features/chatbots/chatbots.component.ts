@@ -23,7 +23,7 @@ export class ChatbotsComponent implements OnInit {
     ai_enabled: true,
     channel: 'whatsapp',
     trigger_keywords: '',
-    openai_system_prompt: 'You are a professional assistant for Trackbox V2.',
+    openai_system_prompt: 'You are a professional assistant for Trackbox.',
     is_welcome: false
   };
 
@@ -75,7 +75,7 @@ export class ChatbotsComponent implements OnInit {
       ai_enabled: true,
       channel: 'whatsapp',
       trigger_keywords: '',
-      openai_system_prompt: 'You are a professional assistant for Trackbox V2.',
+      openai_system_prompt: 'You are a professional assistant for Trackbox.',
       is_welcome: false
     };
     this.showModal = false;

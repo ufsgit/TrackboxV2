@@ -582,6 +582,34 @@ async function runMigrations() {
     FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
   )`);
 
+  // Create user_document_upload table for contact documents
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_document_upload (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    document_type VARCHAR(100),
+    file_name VARCHAR(255),
+    file_url VARCHAR(500),
+    file_size VARCHAR(50),
+    file_type VARCHAR(50),
+    notes TEXT,
+    uploaded_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  // Create document_types table
+  await pool.query(`CREATE TABLE IF NOT EXISTS document_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  )`);
+
   console.log('✅ Database migrations completed');
 
   await seedData();

@@ -102,19 +102,28 @@
           
           <td class="fw-bold" style="color: #475569;">{{ contact.phone }}</td>
           
-          <td (click)="openQuickStatusModal(contact)" title="Click to update status" style="cursor: pointer;">
-            <span class="badge bg-light text-dark border">{{ contact.status || '—' }}</span>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="icon-circle bg-primary bg-opacity-10 text-primary" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;" (click)="openQuickStatusModal(contact)" title="Click to update status">
+                <i class="bi bi-ui-radios"></i>
+              </div>
+              <span class="badge bg-light text-dark border" *ngIf="contact.status" style="cursor: pointer;" (click)="openQuickStatusModal(contact)">{{ contact.status }}</span>
+            </div>
           </td>
           
           <td (click)="openQuickStatusModal(contact)" title="Click to update remarks" style="cursor: pointer;">
             <span class="text-muted small">{{ contact.remark || '—' }}</span>
           </td>
           
-          <td (click)="openQuickStatusModal(contact)" title="Click to update follow-up date" style="cursor: pointer;">
-            <span class="text-muted small">
-              <i class="bi bi-calendar me-1" *ngIf="contact.follow_up_date"></i>
-              {{ (contact.follow_up_date | date:'dd MMM yyyy') || '—' }}
-            </span>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="icon-circle bg-warning bg-opacity-10 text-warning" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;" (click)="openQuickStatusModal(contact)" title="Click to update follow-up date">
+                <i class="bi bi-calendar-event"></i>
+              </div>
+              <span class="text-muted small" *ngIf="contact.follow_up_date" style="cursor: pointer;" (click)="openQuickStatusModal(contact)">
+                {{ (contact.follow_up_date | date:'dd MMM yyyy') }}
+              </span>
+            </div>
           </td>
           
           <td class="text-end">
@@ -261,15 +270,38 @@
 
         <!-- TIMELINE TAB -->
         <div *ngIf="detailActiveTab === 'Timeline'" class="tab-pane">
-          <div class="timeline-container">
-            <div class="timeline-item" *ngFor="let item of dummyTimeline">
-              <div class="timeline-icon" [ngClass]="item.type">
-                <i class="bi" [ngClass]="{'bi-star': item.type === 'created', 'bi-telephone': item.type === 'call', 'bi-file-earmark-text': item.type === 'quote', 'bi-arrow-repeat': item.type === 'status'}"></i>
-              </div>
-              <div class="timeline-content">
-                <h6>{{ item.title }}</h6>
-                <p>{{ item.desc }}</p>
-                <span class="timeline-date">{{ item.date | date:'MMM d, y, h:mm a' }}</span>
+          <div *ngIf="historyLoading" class="text-center py-4">
+            <div class="spinner-border text-secondary"></div>
+            <p class="mt-2 text-muted">Loading history...</p>
+          </div>
+          
+          <div *ngIf="!historyLoading && contactHistory.length === 0" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox mb-2" style="font-size: 2rem;"></i>
+            <p>No history found for this contact.</p>
+          </div>
+
+          <div *ngIf="!historyLoading && contactHistory.length > 0" class="history-timeline">
+            <div class="timeline-item" *ngFor="let item of contactHistory">
+              <div class="timeline-marker"></div>
+              <div class="timeline-content-card">
+                <div class="timeline-header">
+                  <span class="timeline-title text-capitalize">{{ item.field_name.replace('_', ' ') }} Changed</span>
+                  <span class="timeline-time"><i class="bi bi-clock me-1"></i>{{ item.created_at | date:'MMM d, y, h:mm a' }}</span>
+                </div>
+                <div class="timeline-body">
+                  <div class="change-group">
+                    <div class="change-label">From</div>
+                    <div class="change-value text-muted">{{ item.old_value || 'None' }}</div>
+                  </div>
+                  <div class="change-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                  <div class="change-group">
+                    <div class="change-label">To</div>
+                    <div class="change-value fw-semibold text-dark">{{ item.new_value || 'None' }}</div>
+                  </div>
+                </div>
+                <div class="timeline-footer" *ngIf="item.changed_by_name">
+                  <i class="bi bi-person-circle me-1"></i> Updated by <strong>{{ item.changed_by_name }}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -357,7 +389,7 @@
 
         <!-- APPLICATION TAB -->
         <div *ngIf="detailActiveTab === 'Application'" class="tab-pane">
-          <div class="d-flex justify-content-between align-items-center mb-4">
+          <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; width: 100%;">
             <h5 class="mb-0 text-dark fw-bold">Applications</h5>
             <button class="btn btn-primary btn-sm rounded-3 shadow-sm px-3" (click)="openAddApplicationModal()">
               <i class="bi bi-plus-circle me-1"></i> Add Application
@@ -377,67 +409,76 @@
             <p class="text-muted small mb-0">Get started by creating a new application for this lead.</p>
           </div>
 
-          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="modern-table-container">
-            <table class="table modern-table mb-0">
-              <thead>
-                <tr>
-                  <th>University &amp; Course</th>
-                  <th>Country</th>
-                  <th>Intake/Year</th>
-                  <th>Status</th>
-                  <th class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let app of selectedContactApplications" class="align-middle align-items-center table-row-hover">
-                  <td>
-                    <div class="fw-bold text-dark">{{ app.university }}</div>
-                    <div class="small text-muted">{{ app.course }}</div>
-                  </td>
-                  <td>
-                    <span class="d-flex align-items-center gap-2">
-                      <i class="bi bi-geo-alt text-primary"></i> {{ app.country }}
-                    </span>
-                  </td>
-                  <td>
-                    <div class="text-dark">{{ app.intake_name || 'N/A' }}</div>
-                    <div class="small text-muted">{{ app.year_name || 'N/A' }}</div>
-                  </td>
-                  <td>
-                    <!-- Clickable status to quickly update -->
+          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="timeline-container mt-2">
+            <div class="timeline-item" *ngFor="let app of selectedContactApplications">
+              <div class="timeline-icon" [style.border-color]="app.status_color || '#4f46e5'" [style.color]="app.status_color || '#4f46e5'">
+                <i class="bi bi-mortarboard-fill"></i>
+              </div>
+              <div class="timeline-content position-relative p-4 border-0 rounded-4" style="background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
+                <!-- Status Badge Absolute Top Right -->
+                <div class="position-absolute top-0 end-0 mt-4 me-4">
                     <div class="dropdown">
-                      <button class="btn btn-sm dropdown-toggle rounded-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                      <button class="btn btn-sm dropdown-toggle rounded-pill shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
                               [style.background-color]="(app.status_color || '#e2e8f0') + '20'" 
                               [style.color]="app.status_color || '#475569'" 
-                              style="font-weight: 600; font-size: 0.8rem; border: none; padding: 4px 12px;">
-                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px;" [style.background-color]="app.status_color || '#64748b'"></span>
+                              [style.border]="'1px solid ' + (app.status_color || '#e2e8f0') + '50'"
+                              style="font-weight: 700; font-size: 0.8rem; padding: 6px 16px; transition: all 0.2s;">
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;" [style.background-color]="app.status_color || '#64748b'"></span>
                         {{ app.status_name || 'No Status' }}
                       </button>
-                      <ul class="dropdown-menu shadow-sm border-0" style="border-radius: 12px; font-size: 0.85rem;">
-                        <li><h6 class="dropdown-header">Change Status</h6></li>
+                      <ul class="dropdown-menu shadow border-0" style="border-radius: 12px; font-size: 0.85rem; padding: 8px; min-width: 200px;">
+                        <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Change Status</h6></li>
                         <li *ngFor="let s of appStatuses">
-                          <button class="dropdown-item d-flex align-items-center gap-2 py-2" (click)="updateApplicationStatus(app, s.id)">
+                          <button class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2" (click)="updateApplicationStatus(app, s.id)">
                             <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="s.color"></span>
                             {{ s.name }}
                           </button>
                         </li>
                       </ul>
                     </div>
-                  </td>
-                  <td class="text-end">
-                    <button class="btn btn-sm btn-light text-primary me-2 rounded-3 shadow-none border-0" (click)="openAppHistoryModal(app.id)" title="View History">
-                      <i class="bi bi-clock-history"></i>
-                    </button>
-                    <button class="btn btn-sm btn-light text-primary me-2 rounded-3 shadow-none border-0" (click)="openEditApplicationModal(app)" title="Edit">
-                      <i class="bi bi-pencil-square"></i>
-                    </button>
-                    <button class="btn btn-sm btn-light text-danger rounded-3 shadow-none border-0" (click)="deleteApplication(app.id)" title="Delete">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </div>
+
+                <!-- Main Info -->
+                <div style="padding-right: 140px;"> <!-- padding right to avoid overlap with absolute badge -->
+                  <h5 class="mb-2 fw-bolder text-dark" style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ app.university }}</h5>
+                  
+                  <div class="mb-4">
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-2" style="font-weight: 600;">
+                      <i class="bi bi-journal-text me-1"></i> {{ app.course }}
+                    </span>
+                  </div>
+
+                  <div class="d-flex flex-wrap align-items-center gap-4 mt-3 pt-3 border-top border-light">
+                    <div class="d-flex align-items-center gap-2 text-secondary">
+                      <div class="d-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 32px; height: 32px;">
+                        <i class="bi bi-geo-alt-fill text-danger opacity-75"></i>
+                      </div>
+                      <span class="fw-medium" style="font-size: 0.9rem;">{{ app.country }}</span>
+                    </div>
+                    
+                    <div class="d-flex align-items-center gap-2 text-secondary">
+                      <div class="d-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 32px; height: 32px;">
+                        <i class="bi bi-calendar-event text-success opacity-75"></i>
+                      </div>
+                      <span class="fw-medium" style="font-size: 0.9rem;">{{ app.intake_name || 'N/A' }} {{ app.year_name || '' }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3">
+                  <button class="btn btn-sm border-0 px-3 py-2 d-flex align-items-center gap-2" (click)="openAppHistoryModal(app.id)" title="View History" style="font-weight: 600; background-color: rgba(241,245,249,0.7); color: #64748b; border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#e2e8f0'; this.style.color='#0f172a'" onmouseout="this.style.backgroundColor='rgba(241,245,249,0.7)'; this.style.color='#64748b'">
+                    <i class="bi bi-clock-history"></i> History
+                  </button>
+                  <button class="btn btn-sm border-0 px-3 py-2 d-flex align-items-center gap-2" (click)="openEditApplicationModal(app)" title="Edit" style="font-weight: 600; background-color: rgba(13, 110, 253, 0.08); color: #0d6efd; border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(13, 110, 253, 0.15)'" onmouseout="this.style.backgroundColor='rgba(13, 110, 253, 0.08)'">
+                    <i class="bi bi-pencil-square"></i> Edit
+                  </button>
+                  <button class="btn btn-sm border-0 px-3 py-2 d-flex align-items-center gap-2" (click)="deleteApplication(app.id)" title="Delete" style="font-weight: 600; background-color: rgba(220, 53, 69, 0.08); color: #dc3545; border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(220, 53, 69, 0.15)'" onmouseout="this.style.backgroundColor='rgba(220, 53, 69, 0.08)'">
+                    <i class="bi bi-trash"></i> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -471,16 +512,23 @@
 
         <!-- DOCUMENTS TAB -->
         <div *ngIf="detailActiveTab === 'Documents'" class="tab-pane">
-          <div class="d-flex justify-content-end mb-3">
-            <button class="btn btn-primary btn-sm" (click)="openUploadDocumentModal()"><i class="bi bi-upload"></i> Upload Document</button>
+          <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; width: 100%;">
+            <h5 class="mb-0 text-dark fw-bold">Documents</h5>
+            <button class="btn btn-primary btn-sm rounded-3 shadow-sm px-3" (click)="openUploadDocumentModal()">
+              <i class="bi bi-upload me-1"></i> Upload Document
+            </button>
           </div>
           <div class="document-grid">
-            <div class="document-card" *ngFor="let doc of dummyDocuments">
-              <i class="bi" [ngClass]="{'bi-file-pdf text-danger': doc.type === 'pdf', 'bi-file-word text-primary': doc.type === 'doc', 'bi-file-zip text-warning': doc.type === 'zip'}"></i>
+            <a class="document-card" *ngFor="let doc of contactDocuments" [href]="baseUrl + doc.file_url" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer;">
+              <i class="bi" [ngClass]="{'bi-file-pdf text-danger': doc.file_type === 'pdf', 'bi-file-word text-primary': doc.file_type === 'doc', 'bi-file-zip text-warning': doc.file_type === 'zip', 'bi-file-earmark-text text-secondary': doc.file_type === 'file'}"></i>
               <div class="doc-info">
-                <h6>{{ doc.name }}</h6>
-                <span>{{ doc.size }}</span>
+                <h6>{{ doc.file_name }}</h6>
+                <span>{{ doc.file_size }} &bull; {{ doc.document_type }}</span>
+                <small class="text-muted d-block" *ngIf="doc.notes">{{ doc.notes }}</small>
               </div>
+            </a>
+            <div *ngIf="contactDocuments.length === 0" class="text-center p-4 text-muted w-100">
+              No documents uploaded yet.
             </div>
           </div>
         </div>
@@ -781,7 +829,7 @@
         <i class="bi bi-arrow-right-circle-fill" style="color: #6366f1;"></i> Status &amp; Assignment :
       </div>
 
-      <div class="fields-grid" style="background: #faf8f8; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
+      <div class="fields-grid" style="background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
 
         <!-- Status Dropdown (dynamic from DB) -->
         <div class="field-row">
@@ -808,7 +856,7 @@
               <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
             </select>
           </div>
-          <div class="field-row full-width">
+          <!-- <div class="field-row full-width">
             <label>Assign To</label>
             <div style="display: flex; gap: 16px; margin-top: 8px;">
               <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
@@ -818,7 +866,7 @@
                 <input type="radio" name="assign_type_add" value="employee" [(ngModel)]="newContact.assign_type"> Select Employee
               </label>
             </div>
-          </div>
+          </div> -->
           <div class="field-row" *ngIf="newContact.assign_type === 'employee'">
             <label>Employee</label>
             <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
@@ -936,7 +984,7 @@
           <i class="bi bi-pencil-square" style="color:#4f46e5;font-size:1.1rem;"></i>
         </div>
         <div>
-          <h4>Follow Up Creation</h4>
+          <h4>Status Updation</h4>
           <p style="margin:0;font-size:0.8rem;color:#64748b;">Quickly update lead status and remarks</p>
         </div>
       </div>
@@ -996,11 +1044,12 @@
           </select>
         </div>
 
-        <div class="field-row mb-3">
-          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Remark / Note</label>
-          <textarea class="form-control premium-input" rows="3" [(ngModel)]="quickStatusData.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%;"></textarea>
-        </div>
       </ng-container>
+
+      <div class="field-row mb-3">
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Remark / Note</label>
+        <textarea class="form-control premium-input" rows="3" [(ngModel)]="quickStatusData.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%;"></textarea>
+      </div>
 
       <!-- Sales Loss reason -->
       <div class="field-row mb-3" *ngIf="quickStatusData.status === 'Sales Loss'">
@@ -1015,7 +1064,6 @@
     <!-- Footer -->
     <div class="modal-footer-fs d-flex justify-content-end gap-2" style="padding: 16px;">
       <button class="btn btn-primary px-4 py-2" (click)="openContactDetailFromQuickStatus()" style="border-radius:6px;font-weight:600;background-color:#3b82f6;border:none;">VIEW PROFILE</button>
-      <button class="btn px-4 py-2" (click)="openContactHistoryFromQuickStatus()" style="border-radius:6px;font-weight:600;background-color:#ef4444;color:#fff;border:none;">HISTORY</button>
       <button class="btn px-4 py-2" (click)="saveQuickStatus()" [disabled]="quickStatusLoading" style="border-radius:6px;font-weight:600;background-color:#10b981;color:#fff;border:none;">
         <span *ngIf="quickStatusLoading" class="spinner-border spinner-border-sm me-2"></span>
         SAVE
@@ -1132,67 +1180,87 @@
 
 <!-- ═══════════════════ ADD/EDIT APPLICATION MODAL ═══════════════════ -->
 <div class="custom-modal center-modal" *ngIf="showAddApplicationModal">
-  <div class="modal-backdrop" (click)="showAddApplicationModal = false"></div>
-  <div class="modal-card popup-card">
-    <div class="modal-header-fs">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);display:flex;align-items:center;justify-content:center;">
-          <i class="bi bi-mortarboard-fill" style="color:#fff;font-size:1.1rem;"></i>
+  <div class="modal-backdrop" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);" (click)="showAddApplicationModal = false"></div>
+  <div class="modal-card popup-card" style="border-radius: 20px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); max-width: 600px; width: 95%;">
+    
+    <div class="modal-header-fs" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(79,70,229,0.2);">
+          <i class="bi bi-mortarboard-fill" style="color:#fff;font-size:1.4rem;"></i>
         </div>
         <div>
-          <h4>{{ currentApplication.id ? 'Edit Application' : 'Add Application' }}</h4>
-          <p style="margin:0;font-size:0.8rem;color:#64748b;">Fill in application details</p>
+          <h4 style="margin:0; font-weight: 800; font-size: 1.4rem; color: #0f172a;">{{ currentApplication.id ? 'Edit Application' : 'Add Application' }}</h4>
+          <p style="margin:4px 0 0;font-size:0.85rem;color:#64748b; font-weight: 500;">Provide the key details for this university application.</p>
         </div>
       </div>
-      <button class="close-btn" (click)="showAddApplicationModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
+      <button class="close-btn" (click)="showAddApplicationModal = false" style="font-size:1.4rem; background:#f8fafc; border:none; border-radius:12px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.color='#0f172a'" onmouseout="this.style.background='#f8fafc'; this.style.color='#64748b'">&times;</button>
     </div>
-    <div class="modal-body-scroll" style="padding: 24px;">
-      <div class="row g-3">
+    
+    <div class="modal-body-scroll" style="padding: 32px; background: #ffffff;">
+      <div class="row g-4">
+        
+        <div class="col-md-12">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">University Name <span class="text-danger">*</span></label>
+          <div class="position-relative">
+            <i class="bi bi-building position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.university" placeholder="e.g. Oxford University" style="padding-left: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500;">
+          </div>
+        </div>
+
         <div class="col-md-6">
-          <label class="form-label fw-bold small text-secondary">Country <span class="text-danger">*</span></label>
-          <input type="text" list="countryList" class="form-control premium-input" [(ngModel)]="currentApplication.country" placeholder="Select Country">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Course <span class="text-danger">*</span></label>
+          <div class="position-relative">
+            <i class="bi bi-journal-text position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.course" placeholder="e.g. BSc Computer Science" style="padding-left: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500;">
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Country <span class="text-danger">*</span></label>
+          <div class="position-relative">
+            <i class="bi bi-geo-alt position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <input type="text" list="countryList" class="form-control premium-input" [(ngModel)]="currentApplication.country" placeholder="Select Country" style="padding-left: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500;">
+          </div>
           <datalist id="countryList">
             <option *ngFor="let c of countries" [value]="c"></option>
           </datalist>
         </div>
-        <div class="col-md-6">
-          <label class="form-label fw-bold small text-secondary">University <span class="text-danger">*</span></label>
-          <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.university" placeholder="University Name">
-        </div>
-        <div class="col-md-12">
-          <label class="form-label fw-bold small text-secondary">Course <span class="text-danger">*</span></label>
-          <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.course" placeholder="Course Name">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-bold small text-secondary">Intake</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.intake_id">
+
+        <div class="col-md-4">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Intake</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.intake_id" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500; cursor: pointer;">
             <option value="">Select Intake</option>
             <option *ngFor="let i of intakes" [value]="i.id">{{ i.name }}</option>
           </select>
         </div>
-        <div class="col-md-6">
-          <label class="form-label fw-bold small text-secondary">Year</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.year_id">
+        
+        <div class="col-md-4">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Year</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.year_id" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500; cursor: pointer;">
             <option value="">Select Year</option>
             <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
           </select>
         </div>
-        <div class="col-md-12">
-          <label class="form-label fw-bold small text-secondary">Status</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.status_id">
+
+        <div class="col-md-4">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Status</label>
+          <select class="form-select premium-input" [(ngModel)]="currentApplication.status_id" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 600; color: #4f46e5; cursor: pointer;">
             <option value="">Select Status</option>
             <option *ngFor="let s of appStatuses" [value]="s.id">{{ s.name }}</option>
           </select>
         </div>
+
         <div class="col-md-12">
-          <label class="form-label fw-bold small text-secondary">Description</label>
-          <textarea class="form-control premium-input" rows="3" [(ngModel)]="currentApplication.description" placeholder="Notes regarding this application..."></textarea>
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Additional Notes</label>
+          <textarea class="form-control premium-input" rows="3" [(ngModel)]="currentApplication.description" placeholder="Any specific requirements or notes regarding this application..." style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px; font-weight: 500; resize: none;"></textarea>
         </div>
+        
       </div>
     </div>
-    <div class="modal-footer-fs">
-      <button class="btn btn-light px-4 py-2" (click)="showAddApplicationModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
-      <button class="btn btn-primary px-4 py-2 ms-2" (click)="saveApplication()" style="border-radius:10px;font-weight:700;">Save Application</button>
+    
+    <div class="modal-footer-fs" style="padding: 24px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 20px 20px; display: flex; justify-content: flex-end; gap: 12px;">
+      <button class="btn btn-light" (click)="showAddApplicationModal = false" style="border-radius: 12px; font-weight: 700; padding: 12px 24px; color: #64748b; border: 1px solid #e2e8f0; background: #ffffff; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Cancel</button>
+      <button class="btn btn-primary" (click)="saveApplication()" style="border-radius: 12px; font-weight: 700; padding: 12px 32px; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">Save Application</button>
     </div>
   </div>
 </div>

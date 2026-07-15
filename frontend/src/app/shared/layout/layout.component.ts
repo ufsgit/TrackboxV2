@@ -394,7 +394,7 @@ export class LayoutComponent implements OnInit {
   private syncDepartmentWithUrl(url: string) {
     if (!url || url.includes('/sop')) return;
     
-    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report'];
+    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings'];
     
     const operationRoutes = ['operation-dashboard', 'installation', 'customer-feedback', 'warranty-service', 'complaints', 'installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report', 'operation/leave-request'];
     
@@ -411,13 +411,13 @@ export class LayoutComponent implements OnInit {
       const salesPerf = ['targets', 'achievements', 'leaderboard', 'incentives', 'underperformers'];
       if (salesPerf.some(r => url.includes(r))) this.isSalesPerformanceOpen = true;
       
-    } else if (operationRoutes.some(route => url.includes(route))) {
+    } else if (operationRoutes.some(route => url.includes(route)) || url.includes('module=operation')) {
       this.activeDepartment = 'Operation';
       
       const opReports = ['installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report'];
       if (opReports.some(r => url.includes(r))) this.isOperationReportsOpen = true;
       
-    } else if (hrRoutes.some(route => url.includes(route))) {
+    } else if (hrRoutes.some(route => url.includes(route)) || url.includes('module=hr')) {
       this.activeDepartment = 'HR';
       
       const hrReports = ['attendance-report', 'leave-report', 'expense-report', 'gps-report', 'performance-report', 'employee-report'];

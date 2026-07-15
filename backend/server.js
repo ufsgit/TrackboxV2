@@ -106,7 +106,7 @@ io.on('connection', (socket) => {
 });
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ success: true, message: 'Trackbox V2 API is running', data: { version: '1.0.0' } }));
+app.get('/api/health', (req, res) => res.json({ success: true, message: 'Trackbox API is running', data: { version: '1.0.0' } }));
 
 // Start
 const PORT = process.env.PORT || 3000;
@@ -117,7 +117,7 @@ async function bootstrap() {
     startBroadcastJob(io);
     startDripJob(io);
     startSmsJob();
-    server.listen(PORT, () => console.log(`🚀 Trackbox V2 API running on port ${PORT}`));
+    server.listen(PORT, () => console.log(`🚀 Trackbox API running on port ${PORT}`));
   } catch (err) {
     console.error('❌ Startup error:', err);
     process.exit(1);
