@@ -10,11 +10,12 @@ import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
+import { TimelineComponent } from './components/timeline/timeline.component';
 
 @Component({
   selector: 'app-contacts',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatModalComponent],
+  imports: [CommonModule, FormsModule, ChatModalComponent, TimelineComponent],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
 })
@@ -973,25 +974,46 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  deleteContactFromDetail(id: number) {
+    this.deleteContact(id);
+  }
+
   deleteContact(id: number) {
     Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Are you sure you want to delete this lead?',
+      text: 'This action cannot be undone.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, delete it!'
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel'
     }).then((result) => {
       if (result.isConfirmed) {
         this.api.delete(`/contacts/${id}`).subscribe({
           next: () => {
-            this.loadContacts();
-            this.loadTags();
-            Swal.fire('Deleted!', 'Contact has been deleted.', 'success');
+            // Remove it from the list immediately without requiring a page refresh
+            this.contacts = this.contacts.filter(c => c.id !== id);
+            this.totalContacts--;
+            
+            // Close detail panel if open
+            if (this.selectedContact?.id === id) {
+              this.closeDetailPanel();
+            }
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 3000,
+              icon: 'success',
+              title: 'Lead deleted successfully.'
+            });
+            
+            // Optionally reload tags or pagination if needed, but the list is updated.
           },
           error: (err: any) => {
-            Swal.fire('Error', err.error?.message || 'Failed to delete contact', 'error');
+            Swal.fire('Error', err.error?.message || 'Failed to delete lead', 'error');
           }
         });
       }
@@ -1196,18 +1218,27 @@ export class ContactsComponent implements OnInit {
       if (emps.length > 0) finalAssignedEmployee = emps[0].id;
     }
 
-    const updateData = {
+    const updateData: any = {
       status_id: this.quickStatusData.status_id,
       status_name: this.quickStatusData.status_name,
       remarks: this.quickStatusData.remark,
       follow_up_date: this.isFollowupStatus(this.quickStatusData.status) ? this.quickStatusData.follow_up_date : null,
-      branch_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_id : null,
-      branch_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_name : null,
-      department_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_id : null,
-      department_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_name : null,
-      assigned_to: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
       loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
     };
+
+    if (this.isTransferStatus(this.quickStatusData.status)) {
+      if (this.quickStatusData.branch_id) {
+        updateData.branch_id = this.quickStatusData.branch_id;
+        updateData.branch_name = this.quickStatusData.branch_name;
+      }
+      if (this.quickStatusData.department_id) {
+        updateData.department_id = this.quickStatusData.department_id;
+        updateData.department_name = this.quickStatusData.department_name;
+      }
+      if (finalAssignedEmployee) {
+        updateData.assigned_to = finalAssignedEmployee;
+      }
+    }
 
     this.api.put(`/contacts/${this.quickStatusContactId}`, updateData).subscribe({
       next: (res: any) => {
