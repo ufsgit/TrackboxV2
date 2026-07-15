@@ -1027,15 +1027,15 @@ export class ContactsComponent implements OnInit {
       status_name: contact.status_name || '',
       remark: contact.latest_remark || '',
       remarks: contact.latest_remark || '',
-      follow_up_date: contact.follow_up_date ? new Date(contact.follow_up_date).toISOString().split('T')[0] : '',
-      branch: contact.branch || '',
+      follow_up_date: contact.follow_up_date ? (() => { const d = new Date(contact.follow_up_date); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : '',
+      branch: contact.branch_name || contact.branch || '',
       branch_id: contact.branch_id || null,
       branch_name: contact.branch_name || '',
-      department: contact.department || '',
+      department: contact.department_name || contact.department || '',
       department_id: contact.department_id || null,
       department_name: contact.department_name || '',
       assign_type: contact.assign_type || 'employee',
-      assigned_employee: contact.assigned_employee || '',
+      assigned_employee: contact.assigned_to || contact.assigned_employee || '',
       loss_reason: contact.loss_reason || ''
     };
     this.showQuickStatusModal = true;
@@ -1083,12 +1083,18 @@ export class ContactsComponent implements OnInit {
     if (selBranch) {
       this.quickStatusData.branch_id = selBranch.id;
       this.quickStatusData.branch_name = selBranch.name;
+    } else {
+      this.quickStatusData.branch_id = null;
+      this.quickStatusData.branch_name = '';
     }
 
     const selDept = this.departments?.find((d: any) => d.name === this.quickStatusData.department);
     if (selDept) {
       this.quickStatusData.department_id = selDept.id;
       this.quickStatusData.department_name = selDept.name;
+    } else {
+      this.quickStatusData.department_id = null;
+      this.quickStatusData.department_name = '';
     }
 
     let mappedAssignedTo = null;
@@ -1128,13 +1134,15 @@ export class ContactsComponent implements OnInit {
     }
 
     const updateData = {
-      status: this.quickStatusData.status,
-      remark: this.quickStatusData.remark,
+      status_id: this.quickStatusData.status_id,
+      status_name: this.quickStatusData.status_name,
+      remarks: this.quickStatusData.remark,
       follow_up_date: this.isFollowupStatus(this.quickStatusData.status) ? this.quickStatusData.follow_up_date : null,
-      branch: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch : null,
-      department: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department : null,
-      assign_type: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.assign_type : null,
-      assigned_employee: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
+      branch_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_id : null,
+      branch_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_name : null,
+      department_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_id : null,
+      department_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_name : null,
+      assigned_to: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
       loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
     };
 
