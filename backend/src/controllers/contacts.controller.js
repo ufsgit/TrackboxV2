@@ -27,12 +27,19 @@ const getContacts = async (req, res) => {
       params.push(agent);
     }
     if (channel) { where += ' AND channel_preference = ?'; params.push(channel); }
-    if (status) { where += ' AND status = ?'; params.push(status); }
+    if (status) { where += ' AND status_name = ?'; params.push(status); }
     if (search) { where += ' AND (name LIKE ? OR phone LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
     if (tags) { where += ' AND JSON_CONTAINS(tags, ?)'; params.push(JSON.stringify(tags)); }
 
     const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM contacts ${where}`, params);
-    const [rows] = await pool.query(`SELECT * FROM contacts ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...params, lim, offset]);
+    const [rows] = await pool.query(`
+      SELECT c.*, 
+        (SELECT remarks FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_remark
+      FROM contacts c 
+      ${where} 
+      ORDER BY c.created_at DESC 
+      LIMIT ? OFFSET ?
+    `, [...params, lim, offset]);
 
     res.json({ success: true, data: rows, total, page: p, limit: lim, message: 'OK' });
   } catch (err) {
@@ -75,17 +82,36 @@ const getContact = async (req, res) => {
 
 const createContact = async (req, res) => {
   try {
-    const { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id } = req.body;
+    const { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name } = req.body;
     const bizId = req.user.businessId;
     let assignTo = assigned_to || null;
     if (req.user.role === 'agent') {
       assignTo = req.user.userId;
     }
+    let userList = assignTo ? [assignTo] : [];
     const [result] = await pool.query(
-      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, status, remark, follow_up_date, enquiry_for_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, status || null, remark || null, follow_up_date || null, enquiry_for_id || null]
+      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, created_by_user, follow_up, user_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, follow_up_date || null, enquiry_for_id || null, branch_id || null, branch_name || null, department_id || null, department_name || null, status_id || null, status_name || null, req.user.userId, follow_up_date ? 1 : 0, JSON.stringify(userList)]
     );
     const contactId = result.insertId;
+
+    // Fetch by_user_name and to_user_name
+    let byUserName = null;
+    let toUserName = null;
+    if (req.user.userId) {
+      const [u] = await pool.query('SELECT name FROM users WHERE id = ?', [req.user.userId]);
+      if (u.length) byUserName = u[0].name;
+    }
+    if (assignTo) {
+      const [tu] = await pool.query('SELECT name FROM users WHERE id = ?', [assignTo]);
+      if (tu.length) toUserName = tu[0].name;
+    }
+
+    // Save initial follow up
+    await pool.query(
+      'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [contactId, name, follow_up_date || null, req.user.userId, byUserName, assignTo, toUserName, status_id || null, status_name || null, branch_id || null, branch_name || null, department_id || null, department_name || null, remark || 'Contact created']
+    );
 
     // Save custom field values
     if (custom_field_values && typeof custom_field_values === 'object') {
@@ -129,7 +155,7 @@ const updateContact = async (req, res) => {
     let updates = [];
     let params = [];
 
-    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'status', 'remark', 'follow_up_date', 'enquiry_for_id'];
+    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'follow_up_date', 'enquiry_for_id', 'branch_id', 'branch_name', 'department_id', 'department_name', 'status_id', 'status_name', 'sale_won', 'sale_lost'];
     
     for (const key of allowedFields) {
       if (updateFields[key] !== undefined) {
@@ -141,9 +167,28 @@ const updateContact = async (req, res) => {
     if (req.user.role !== 'agent' && updateFields.assigned_to !== undefined) {
       updates.push('assigned_to = ?');
       params.push(updateFields.assigned_to || null);
+
+      if (updateFields.assigned_to) {
+        let currentList = oldContact.user_list ? (typeof oldContact.user_list === 'string' ? JSON.parse(oldContact.user_list) : oldContact.user_list) : [];
+        if (!currentList.includes(updateFields.assigned_to)) {
+          currentList.push(updateFields.assigned_to);
+          updates.push('user_list = ?');
+          params.push(JSON.stringify(currentList));
+        }
+      }
+    }
+
+    if (updateFields.follow_up_date !== undefined) {
+      updates.push('follow_up = ?');
+      params.push(updateFields.follow_up_date ? 1 : 0);
     }
 
     if (updates.length > 0) {
+      // If we are updating follow_up relevant fields, increment count
+      if (updateFields.remarks !== undefined || updateFields.status_id !== undefined || updateFields.assigned_to !== undefined) {
+          updates.push('follow_up_count = follow_up_count + 1');
+      }
+
       let query = `UPDATE contacts SET ${updates.join(', ')} WHERE id = ? AND business_id = ?`;
       params.push(contactId, bizId);
       if (req.user.role === 'agent') {
@@ -151,6 +196,41 @@ const updateContact = async (req, res) => {
         params.push(userId);
       }
       await pool.query(query, params);
+
+      // Log to follow_ups
+      if (updateFields.remarks !== undefined || updateFields.status_id !== undefined || updateFields.assigned_to !== undefined) {
+        let byUserName = null;
+        let toUserName = null;
+        const toUserId = updateFields.assigned_to || oldContact.assigned_to;
+        if (userId) {
+          const [u] = await pool.query('SELECT name FROM users WHERE id = ?', [userId]);
+          if (u.length) byUserName = u[0].name;
+        }
+        if (toUserId) {
+          const [tu] = await pool.query('SELECT name FROM users WHERE id = ?', [toUserId]);
+          if (tu.length) toUserName = tu[0].name;
+        }
+
+        await pool.query(
+          'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            contactId, 
+            oldContact.name, 
+            updateFields.follow_up_date || oldContact.follow_up_date, 
+            userId, 
+            byUserName,
+            toUserId, 
+            toUserName,
+            updateFields.status_id || oldContact.status_id, 
+            updateFields.status_name || oldContact.status_name, 
+            updateFields.branch_id || oldContact.branch_id, 
+            updateFields.branch_name || oldContact.branch_name, 
+            updateFields.department_id || oldContact.department_id, 
+            updateFields.department_name || oldContact.department_name, 
+            updateFields.remarks || updateFields.remark || ''
+          ]
+        );
+      }
     }
 
     const formatValue = (val) => {

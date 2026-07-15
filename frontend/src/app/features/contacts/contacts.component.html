@@ -103,11 +103,11 @@
           <td class="fw-bold" style="color: #475569;">{{ contact.phone }}</td>
           
           <td (click)="openQuickStatusModal(contact)" title="Click to update status" style="cursor: pointer;">
-            <span class="badge bg-light text-dark border">{{ contact.status || '—' }}</span>
+            <span class="badge bg-light text-dark border">{{ contact.status_name || '—' }}</span>
           </td>
           
           <td (click)="openQuickStatusModal(contact)" title="Click to update remarks" style="cursor: pointer;">
-            <span class="text-muted small">{{ contact.remark || '—' }}</span>
+            <span class="text-muted small">{{ contact.latest_remark || '—' }}</span>
           </td>
           
           <td (click)="openQuickStatusModal(contact)" title="Click to update follow-up date" style="cursor: pointer;">
