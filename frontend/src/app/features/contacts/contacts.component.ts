@@ -973,25 +973,46 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  deleteContactFromDetail(id: number) {
+    this.deleteContact(id);
+  }
+
   deleteContact(id: number) {
     Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Are you sure you want to delete this lead?',
+      text: 'This action cannot be undone.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, delete it!'
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel'
     }).then((result) => {
       if (result.isConfirmed) {
         this.api.delete(`/contacts/${id}`).subscribe({
           next: () => {
-            this.loadContacts();
-            this.loadTags();
-            Swal.fire('Deleted!', 'Contact has been deleted.', 'success');
+            // Remove it from the list immediately without requiring a page refresh
+            this.contacts = this.contacts.filter(c => c.id !== id);
+            this.totalContacts--;
+            
+            // Close detail panel if open
+            if (this.selectedContact?.id === id) {
+              this.closeDetailPanel();
+            }
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 3000,
+              icon: 'success',
+              title: 'Lead deleted successfully.'
+            });
+            
+            // Optionally reload tags or pagination if needed, but the list is updated.
           },
           error: (err: any) => {
-            Swal.fire('Error', err.error?.message || 'Failed to delete contact', 'error');
+            Swal.fire('Error', err.error?.message || 'Failed to delete lead', 'error');
           }
         });
       }

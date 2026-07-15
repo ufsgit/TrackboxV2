@@ -68,4 +68,47 @@ const getContactGrowth = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
 
-module.exports = { getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, getChatbotAnalytics, getContactGrowth };
+const getCrmDashboardStats = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+
+    // Based on user feedback (implied to use contacts table which has follow_up_date)
+    const [[{ totalLeads }]] = await pool.query('SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ?', [bizId]);
+    
+    // Using date(follow_up_date) to match accurately
+    const [[{ pendingFollowUps }]] = await pool.query('SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) < CURDATE()', [bizId]);
+    const [[{ todaysFollowUps }]] = await pool.query('SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()', [bizId]);
+    const [[{ upcomingFollowUps }]] = await pool.query('SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()', [bizId]);
+    
+    // Status based metrics
+    const [[{ wonDeals }]] = await pool.query("SELECT COUNT(*) as wonDeals FROM contacts WHERE business_id = ? AND status_name = 'Converted'", [bizId]);
+    const [[{ lostDeals }]] = await pool.query("SELECT COUNT(*) as lostDeals FROM contacts WHERE business_id = ? AND status_name = 'Sales Loss'", [bizId]);
+
+    // For funnel stages
+    const [funnelData] = await pool.query(
+      `SELECT status_name as name, COUNT(*) as count 
+       FROM contacts 
+       WHERE business_id = ? AND status_name IS NOT NULL
+       GROUP BY status_name`,
+      [bizId]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        totalLeads: totalLeads || 0,
+        pendingFollowUps: pendingFollowUps || 0,
+        todaysFollowUps: todaysFollowUps || 0,
+        upcomingFollowUps: upcomingFollowUps || 0,
+        wonDeals: wonDeals || 0,
+        lostDeals: lostDeals || 0,
+        funnelData
+      },
+      message: 'OK'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+module.exports = { getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, getChatbotAnalytics, getContactGrowth, getCrmDashboardStats };

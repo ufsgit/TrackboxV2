@@ -2,6 +2,7 @@ import { Component, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
+import { ApiService } from '../../core/services/api.service';
 
 Chart.register(...registerables);
 
@@ -392,6 +393,8 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
 
   followUpChart: any;
 
+  constructor(private api: ApiService) {}
+
   ngOnInit() {
   }
 
@@ -426,39 +429,59 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
       this.followUpChart = null;
     }
 
-    setTimeout(() => {
-      this.isLoading = false;
+    this.api.get('/analytics/crm-dashboard', { range: this.dateRange }).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          this.isLoading = false;
+          
+          if (isInitial) {
+            this.animateValue('totalLeads', 0, res.data.totalLeads, 1200);
+            this.animateValue('pendingFollowUps', 0, res.data.pendingFollowUps, 1200);
+            this.animateValue('todaysFollowUps', 0, res.data.todaysFollowUps, 1200);
+            this.animateValue('upcomingFollowUps', 0, res.data.upcomingFollowUps, 1200);
+            this.animateValue('wonDeals', 0, res.data.wonDeals, 1200);
+            this.animateValue('lostDeals', 0, res.data.lostDeals, 1200);
+            this.animateValue('quotations', 0, 0, 1200); // Unused for now
+            this.animateValue('purchaseOrders', 0, 0, 1200); // Unused for now
+          } else {
+            this.animateValue('totalLeads', this.totalLeads, res.data.totalLeads, 1000);
+            this.animateValue('pendingFollowUps', this.pendingFollowUps, res.data.pendingFollowUps, 1000);
+            this.animateValue('todaysFollowUps', this.todaysFollowUps, res.data.todaysFollowUps, 1000);
+            this.animateValue('upcomingFollowUps', this.upcomingFollowUps, res.data.upcomingFollowUps, 1000);
+            this.animateValue('wonDeals', this.wonDeals, res.data.wonDeals, 1000);
+            this.animateValue('lostDeals', this.lostDeals, res.data.lostDeals, 1000);
+          }
 
-      if (isInitial) {
-        this.animateValue('totalLeads', 0, 1250, 1200);
-        this.animateValue('pendingFollowUps', 0, 45, 1200);
-        this.animateValue('todaysFollowUps', 0, 120, 1200);
-        this.animateValue('upcomingFollowUps', 0, 340, 1200);
-        this.animateValue('wonDeals', 0, 10, 1200);
-        this.animateValue('lostDeals', 0, 7, 1200);
-        this.animateValue('quotations', 0, 25, 1200);
-        this.animateValue('purchaseOrders', 0, 12, 1200);
-      } else {
-        this.animateValue('totalLeads', this.totalLeads, Math.floor(Math.random() * 2000) + 500, 1000);
-        this.animateValue('pendingFollowUps', this.pendingFollowUps, Math.floor(Math.random() * 80), 1000);
-        this.animateValue('todaysFollowUps', this.todaysFollowUps, Math.floor(Math.random() * 150), 1000);
-        this.animateValue('upcomingFollowUps', this.upcomingFollowUps, Math.floor(Math.random() * 400), 1000);
-        this.animateValue('wonDeals', this.wonDeals, Math.floor(Math.random() * 50), 1000);
-        this.animateValue('lostDeals', this.lostDeals, Math.floor(Math.random() * 20), 1000);
-        this.animateValue('quotations', this.quotations, Math.floor(Math.random() * 80), 1000);
-        this.animateValue('purchaseOrders', this.purchaseOrders, Math.floor(Math.random() * 30), 1000);
-      }
+          // Update funnel stages dynamically from API if data exists
+          if (res.data.funnelData && res.data.funnelData.length > 0) {
+            // Mapping existing gradient to the dynamic data, or using default
+            this.funnelStages = res.data.funnelData.map((item: any, index: number) => {
+              const gradients = [
+                'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)',
+                'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+                'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                'linear-gradient(135deg, #f97316 0%, #c2410c 100%)',
+                'linear-gradient(135deg, #64748b 0%, #475569 100%)'
+              ];
+              return {
+                name: item.name,
+                count: item.count,
+                gradient: gradients[index % gradients.length]
+              };
+            });
+          }
 
-      let current = Math.floor(Math.random() * 400) + 100;
-      this.funnelStages.forEach((stage, i) => {
-        stage.count = current;
-        if (i < this.funnelStages.length - 2) {
-          current = Math.floor(current * (Math.random() * 0.2 + 0.7)); // smooth dropoff
+          setTimeout(() => this.initFollowUpChart(), 50);
+        } else {
+          this.isLoading = false;
         }
-      });
-
-      setTimeout(() => this.initFollowUpChart(), 50);
-    }, 1500);
+      },
+      error: (err) => {
+        console.error('Error fetching CRM dashboard stats', err);
+        this.isLoading = false;
+      }
+    });
   }
 
   initFollowUpChart() {
