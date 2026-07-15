@@ -528,7 +528,7 @@ CREATE TABLE `contact_custom_values` (
   KEY `field_id` (`field_id`),
   CONSTRAINT `contact_custom_values_ibfk_1` FOREIGN KEY (`field_id`) REFERENCES `lead_fields` (`id`) ON DELETE CASCADE,
   CONSTRAINT `contact_custom_values_ibfk_2` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -537,7 +537,7 @@ CREATE TABLE `contact_custom_values` (
 
 LOCK TABLES `contact_custom_values` WRITE;
 /*!40000 ALTER TABLE `contact_custom_values` DISABLE KEYS */;
-INSERT INTO `contact_custom_values` VALUES (1,18,1,1,'test'),(2,19,1,1,'test 2 '),(3,20,1,1,'test 3');
+INSERT INTO `contact_custom_values` VALUES (1,18,1,1,'test1'),(2,19,1,1,'test 2 '),(3,20,1,1,'test 3'),(4,21,1,1,'test 4');
 /*!40000 ALTER TABLE `contact_custom_values` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -564,7 +564,7 @@ CREATE TABLE `contact_history` (
   CONSTRAINT `contact_history_ibfk_1` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE,
   CONSTRAINT `contact_history_ibfk_2` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
   CONSTRAINT `contact_history_ibfk_3` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -573,6 +573,7 @@ CREATE TABLE `contact_history` (
 
 LOCK TABLES `contact_history` WRITE;
 /*!40000 ALTER TABLE `contact_history` DISABLE KEYS */;
+INSERT INTO `contact_history` VALUES (1,19,1,1,'status',NULL,'ash','2026-07-15 07:13:10'),(2,19,1,1,'remark',NULL,'test 2  2','2026-07-15 07:13:10'),(3,19,1,1,'follow_up_date',NULL,'2026-07-18','2026-07-15 07:13:10'),(4,18,1,1,'status',NULL,'ash','2026-07-15 08:07:12'),(5,18,1,1,'remark',NULL,'test 1 follow ','2026-07-15 08:07:12'),(6,18,1,1,'follow_up_date','2026-07-14','2026-07-20','2026-07-15 08:07:12'),(7,18,1,1,'status',NULL,'ash','2026-07-15 08:14:24'),(8,18,1,1,'remark',NULL,'test1 follow up','2026-07-15 08:14:24'),(9,18,1,1,'follow_up_date','2026-07-19','2026-07-20','2026-07-15 08:14:24'),(10,18,1,1,'follow_up_date','2026-07-19','2026-07-21','2026-07-15 08:18:20'),(11,19,1,1,'follow_up_date','2026-07-17','2026-07-20','2026-07-15 08:26:54'),(12,19,1,1,'follow_up_date','2026-07-19','2026-07-21','2026-07-15 08:27:38'),(13,19,1,1,'follow_up_date','2026-07-20','2026-07-21','2026-07-15 08:33:28');
 /*!40000 ALTER TABLE `contact_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -607,7 +608,7 @@ CREATE TABLE `contacts` (
   `status_id` int DEFAULT NULL,
   `status_name` varchar(100) DEFAULT NULL,
   `follow_up_count` int DEFAULT '0',
-  `follow_up_date` datetime DEFAULT NULL,
+  `follow_up_date` date DEFAULT NULL,
   `follow_up` tinyint(1) DEFAULT '0',
   `sale_won` tinyint(1) DEFAULT '0',
   `sale_won_date` datetime DEFAULT NULL,
@@ -624,7 +625,7 @@ CREATE TABLE `contacts` (
   CONSTRAINT `contacts_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`),
   CONSTRAINT `fk_contacts_assigned_to` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_contacts_enquiry_for` FOREIGN KEY (`enquiry_for_id`) REFERENCES `enquiry_fors` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -633,7 +634,7 @@ CREATE TABLE `contacts` (
 
 LOCK TABLES `contacts` WRITE;
 /*!40000 ALTER TABLE `contacts` DISABLE KEYS */;
-INSERT INTO `contacts` VALUES (1,1,'Alice Johnson','+911111111111','alice@example.com','[\"vip\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(2,1,'Bob Smith','+912222222222','bob@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(3,1,'Carol White','+913333333333','carol@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(4,1,'David Brown','+914444444444','david@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(5,1,'Eve Davis','+915555555555','eve@example.com','[\"lead\", \"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(6,1,'Frank Miller','+916666666666','frank@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(7,1,'Grace Wilson','+917777777777','grace@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(8,1,'Henry Moore','+918888888888','henry@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(9,1,'Iris Taylor','+919999999999','iris@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(10,1,'Jack Anderson','+910000000000','jack@example.com','[\"lead\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(11,1,'Widget_::1','Widget_::1',NULL,NULL,0,NULL,NULL,'manual','whatsapp','2026-04-30 04:31:35',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(12,1,'test2','+1(555)637-7030',NULL,'[]',0,NULL,NULL,'manual','whatsapp','2026-05-04 09:48:29',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(13,1,NULL,'919000000000',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 04:25:30',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(14,1,NULL,'918888888888',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:30:27',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(15,1,'salman','+91 9048501094','salmansajeer321@gmail.com','[\"customer\"]',0,NULL,NULL,'manual','whatsapp','2026-05-05 06:35:20',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(16,1,'My Authorized Phone','919895095713',NULL,'[]',1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:40:59',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(18,1,'test','123','test','[\"lead\"]',0,NULL,NULL,'manual','whatsapp','2026-07-15 06:20:38',NULL,'123',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,'2026-07-16 00:00:00',0,0,NULL,NULL,0,NULL,NULL,1,NULL),(19,1,'test 2 ','321','test 2','[\"lead\", \"test 2\"]',0,NULL,NULL,'manual','instagram','2026-07-15 06:41:18',NULL,'test 2 ',2,NULL,1,'123',1,'123',7,'test',0,NULL,0,0,NULL,NULL,0,NULL,NULL,1,NULL),(20,1,'test 3','345','test 3','[\"lead\", \"test 3\"]',0,NULL,NULL,'manual','website','2026-07-15 07:01:57',11,'test 3',1,NULL,1,'123',1,'123',5,'ash',0,'2026-07-17 00:00:00',1,0,NULL,NULL,0,NULL,NULL,1,'[11]');
+INSERT INTO `contacts` VALUES (1,1,'Alice Johnson','+911111111111','alice@example.com','[\"vip\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(2,1,'Bob Smith','+912222222222','bob@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(3,1,'Carol White','+913333333333','carol@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(4,1,'David Brown','+914444444444','david@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(5,1,'Eve Davis','+915555555555','eve@example.com','[\"lead\", \"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(6,1,'Frank Miller','+916666666666','frank@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(7,1,'Grace Wilson','+917777777777','grace@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(8,1,'Henry Moore','+918888888888','henry@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(9,1,'Iris Taylor','+919999999999','iris@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(10,1,'Jack Anderson','+910000000000','jack@example.com','[\"lead\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(11,1,'Widget_::1','Widget_::1',NULL,NULL,0,NULL,NULL,'manual','whatsapp','2026-04-30 04:31:35',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(12,1,'test2','+1(555)637-7030',NULL,'[]',0,NULL,NULL,'manual','whatsapp','2026-05-04 09:48:29',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(13,1,NULL,'919000000000',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 04:25:30',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(14,1,NULL,'918888888888',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:30:27',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(15,1,'salman','+91 9048501094','salmansajeer321@gmail.com','[\"customer\"]',0,NULL,NULL,'manual','whatsapp','2026-05-05 06:35:20',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(16,1,'My Authorized Phone','919895095713',NULL,'[]',1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:40:59',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(18,1,'test1','123','test1','[\"lead\", \"test1\"]',0,NULL,NULL,'manual','whatsapp','2026-07-15 06:20:38',11,'test1',1,NULL,1,'123',1,'123',5,'ash',2,'2026-07-21',1,0,NULL,NULL,0,NULL,NULL,1,'[\"11\"]'),(19,1,'test 2 ','321','test 2','[\"lead\", \"test 2\"]',0,NULL,NULL,'manual','instagram','2026-07-15 06:41:18',11,'test 2 ',2,NULL,1,'123',1,'123',5,'ash',3,'2026-07-21',1,0,NULL,NULL,0,NULL,NULL,1,'[\"11\", 11]'),(20,1,'test 3','345','test 3','[\"lead\", \"test 3\"]',0,NULL,NULL,'manual','website','2026-07-15 07:01:57',11,'test 3',1,NULL,1,'123',1,'123',5,'ash',0,'2026-07-17',1,0,NULL,NULL,0,NULL,NULL,1,'[11]'),(21,1,'test 4','456','test 4','[\"lead\", \"test 4\", \"test 4\"]',0,NULL,NULL,'manual','whatsapp','2026-07-15 07:33:39',11,'test 4',1,NULL,1,'123',1,'123',5,'ash',0,'2026-07-19',1,0,NULL,NULL,0,NULL,NULL,1,'[11]');
 /*!40000 ALTER TABLE `contacts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -958,7 +959,7 @@ CREATE TABLE `follow_ups` (
   `follow_up_id` int NOT NULL AUTO_INCREMENT,
   `contact_id` int NOT NULL,
   `contact_name` varchar(255) DEFAULT NULL,
-  `follow_up_date` datetime DEFAULT NULL,
+  `follow_up_date` date DEFAULT NULL,
   `entry_date_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `by_user_id` int DEFAULT NULL,
   `by_user_name` varchar(255) DEFAULT NULL,
@@ -974,7 +975,7 @@ CREATE TABLE `follow_ups` (
   PRIMARY KEY (`follow_up_id`),
   KEY `fk_contact_followup_contact` (`contact_id`),
   CONSTRAINT `fk_contact_followup_contact` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -983,7 +984,7 @@ CREATE TABLE `follow_ups` (
 
 LOCK TABLES `follow_ups` WRITE;
 /*!40000 ALTER TABLE `follow_ups` DISABLE KEYS */;
-INSERT INTO `follow_ups` VALUES (1,18,'test','2026-07-16 00:00:00','2026-07-15 11:50:38',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'test'),(2,19,'test 2 ',NULL,'2026-07-15 12:11:18',1,'Admin User',NULL,NULL,7,'test',1,'123',1,'123','test 2 '),(3,20,'test 3','2026-07-17 00:00:00','2026-07-15 12:31:57',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 3');
+INSERT INTO `follow_ups` VALUES (1,18,'test','2026-07-16','2026-07-15 11:50:38',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'test'),(2,19,'test 2 ',NULL,'2026-07-15 12:11:18',1,'Admin User',NULL,NULL,7,'test',1,'123',1,'123','test 2 '),(3,20,'test 3','2026-07-17','2026-07-15 12:31:57',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 3'),(4,21,'test 4','2026-07-19','2026-07-15 13:03:39',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4'),(5,18,'test','2026-07-15','2026-07-15 13:29:01',1,'Admin User',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,''),(6,18,'test1','2026-07-21','2026-07-15 13:48:20',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test1 follow up'),(7,19,'test 2 ','2026-07-20','2026-07-15 13:56:54',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 2 flowww'),(8,19,'test 2 ','2026-07-21','2026-07-15 13:57:38',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 2 flowww'),(9,19,'test 2 ','2026-07-21','2026-07-15 14:03:28',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 2 flowww');
 /*!40000 ALTER TABLE `follow_ups` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1736,4 +1737,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-15 12:40:24
+-- Dump completed on 2026-07-15 14:05:08
