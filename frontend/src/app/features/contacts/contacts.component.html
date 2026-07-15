@@ -72,17 +72,18 @@
           <th>Status</th>
           <th>Remark</th>
           <th>Follow Up Date</th>
+          <th>Quick Action</th>
           <th class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngIf="loading">
-          <td colspan="6" class="text-center py-5">
+          <td colspan="7" class="text-center py-5">
             <div class="spinner-border text-success"></div>
           </td>
         </tr>
         <tr *ngIf="!loading && contacts.length === 0">
-          <td colspan="6" class="text-center py-5">
+          <td colspan="7" class="text-center py-5">
             <div class="empty-state d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
               <i class="bi bi-people d-block mb-3" style="font-size: 3rem; color: #10B981; background: rgba(16, 185, 129, 0.1); width: 80px; height: 80px; line-height: 80px; border-radius: 50%;"></i>
               <h4 style="font-weight: 800; color: #111827;">No Contacts Found</h4>
@@ -111,8 +112,22 @@
             </div>
           </td>
           
-          <td (click)="openQuickStatusModal(contact)" title="Click to update remarks" style="cursor: pointer;">
-            <span class="text-muted small">{{ contact.remark || '—' }}</span>
+          <td style="max-width: 250px;">
+            <div class="text-muted small mb-1" style="word-wrap: break-word; white-space: normal;">
+              <ng-container *ngIf="!contact.isRemarkExpanded && contact.latest_remark && contact.latest_remark.length > 35">
+                {{ contact.latest_remark | slice:0:35 }}...
+              </ng-container>
+              <ng-container *ngIf="contact.isRemarkExpanded || !contact.latest_remark || contact.latest_remark.length <= 35">
+                {{ contact.latest_remark || '—' }}
+              </ng-container>
+            </div>
+            <a href="javascript:void(0)" 
+               *ngIf="contact.latest_remark && contact.latest_remark.length > 35"
+               (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded" 
+               class="small text-primary text-decoration-none fw-bold" 
+               style="font-size: 0.75rem;">
+              {{ contact.isRemarkExpanded ? 'Show Less' : 'Read More' }}
+            </a>
           </td>
           
           <td>
@@ -124,6 +139,12 @@
                 {{ (contact.follow_up_date | date:'dd MMM yyyy') }}
               </span>
             </div>
+          </td>
+
+          <td>
+            <button class="btn btn-sm text-primary" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
+              <i class="bi bi-calendar-plus" style="font-size: 1.1rem;"></i>
+            </button>
           </td>
           
           <td class="text-end">
@@ -825,9 +846,10 @@
       </div>
 
       <!-- ── Status & Assignment ── -->
-      <div class="section-divider" style="border-top: 2px solid #e2e8f0; padding-top: 24px; margin-top: 16px; color: #4f46e5; font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-arrow-right-circle-fill" style="color: #6366f1;"></i> Status &amp; Assignment :
-      </div>
+      <ng-container *ngIf="!editingContactId">
+        <div class="section-divider" style="border-top: 2px solid #e2e8f0; padding-top: 24px; margin-top: 16px; color: #4f46e5; font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+          <i class="bi bi-arrow-right-circle-fill" style="color: #6366f1;"></i> Status &amp; Assignment :
+        </div>
 
       <div class="fields-grid" style="background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 16px;">
 
@@ -897,6 +919,7 @@
         </div>
 
       </div>
+      </ng-container>
     </div>
 
     <!-- Footer -->

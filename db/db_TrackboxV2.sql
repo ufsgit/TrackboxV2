@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.45, for Win64 (x86_64)
 --
--- Host: localhost    Database: wlink
+-- Host: localhost    Database: trackboxv2
 -- ------------------------------------------------------
 -- Server version	8.0.45
 
@@ -106,6 +106,172 @@ LOCK TABLES `analytics` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `application_histories`
+--
+
+DROP TABLE IF EXISTS `application_histories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `application_histories` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `application_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `action` varchar(255) NOT NULL,
+  `changes` json DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `application_id` (`application_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `application_histories_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `application_histories_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `application_histories`
+--
+
+LOCK TABLES `application_histories` WRITE;
+/*!40000 ALTER TABLE `application_histories` DISABLE KEYS */;
+/*!40000 ALTER TABLE `application_histories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `application_history`
+--
+
+DROP TABLE IF EXISTS `application_history`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `application_history` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `application_id` int NOT NULL,
+  `changed_by` int DEFAULT NULL,
+  `action` varchar(255) DEFAULT NULL,
+  `details` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `application_id` (`application_id`),
+  KEY `changed_by` (`changed_by`),
+  CONSTRAINT `application_history_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `application_history_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `application_history`
+--
+
+LOCK TABLES `application_history` WRITE;
+/*!40000 ALTER TABLE `application_history` DISABLE KEYS */;
+INSERT INTO `application_history` VALUES (1,1,NULL,'Application Created','Initial application created.','2026-07-14 11:17:10'),(2,2,NULL,'Application Created','Initial application created.','2026-07-14 12:26:33'),(3,2,NULL,'Application Updated','Status changed','2026-07-14 12:36:14');
+/*!40000 ALTER TABLE `application_history` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `application_statuses`
+--
+
+DROP TABLE IF EXISTS `application_statuses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `application_statuses` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `color` varchar(50) DEFAULT '#475569',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `application_statuses_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `application_statuses`
+--
+
+LOCK TABLES `application_statuses` WRITE;
+/*!40000 ALTER TABLE `application_statuses` DISABLE KEYS */;
+INSERT INTO `application_statuses` VALUES (1,1,'approved','#10B981',1,'2026-07-14 06:09:19'),(2,1,'test status','#10B981',1,'2026-07-14 12:36:01');
+/*!40000 ALTER TABLE `application_statuses` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `application_years`
+--
+
+DROP TABLE IF EXISTS `application_years`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `application_years` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `year` varchar(4) NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `application_years_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `application_years`
+--
+
+LOCK TABLES `application_years` WRITE;
+/*!40000 ALTER TABLE `application_years` DISABLE KEYS */;
+/*!40000 ALTER TABLE `application_years` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `applications`
+--
+
+DROP TABLE IF EXISTS `applications`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `applications` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `country` varchar(255) NOT NULL,
+  `university` varchar(255) NOT NULL,
+  `course` varchar(255) NOT NULL,
+  `intake_id` int DEFAULT NULL,
+  `year_id` int DEFAULT NULL,
+  `status_id` int DEFAULT NULL,
+  `description` text,
+  `created_by` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `contact_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  KEY `intake_id` (`intake_id`),
+  KEY `status_id` (`status_id`),
+  KEY `created_by` (`created_by`),
+  KEY `applications_ibfk_3` (`year_id`),
+  CONSTRAINT `applications_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `applications_ibfk_2` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `applications_ibfk_3` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `applications_ibfk_4` FOREIGN KEY (`status_id`) REFERENCES `application_statuses` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `applications_ibfk_5` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `applications`
+--
+
+LOCK TABLES `applications` WRITE;
+/*!40000 ALTER TABLE `applications` DISABLE KEYS */;
+INSERT INTO `applications` VALUES (1,1,'United Kingdomf','ffgf','fd',1,1,1,'d',NULL,'2026-07-14 11:17:10','2026-07-14 11:17:10',16),(2,1,'China','test','test',1,1,2,'test',NULL,'2026-07-14 12:26:33','2026-07-14 12:36:14',16);
+/*!40000 ALTER TABLE `applications` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `attendance_logs`
 --
 
@@ -130,7 +296,7 @@ CREATE TABLE `attendance_logs` (
   KEY `user_id` (`user_id`),
   CONSTRAINT `attendance_logs_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
   CONSTRAINT `attendance_logs_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -139,7 +305,7 @@ CREATE TABLE `attendance_logs` (
 
 LOCK TABLES `attendance_logs` WRITE;
 /*!40000 ALTER TABLE `attendance_logs` DISABLE KEYS */;
-INSERT INTO `attendance_logs` VALUES (5,1,1,'Admin User','lead','2026-07-11 03:50:00','2026-07-13 07:00:08',28,1,'late lead','Completed','2026-07-11 03:50:00'),(6,1,1,'Admin User','crm','2026-07-13 06:31:39','2026-07-13 07:00:12',28,1,'hugiuughi','Completed','2026-07-13 06:31:39'),(7,1,1,'Admin User','operation','2026-07-13 06:31:59','2026-07-13 07:00:16',28,0,NULL,'Completed','2026-07-13 06:31:59'),(40,1,1,'Admin User','lead','2026-07-13 03:30:00','2026-07-13 04:15:00',45,0,NULL,'Completed','2026-07-13 03:30:00'),(41,1,1,'Admin User','crm','2026-07-13 04:30:00','2026-07-13 05:20:00',50,1,'Customer meeting','Completed','2026-07-13 04:30:00'),(42,1,1,'Admin User','operation','2026-07-13 05:30:00','2026-07-13 06:45:00',75,0,NULL,'Completed','2026-07-13 05:30:00'),(43,1,1,'Admin User','hr','2026-07-13 07:30:00','2026-07-13 07:24:16',-6,0,NULL,'Completed','2026-07-13 07:30:00'),(44,1,2,'Agent User','lead','2026-07-13 03:45:00','2026-07-13 04:30:00',45,1,'Traffic','Completed','2026-07-13 03:45:00'),(45,1,2,'Agent User','crm','2026-07-13 04:40:00','2026-07-13 05:25:00',45,0,NULL,'Completed','2026-07-13 04:40:00'),(46,1,2,'Agent User','operation','2026-07-13 05:40:00','2026-07-13 06:50:00',70,0,NULL,'Completed','2026-07-13 05:40:00'),(47,1,2,'Agent User','hr','2026-07-13 08:30:00',NULL,NULL,1,'HR discussion','Active','2026-07-13 08:30:00'),(48,1,8,'qqqq','lead','2026-07-13 03:35:00','2026-07-13 04:05:00',30,0,NULL,'Completed','2026-07-13 03:35:00'),(49,1,8,'qqqq','crm','2026-07-13 04:10:00','2026-07-13 04:55:00',45,0,NULL,'Completed','2026-07-13 04:10:00'),(50,1,8,'qqqq','operation','2026-07-13 05:10:00','2026-07-13 06:15:00',65,1,'System maintenance','Completed','2026-07-13 05:10:00'),(51,1,8,'qqqq','hr','2026-07-13 06:30:00',NULL,NULL,0,NULL,'Active','2026-07-13 06:30:00'),(52,3,4,'salman s','lead','2026-07-13 03:30:00','2026-07-13 04:10:00',40,0,NULL,'Completed','2026-07-13 03:30:00'),(53,3,4,'salman s','crm','2026-07-13 04:30:00',NULL,NULL,1,'Client call','Active','2026-07-13 04:30:00'),(54,4,5,'Salman S','lead','2026-07-13 03:50:00','2026-07-13 04:40:00',50,0,NULL,'Completed','2026-07-13 03:50:00'),(55,4,5,'Salman S','operation','2026-07-13 05:00:00',NULL,NULL,0,NULL,'Active','2026-07-13 05:00:00');
+INSERT INTO `attendance_logs` VALUES (5,1,1,'Admin User','lead','2026-07-11 03:50:00','2026-07-13 07:00:08',28,1,'late lead','Completed','2026-07-11 03:50:00'),(6,1,1,'Admin User','crm','2026-07-13 06:31:39','2026-07-13 07:00:12',28,1,'hugiuughi','Completed','2026-07-13 06:31:39'),(7,1,1,'Admin User','operation','2026-07-13 06:31:59','2026-07-13 07:00:16',28,0,NULL,'Completed','2026-07-13 06:31:59'),(40,1,1,'Admin User','lead','2026-07-13 03:30:00','2026-07-13 04:15:00',45,0,NULL,'Completed','2026-07-13 03:30:00'),(41,1,1,'Admin User','crm','2026-07-13 04:30:00','2026-07-13 05:20:00',50,1,'Customer meeting','Completed','2026-07-13 04:30:00'),(42,1,1,'Admin User','operation','2026-07-13 05:30:00','2026-07-13 06:45:00',75,0,NULL,'Completed','2026-07-13 05:30:00'),(43,1,1,'Admin User','hr','2026-07-13 07:30:00','2026-07-13 07:24:16',-6,0,NULL,'Completed','2026-07-13 07:30:00'),(44,1,2,'Agent User','lead','2026-07-13 03:45:00','2026-07-13 04:30:00',45,1,'Traffic','Completed','2026-07-13 03:45:00'),(45,1,2,'Agent User','crm','2026-07-13 04:40:00','2026-07-13 05:25:00',45,0,NULL,'Completed','2026-07-13 04:40:00'),(46,1,2,'Agent User','operation','2026-07-13 05:40:00','2026-07-13 06:50:00',70,0,NULL,'Completed','2026-07-13 05:40:00'),(47,1,2,'Agent User','hr','2026-07-13 08:30:00',NULL,NULL,1,'HR discussion','Active','2026-07-13 08:30:00'),(48,1,8,'qqqq','lead','2026-07-13 03:35:00','2026-07-13 04:05:00',30,0,NULL,'Completed','2026-07-13 03:35:00'),(49,1,8,'qqqq','crm','2026-07-13 04:10:00','2026-07-13 04:55:00',45,0,NULL,'Completed','2026-07-13 04:10:00'),(50,1,8,'qqqq','operation','2026-07-13 05:10:00','2026-07-13 06:15:00',65,1,'System maintenance','Completed','2026-07-13 05:10:00'),(51,1,8,'qqqq','hr','2026-07-13 06:30:00',NULL,NULL,0,NULL,'Active','2026-07-13 06:30:00'),(52,3,4,'salman s','lead','2026-07-13 03:30:00','2026-07-13 04:10:00',40,0,NULL,'Completed','2026-07-13 03:30:00'),(53,3,4,'salman s','crm','2026-07-13 04:30:00',NULL,NULL,1,'Client call','Active','2026-07-13 04:30:00'),(54,4,5,'Salman S','lead','2026-07-13 03:50:00','2026-07-13 04:40:00',50,0,NULL,'Completed','2026-07-13 03:50:00'),(55,4,5,'Salman S','operation','2026-07-13 05:00:00',NULL,NULL,0,NULL,'Active','2026-07-13 05:00:00'),(56,1,1,'Admin User','lead','2026-07-14 04:38:01','2026-07-14 04:38:06',0,0,NULL,'Completed','2026-07-14 04:38:01');
 /*!40000 ALTER TABLE `attendance_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -159,7 +325,7 @@ CREATE TABLE `branches` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -168,7 +334,7 @@ CREATE TABLE `branches` (
 
 LOCK TABLES `branches` WRITE;
 /*!40000 ALTER TABLE `branches` DISABLE KEYS */;
-INSERT INTO `branches` VALUES (1,'123','123','123','123','2026-07-13 12:32:34','2026-07-13 12:32:34');
+INSERT INTO `branches` VALUES (1,'123','123','123','123','2026-07-13 12:32:34','2026-07-13 12:32:34'),(3,'test1','11','kochi','12345678','2026-07-14 12:27:21','2026-07-14 12:27:21');
 /*!40000 ALTER TABLE `branches` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -362,7 +528,7 @@ CREATE TABLE `contact_custom_values` (
   KEY `field_id` (`field_id`),
   CONSTRAINT `contact_custom_values_ibfk_1` FOREIGN KEY (`field_id`) REFERENCES `lead_fields` (`id`) ON DELETE CASCADE,
   CONSTRAINT `contact_custom_values_ibfk_2` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -371,6 +537,7 @@ CREATE TABLE `contact_custom_values` (
 
 LOCK TABLES `contact_custom_values` WRITE;
 /*!40000 ALTER TABLE `contact_custom_values` DISABLE KEYS */;
+INSERT INTO `contact_custom_values` VALUES (1,18,1,1,'test1'),(2,19,1,1,'test 2 '),(3,20,1,1,'test 3'),(4,21,1,1,'test 4');
 /*!40000 ALTER TABLE `contact_custom_values` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -397,7 +564,7 @@ CREATE TABLE `contact_history` (
   CONSTRAINT `contact_history_ibfk_1` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE,
   CONSTRAINT `contact_history_ibfk_2` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
   CONSTRAINT `contact_history_ibfk_3` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -406,6 +573,7 @@ CREATE TABLE `contact_history` (
 
 LOCK TABLES `contact_history` WRITE;
 /*!40000 ALTER TABLE `contact_history` DISABLE KEYS */;
+INSERT INTO `contact_history` VALUES (1,19,1,1,'status',NULL,'ash','2026-07-15 07:13:10'),(2,19,1,1,'remark',NULL,'test 2  2','2026-07-15 07:13:10'),(3,19,1,1,'follow_up_date',NULL,'2026-07-18','2026-07-15 07:13:10'),(4,18,1,1,'status',NULL,'ash','2026-07-15 08:07:12'),(5,18,1,1,'remark',NULL,'test 1 follow ','2026-07-15 08:07:12'),(6,18,1,1,'follow_up_date','2026-07-14','2026-07-20','2026-07-15 08:07:12'),(7,18,1,1,'status',NULL,'ash','2026-07-15 08:14:24'),(8,18,1,1,'remark',NULL,'test1 follow up','2026-07-15 08:14:24'),(9,18,1,1,'follow_up_date','2026-07-19','2026-07-20','2026-07-15 08:14:24'),(10,18,1,1,'follow_up_date','2026-07-19','2026-07-21','2026-07-15 08:18:20'),(11,19,1,1,'follow_up_date','2026-07-17','2026-07-20','2026-07-15 08:26:54'),(12,19,1,1,'follow_up_date','2026-07-19','2026-07-21','2026-07-15 08:27:38'),(13,19,1,1,'follow_up_date','2026-07-20','2026-07-21','2026-07-15 08:33:28');
 /*!40000 ALTER TABLE `contact_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -431,12 +599,33 @@ CREATE TABLE `contacts` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `assigned_to` int DEFAULT NULL,
   `address` text,
+  `enquiry_for_id` int DEFAULT NULL,
+  `loss_reason` varchar(255) DEFAULT NULL,
+  `branch_id` int DEFAULT NULL,
+  `branch_name` varchar(255) DEFAULT NULL,
+  `department_id` int DEFAULT NULL,
+  `department_name` varchar(255) DEFAULT NULL,
+  `status_id` int DEFAULT NULL,
+  `status_name` varchar(100) DEFAULT NULL,
+  `follow_up_count` int DEFAULT '0',
+  `follow_up_date` date DEFAULT NULL,
+  `follow_up` tinyint(1) DEFAULT '0',
+  `sale_won` tinyint(1) DEFAULT '0',
+  `sale_won_date` datetime DEFAULT NULL,
+  `sale_won_by` int DEFAULT NULL,
+  `sale_lost` tinyint(1) DEFAULT '0',
+  `sale_lost_date` datetime DEFAULT NULL,
+  `sale_lost_by` int DEFAULT NULL,
+  `created_by_user` int DEFAULT NULL,
+  `user_list` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `business_id` (`business_id`),
   KEY `fk_contacts_assigned_to` (`assigned_to`),
+  KEY `fk_contacts_enquiry_for` (`enquiry_for_id`),
   CONSTRAINT `contacts_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`),
-  CONSTRAINT `fk_contacts_assigned_to` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  CONSTRAINT `fk_contacts_assigned_to` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_contacts_enquiry_for` FOREIGN KEY (`enquiry_for_id`) REFERENCES `enquiry_fors` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -445,7 +634,7 @@ CREATE TABLE `contacts` (
 
 LOCK TABLES `contacts` WRITE;
 /*!40000 ALTER TABLE `contacts` DISABLE KEYS */;
-INSERT INTO `contacts` VALUES (1,1,'Alice Johnson','+911111111111','alice@example.com','[\"vip\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(2,1,'Bob Smith','+912222222222','bob@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(3,1,'Carol White','+913333333333','carol@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(4,1,'David Brown','+914444444444','david@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(5,1,'Eve Davis','+915555555555','eve@example.com','[\"lead\", \"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(6,1,'Frank Miller','+916666666666','frank@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(7,1,'Grace Wilson','+917777777777','grace@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(8,1,'Henry Moore','+918888888888','henry@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(9,1,'Iris Taylor','+919999999999','iris@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(10,1,'Jack Anderson','+910000000000','jack@example.com','[\"lead\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL),(11,1,'Widget_::1','Widget_::1',NULL,NULL,0,NULL,NULL,'manual','whatsapp','2026-04-30 04:31:35',NULL,NULL),(12,1,'test2','+1(555)637-7030',NULL,'[]',0,NULL,NULL,'manual','whatsapp','2026-05-04 09:48:29',NULL,NULL),(13,1,NULL,'919000000000',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 04:25:30',NULL,NULL),(14,1,NULL,'918888888888',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:30:27',NULL,NULL),(15,1,'salman','+91 9048501094','salmansajeer321@gmail.com','[\"customer\"]',0,NULL,NULL,'manual','whatsapp','2026-05-05 06:35:20',NULL,NULL),(16,1,'My Authorized Phone','919895095713',NULL,'[]',1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:40:59',NULL,NULL);
+INSERT INTO `contacts` VALUES (1,1,'Alice Johnson','+911111111111','alice@example.com','[\"vip\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(2,1,'Bob Smith','+912222222222','bob@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(3,1,'Carol White','+913333333333','carol@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(4,1,'David Brown','+914444444444','david@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(5,1,'Eve Davis','+915555555555','eve@example.com','[\"lead\", \"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(6,1,'Frank Miller','+916666666666','frank@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(7,1,'Grace Wilson','+917777777777','grace@example.com','[\"lead\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(8,1,'Henry Moore','+918888888888','henry@example.com','[\"vip\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(9,1,'Iris Taylor','+919999999999','iris@example.com','[\"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(10,1,'Jack Anderson','+910000000000','jack@example.com','[\"lead\", \"customer\"]',1,NULL,NULL,'manual','whatsapp','2026-04-29 08:59:39',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(11,1,'Widget_::1','Widget_::1',NULL,NULL,0,NULL,NULL,'manual','whatsapp','2026-04-30 04:31:35',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(12,1,'test2','+1(555)637-7030',NULL,'[]',0,NULL,NULL,'manual','whatsapp','2026-05-04 09:48:29',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(13,1,NULL,'919000000000',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 04:25:30',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(14,1,NULL,'918888888888',NULL,NULL,1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:30:27',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(15,1,'salman','+91 9048501094','salmansajeer321@gmail.com','[\"customer\"]',0,NULL,NULL,'manual','whatsapp','2026-05-05 06:35:20',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(16,1,'My Authorized Phone','919895095713',NULL,'[]',1,NULL,NULL,'whatsapp','whatsapp','2026-05-05 06:40:59',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,NULL,0,0,NULL,NULL,0,NULL,NULL,NULL,NULL),(18,1,'test1','123','test1','[\"lead\", \"test1\"]',0,NULL,NULL,'manual','whatsapp','2026-07-15 06:20:38',11,'test1',1,NULL,1,'123',1,'123',5,'ash',2,'2026-07-21',1,0,NULL,NULL,0,NULL,NULL,1,'[\"11\"]'),(19,1,'test 2 ','321','test 2','[\"lead\", \"test 2\"]',0,NULL,NULL,'manual','instagram','2026-07-15 06:41:18',11,'test 2 ',2,NULL,1,'123',1,'123',5,'ash',3,'2026-07-21',1,0,NULL,NULL,0,NULL,NULL,1,'[\"11\", 11]'),(20,1,'test 3','345','test 3','[\"lead\", \"test 3\"]',0,NULL,NULL,'manual','website','2026-07-15 07:01:57',11,'test 3',1,NULL,1,'123',1,'123',5,'ash',0,'2026-07-17',1,0,NULL,NULL,0,NULL,NULL,1,'[11]'),(21,1,'test 4','456','test 4','[\"lead\", \"test 4\", \"test 4\"]',0,NULL,NULL,'manual','whatsapp','2026-07-15 07:33:39',11,'test 4',1,NULL,1,'123',1,'123',5,'ash',0,'2026-07-19',1,0,NULL,NULL,0,NULL,NULL,1,'[11]');
 /*!40000 ALTER TABLE `contacts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -613,6 +802,34 @@ INSERT INTO `departments` VALUES (1,1,'123','123','2026-07-13 12:34:54','2026-07
 UNLOCK TABLES;
 
 --
+-- Table structure for table `designations`
+--
+
+DROP TABLE IF EXISTS `designations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `designations` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `designations_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `designations`
+--
+
+LOCK TABLES `designations` WRITE;
+/*!40000 ALTER TABLE `designations` DISABLE KEYS */;
+INSERT INTO `designations` VALUES (1,NULL,'test','2026-07-14 07:08:37');
+/*!40000 ALTER TABLE `designations` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `drip_campaigns`
 --
 
@@ -673,6 +890,131 @@ CREATE TABLE `drip_enrollments` (
 LOCK TABLES `drip_enrollments` WRITE;
 /*!40000 ALTER TABLE `drip_enrollments` DISABLE KEYS */;
 /*!40000 ALTER TABLE `drip_enrollments` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `enquiry_for_options`
+--
+
+DROP TABLE IF EXISTS `enquiry_for_options`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `enquiry_for_options` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `enquiry_for_options_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `enquiry_for_options`
+--
+
+LOCK TABLES `enquiry_for_options` WRITE;
+/*!40000 ALTER TABLE `enquiry_for_options` DISABLE KEYS */;
+/*!40000 ALTER TABLE `enquiry_for_options` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `enquiry_fors`
+--
+
+DROP TABLE IF EXISTS `enquiry_fors`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `enquiry_fors` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `enquiry_fors_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `enquiry_fors`
+--
+
+LOCK TABLES `enquiry_fors` WRITE;
+/*!40000 ALTER TABLE `enquiry_fors` DISABLE KEYS */;
+INSERT INTO `enquiry_fors` VALUES (1,1,'test','2026-07-14 06:19:33'),(2,1,'test2','2026-07-14 12:15:59');
+/*!40000 ALTER TABLE `enquiry_fors` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `follow_ups`
+--
+
+DROP TABLE IF EXISTS `follow_ups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `follow_ups` (
+  `follow_up_id` int NOT NULL AUTO_INCREMENT,
+  `contact_id` int NOT NULL,
+  `contact_name` varchar(255) DEFAULT NULL,
+  `follow_up_date` date DEFAULT NULL,
+  `entry_date_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `by_user_id` int DEFAULT NULL,
+  `by_user_name` varchar(255) DEFAULT NULL,
+  `to_user_id` int DEFAULT NULL,
+  `to_user_name` varchar(255) DEFAULT NULL,
+  `status_id` int DEFAULT NULL,
+  `status_name` varchar(100) DEFAULT NULL,
+  `branch_id` int DEFAULT NULL,
+  `branch_name` varchar(255) DEFAULT NULL,
+  `department_id` int DEFAULT NULL,
+  `department_name` varchar(255) DEFAULT NULL,
+  `remarks` text,
+  PRIMARY KEY (`follow_up_id`),
+  KEY `fk_contact_followup_contact` (`contact_id`),
+  CONSTRAINT `fk_contact_followup_contact` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `follow_ups`
+--
+
+LOCK TABLES `follow_ups` WRITE;
+/*!40000 ALTER TABLE `follow_ups` DISABLE KEYS */;
+INSERT INTO `follow_ups` VALUES (1,18,'test','2026-07-16','2026-07-15 11:50:38',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'test'),(2,19,'test 2 ',NULL,'2026-07-15 12:11:18',1,'Admin User',NULL,NULL,7,'test',1,'123',1,'123','test 2 '),(3,20,'test 3','2026-07-17','2026-07-15 12:31:57',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 3'),(4,21,'test 4','2026-07-19','2026-07-15 13:03:39',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4test 4'),(5,18,'test','2026-07-15','2026-07-15 13:29:01',1,'Admin User',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,''),(6,18,'test1','2026-07-21','2026-07-15 13:48:20',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test1 follow up'),(7,19,'test 2 ','2026-07-20','2026-07-15 13:56:54',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 2 flowww'),(8,19,'test 2 ','2026-07-21','2026-07-15 13:57:38',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 2 flowww'),(9,19,'test 2 ','2026-07-21','2026-07-15 14:03:28',1,'Admin User',11,'123',5,'ash',1,'123',1,'123','test 2 flowww');
+/*!40000 ALTER TABLE `follow_ups` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `intakes`
+--
+
+DROP TABLE IF EXISTS `intakes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `intakes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `intakes_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `intakes`
+--
+
+LOCK TABLES `intakes` WRITE;
+/*!40000 ALTER TABLE `intakes` DISABLE KEYS */;
+INSERT INTO `intakes` VALUES (1,1,'test',1,'2026-07-14 06:08:50');
+/*!40000 ALTER TABLE `intakes` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -787,7 +1129,7 @@ CREATE TABLE `lead_fields` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_biz_key` (`business_id`,`field_key`),
   CONSTRAINT `lead_fields_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -796,7 +1138,80 @@ CREATE TABLE `lead_fields` (
 
 LOCK TABLES `lead_fields` WRITE;
 /*!40000 ALTER TABLE `lead_fields` DISABLE KEYS */;
+INSERT INTO `lead_fields` VALUES (1,1,'test','test','text',NULL,1,0,'2026-07-15 04:21:21');
 /*!40000 ALTER TABLE `lead_fields` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `lead_statuses`
+--
+
+DROP TABLE IF EXISTS `lead_statuses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `lead_statuses` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `is_followup` tinyint(1) DEFAULT '0',
+  `is_transfer` tinyint(1) DEFAULT '0',
+  `transfer_department_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  KEY `transfer_department_id` (`transfer_department_id`),
+  CONSTRAINT `lead_statuses_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`),
+  CONSTRAINT `lead_statuses_ibfk_2` FOREIGN KEY (`transfer_department_id`) REFERENCES `departments` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `lead_statuses`
+--
+
+LOCK TABLES `lead_statuses` WRITE;
+/*!40000 ALTER TABLE `lead_statuses` DISABLE KEYS */;
+/*!40000 ALTER TABLE `lead_statuses` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `leads`
+--
+
+DROP TABLE IF EXISTS `leads`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `leads` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int NOT NULL,
+  `contact_id` int NOT NULL,
+  `enquiry_for_id` int DEFAULT NULL,
+  `status` varchar(100) DEFAULT 'New',
+  `loss_reason` varchar(255) DEFAULT NULL,
+  `assigned_to` int DEFAULT NULL,
+  `follow_up_date` date DEFAULT NULL,
+  `remark` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  KEY `contact_id` (`contact_id`),
+  KEY `enquiry_for_id` (`enquiry_for_id`),
+  KEY `assigned_to` (`assigned_to`),
+  CONSTRAINT `leads_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `leads_ibfk_2` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `leads_ibfk_3` FOREIGN KEY (`enquiry_for_id`) REFERENCES `enquiry_fors` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `leads_ibfk_4` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `leads`
+--
+
+LOCK TABLES `leads` WRITE;
+/*!40000 ALTER TABLE `leads` DISABLE KEYS */;
+/*!40000 ALTER TABLE `leads` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1151,8 +1566,11 @@ CREATE TABLE `statuses` (
   `sequence` int DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `transfer` tinyint(1) DEFAULT '0',
+  `department_id` int DEFAULT NULL,
+  `type` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1161,7 +1579,7 @@ CREATE TABLE `statuses` (
 
 LOCK TABLES `statuses` WRITE;
 /*!40000 ALTER TABLE `statuses` DISABLE KEYS */;
-INSERT INTO `statuses` VALUES (2,'222','Loss','#e246b1',0,'2026-07-13 12:41:39','2026-07-13 12:41:39'),(3,'3222','No','#e60f0f',0,'2026-07-13 12:41:56','2026-07-13 12:41:56'),(4,'2222','Yes','#000000',0,'2026-07-13 12:42:10','2026-07-13 12:42:10');
+INSERT INTO `statuses` VALUES (5,'ash','Yes','#4F46E5',0,'2026-07-14 10:15:03','2026-07-14 10:15:03',1,1,NULL),(6,'gem','Yes','#4F46E5',0,'2026-07-14 10:16:28','2026-07-14 10:16:28',0,NULL,NULL),(7,'test','No','#4F46E5',0,'2026-07-14 12:25:01','2026-07-14 12:25:01',1,1,NULL);
 /*!40000 ALTER TABLE `statuses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1220,15 +1638,21 @@ CREATE TABLE `users` (
   `role` enum('superadmin','admin','agent') DEFAULT 'agent',
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `username` varchar(255) DEFAULT NULL,
+  `agent_status` enum('active','inactive') DEFAULT 'active',
+  `designation_id` int DEFAULT NULL,
+  `employee_code` varchar(100) DEFAULT NULL,
+  `date_of_joining` date DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `username` (`username`),
   KEY `business_id` (`business_id`),
   KEY `fk_users_branch` (`branch_id`),
   KEY `fk_users_department` (`department_id`),
   CONSTRAINT `fk_users_branch` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_users_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1237,7 +1661,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,1,NULL,NULL,'Admin User','admin','$2b$10$YJRh9LWlAjeaYMNkEPQ/HevBUCe0IYxcOIgGIjlCJBJaeX.o9TYuG','admin',1,'2026-04-29 08:59:39'),(2,1,NULL,NULL,'Agent User','agent@demo.com','$2b$10$YJRh9LWlAjeaYMNkEPQ/HevBUCe0IYxcOIgGIjlCJBJaeX.o9TYuG','agent',1,'2026-04-29 08:59:39'),(4,3,NULL,NULL,'salman s','admin1','$2b$10$p7/mc6bWPDOV8Z1HfZOEEeKawLP3ckgMWFh2MlcA5xc1YRjjfoNM.','admin',1,'2026-04-29 10:17:22'),(5,4,NULL,NULL,'Salman S ','salmansajeer7@gmail.com','$2b$10$NVQnCvgjTpT7CbV7gpogy.kRuCPaj04vwpPYs5LQ3f80gFCj7z1bq','admin',1,'2026-04-30 03:47:18'),(8,1,NULL,NULL,'qqqq','qqqq','$2b$10$dIcDaQPfASM7twtwg4TSq.0NL8n.3FMwTiVIg1.DmjPcceEcEhFjG','agent',1,'2026-07-03 15:41:49'),(10,1,NULL,NULL,'333','222','$2b$10$mF73T7D/uUVk2PV0fwzxpufqnbtNVkqREMxAygvJWTBNes6Hyc4VS','admin',1,'2026-07-13 12:20:21'),(11,1,1,1,'123','123','$2b$10$2qXw0.mJDaCMZ1xqVo6AT.YJ.tX3s/2gAeANsWjRZ73zlQjIvGMWi','agent',1,'2026-07-13 12:35:37');
+INSERT INTO `users` VALUES (1,1,NULL,NULL,'Admin User','admin','$2b$10$YJRh9LWlAjeaYMNkEPQ/HevBUCe0IYxcOIgGIjlCJBJaeX.o9TYuG','admin',1,'2026-04-29 08:59:39',NULL,'active',NULL,NULL,NULL),(2,1,NULL,NULL,'Agent User','agent@demo.com','$2b$10$YJRh9LWlAjeaYMNkEPQ/HevBUCe0IYxcOIgGIjlCJBJaeX.o9TYuG','agent',1,'2026-04-29 08:59:39',NULL,'active',NULL,NULL,NULL),(4,3,NULL,NULL,'salman s','admin1','$2b$10$p7/mc6bWPDOV8Z1HfZOEEeKawLP3ckgMWFh2MlcA5xc1YRjjfoNM.','admin',1,'2026-04-29 10:17:22',NULL,'active',NULL,NULL,NULL),(5,4,NULL,NULL,'Salman S ','salmansajeer7@gmail.com','$2b$10$NVQnCvgjTpT7CbV7gpogy.kRuCPaj04vwpPYs5LQ3f80gFCj7z1bq','admin',1,'2026-04-30 03:47:18',NULL,'active',NULL,NULL,NULL),(8,1,NULL,NULL,'qqqq','qqqq','$2b$10$dIcDaQPfASM7twtwg4TSq.0NL8n.3FMwTiVIg1.DmjPcceEcEhFjG','agent',1,'2026-07-03 15:41:49',NULL,'active',NULL,NULL,NULL),(10,1,NULL,NULL,'333','222','$2b$10$mF73T7D/uUVk2PV0fwzxpufqnbtNVkqREMxAygvJWTBNes6Hyc4VS','admin',1,'2026-07-13 12:20:21',NULL,'active',NULL,NULL,NULL),(11,1,1,1,'123','123','$2b$10$2qXw0.mJDaCMZ1xqVo6AT.YJ.tX3s/2gAeANsWjRZ73zlQjIvGMWi','agent',1,'2026-07-13 12:35:37',NULL,'active',NULL,NULL,NULL),(12,1,1,NULL,'ssd','a@gmail.com','$2b$10$NwsP0yfLgo.t.T0OsV8AieEQjvsGxQrOf.g35.SkFZOLur407ZLvK','agent',1,'2026-07-14 08:09:04','admin','active',1,'12',NULL),(13,1,1,1,'test','da@gmail.com','$2b$10$ErDG9q/Y9bCm9dgRijbua..7X31zSYV9g5ejyMqBqYsZGl7TSXllO','agent',1,'2026-07-14 12:28:11','test','active',1,'123','2026-07-14');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1278,6 +1702,31 @@ LOCK TABLES `website_widgets` WRITE;
 INSERT INTO `website_widgets` VALUES (1,1,1,'UrbanChat Support','Hi! How can we help you today?','#6C5CE7','bottom-right',NULL,'debdfa7407682141d0e51541e978bdcd',1,'2026-04-30 04:23:17');
 /*!40000 ALTER TABLE `website_widgets` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `years`
+--
+
+DROP TABLE IF EXISTS `years`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `years` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `business_id` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `years`
+--
+
+LOCK TABLES `years` WRITE;
+/*!40000 ALTER TABLE `years` DISABLE KEYS */;
+INSERT INTO `years` VALUES (1,'2026',1);
+/*!40000 ALTER TABLE `years` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1288,4 +1737,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-13 18:13:24
+-- Dump completed on 2026-07-15 14:05:08

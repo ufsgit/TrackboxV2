@@ -41,10 +41,17 @@ export class ContactsComponent implements OnInit {
   quickStatusContactId: number | null = null;
   quickStatusData = {
     status: '',
+    status_id: null as number | null,
+    status_name: '',
     remark: '',
+    remarks: '',
     follow_up_date: '',
     branch: '',
+    branch_id: null as number | null,
+    branch_name: '',
     department: '',
+    department_id: null as number | null,
+    department_name: '',
     assign_type: 'employee',
     assigned_employee: '',
     loss_reason: ''
@@ -220,13 +227,20 @@ export class ContactsComponent implements OnInit {
     company: '',
     enquiry_for_id: null,
     status: '',
+    status_id: null,
+    status_name: '',
     remark: '',
+    remarks: '',
     follow_up_date: '',
     tags: 'lead',
     channel_preference: 'whatsapp',
     assigned_to: '',
     branch: '',
+    branch_id: null,
+    branch_name: '',
     department: '',
+    department_id: null,
+    department_name: '',
     assign_type: 'employee',
     assigned_employee: '',
     loss_reason: '',
@@ -903,9 +917,36 @@ export class ContactsComponent implements OnInit {
       return;
     }
 
+    const selStatus = this.leadStatuses?.find((s: any) => s.name === this.newContact.status);
+    if (selStatus) {
+      this.newContact.status_id = selStatus.id;
+      this.newContact.status_name = selStatus.name;
+    }
+
+    const selBranch = this.branches?.find((b: any) => b.name === this.newContact.branch);
+    if (selBranch) {
+      this.newContact.branch_id = selBranch.id;
+      this.newContact.branch_name = selBranch.name;
+    }
+
+    const selDept = this.departments?.find((d: any) => d.name === this.newContact.department);
+    if (selDept) {
+      this.newContact.department_id = selDept.id;
+      this.newContact.department_name = selDept.name;
+    }
+
+    if (this.newContact.assign_type === 'employee' && this.newContact.assigned_employee) {
+      const selEmp = this.employees?.find((e: any) => e.name === this.newContact.assigned_employee);
+      if (selEmp) {
+        this.newContact.assigned_to = selEmp.id;
+      }
+    } else if (this.newContact.assign_type === 'auto') {
+      this.newContact.assigned_to = null;
+    }
+
     const payload = {
       ...this.newContact,
-      tags: this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t),
+      tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
       custom_field_values: this.newContact.custom_field_values
     };
 
@@ -1044,13 +1085,20 @@ export class ContactsComponent implements OnInit {
     }
 
     this.quickStatusData = {
-      status: contact.status || '',
-      remark: contact.remark || '',
-      follow_up_date: parsedDate,
-      branch: contact.branch || '',
-      department: contact.department || '',
+      status: contact.status_name || contact.status || '',
+      status_id: contact.status_id || null,
+      status_name: contact.status_name || '',
+      remark: contact.latest_remark || '',
+      remarks: contact.latest_remark || '',
+      follow_up_date: contact.follow_up_date ? (() => { const d = new Date(contact.follow_up_date); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : '',
+      branch: contact.branch_name || contact.branch || '',
+      branch_id: contact.branch_id || null,
+      branch_name: contact.branch_name || '',
+      department: contact.department_name || contact.department || '',
+      department_id: contact.department_id || null,
+      department_name: contact.department_name || '',
       assign_type: contact.assign_type || 'employee',
-      assigned_employee: contact.assigned_employee || '',
+      assigned_employee: contact.assigned_to || contact.assigned_employee || '',
       loss_reason: contact.loss_reason || ''
     };
     this.showQuickStatusModal = true;
@@ -1086,6 +1134,48 @@ export class ContactsComponent implements OnInit {
   saveQuickStatus() {
     if (!this.quickStatusContactId) return;
     
+    this.quickStatusLoading = true;
+    
+    const selStatus = this.leadStatuses?.find((s: any) => s.name === this.quickStatusData.status);
+    if (selStatus) {
+      this.quickStatusData.status_id = selStatus.id;
+      this.quickStatusData.status_name = selStatus.name;
+    }
+
+    const selBranch = this.branches?.find((b: any) => b.name === this.quickStatusData.branch);
+    if (selBranch) {
+      this.quickStatusData.branch_id = selBranch.id;
+      this.quickStatusData.branch_name = selBranch.name;
+    } else {
+      this.quickStatusData.branch_id = null;
+      this.quickStatusData.branch_name = '';
+    }
+
+    const selDept = this.departments?.find((d: any) => d.name === this.quickStatusData.department);
+    if (selDept) {
+      this.quickStatusData.department_id = selDept.id;
+      this.quickStatusData.department_name = selDept.name;
+    } else {
+      this.quickStatusData.department_id = null;
+      this.quickStatusData.department_name = '';
+    }
+
+    let mappedAssignedTo = null;
+    if (this.quickStatusData.assign_type === 'employee' && this.quickStatusData.assigned_employee) {
+      const selEmp = this.employees?.find((e: any) => e.name === this.quickStatusData.assigned_employee);
+      if (selEmp) {
+        mappedAssignedTo = selEmp.id;
+      }
+    }
+
+    // copy remark to remarks
+    this.quickStatusData.remarks = this.quickStatusData.remark;
+
+    let payload: any = { 
+      ...this.quickStatusData,
+      assigned_to: mappedAssignedTo
+    };
+
     if (this.quickStatusData.status === 'Branch' || this.quickStatusData.status === 'Sales Loss') {
       Swal.fire({
         icon: 'success',
@@ -1107,13 +1197,15 @@ export class ContactsComponent implements OnInit {
     }
 
     const updateData = {
-      status: this.quickStatusData.status,
-      remark: this.quickStatusData.remark,
+      status_id: this.quickStatusData.status_id,
+      status_name: this.quickStatusData.status_name,
+      remarks: this.quickStatusData.remark,
       follow_up_date: this.isFollowupStatus(this.quickStatusData.status) ? this.quickStatusData.follow_up_date : null,
-      branch: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch : null,
-      department: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department : null,
-      assign_type: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.assign_type : null,
-      assigned_employee: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
+      branch_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_id : null,
+      branch_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_name : null,
+      department_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_id : null,
+      department_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_name : null,
+      assigned_to: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
       loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
     };
 
