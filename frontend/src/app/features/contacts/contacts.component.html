@@ -291,41 +291,7 @@
 
         <!-- TIMELINE TAB -->
         <div *ngIf="detailActiveTab === 'Timeline'" class="tab-pane">
-          <div *ngIf="historyLoading" class="text-center py-4">
-            <div class="spinner-border text-secondary"></div>
-            <p class="mt-2 text-muted">Loading history...</p>
-          </div>
-          
-          <div *ngIf="!historyLoading && contactHistory.length === 0" class="text-center py-4 text-muted">
-            <i class="bi bi-inbox mb-2" style="font-size: 2rem;"></i>
-            <p>No history found for this contact.</p>
-          </div>
-
-          <div *ngIf="!historyLoading && contactHistory.length > 0" class="history-timeline">
-            <div class="timeline-item" *ngFor="let item of contactHistory">
-              <div class="timeline-marker"></div>
-              <div class="timeline-content-card">
-                <div class="timeline-header">
-                  <span class="timeline-title text-capitalize">{{ item.field_name.replace('_', ' ') }} Changed</span>
-                  <span class="timeline-time"><i class="bi bi-clock me-1"></i>{{ item.created_at | date:'MMM d, y, h:mm a' }}</span>
-                </div>
-                <div class="timeline-body">
-                  <div class="change-group">
-                    <div class="change-label">From</div>
-                    <div class="change-value text-muted">{{ item.old_value || 'None' }}</div>
-                  </div>
-                  <div class="change-arrow"><i class="bi bi-arrow-right-short"></i></div>
-                  <div class="change-group">
-                    <div class="change-label">To</div>
-                    <div class="change-value fw-semibold text-dark">{{ item.new_value || 'None' }}</div>
-                  </div>
-                </div>
-                <div class="timeline-footer" *ngIf="item.changed_by_name">
-                  <i class="bi bi-person-circle me-1"></i> Updated by <strong>{{ item.changed_by_name }}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
+          <app-timeline [contactId]="selectedContact.id"></app-timeline>
         </div>
 
         <!-- QUOTATION TAB -->

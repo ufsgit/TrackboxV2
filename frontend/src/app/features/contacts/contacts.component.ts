@@ -10,11 +10,12 @@ import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
+import { TimelineComponent } from './components/timeline/timeline.component';
 
 @Component({
   selector: 'app-contacts',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatModalComponent],
+  imports: [CommonModule, FormsModule, ChatModalComponent, TimelineComponent],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
 })
@@ -1196,18 +1197,27 @@ export class ContactsComponent implements OnInit {
       if (emps.length > 0) finalAssignedEmployee = emps[0].id;
     }
 
-    const updateData = {
+    const updateData: any = {
       status_id: this.quickStatusData.status_id,
       status_name: this.quickStatusData.status_name,
       remarks: this.quickStatusData.remark,
       follow_up_date: this.isFollowupStatus(this.quickStatusData.status) ? this.quickStatusData.follow_up_date : null,
-      branch_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_id : null,
-      branch_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.branch_name : null,
-      department_id: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_id : null,
-      department_name: this.isTransferStatus(this.quickStatusData.status) ? this.quickStatusData.department_name : null,
-      assigned_to: this.isTransferStatus(this.quickStatusData.status) ? finalAssignedEmployee : null,
       loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
     };
+
+    if (this.isTransferStatus(this.quickStatusData.status)) {
+      if (this.quickStatusData.branch_id) {
+        updateData.branch_id = this.quickStatusData.branch_id;
+        updateData.branch_name = this.quickStatusData.branch_name;
+      }
+      if (this.quickStatusData.department_id) {
+        updateData.department_id = this.quickStatusData.department_id;
+        updateData.department_name = this.quickStatusData.department_name;
+      }
+      if (finalAssignedEmployee) {
+        updateData.assigned_to = finalAssignedEmployee;
+      }
+    }
 
     this.api.put(`/contacts/${this.quickStatusContactId}`, updateData).subscribe({
       next: (res: any) => {
