@@ -1,55 +1,100 @@
-<div class="login-page">
-  <div class="login-card">
-    <div class="login-header">
-      <h1>Welcome to Trackbox</h1>
-      <p>Log in to your dashboard</p>
-    </div>
+<div class="login-container">
+  <!-- Left Side Background Image -->
+  <div class="left-panel">
+      <!-- The background image contains the text seamlessly baked in -->
+  </div>
 
-    <div class="error-message" *ngIf="error">
-      {{ error }}
-    </div>
-
-    <form (submit)="onSubmit()">
-      <div class="form-group">
-        <label for="email">Email Address or Username</label>
-        <div class="input-wrapper">
-          <i class="bi bi-person"></i>
-          <input 
-            type="text" 
-            id="email" 
-            name="email"
-            [(ngModel)]="email" 
-            class="form-control" 
-            placeholder="name@company.com or admin"
-            required
-          >
+  <!-- Right Side Form Panel -->
+  <div class="right-panel">
+    <div class="right-panel-inner">
+      
+      <!-- Top Logo area -->
+      <div class="brand-logo">
+        <div class="logo-icon">
+          <!-- We can just use an image or an inline SVG representing globe+book -->
+          <svg viewBox="0 0 100 100" width="70" height="70">
+            <!-- Laurels -->
+            <path d="M 20 80 Q 5 50 25 30" fill="none" stroke="#bc914f" stroke-width="2" stroke-linecap="round"/>
+            <path d="M 80 80 Q 95 50 75 30" fill="none" stroke="#bc914f" stroke-width="2" stroke-linecap="round"/>
+            <!-- Leaves approximations -->
+            <path d="M 17 73 L 13 67 L 20 67 Z" fill="#bc914f"/>
+            <path d="M 12 55 L 7 50 L 15 50 Z" fill="#bc914f"/>
+            <path d="M 15 40 L 10 32 L 18 36 Z" fill="#bc914f"/>
+            
+            <path d="M 83 73 L 87 67 L 80 67 Z" fill="#bc914f"/>
+            <path d="M 88 55 L 93 50 L 85 50 Z" fill="#bc914f"/>
+            <path d="M 85 40 L 90 32 L 82 36 Z" fill="#bc914f"/>
+            
+            <!-- Book -->
+            <path d="M 32 75 L 50 78 L 68 75 L 68 50 L 50 55 L 32 50 Z" fill="#003566"/>
+            <path d="M 50 78 L 50 55" fill="none" stroke="#ffffff" stroke-width="2"/>
+            
+            <!-- Globe -->
+            <circle cx="50" cy="32" r="14" fill="none" stroke="#003566" stroke-width="2"/>
+            <ellipse cx="50" cy="32" rx="6" ry="14" fill="none" stroke="#003566" stroke-width="1.5"/>
+            <path d="M 36 32 L 64 32" fill="none" stroke="#003566" stroke-width="1.5"/>
+            <path d="M 40 22 L 60 22" fill="none" stroke="#003566" stroke-width="1.5"/>
+            <path d="M 40 42 L 60 42" fill="none" stroke="#003566" stroke-width="1.5"/>
+          </svg>
         </div>
+        <h2 class="brand-name">STUDY ABROAD</h2>
+        <p class="brand-slogan">Dream &bull; Discover &bull; Succeed</p>
       </div>
 
-      <div class="form-group">
-        <label for="password">Password</label>
-        <div class="input-wrapper">
-          <i class="bi bi-lock"></i>
-          <input 
-            type="password" 
-            id="password" 
-            name="password"
-            [(ngModel)]="password" 
-            class="form-control" 
-            placeholder="••••••••"
-            required
-          >
-        </div>
+      <div class="login-header">
+        <h1>Welcome Back</h1>
+        <p>Sign in to continue your journey</p>
       </div>
 
-      <button type="submit" class="login-btn" [disabled]="loading">
-        <span *ngIf="!loading">Sign In</span>
-        <span *ngIf="loading">Signing in...</span>
-      </button>
-    </form>
+      <div class="error-message" *ngIf="error">
+        {{ error }}
+      </div>
 
-    <p class="footer-text">
-      Don't have an account? <a routerLink="/register">Register</a>
-    </p>
+      <form (submit)="onSubmit()">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input 
+              type="email" 
+              id="email" 
+              name="email"
+              [(ngModel)]="email" 
+              class="form-control" 
+              placeholder="Enter your email"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input 
+              type="password" 
+              id="password" 
+              name="password"
+              [(ngModel)]="password" 
+              class="form-control" 
+              placeholder="Enter your password"
+              required
+            >
+            <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </div>
+        </div>
+
+        <div class="forgot-password">
+          <a href="#">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading">
+          <span *ngIf="!loading">Login</span>
+          <span *ngIf="loading">Logging in...</span>
+        </button>
+      </form>
+
+
+    </div>
   </div>
 </div>
