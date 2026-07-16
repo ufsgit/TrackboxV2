@@ -40,6 +40,7 @@ export class ContactsComponent implements OnInit {
   showQuickStatusModal = false;
   quickStatusLoading = false;
   quickStatusContactId: number | null = null;
+  quickStatusContactName: string = '';
   quickStatusData = {
     status: '',
     status_id: null as number | null,
@@ -1093,6 +1094,7 @@ export class ContactsComponent implements OnInit {
 
   openQuickStatusModal(contact: any) {
     this.quickStatusContactId = contact.id;
+    this.quickStatusContactName = contact.name;
     
     let parsedDate = '';
     if (contact.follow_up_date) {
