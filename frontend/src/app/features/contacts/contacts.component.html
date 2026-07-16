@@ -837,7 +837,7 @@
               </label>
             </div>
           </div> -->
-          <div class="field-row" *ngIf="newContact.assign_type === 'employee'">
+          <div class="field-row" *ngIf="newContact.department">
             <label>Employee</label>
             <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
               <option value="">-- Select Employee --</option>
@@ -956,7 +956,7 @@
         </div>
         <div>
           <h4>Status Updation</h4>
-          <p style="margin:0;font-size:0.8rem;color:#64748b;">Quickly update lead status and remarks</p>
+          <p style="margin:0;font-size:0.8rem;color:#64748b;">{{ quickStatusContactName }}</p>
         </div>
       </div>
       <button class="close-btn" (click)="closeQuickStatusModal()" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
@@ -996,18 +996,6 @@
         </div>
 
         <div class="field-row mb-3" *ngIf="quickStatusData.department">
-          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Assign To</label>
-          <div class="d-flex gap-4">
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="qs_assign_type" value="auto" [(ngModel)]="quickStatusData.assign_type"> Auto Assign
-            </label>
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="qs_assign_type" value="employee" [(ngModel)]="quickStatusData.assign_type"> Select Employee
-            </label>
-          </div>
-        </div>
-
-        <div class="field-row mb-3" *ngIf="quickStatusData.department && quickStatusData.assign_type === 'employee'">
           <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee</label>
           <select class="form-select premium-input" [(ngModel)]="quickStatusData.assigned_employee" style="width: 100%;">
             <option value="">Select Employee</option>
@@ -1112,18 +1100,6 @@
         </div>
 
         <div class="field-row mb-3" *ngIf="currentLead.department">
-          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Assign To</label>
-          <div class="d-flex gap-4">
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="assign_type" value="auto" [(ngModel)]="currentLead.assign_type"> Auto Assign
-            </label>
-            <label class="d-flex align-items-center gap-2" style="cursor:pointer;">
-              <input type="radio" name="assign_type" value="employee" [(ngModel)]="currentLead.assign_type"> Select Employee
-            </label>
-          </div>
-        </div>
-
-        <div class="field-row mb-3" *ngIf="currentLead.department && currentLead.assign_type === 'employee'">
           <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee</label>
           <select class="form-select premium-input" [(ngModel)]="currentLead.assigned_to" style="width: 100%;">
             <option value="">Select Employee</option>
