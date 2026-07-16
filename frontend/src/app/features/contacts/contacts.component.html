@@ -131,9 +131,9 @@
           
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="icon-circle bg-warning bg-opacity-10 text-warning" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;" (click)="openQuickStatusModal(contact)" title="Click to update follow-up date">
+              <!-- <div class="icon-circle bg-warning bg-opacity-10 text-warning" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;" (click)="openQuickStatusModal(contact)" title="Click to update follow-up date">
                 <i class="bi bi-calendar-event"></i>
-              </div>
+              </div> -->
               <span class="text-muted small" *ngIf="contact.follow_up_date" style="cursor: pointer;" (click)="openQuickStatusModal(contact)">
                 {{ (contact.follow_up_date | date:'dd MMM yyyy') }}
               </span>
