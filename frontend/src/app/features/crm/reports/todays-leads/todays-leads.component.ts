@@ -14,7 +14,7 @@ export class TodaysLeadsComponent {
   searchTerm: string = '';
   
   leads: any[] = [];
-  stats: any = { totalToday: 0, actioned: 0, hotLeads: 0 };
+  stats: any = { totalToday: 0, actioned: 0, unassignedLeads: 0 };
 
   constructor(private api: ApiService) {
     this.fetchData();

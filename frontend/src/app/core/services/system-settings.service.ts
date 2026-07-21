@@ -109,7 +109,24 @@ export class SystemSettingsService {
   updateTeamMember(id: number, data: any): Observable<any> {
     return this.http.put(`${this.settingsUrl}/team/${id}`, data);
   }
+  updateTeamPermissions(id: number, permissions: any[]): Observable<any> {
+    return this.http.put(`${this.settingsUrl}/team/${id}/permissions`, { permissions });
+  }
   deleteTeamMember(id: number): Observable<any> {
     return this.http.delete(`${this.settingsUrl}/team/${id}`);
+  }
+
+  // --- TEAM GROUPS (Actual Teams) ---
+  getTeamGroups(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/teams`);
+  }
+  createTeamGroup(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/teams`, data);
+  }
+  updateTeamGroup(id: number, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/teams/${id}`, data);
+  }
+  deleteTeamGroup(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/teams/${id}`);
   }
 }

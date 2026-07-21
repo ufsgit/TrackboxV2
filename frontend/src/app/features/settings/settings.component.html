@@ -4,8 +4,9 @@
       <i class="bi bi-cpu me-2"></i>Channels Manager
     </a>
     <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team'); loadTeam()">
-      <i class="bi bi-people me-2"></i>Team
+      <i class="bi bi-person-lines-fill me-2"></i>Users / Agents
     </a>
+
     <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'lead-fields'" (click)="setActiveTab('lead-fields'); loadLeadFields()">
       <i class="bi bi-list-columns me-2"></i>Lead Fields
     </a>

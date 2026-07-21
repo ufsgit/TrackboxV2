@@ -1,29 +1,54 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ApiService } from '../../../../core/services/api.service';
 
 @Component({
   selector: 'app-pending-followup',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  providers: [DatePipe],
   templateUrl: './pending-followup.component.html',
   styleUrl: './pending-followup.component.css'
 })
-export class PendingFollowupComponent {
+export class PendingFollowupComponent implements OnInit {
   searchTerm: string = '';
   
-  followups = [
-    { id: 'FLW-001', leadName: 'Acme Corp', contact: 'John Smith', phone: '+1 555-0192', dueDate: '2023-10-25', status: 'Overdue', assignee: 'Jane Doe' },
-    { id: 'FLW-002', leadName: 'TechFlow Inc', contact: 'Sarah Jenkins', phone: '+1 555-0193', dueDate: '2023-10-26', status: 'Due Today', assignee: 'Robert Johnson' },
-    { id: 'FLW-003', leadName: 'Global Industries', contact: 'Mike Davis', phone: '+1 555-0194', dueDate: '2023-10-26', status: 'Due Today', assignee: 'Jane Doe' },
-    { id: 'FLW-004', leadName: 'StartupHub', contact: 'Emily Clark', phone: '+1 555-0195', dueDate: '2023-10-27', status: 'Upcoming', assignee: 'Michael Wilson' }
-  ];
+  followups: any[] = [];
+  stats = { overdue: 0, dueToday: 0, upcoming: 0 };
+
+  constructor(private apiService: ApiService, private datePipe: DatePipe) {}
+
+  ngOnInit() {
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.apiService.get('/reports/leads/pending-followups').subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.stats = {
+            overdue: res.data.overdue,
+            dueToday: res.data.dueToday,
+            upcoming: res.data.upcoming
+          };
+          this.followups = res.data.list.map((f: any) => ({
+            ...f,
+            dueDate: this.datePipe.transform(f.dueDate, 'yyyy-MM-dd')
+          }));
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching pending followups:', err);
+      }
+    });
+  }
 
   get filteredFollowups() {
     if (!this.searchTerm) return this.followups;
     return this.followups.filter(f => 
-      f.leadName.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-      f.assignee.toLowerCase().includes(this.searchTerm.toLowerCase())
+      f.leadName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      f.assignee?.toLowerCase().includes(this.searchTerm.toLowerCase())
     );
   }
 

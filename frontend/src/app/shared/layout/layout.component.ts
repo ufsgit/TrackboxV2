@@ -371,7 +371,7 @@ export class LayoutComponent implements OnInit {
   }
 
   constructor(
-    private authService: AuthService, 
+    public authService: AuthService, 
     private router: Router, 
     private socket: SocketService,
     private cdr: ChangeDetectorRef,

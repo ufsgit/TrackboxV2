@@ -27,6 +27,23 @@ async function runMigrations() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (business_id) REFERENCES businesses(id)
     )`,
+    `CREATE TABLE IF NOT EXISTS teams (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      business_id INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS team_members (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      team_id INT NOT NULL,
+      user_id INT NOT NULL,
+      added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_team_user (team_id, user_id),
+      FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
     `CREATE TABLE IF NOT EXISTS contacts (
       id INT AUTO_INCREMENT PRIMARY KEY,
       business_id INT,
@@ -486,7 +503,10 @@ async function runMigrations() {
   try { await pool.query("ALTER TABLE statuses ADD COLUMN type VARCHAR(50) NULL"); } catch (e) { /* Ignore if exists */ }
 
   // Alter users table safely to add new fields
-  try { await pool.query("ALTER TABLE users ADD COLUMN username VARCHAR(255) UNIQUE NULL"); } catch (e) { /* Ignore if exists */ }
+  try { 
+    await pool.query("ALTER TABLE users ADD COLUMN username VARCHAR(255) NULL");
+    await pool.query("ALTER TABLE users ADD UNIQUE KEY uq_business_username (business_id, username)");
+  } catch (e) { /* Ignore if exists */ }
   try { await pool.query("ALTER TABLE users ADD COLUMN employee_code VARCHAR(100) NULL"); } catch (e) { /* Ignore if exists */ }
   try { await pool.query("ALTER TABLE users ADD COLUMN designation_id INT NULL"); } catch (e) { /* Ignore if exists */ }
   try { await pool.query("ALTER TABLE users ADD COLUMN date_of_joining DATE NULL"); } catch (e) { /* Ignore if exists */ }

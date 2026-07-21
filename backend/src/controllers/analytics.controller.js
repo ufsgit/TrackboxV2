@@ -76,7 +76,7 @@ const getCrmDashboardStats = async (req, res) => {
     const [[{ totalLeads }]] = await pool.query('SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ?', [bizId]);
     
     // Using date(follow_up_date) to match accurately
-    const [[{ pendingFollowUps }]] = await pool.query('SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) < CURDATE()', [bizId]);
+    const [[{ pendingFollowUps }]] = await pool.query('SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) <= CURDATE()', [bizId]);
     const [[{ todaysFollowUps }]] = await pool.query('SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()', [bizId]);
     const [[{ upcomingFollowUps }]] = await pool.query('SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()', [bizId]);
     

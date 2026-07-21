@@ -59,4 +59,10 @@ router.post('/document-types', requireRole('admin', 'superadmin'), c.createDocum
 router.put('/document-types/:id', requireRole('admin', 'superadmin'), c.updateDocumentType);
 router.delete('/document-types/:id', requireRole('admin', 'superadmin'), c.deleteDocumentType);
 
+// Teams
+router.get('/teams', c.getTeams);
+router.post('/teams', requireRole('admin', 'superadmin'), c.createTeam);
+router.put('/teams/:id', requireRole('admin', 'superadmin'), c.updateTeam);
+router.delete('/teams/:id', requireRole('admin', 'superadmin'), c.deleteTeam);
+
 module.exports = router;

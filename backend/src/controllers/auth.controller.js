@@ -62,9 +62,16 @@ const login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials', data: null });
 
     const token = signToken({ userId: user.id, businessId: user.business_id, role: user.role, name: user.name, email: user.email });
+    let permissions = [];
+    if (typeof user.permissions === 'string') {
+      try { permissions = JSON.parse(user.permissions); } catch (e) {}
+    } else if (user.permissions) {
+      permissions = user.permissions;
+    }
+
     res.json({
       success: true,
-      data: { id: user.id, token, role: user.role, businessId: user.business_id, name: user.name, email: user.email, businessName: user.businessName },
+      data: { id: user.id, token, role: user.role, businessId: user.business_id, name: user.name, email: user.email, businessName: user.businessName, permissions },
       message: 'Login successful'
     });
   } catch (err) {
@@ -88,11 +95,16 @@ const refresh = async (req, res) => {
 const me = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT u.id, u.name, u.email, u.role, u.business_id, u.created_at, b.name as businessName, b.plan FROM users u JOIN businesses b ON u.business_id = b.id WHERE u.id = ?',
+      'SELECT u.id, u.name, u.email, u.role, u.business_id, u.permissions, u.created_at, b.name as businessName, b.plan FROM users u JOIN businesses b ON u.business_id = b.id WHERE u.id = ?',
       [req.user.userId]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'User not found', data: null });
-    res.json({ success: true, data: rows[0], message: 'OK' });
+    const user = rows[0];
+    if (typeof user.permissions === 'string') {
+      try { user.permissions = JSON.parse(user.permissions); } catch(e) { user.permissions = []; }
+    }
+    user.permissions = user.permissions || [];
+    res.json({ success: true, data: user, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
   }

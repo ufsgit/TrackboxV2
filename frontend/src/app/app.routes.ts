@@ -88,6 +88,7 @@ export const routes: Routes = [
       { path: 'crm-settings', loadComponent: () => import('./features/crm-settings/crm-settings.component').then(m => m.CrmSettingsComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings', redirectTo: 'system-settings/teams', pathMatch: 'full' },
       { path: 'system-settings/teams', loadComponent: () => import('./features/system-settings/components/teams-management/teams-management.component').then(m => m.TeamsManagementComponent), data: { roles: ['admin', 'superadmin'] } },
+
       { path: 'system-settings/branch', loadComponent: () => import('./features/system-settings/components/branch-management/branch-management.component').then(m => m.BranchManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/department', loadComponent: () => import('./features/system-settings/components/department-management/department-management.component').then(m => m.DepartmentManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/status', loadComponent: () => import('./features/system-settings/components/status-management/status-management.component').then(m => m.StatusManagementComponent), data: { roles: ['admin', 'superadmin'] } },

@@ -8,6 +8,7 @@ router.get('/business', c.getBusiness);
 router.put('/business', requireRole('admin', 'superadmin'), c.updateBusiness);
 router.get('/team', c.getTeam);
 router.post('/team', requireRole('admin', 'superadmin'), c.inviteAgent);
+router.put('/team/:id/permissions', requireRole('admin', 'superadmin'), c.updatePermissions);
 router.put('/team/:id', requireRole('admin', 'superadmin'), c.updateAgent);
 router.delete('/team/:id', requireRole('admin', 'superadmin'), c.deleteAgent);
 router.get('/billing', c.getBilling);

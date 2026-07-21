@@ -2,7 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
-// import { ReportAnimationService } from '../../../../core/services/report-animation.service';
+import { ApiService } from '../../../core/services/api.service';
+import { SystemSettingsService } from '../../../core/services/system-settings.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 Chart.register(...registerables);
 
@@ -17,48 +19,93 @@ export class WorkReportComponent implements OnInit {
   dateRange: string = 'this_month';
   selectedAgent: string = 'all';
 
-  // Dummy KPIs
-  totalLeads = 1240;
-  followUpsCompleted = 845;
-  totalConversions = 120;
-  conversionRate = 9.6;
+  totalLeads = 0;
+  followUpsCompleted = 0;
+  totalConversions = 0;
+  conversionRate = 0;
 
   activityChart: any;
   funnelChart: any;
   agentChart: any;
 
-  // Dummy Table Data
-  recentActivities = [
-    { agent: 'Alice Smith', lead: 'John Doe', action: 'Follow-up Call', time: new Date(Date.now() - 3600000 * 2), status: 'Completed' },
-    { agent: 'Bob Johnson', lead: 'TechCorp Ltd', action: 'Quotation Sent', time: new Date(Date.now() - 3600000 * 5), status: 'Completed' },
-    { agent: 'Charlie Brown', lead: 'Sarah Jenkins', action: 'Status Changed to Interested', time: new Date(Date.now() - 3600000 * 24), status: 'Completed' },
-    { agent: 'Alice Smith', lead: 'Acme Corp', action: 'Meeting Scheduled', time: new Date(Date.now() - 3600000 * 26), status: 'Pending' },
-    { agent: 'Eva Green', lead: 'Michael Chang', action: 'Lead Converted', time: new Date(Date.now() - 3600000 * 48), status: 'Completed' }
-  ];
+  recentActivities: any[] = [];
+  agents: any[] = [];
+
+  constructor(
+    private api: ApiService,
+    private systemSettingsService: SystemSettingsService,
+    private auth: AuthService
+  ) {}
 
   ngOnInit() {
-    setTimeout(() => {
-      this.initActivityChart();
-      this.initFunnelChart();
-      this.initAgentChart();
-    }, 100);
+    this.fetchData();
+    this.loadAgents();
+  }
+
+  loadAgents() {
+    this.systemSettingsService.getTeams().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          const allAgents = res.data;
+          this.auth.currentUser$.subscribe(user => {
+            if (user) {
+              const currentUserObj = allAgents.find((a: any) => a.id === user.id);
+              if (currentUserObj && currentUserObj.member_ids) {
+                // Only show agents that are in the current user's personal team members array
+                this.agents = allAgents.filter((a: any) => currentUserObj.member_ids.includes(a.id));
+              } else {
+                this.agents = [];
+              }
+            }
+          });
+        }
+      },
+      error: (err: any) => console.error('Error loading agents', err)
+    });
+  }
+
+  fetchData() {
+    let url = `/reports/work?dateRange=${this.dateRange}`;
+    if (this.selectedAgent !== 'all') {
+      url += `&agent=${this.selectedAgent}`;
+    }
+    this.api.get(url).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          const data = res.data;
+          this.totalLeads = data.totalLeads;
+          this.followUpsCompleted = data.followUpsCompleted;
+          this.totalConversions = data.totalConversions;
+          this.conversionRate = data.conversionRate;
+          this.recentActivities = data.recentActivities;
+          
+          this.updateCharts(data);
+        }
+      },
+      error: (err: any) => console.error(err)
+    });
   }
 
   onFilterChange() {
-    // In a real app, you would fetch new data here.
-    // For now, we'll just re-render charts to show reactivity.
-    this.totalLeads = Math.floor(Math.random() * 2000) + 500;
-    this.followUpsCompleted = Math.floor(this.totalLeads * 0.7);
-    this.totalConversions = Math.floor(this.totalLeads * 0.1);
-    this.conversionRate = parseFloat(((this.totalConversions / this.totalLeads) * 100).toFixed(1));
+    this.fetchData();
+  }
 
+  updateCharts(data: any) {
     if (this.activityChart) this.activityChart.destroy();
     if (this.funnelChart) this.funnelChart.destroy();
     if (this.agentChart) this.agentChart.destroy();
     
+    // We keep activity chart with dummy line data for now
     this.initActivityChart();
-    this.initFunnelChart();
-    this.initAgentChart();
+    
+    const funnelLabels = data.funnelData.map((d: any) => d.name);
+    const funnelValues = data.funnelData.map((d: any) => d.count);
+    this.initFunnelChart(funnelLabels, funnelValues);
+    
+    const agentLabels = data.agentData.map((d: any) => d.agent);
+    const leadsHandled = data.agentData.map((d: any) => d.leadsHandled);
+    const conversions = data.agentData.map((d: any) => d.conversions);
+    this.initAgentChart(agentLabels, leadsHandled, conversions);
   }
 
   initActivityChart() {
@@ -103,18 +150,17 @@ export class WorkReportComponent implements OnInit {
     });
   }
 
-  initFunnelChart() {
+  initFunnelChart(labels: string[], values: number[]) {
     const ctx = document.getElementById('funnelChart') as HTMLCanvasElement;
     if (!ctx) return;
 
-    // Using a horizontal bar chart to simulate a funnel
     this.funnelChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['New Leads', 'Contacted', 'Interested', 'Converted'],
+        labels: labels.length ? labels : ['No Data'],
         datasets: [{
           label: 'Count',
-          data: [this.totalLeads, Math.floor(this.totalLeads * 0.75), Math.floor(this.totalLeads * 0.4), this.totalConversions],
+          data: values.length ? values : [0],
           backgroundColor: [
             '#94a3b8',
             '#60a5fa',
@@ -139,24 +185,24 @@ export class WorkReportComponent implements OnInit {
     });
   }
 
-  initAgentChart() {
+  initAgentChart(labels: string[], leads: number[], convs: number[]) {
     const ctx = document.getElementById('agentChart') as HTMLCanvasElement;
     if (!ctx) return;
 
     this.agentChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Alice S.', 'Bob J.', 'Charlie B.', 'David L.', 'Eva G.'],
+        labels: labels.length ? labels : ['No Data'],
         datasets: [
           {
             label: 'Leads Handled',
-            data: [150, 120, 180, 90, 210],
+            data: leads.length ? leads : [0],
             backgroundColor: '#818cf8',
             borderRadius: 4
           },
           {
             label: 'Conversions',
-            data: [15, 10, 22, 5, 30],
+            data: convs.length ? convs : [0],
             backgroundColor: '#10b981',
             borderRadius: 4
           }

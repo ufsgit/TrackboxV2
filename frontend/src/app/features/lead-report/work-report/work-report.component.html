@@ -17,9 +17,7 @@
       
       <select class="form-select premium-select shadow-sm" [(ngModel)]="selectedAgent" (change)="onFilterChange()">
         <option value="all">All Agents</option>
-        <option value="alice">Alice Smith</option>
-        <option value="bob">Bob Johnson</option>
-        <option value="charlie">Charlie Brown</option>
+        <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
       </select>
       
       <button class="btn btn-primary shadow-sm" (click)="onFilterChange()">

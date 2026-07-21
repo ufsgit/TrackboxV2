@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
-
+import { ApiService } from '../../../core/services/api.service';
 
 Chart.register(...registerables);
 
@@ -123,31 +123,45 @@ Chart.register(...registerables);
 export class EmployeeReportComponent implements OnInit {
   dateRange: string = 'this_month';
 
-  activeAgents = 14;
-  totalTasks = 2140;
-  topPerformer = 'Alice Smith';
-  avgLeads = 42;
+  activeAgents = 0;
+  totalTasks = 0;
+  topPerformer = 'N/A';
+  avgLeads = 0;
 
   performanceChart: any;
   activityRadarChart: any;
 
-  agentDetails = [
-    { name: 'Alice Smith', assigned: 150, followups: 120, conversions: 25, winRate: 16.6 },
-    { name: 'Bob Johnson', assigned: 130, followups: 90, conversions: 12, winRate: 9.2 },
-    { name: 'Charlie Brown', assigned: 180, followups: 160, conversions: 22, winRate: 12.2 },
-    { name: 'Diana Prince', assigned: 105, followups: 100, conversions: 18, winRate: 17.1 },
-    { name: 'Eva Green', assigned: 90, followups: 85, conversions: 15, winRate: 16.6 }
-  ];
+  agentDetails: any[] = [];
+
+  constructor(private api: ApiService) {}
 
   ngOnInit() {
-    setTimeout(() => {
-      this.initPerformanceChart();
-      this.initRadarChart();
-    }, 100);
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.api.get(`/reports/employee?dateRange=${this.dateRange}`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          const data = res.data;
+          this.activeAgents = data.activeAgents;
+          this.totalTasks = data.totalTasks;
+          this.topPerformer = data.topPerformer;
+          this.avgLeads = data.avgLeads;
+          this.agentDetails = data.agentDetails;
+
+          this.updateCharts(data);
+        }
+      },
+      error: (err: any) => console.error(err)
+    });
   }
 
   onFilterChange() {
-    this.totalTasks = Math.floor(Math.random() * 3000) + 1000;
+    this.fetchData();
+  }
+
+  updateCharts(data: any) {
     if (this.performanceChart) this.performanceChart.destroy();
     if (this.activityRadarChart) this.activityRadarChart.destroy();
     this.initPerformanceChart();
@@ -160,17 +174,17 @@ export class EmployeeReportComponent implements OnInit {
     this.performanceChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: this.agentDetails.map(a => a.name),
+        labels: this.agentDetails.map((a: any) => a.name),
         datasets: [
           {
             label: 'Leads Assigned',
-            data: this.agentDetails.map(a => a.assigned),
+            data: this.agentDetails.map((a: any) => a.assigned),
             backgroundColor: '#818CF8',
             borderRadius: 4
           },
           {
             label: 'Conversions',
-            data: this.agentDetails.map(a => a.conversions),
+            data: this.agentDetails.map((a: any) => a.conversions),
             backgroundColor: '#10B981',
             borderRadius: 4
           }
@@ -188,7 +202,7 @@ export class EmployeeReportComponent implements OnInit {
       data: {
         labels: ['Calls', 'Emails', 'Meetings', 'Chats'],
         datasets: [{
-          data: [120, 80, 45, 200],
+          data: [120, 80, 45, 200], // Kept dummy data as radar metrics aren't in backend yet
           backgroundColor: [
             'rgba(79, 70, 229, 0.7)',
             'rgba(16, 185, 129, 0.7)',

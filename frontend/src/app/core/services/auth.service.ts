@@ -57,7 +57,39 @@ export class AuthService {
     return user && roles.includes(user.role);
   }
 
+  hasPermission(menuName: string, action: 'view' | 'save' | 'edit' | 'delete'): boolean {
+    const user = this.currentUserSubject.value;
+    // Admins and Superadmins always have full access
+    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
+      return true;
+    }
+    // For agents, check specific permissions
+    if (user && user.permissions && Array.isArray(user.permissions)) {
+      const perm = user.permissions.find((p: any) => p.menuName === menuName);
+      if (perm) {
+        if (action === 'view') return perm.view;
+        if (action === 'save') return perm.save;
+        if (action === 'edit') return perm.edit;
+        if (action === 'delete') return perm.delete;
+      }
+    }
+    // If no permission defined, default to restricted
+    return false;
+  }
+
   getMe(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/auth/me`);
+    return this.http.get(`${this.apiUrl}/auth/me`).pipe(
+      tap((res: any) => {
+        if (res.success && res.data) {
+          const user = res.data;
+          const currentToken = localStorage.getItem('uc_token');
+          if (currentToken) {
+            user.token = currentToken;
+            localStorage.setItem('uc_user', JSON.stringify(user));
+            this.currentUserSubject.next(user);
+          }
+        }
+      })
+    );
   }
 }

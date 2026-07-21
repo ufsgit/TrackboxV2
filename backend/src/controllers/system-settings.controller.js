@@ -390,6 +390,76 @@ const deleteDocumentType = async (req, res) => {
   }
 };
 
+// TEAMS
+const getTeams = async (req, res) => {
+  try {
+    const [teams] = await pool.query('SELECT * FROM teams WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    const [members] = await pool.query(
+      `SELECT tm.team_id, u.id, u.name, u.email 
+       FROM team_members tm 
+       JOIN users u ON tm.user_id = u.id 
+       WHERE u.business_id=?`, 
+      [req.user.businessId]
+    );
+    
+    const formattedTeams = teams.map(t => {
+      t.members = members.filter(m => m.team_id === t.id);
+      return t;
+    });
+
+    res.json({ success: true, data: formattedTeams, message: 'OK' });
+  } catch (err) {
+    console.log('get teams error: ', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const createTeam = async (req, res) => {
+  try {
+    const { name, description, member_ids } = req.body;
+    const [result] = await pool.query('INSERT INTO teams (name, description, business_id) VALUES (?, ?, ?)', [name, description || null, req.user.businessId]);
+    const teamId = result.insertId;
+
+    if (member_ids && member_ids.length > 0) {
+      const values = member_ids.map(id => [teamId, id]);
+      await pool.query('INSERT INTO team_members (team_id, user_id) VALUES ?', [values]);
+    }
+
+    res.status(201).json({ success: true, data: { id: teamId }, message: 'Team created' });
+  } catch (err) {
+    console.log('create team error: ', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateTeam = async (req, res) => {
+  try {
+    const { name, description, member_ids } = req.body;
+    await pool.query('UPDATE teams SET name=?, description=? WHERE id=? AND business_id=?', [name, description || null, req.params.id, req.user.businessId]);
+    
+    await pool.query('DELETE FROM team_members WHERE team_id=?', [req.params.id]);
+    if (member_ids && member_ids.length > 0) {
+      const values = member_ids.map(id => [req.params.id, id]);
+      await pool.query('INSERT INTO team_members (team_id, user_id) VALUES ?', [values]);
+    }
+
+    res.json({ success: true, data: null, message: 'Team updated' });
+  } catch (err) {
+    console.log('update team error: ', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteTeam = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM teams WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Team deleted' });
+  } catch (err) {
+    console.log('delete team error: ', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
@@ -399,5 +469,6 @@ module.exports = {
   getYears, createYear, updateYear, deleteYear,
   getAppStatuses, createAppStatus, updateAppStatus, deleteAppStatus,
   getEnquiryFors, createEnquiryFor, updateEnquiryFor, deleteEnquiryFor,
-  getDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType
+  getDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType,
+  getTeams, createTeam, updateTeam, deleteTeam
 };

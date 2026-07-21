@@ -30,7 +30,7 @@ const updateBusiness = async (req, res) => {
 const getTeam = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, b.name as branch_name, d.name as department_name, des.name as designation_name
+      `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, b.name as branch_name, d.name as department_name, des.name as designation_name
        FROM users u 
        LEFT JOIN branches b ON u.branch_id = b.id 
        LEFT JOIN departments d ON u.department_id = d.id 
@@ -38,28 +38,67 @@ const getTeam = async (req, res) => {
        WHERE u.business_id=? ORDER BY u.created_at ASC`,
       [req.user.businessId]
     );
+    // For each agent, load their personal team member IDs
+    for (const r of rows) {
+      const [tmRows] = await pool.query(
+        `SELECT tm.user_id FROM team_members tm
+         JOIN teams t ON tm.team_id = t.id
+         WHERE t.name = ? AND t.business_id = ? AND tm.user_id != ?`,
+        [`__agent_${r.id}`, req.user.businessId, r.id]
+      );
+      r.member_ids = tmRows.map(m => m.user_id);
+      if (typeof r.permissions === 'string') {
+        try { r.permissions = JSON.parse(r.permissions); } catch(e) {}
+      }
+    }
     res.json({ success: true, data: rows, message: 'OK' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
 
 const inviteAgent = async (req, res) => {
   try {
-    const { name, email, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active } = req.body;
+    const { name, email, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active, member_ids } = req.body;
     const [existing] = await pool.query('SELECT id FROM users WHERE email=?', [email]);
     if (existing.length) return res.status(409).json({ success: false, message: 'Email already in use', data: null });
+    
+    if (username) {
+      const [existingUsername] = await pool.query('SELECT id FROM users WHERE username=? AND business_id=?', [username, req.user.businessId]);
+      if (existingUsername.length) return res.status(409).json({ success: false, message: 'Username already in use', data: null });
+    }
     const hash = await bcrypt.hash(password || 'Trackbox@123', 10);
     const [result] = await pool.query(
       'INSERT INTO users (business_id, name, email, username, employee_code, designation_id, date_of_joining, password_hash, role, branch_id, department_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [req.user.businessId, name, email, username || null, employee_code || null, designation_id || null, date_of_joining || null, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1]
     );
-    const [rows] = await pool.query('SELECT id, name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at FROM users WHERE id=?', [result.insertId]);
+    const newUserId = result.insertId;
+
+    // Create a personal auto-team for this agent and add member_ids + themselves
+    if (member_ids && Array.isArray(member_ids) && member_ids.length > 0) {
+      const [teamResult] = await pool.query(
+        'INSERT INTO teams (name, description, business_id) VALUES (?, ?, ?)',
+        [`__agent_${newUserId}`, null, req.user.businessId]
+      );
+      const teamId = teamResult.insertId;
+      const allMembers = [...new Set([newUserId, ...member_ids.map(Number)])];
+      const values = allMembers.map(uid => [teamId, uid]);
+      await pool.query('INSERT INTO team_members (team_id, user_id) VALUES ?', [values]);
+    }
+    
+    const [rows] = await pool.query('SELECT id, name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at FROM users WHERE id=?', [newUserId]);
+    rows[0].member_ids = member_ids || [];
     res.status(201).json({ success: true, data: rows[0], message: 'Agent invited' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
 
 const updateAgent = async (req, res) => {
   try {
-    const { name, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password } = req.body;
+    const { name, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids } = req.body;
+    
+    if (username) {
+      const [existing] = await pool.query('SELECT id FROM users WHERE username=? AND business_id=? AND id != ?', [username, req.user.businessId, req.params.id]);
+      if (existing.length) return res.status(409).json({ success: false, message: 'Username already in use', data: null });
+    }
+
     let query = 'UPDATE users SET name=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?';
     let params = [name, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null];
     
@@ -71,8 +110,32 @@ const updateAgent = async (req, res) => {
     
     query += ' WHERE id=? AND business_id=?';
     params.push(req.params.id, req.user.businessId);
-
     await pool.query(query, params);
+    const agentId = Number(req.params.id);
+
+    // Sync personal auto-team for this agent
+    if (member_ids && Array.isArray(member_ids)) {
+      // Delete existing auto-team for this agent
+      const [existingTeams] = await pool.query(
+        `SELECT id FROM teams WHERE name = ? AND business_id = ?`,
+        [`__agent_${agentId}`, req.user.businessId]
+      );
+      for (const t of existingTeams) {
+        await pool.query('DELETE FROM team_members WHERE team_id=?', [t.id]);
+        await pool.query('DELETE FROM teams WHERE id=?', [t.id]);
+      }
+      if (member_ids.length > 0) {
+        const [teamResult] = await pool.query(
+          'INSERT INTO teams (name, description, business_id) VALUES (?, ?, ?)',
+          [`__agent_${agentId}`, null, req.user.businessId]
+        );
+        const teamId = teamResult.insertId;
+        const allMembers = [...new Set([agentId, ...member_ids.map(Number)])];
+        const values = allMembers.map(uid => [teamId, uid]);
+        await pool.query('INSERT INTO team_members (team_id, user_id) VALUES ?', [values]);
+      }
+    }
+    
     res.json({ success: true, data: null, message: 'Updated' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
@@ -83,6 +146,19 @@ const deleteAgent = async (req, res) => {
     await pool.query('DELETE FROM users WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
     res.json({ success: true, data: null, message: 'Deleted' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+const updatePermissions = async (req, res) => {
+  try {
+    const { permissions } = req.body;
+    await pool.query(
+      'UPDATE users SET permissions=? WHERE id=? AND business_id=?',
+      [JSON.stringify(permissions || []), req.params.id, req.user.businessId]
+    );
+    res.json({ success: true, message: 'Permissions updated', data: null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
 };
 
 const getBilling = async (req, res) => {
@@ -271,6 +347,7 @@ module.exports = {
   inviteAgent, 
   updateAgent, 
   deleteAgent, 
+  updatePermissions,
   getBilling, 
   testWhatsAppConnection,
   getSocialAccounts,
@@ -283,4 +360,3 @@ module.exports = {
   updateLeadField,
   deleteLeadField
 };
-

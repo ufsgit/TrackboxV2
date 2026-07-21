@@ -20,8 +20,18 @@ const getContacts = async (req, res) => {
     let where = 'WHERE business_id = ?';
     const params = [bizId];
     if (req.user.role === 'agent') {
-      where += ' AND assigned_to = ?';
-      params.push(req.user.userId);
+      // Get all user IDs who share a team with this agent (including themselves)
+      const [teamRows] = await pool.query(
+        `SELECT DISTINCT tm2.user_id
+         FROM team_members tm1
+         JOIN team_members tm2 ON tm1.team_id = tm2.team_id
+         WHERE tm1.user_id = ?`,
+        [req.user.userId]
+      );
+      const teamMemberIds = teamRows.map(r => r.user_id);
+      if (!teamMemberIds.includes(req.user.userId)) teamMemberIds.push(req.user.userId);
+      where += ` AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
+      params.push(...teamMemberIds);
     } else if (agent) {
       where += ' AND assigned_to = ?';
       params.push(agent);
@@ -52,8 +62,18 @@ const getContact = async (req, res) => {
     let q = 'SELECT * FROM contacts WHERE id = ? AND business_id = ?';
     const params = [req.params.id, req.user.businessId];
     if (req.user.role === 'agent') {
-      q += ' AND assigned_to = ?';
-      params.push(req.user.userId);
+      // Get all user IDs who share a team with this agent
+      const [teamRows] = await pool.query(
+        `SELECT DISTINCT tm2.user_id
+         FROM team_members tm1
+         JOIN team_members tm2 ON tm1.team_id = tm2.team_id
+         WHERE tm1.user_id = ?`,
+        [req.user.userId]
+      );
+      const teamMemberIds = teamRows.map(r => r.user_id);
+      if (!teamMemberIds.includes(req.user.userId)) teamMemberIds.push(req.user.userId);
+      q += ` AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
+      params.push(...teamMemberIds);
     }
     const [rows] = await pool.query(q, params);
     if (!rows.length) return res.status(404).json({ success: false, message: 'Not found', data: null });

@@ -84,8 +84,13 @@ import Swal from 'sweetalert2';
               </span>
             </td>
             <td>
-              <button class="btn btn-icon text-primary me-2" (click)="editTeamModal(member)"><i class="bi bi-pencil"></i></button>
-              <button class="btn btn-icon text-danger" (click)="deleteTeam(member.id)"><i class="bi bi-trash"></i></button>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn btn-icon text-primary" (click)="editTeamModal(member)" title="Edit"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-icon text-danger" (click)="deleteTeam(member.id)" title="Delete"><i class="bi bi-trash"></i></button>
+                <button class="perm-btn" (click)="openPermissionsModal(member)" title="Set Permissions">
+                  <i class="bi bi-shield-lock"></i> Permissions
+                </button>
+              </div>
             </td>
           </tr>
           <tr *ngIf="filteredTeams.length === 0">
@@ -97,7 +102,7 @@ import Swal from 'sweetalert2';
 
     <!-- Team Modal -->
     <div class="modal-backdrop" *ngIf="showTeamModal">
-      <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
         <h4 style="margin-top: 0; margin-bottom: 24px; font-weight: 600;">{{ currentTeam.id ? 'Edit Agent' : 'Add Agent' }}</h4>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -124,18 +129,18 @@ import Swal from 'sweetalert2';
           </div>
           <div>
             <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Username</label>
-            <input type="text" class="form-control" [(ngModel)]="currentTeam.username" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            <input type="text" class="form-control" [(ngModel)]="currentTeam.username" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
           </div>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
           <div>
             <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Email</label>
-            <input type="email" class="form-control" [(ngModel)]="currentTeam.email" [disabled]="currentTeam.id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            <input type="email" class="form-control" [(ngModel)]="currentTeam.email" [disabled]="currentTeam.id" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
           </div>
           <div>
             <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Password</label>
-            <input type="password" class="form-control" [(ngModel)]="currentTeam.password" [placeholder]="currentTeam.id ? 'Leave blank to keep current' : ''" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            <input type="password" class="form-control" [(ngModel)]="currentTeam.password" autocomplete="new-password" [placeholder]="currentTeam.id ? 'Leave blank to keep current' : ''" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
           </div>
         </div>
 
@@ -153,23 +158,37 @@ import Swal from 'sweetalert2';
           </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Date of Joining</label>
-            <input type="date" class="form-control" [(ngModel)]="currentTeam.date_of_joining" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Role</label>
-            <select class="form-control" [(ngModel)]="currentTeam.role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-              <option value="agent">Agent</option>
-            </select>
-          </div>
-          <div style="display: flex; align-items: flex-end;">
-            <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Date of Joining</label>
+              <input type="date" class="form-control" [(ngModel)]="currentTeam.date_of_joining" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Role</label>
+              <select class="form-control" [(ngModel)]="currentTeam.role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+                <option value="admin">Admin</option>
+                <option value="manager">Manager</option>
+                <option value="agent">Agent</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding-top: 4px;">
               <input type="checkbox" id="isActiveSwitch" [(ngModel)]="currentTeam.is_active" style="width: 18px; height: 18px;">
               <label for="isActiveSwitch" style="font-weight: 500; font-size: 0.9rem; cursor: pointer;">Is Active</label>
+            </div>
+          </div>
+          
+          <div style="display: flex; flex-direction: column;">
+            <label style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px;">Team Members</label>
+            <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 160px; overflow-y: auto; padding: 4px;">
+              <div *ngIf="otherAgents.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:12px;">No other agents available.</div>
+              <label *ngFor="let agent of otherAgents" class="member-checkbox-item">
+                <input type="checkbox" [checked]="isMemberSelected(agent.id)" (change)="toggleMember(agent.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
+                <span style="flex:1; display:flex; justify-content:space-between;">
+                  <span>{{ agent.name }}</span>
+                  <small style="color:#94a3b8;">{{ agent.role | titlecase }}</small>
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -177,6 +196,78 @@ import Swal from 'sweetalert2';
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
           <button class="btn btn-light" (click)="closeTeamModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; border: none; font-weight: 500;">Cancel</button>
           <button class="btn btn-primary" (click)="saveTeam()" style="padding: 10px 20px; border-radius: 8px; font-weight: 500;">Save Agent</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permissions Modal -->
+    <div class="modal-backdrop" *ngIf="showPermissionsModal">
+      <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 16px;">
+        <!-- Modal Header -->
+        <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 24px 28px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-shield-lock" style="color: #fff; font-size: 1.2rem;"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0; color: #fff; font-weight: 700; font-size: 1.1rem;">Access Permissions</h4>
+              <p style="margin: 0; color: rgba(255,255,255,0.75); font-size: 0.82rem;">{{ currentTeam.name }}</p>
+            </div>
+          </div>
+          <button (click)="closePermissionsModal()" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div style="padding: 24px;">
+          <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+            <table class="table perm-modal-table" style="margin-bottom: 0;">
+              <thead>
+                <tr>
+                  <th>Menu / Feature</th>
+                  <th class="text-center">View</th>
+                  <th class="text-center">Save</th>
+                  <th class="text-center">Edit</th>
+                  <th class="text-center">Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let menu of permissionsList">
+                  <td style="font-weight: 500; color: #1e293b; font-size: 0.9rem;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <i class="bi bi-grid" style="color: #94a3b8; font-size: 0.8rem;"></i>
+                      {{ menu.menuName }}
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <input type="checkbox" [(ngModel)]="menu.view" style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;">
+                  </td>
+                  <td class="text-center">
+                    <input type="checkbox" [(ngModel)]="menu.save" style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;">
+                  </td>
+                  <td class="text-center">
+                    <input type="checkbox" [(ngModel)]="menu.edit" style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;">
+                  </td>
+                  <td class="text-center">
+                    <input type="checkbox" [(ngModel)]="menu.delete" style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;">
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button type="button" (click)="grantAll()" style="background: none; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; color: #475569; font-weight: 500;">
+              <i class="bi bi-check2-all"></i> Grant All
+            </button>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-light" (click)="closePermissionsModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; font-weight: 500; border: none;">Cancel</button>
+              <button class="perm-btn" (click)="savePermissions()" style="padding: 10px 22px; border-radius: 8px; font-size: 0.9rem;">
+                <i class="bi bi-check-lg"></i> Save Permissions
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -193,6 +284,25 @@ import Swal from 'sweetalert2';
     .btn-icon:hover { background: #f1f5f9; }
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; }
     .modal-content { background: #fff; border-radius: 16px; padding: 32px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: none; }
+    .team-checkbox-list { display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; padding: 4px 2px; }
+    .team-checkbox-card { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.15s; background: #f8fafc; margin: 0; }
+    .team-checkbox-card:hover { border-color: #a5b4fc; background: #f0f0ff; }
+    .team-checkbox-card.selected { border-color: #4f46e5; background: #eef2ff; }
+    .team-card-left { padding-top: 2px; }
+    .team-card-right { display: flex; flex-direction: column; gap: 2px; }
+    .team-card-name { font-weight: 600; font-size: 0.88rem; color: #1e293b; }
+    .team-card-members { font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 4px; }
+    .btn-new-team { background: none; border: 1px solid #cbd5e1; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s; background-color: #fff; }
+    .btn-new-team:hover { background: #f8fafc; border-color: #94a3b8; color: #1e293b; }
+    .inline-team-form { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 0; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.02); }
+    .member-checkbox-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; margin: 0; font-size: 0.85rem; color: #334155; }
+    .member-checkbox-item:hover { background: #f1f5f9; }
+    .perm-btn { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border: none; border-radius: 20px; font-size: 0.78rem; font-weight: 600; padding: 5px 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 6px rgba(79,70,229,0.3); }
+    .perm-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.4); }
+    .perm-modal-table th { background: #f8fafc; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; padding: 12px 16px; }
+    .perm-modal-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+    .perm-modal-table tr:last-child td { border-bottom: none; }
+    .perm-modal-table tr:hover td { background: #f8fafc; }
   `]
 })
 export class TeamsManagementComponent implements OnInit {
@@ -200,8 +310,24 @@ export class TeamsManagementComponent implements OnInit {
   branches: any[] = [];
   departments: any[] = [];
   designations: any[] = [];
-  currentTeam: any = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '' };
+  currentTeam: any = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [] };
   showTeamModal: boolean = false;
+  
+  showPermissionsModal: boolean = false;
+  permissionsList: any[] = [];
+  defaultMenus = [
+    'Dashboard',
+    'Inbox',
+    'Broadcasts',
+    'Chatbots',
+    'Templates',
+    'Reports',
+    'Settings',
+    'CRM',
+    'Operation',
+    'HR',
+    'Leave Request'
+  ];
   
   searchTerm: string = '';
   filterBranchId: string | number = '';
@@ -260,14 +386,88 @@ export class TeamsManagementComponent implements OnInit {
   getBranchName(id: number) { return this.branches.find(b => b.id == id)?.name || 'N/A'; }
   getDeptName(id: number) { return this.departments.find(d => d.id == id)?.name || 'N/A'; }
 
+  get otherAgents() {
+    return this.teams.filter(t => t.id !== this.currentTeam.id);
+  }
+
+  isMemberSelected(agentId: number): boolean {
+    return (this.currentTeam.member_ids || []).includes(agentId);
+  }
+
+  toggleMember(agentId: number, event: any) {
+    const ids = [...(this.currentTeam.member_ids || [])];
+    if (event.target.checked) {
+      if (!ids.includes(agentId)) ids.push(agentId);
+    } else {
+      const idx = ids.indexOf(agentId);
+      if (idx > -1) ids.splice(idx, 1);
+    }
+    this.currentTeam.member_ids = ids;
+  }
+
   openTeamModal() { 
-    this.currentTeam = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '' }; 
+    this.currentTeam = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [] }; 
     this.showTeamModal = true; 
   }
 
   editTeamModal(team: any) {
-    this.currentTeam = { ...team, password: '', date_of_joining: team.date_of_joining ? new Date(team.date_of_joining).toISOString().split('T')[0] : '' };
+    this.currentTeam = { 
+      ...team, 
+      password: '', 
+      date_of_joining: team.date_of_joining ? new Date(team.date_of_joining).toISOString().split('T')[0] : '',
+      member_ids: team.member_ids || []
+    };
     this.showTeamModal = true;
+  }
+
+  openPermissionsModal(member: any) {
+    this.currentTeam = member;
+    this.permissionsList = [];
+    
+    // Parse existing permissions if any
+    let existingPerms = [];
+    if (member.permissions) {
+      existingPerms = typeof member.permissions === 'string' ? JSON.parse(member.permissions) : member.permissions;
+    }
+    
+    this.defaultMenus.forEach(menu => {
+      const existing = existingPerms.find((p: any) => p.menuName === menu);
+      this.permissionsList.push({
+        menuName: menu,
+        view: existing ? existing.view : false,
+        save: existing ? existing.save : false,
+        edit: existing ? existing.edit : false,
+        delete: existing ? existing.delete : false
+      });
+    });
+    
+    this.showPermissionsModal = true;
+  }
+
+  closePermissionsModal() {
+    this.showPermissionsModal = false;
+  }
+
+  savePermissions() {
+    this.settingsService.updateTeamPermissions(this.currentTeam.id, this.permissionsList).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Permissions updated' });
+          this.loadTeams(); // reload to get updated permissions string
+          this.closePermissionsModal();
+        }
+      },
+      error: (err: any) => Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'error', title: err.error?.message || 'Error updating permissions' })
+    });
+  }
+
+  grantAll() {
+    this.permissionsList.forEach(p => {
+      p.view = true;
+      p.save = true;
+      p.edit = true;
+      p.delete = true;
+    });
   }
 
   closeTeamModal() { this.showTeamModal = false; }
@@ -282,7 +482,7 @@ export class TeamsManagementComponent implements OnInit {
             this.closeTeamModal();
           }
         },
-        error: (err: any) => Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'error', title: err.error.message || 'Error updating employee' })
+        error: (err: any) => Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'error', title: err.error?.message || 'Error updating employee' })
       });
     } else {
       this.settingsService.createTeamMember(this.currentTeam).subscribe({
@@ -293,7 +493,7 @@ export class TeamsManagementComponent implements OnInit {
             this.closeTeamModal();
           }
         },
-        error: (err: any) => Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'error', title: err.error.message || 'Error adding employee' })
+        error: (err: any) => Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'error', title: err.error?.message || 'Error adding employee' })
       });
     }
   }
