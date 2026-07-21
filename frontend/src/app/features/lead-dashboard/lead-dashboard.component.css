@@ -15,24 +15,19 @@
 
 .stat-card {
   position: relative;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 100%);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-top: 1px solid rgba(255, 255, 255, 1);
-  border-left: 1px solid rgba(255, 255, 255, 1);
-  border-radius: var(--radius-lg); 
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  border-radius: var(--radius-lg);
   padding: 24px;
   display: flex;
   align-items: center;
-  gap: 24px;
-  transition: all 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
+  gap: 20px;
+  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
   overflow: hidden;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
-  
-  /* 3D Perspective Physics */
-  transform-style: preserve-3d;
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px);
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.08);
+  animation: cardEntrance 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) backwards;
 }
 
 .stat-card::before {
@@ -54,11 +49,10 @@
   transform: skewX(-20deg) translateZ(5px);
 }
 
-/* 3D Translation & Rotational Tilt on Hover */
 .stat-card:hover {
-  transform: perspective(1000px) translateY(-8px) rotateX(6deg) rotateY(-6deg) translateZ(12px);
-  box-shadow: 0 24px 38px -8px rgba(17, 24, 39, 0.12), 0 10px 18px -10px rgba(17, 24, 39, 0.08);
-  border-color: transparent;
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(139, 92, 246, 0.14);
+  border-color: rgba(196, 181, 253, 0.5);
 }
 
 .stat-card:hover::after {
@@ -69,15 +63,27 @@
   cursor: pointer;
 }
 
-.stat-card:nth-child(1) { }
-.stat-card:nth-child(2) { }
-.stat-card:nth-child(3) { }
-.stat-card:nth-child(4) { }
+.stat-card:nth-child(1) { 
+  animation-delay: 0ms; 
+  background: rgba(235, 250, 235, 0.65); /* soft green */
+}
+.stat-card:nth-child(2) { 
+  animation-delay: 60ms; 
+  background: rgba(230, 242, 255, 0.65); /* soft blue */
+}
+.stat-card:nth-child(3) { 
+  animation-delay: 120ms; 
+  background: rgba(240, 235, 255, 0.65); /* soft purple */
+}
+.stat-card:nth-child(4) { 
+  animation-delay: 180ms; 
+  background: rgba(255, 245, 230, 0.65); /* soft orange/amber */
+}
 
-.stat-card:nth-child(1):hover { box-shadow: 0 20px 35px rgba(59, 130, 246, 0.15); border-color: rgba(255,255,255,1); }
-.stat-card:nth-child(2):hover { box-shadow: 0 20px 35px rgba(168, 85, 247, 0.15); border-color: rgba(255,255,255,1); }
-.stat-card:nth-child(3):hover { box-shadow: 0 20px 35px rgba(16, 185, 129, 0.15); border-color: rgba(255,255,255,1); }
-.stat-card:nth-child(4):hover { box-shadow: 0 20px 35px rgba(245, 158, 11, 0.15); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(1):hover { box-shadow: 0 16px 40px rgba(139, 92, 246, 0.14); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(2):hover { box-shadow: 0 16px 40px rgba(167, 139, 250, 0.18); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(3):hover { box-shadow: 0 16px 40px rgba(34, 197, 94, 0.14); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(4):hover { box-shadow: 0 16px 40px rgba(245, 208, 254, 0.2); border-color: rgba(255,255,255,1); }
 
 .stat-icon {
   width: 60px;
@@ -186,12 +192,25 @@
 
 /* Panels */
 .recent-chats, .quick-actions {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  border-radius: 28px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
   padding: 32px;
-  box-shadow: 0 10px 25px -5px rgba(17, 24, 39, 0.05), 0 8px 10px -6px rgba(17, 24, 39, 0.01);
+  box-shadow:
+    0 4px 24px rgba(139, 92, 246, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+.recent-chats:hover, .quick-actions:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 40px rgba(139, 92, 246, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(196, 181, 253, 0.5);
 }
 
 .chat-list {

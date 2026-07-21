@@ -106,13 +106,13 @@ Chart.register(...registerables);
       <div class="grid" style="grid-template-columns: 1.2fr 2fr; gap: 24px;">
         
         <!-- Elegant Lead Funnel -->
-        <div class="chart-card h-100 shadow-sm" style="border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; background: white;">
-          <div class="chart-header" style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9;">
-            <h5 class="fw-bold m-0" style="color: #1e293b; font-size: 1.15rem;">Status Wise Count</h5>
-            <span style="font-size: 0.85rem; color: #64748b;">Count of leads by current status</span>
+        <div class="chart-container h-100">
+          <div class="chart-header" style="padding-bottom: 20px; border-bottom: 1px solid rgba(196, 181, 253, 0.25);">
+            <h5 class="fw-bold m-0" style="color: var(--text-primary); font-size: 1.15rem;">Status Wise Count</h5>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Count of leads by current status</span>
           </div>
           
-          <div class="chart-body flex flex-col items-center py-5 px-4" style="background-color: #fafaf9; min-height: 480px;">
+          <div class="chart-body flex flex-col items-center py-5 px-4" style="min-height: 480px;">
 
             <div *ngIf="!isLoading" style="width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center;">
               <ng-container *ngFor="let stage of funnelStages; let i = index">
@@ -130,12 +130,12 @@ Chart.register(...registerables);
         </div>
         
         <!-- Area Chart -->
-        <div class="chart-card h-100 shadow-sm" style="border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; background: white; display: flex; flex-direction: column;">
-          <div class="chart-header" style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9;">
-            <h5 class="fw-bold m-0" style="color: #1e293b; font-size: 1.15rem;">Upcoming Follow-up Distribution</h5>
-            <span style="font-size: 0.85rem; color: #64748b;">Scheduled activities over the next 7 days</span>
+        <div class="chart-container h-100" style="display: flex; flex-direction: column;">
+          <div class="chart-header" style="padding-bottom: 20px; border-bottom: 1px solid rgba(196, 181, 253, 0.25);">
+            <h5 class="fw-bold m-0" style="color: var(--text-primary); font-size: 1.15rem;">Upcoming Follow-up Distribution</h5>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Scheduled activities over the next 7 days</span>
           </div>
-          <div class="chart-body" style="position: relative; flex-grow: 1; padding: 20px; min-height: 450px; overflow: hidden;">
+          <div class="chart-body" style="position: relative; flex-grow: 1; padding-top: 20px; min-height: 450px; overflow: hidden;">
             <div [class.chart-grow-up]="!isLoading" [class.chart-hidden]="isLoading">
               <canvas #followUpCanvas id="followUpChart" style="display: block; width: 100%; height: 100%;"></canvas>
             </div>
@@ -194,62 +194,42 @@ Chart.register(...registerables);
       perspective: 1200px;
     }
     .stat-card {
-      background: #fff;
-      border: 1px solid rgba(229, 231, 235, 0.8);
-      border-radius: 24px;
+      position: relative;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 20px;
       padding: 32px 28px;
       display: flex;
       align-items: center;
       gap: 20px;
-      transition: all 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
-      position: relative;
+      transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
-      box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05);
-      transform-style: preserve-3d;
-      transform: perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px);
-    }
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 6px;
-      background: transparent;
-      transition: all 0.4s ease;
-    }
-    .stat-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: -100%; width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-      transition: all 0.65s cubic-bezier(0.25, 0.8, 0.25, 1);
-      pointer-events: none;
-      transform: skewX(-20deg) translateZ(5px);
+      box-shadow:
+        0 4px 24px rgba(139, 92, 246, 0.06),
+        0 1px 2px rgba(139, 92, 246, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      animation: cardEntrance 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) backwards;
     }
     .stat-card:hover {
-      transform: perspective(1000px) translateY(-8px) rotateX(6deg) rotateY(-6deg) translateZ(12px);
-      box-shadow: 0 24px 38px -8px rgba(17, 24, 39, 0.12), 0 10px 18px -10px rgba(17, 24, 39, 0.08);
-      border-color: transparent;
+      transform: translateY(-4px);
+      box-shadow:
+        0 12px 40px rgba(139, 92, 246, 0.12),
+        0 4px 12px rgba(139, 92, 246, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      border-color: rgba(196, 181, 253, 0.5);
     }
-    .stat-card:hover::after {
-      left: 200%;
-    }
+    .stat-card > * { position: relative; z-index: 1; }
     
-    .stat-card:nth-child(1) { background: linear-gradient(145deg, #eff6ff 0%, #ffffff 100%); border-color: #dbeafe; }
-    .stat-card:nth-child(2) { background: linear-gradient(145deg, #fff1f2 0%, #ffffff 100%); border-color: #ffe4e6; }
-    .stat-card:nth-child(3) { background: linear-gradient(145deg, #fffbeb 0%, #ffffff 100%); border-color: #fef3c7; }
-    .stat-card:nth-child(4) { background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%); border-color: #dcfce7; }
-    .stat-card:nth-child(5) { background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%); border-color: #dcfce7; }
-    .stat-card:nth-child(6) { background: linear-gradient(145deg, #f8fafc 0%, #ffffff 100%); border-color: #f1f5f9; }
-    .stat-card:nth-child(7) { background: linear-gradient(145deg, #faf5ff 0%, #ffffff 100%); border-color: #f3e8ff; }
-    .stat-card:nth-child(8) { background: linear-gradient(145deg, #fdf2f8 0%, #ffffff 100%); border-color: #fce7f3; }
-    
-    .stat-card:nth-child(1):hover { box-shadow: 0 20px 32px -10px rgba(59, 130, 246, 0.28); border-color: #bfdbfe; }
-    .stat-card:nth-child(2):hover { box-shadow: 0 20px 32px -10px rgba(225, 29, 72, 0.28); border-color: #fecdd3; }
-    .stat-card:nth-child(3):hover { box-shadow: 0 20px 32px -10px rgba(245, 158, 11, 0.28); border-color: #fde68a; }
-    .stat-card:nth-child(4):hover { box-shadow: 0 20px 32px -10px rgba(16, 185, 129, 0.28); border-color: #bbf7d0; }
-    .stat-card:nth-child(5):hover { box-shadow: 0 20px 32px -10px rgba(16, 185, 129, 0.28); border-color: #bbf7d0; }
-    .stat-card:nth-child(6):hover { box-shadow: 0 20px 32px -10px rgba(100, 116, 139, 0.28); border-color: #cbd5e1; }
-    .stat-card:nth-child(7):hover { box-shadow: 0 20px 32px -10px rgba(168, 85, 247, 0.28); border-color: #e9d5ff; }
-    .stat-card:nth-child(8):hover { box-shadow: 0 20px 32px -10px rgba(236, 72, 153, 0.28); border-color: #fbcfe8; }
+    .stat-card:nth-child(1) { background: rgba(230, 245, 230, 0.65); border-color: rgba(255,255,255,1); animation-delay: 0ms; }
+    .stat-card:nth-child(2) { background: rgba(230, 240, 255, 0.65); border-color: rgba(255,255,255,1); animation-delay: 60ms; }
+    .stat-card:nth-child(3) { background: rgba(240, 230, 255, 0.65); border-color: rgba(255,255,255,1); animation-delay: 120ms; }
+    .stat-card:nth-child(4) { background: rgba(240, 235, 250, 0.65); border-color: rgba(255,255,255,1); animation-delay: 180ms; }
+    .stat-card:nth-child(5) { background: rgba(255, 245, 230, 0.65); border-color: rgba(255,255,255,1); animation-delay: 240ms; }
+    .stat-card:nth-child(6) { background: rgba(225, 245, 240, 0.65); border-color: rgba(255,255,255,1); animation-delay: 300ms; }
+    .stat-card:nth-child(7) { background: rgba(245, 235, 250, 0.65); border-color: rgba(255,255,255,1); animation-delay: 360ms; }
+    .stat-card:nth-child(8) { background: rgba(255, 240, 245, 0.65); border-color: rgba(255,255,255,1); animation-delay: 420ms; }
 
     .stat-icon {
       width: 50px;
