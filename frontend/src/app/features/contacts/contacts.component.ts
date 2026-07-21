@@ -172,8 +172,10 @@ export class ContactsComponent implements OnInit {
   leadStatuses: any[] = [];
   dummyLossReasons = ['Price too high', 'Bought from competitor', 'No longer needed', 'Missing features', 'Poor communication'];
 
-  // Custom fields from Settings
+  //  showAdvancedFilters = false;
+  
   leadFields: any[] = [];
+  groupedLeadFields: { categoryName: string, fields: any[] }[] = [];
 
   // Application Settings Data
   intakes: any[] = [];
@@ -193,7 +195,15 @@ export class ContactsComponent implements OnInit {
   getFilteredEmployees(branchName: string, departmentName: string) {
     if (!branchName || !departmentName) return [];
     return this.employees.filter(e => e.branch_name === branchName && e.department_name === departmentName);
-  }  // Application Data
+  }
+
+  getEmployeeName(employeeId: any): string {
+    if (!employeeId) return '';
+    const emp = this.employees.find(e => e.id == employeeId);
+    return emp ? emp.name : '';
+  }
+
+  // Application Data
   selectedContactApplications: any[] = [];
   loadingApplications: boolean = false;
   selectedContactLeads: any[] = [];
@@ -384,7 +394,19 @@ export class ContactsComponent implements OnInit {
   loadLeadFields() {
     this.api.get('/settings/lead-fields').subscribe({
       next: (res: any) => {
-        if (res.success) this.leadFields = res.data;
+        if (res.success) {
+          this.leadFields = res.data;
+          const grouped: any = {};
+          this.leadFields.forEach(f => {
+            const cat = f.category_name || 'Uncategorized';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(f);
+          });
+          this.groupedLeadFields = Object.keys(grouped).map(cat => ({
+            categoryName: cat,
+            fields: grouped[cat]
+          })).sort((a, b) => a.categoryName === 'Uncategorized' ? 1 : b.categoryName === 'Uncategorized' ? -1 : a.categoryName.localeCompare(b.categoryName));
+        }
       }
     });
   }

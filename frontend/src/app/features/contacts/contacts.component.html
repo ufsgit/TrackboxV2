@@ -68,21 +68,22 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Employee</th>
           <th>Phone</th>
           <th>Status</th>
           <th>Remark</th>
-          <th>Follow Up Date</th>
+          <th>Follow Up </th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         <tr *ngIf="loading">
-          <td colspan="6" class="text-center py-5">
+          <td colspan="7" class="text-center py-5">
             <div class="spinner-border text-success"></div>
           </td>
         </tr>
         <tr *ngIf="!loading && contacts.length === 0">
-          <td colspan="6" class="text-center py-5">
+          <td colspan="7" class="text-center py-5">
             <div class="empty-state d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
               <i class="bi bi-people d-block mb-3" style="font-size: 3rem; color: #10B981; background: rgba(16, 185, 129, 0.1); width: 80px; height: 80px; line-height: 80px; border-radius: 50%;"></i>
               <h4 style="font-weight: 800; color: #111827;">No Contacts Found</h4>
@@ -100,14 +101,25 @@
             </div>
           </td>
           
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-dark" style="font-weight: 500; font-size: 0.9rem;">
+                {{ contact.assigned_employee_name || getEmployeeName(contact.assigned_to) || 'Unassigned' }}
+              </span>
+            </div>
+          </td>
+          
           <td class="fw-bold" style="color: #475569;">{{ contact.phone }}</td>
           
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="icon-circle bg-primary bg-opacity-10 text-primary" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;" (click)="openQuickStatusModal(contact)" title="Click to update status">
-                <i class="bi bi-ui-radios"></i>
-              </div>
-              <span class="badge bg-light text-dark border" *ngIf="contact.status" style="cursor: pointer;" (click)="openQuickStatusModal(contact)">{{ contact.status }}</span>
+              <span class="badge" 
+                    [ngClass]="contact.status_name ? 'bg-primary bg-opacity-10 text-primary border border-primary-subtle' : 'bg-light text-secondary border'" 
+                    style="cursor: pointer; padding: 6px 12px; font-weight: 600; letter-spacing: 0.3px; font-size: 0.75rem;" 
+                    (click)="openQuickStatusModal(contact)" 
+                    title="Click to update status">
+                {{ contact.status_name || '-' }}
+              </span>
             </div>
           </td>
           
@@ -232,7 +244,7 @@
         <!-- PROFILE TAB -->
         <div *ngIf="detailActiveTab === 'Profile'" class="tab-pane">
           <div class="row">
-            <div class="col-md-6">
+            <div class="col-12 mb-4">
               <div class="detail-section-card">
                 <h5><i class="bi bi-person-lines-fill"></i> Core Information</h5>
                 <div class="detail-grid">
@@ -259,9 +271,8 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <div class="detail-section-card">
-                <h5><i class="bi bi-list-columns-reverse"></i> Custom Fields</h5>
                 <div class="detail-grid" *ngIf="selectedContact.custom_fields && selectedContact.custom_fields.length > 0">
                   <div class="detail-item" *ngFor="let field of selectedContact.custom_fields">
                     <label>{{ field.label }}</label>
@@ -755,42 +766,44 @@
       </div>
 
       <!-- ── Additional Details ── -->
-      <div *ngIf="leadFields.length > 0">
-        <div class="section-divider"><i class="bi bi-card-list"></i> Additional Details</div>
-        <div class="fields-grid">
-          <div *ngFor="let field of leadFields" class="field-row">
-            <label>
-              {{ field.label }}
-              <span class="required" *ngIf="field.is_required">*</span>
-            </label>
+      <div *ngIf="groupedLeadFields.length > 0">
+        <div *ngFor="let group of groupedLeadFields">
+          <div class="section-divider"><i class="bi bi-folder2-open"></i> {{ group.categoryName }}</div>
+          <div class="fields-grid">
+            <div *ngFor="let field of group.fields" class="field-row">
+              <label>
+                {{ field.label }}
+                <span class="required" *ngIf="field.is_required">*</span>
+              </label>
 
-            <input *ngIf="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'phone'"
-              [type]="field.field_type === 'email' ? 'email' : field.field_type === 'phone' ? 'tel' : 'text'"
-              class="form-control premium-input"
-              [(ngModel)]="newContact.custom_field_values[field.id]">
+              <input *ngIf="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'phone'"
+                [type]="field.field_type === 'email' ? 'email' : field.field_type === 'phone' ? 'tel' : 'text'"
+                class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
 
-            <input *ngIf="field.field_type === 'number'"
-              type="number" class="form-control premium-input"
-              [(ngModel)]="newContact.custom_field_values[field.id]">
+              <input *ngIf="field.field_type === 'number'"
+                type="number" class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
 
-            <textarea *ngIf="field.field_type === 'textarea'"
-              class="form-control premium-input" rows="2"
-              [(ngModel)]="newContact.custom_field_values[field.id]"></textarea>
+              <textarea *ngIf="field.field_type === 'textarea'"
+                class="form-control premium-input" rows="2"
+                [(ngModel)]="newContact.custom_field_values[field.id]"></textarea>
 
-            <input *ngIf="field.field_type === 'date'" type="date"
-              class="form-control premium-input"
-              [(ngModel)]="newContact.custom_field_values[field.id]">
+              <input *ngIf="field.field_type === 'date'" type="date"
+                class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
 
-            <input *ngIf="field.field_type === 'dob'" type="date"
-              class="form-control premium-input"
-              [(ngModel)]="newContact.custom_field_values[field.id]" [max]="today">
+              <input *ngIf="field.field_type === 'dob'" type="date"
+                class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]" [max]="today">
 
-            <select *ngIf="field.field_type === 'dropdown'"
-              class="form-select premium-input"
-              [(ngModel)]="newContact.custom_field_values[field.id]" style="display:block;">
-              <option value="">— Select {{ field.label }} —</option>
-              <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
-            </select>
+              <select *ngIf="field.field_type === 'dropdown'"
+                class="form-select premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
+                <option value="">Select option...</option>
+                <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -1220,7 +1233,7 @@
 <!-- ═══════════════════ APPLICATION HISTORY MODAL ═══════════════════ -->
 <div class="custom-modal center-modal" *ngIf="showAppHistoryModal">
   <div class="modal-backdrop" (click)="showAppHistoryModal = false"></div>
-  <div class="modal-card popup-card">
+  <div class="modal-card popup-card" style="max-width: 800px; width: 90%;">
     <div class="modal-header-fs">
       <div style="display:flex; align-items:center; gap:12px;">
         <div style="width:40px;height:40px;border-radius:10px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;">

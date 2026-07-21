@@ -22,8 +22,8 @@ export class AgentPerformanceReportComponent implements OnInit, AfterViewInit {
   ];
 
   /* ── KPI rolling counters ─────────────────────────────────────── */
-  kpi_convRate    = 0;
-  kpi_respTime    = 0;
+  kpi_convRate       = 0;
+  kpi_lowestConvRate = 0;
 
   /* ── Chart ────────────────────────────────────────────────────── */
   chartH    = 260;   // px – drawing area height
@@ -65,7 +65,7 @@ export class AgentPerformanceReportComponent implements OnInit, AfterViewInit {
 
     // Rolling KPI counters
     this.animateValue(0, 14.2, dur + 200, (v) => this.kpi_convRate  = +v.toFixed(1));
-    this.animateValue(0, 15,   dur,       (v) => this.kpi_respTime   = Math.round(v));
+    this.animateValue(0, 5.5,  dur,       (v) => this.kpi_lowestConvRate = +v.toFixed(1));
 
     // Bar heights
     const step = (now: number) => {

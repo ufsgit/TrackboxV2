@@ -48,7 +48,14 @@ const updateApplication = async (req, res) => {
     const { country, university, course, intake_id, year_id, status_id, description } = req.body;
     
     // Get old data for history
-    const [oldRows] = await pool.query('SELECT * FROM applications WHERE id=? AND business_id=?', [id, req.user.businessId]);
+    const [oldRows] = await pool.query(`
+      SELECT a.*, i.name as intake_name, y.name as year_name, s.name as status_name
+      FROM applications a
+      LEFT JOIN intakes i ON a.intake_id = i.id
+      LEFT JOIN years y ON a.year_id = y.id
+      LEFT JOIN application_statuses s ON a.status_id = s.id
+      WHERE a.id=? AND a.business_id=?
+    `, [id, req.user.businessId]);
     if (oldRows.length === 0) return res.status(404).json({ success: false, message: 'Application not found' });
     const oldApp = oldRows[0];
 
@@ -57,21 +64,44 @@ const updateApplication = async (req, res) => {
       [country, university, course, intake_id || null, year_id || null, status_id || null, description, id, req.user.businessId]
     );
 
+    // Get new data for history comparisons
+    const [newRows] = await pool.query(`
+      SELECT a.*, i.name as intake_name, y.name as year_name, s.name as status_name
+      FROM applications a
+      LEFT JOIN intakes i ON a.intake_id = i.id
+      LEFT JOIN years y ON a.year_id = y.id
+      LEFT JOIN application_statuses s ON a.status_id = s.id
+      WHERE a.id=? AND a.business_id=?
+    `, [id, req.user.businessId]);
+    const newApp = newRows[0];
+
     // Determine what changed
     let changes = [];
-    if (oldApp.status_id != status_id) changes.push(`Status changed`);
-    if (oldApp.university !== university) changes.push(`University changed`);
-    if (oldApp.course !== course) changes.push(`Course changed`);
+    if (oldApp.country !== newApp.country) changes.push(`Country changed from '${oldApp.country || 'None'}' to '${newApp.country || 'None'}'`);
+    if (oldApp.university !== newApp.university) changes.push(`University changed from '${oldApp.university || 'None'}' to '${newApp.university || 'None'}'`);
+    if (oldApp.course !== newApp.course) changes.push(`Course changed from '${oldApp.course || 'None'}' to '${newApp.course || 'None'}'`);
+    if (oldApp.status_name !== newApp.status_name) changes.push(`Status changed from '${oldApp.status_name || 'None'}' to '${newApp.status_name || 'None'}'`);
+    if (oldApp.intake_name !== newApp.intake_name) changes.push(`Intake changed from '${oldApp.intake_name || 'None'}' to '${newApp.intake_name || 'None'}'`);
+    if (oldApp.year_name !== newApp.year_name) changes.push(`Year changed from '${oldApp.year_name || 'None'}' to '${newApp.year_name || 'None'}'`);
     
     const details = changes.length > 0 ? changes.join(', ') : 'Application updated.';
 
-    // Log history
-    await pool.query(
-      'INSERT INTO application_history (application_id, changed_by, action, details) VALUES (?, ?, ?, ?)',
-      [id, req.user.id, 'Application Updated', details]
-    );
+    // Log history if there are changes
+    if (changes.length > 0) {
+      await pool.query(
+        'INSERT INTO application_history (application_id, changed_by, action, details) VALUES (?, ?, ?, ?)',
+        [id, req.user.id, 'Application Updated', details]
+      );
+    }
 
-    const [rows] = await pool.query('SELECT * FROM applications WHERE id=?', [id]);
+    const [rows] = await pool.query(`
+      SELECT a.*, i.name as intake_name, y.name as year_name, s.name as status_name, s.color as status_color
+      FROM applications a
+      LEFT JOIN intakes i ON a.intake_id = i.id
+      LEFT JOIN years y ON a.year_id = y.id
+      LEFT JOIN application_statuses s ON a.status_id = s.id
+      WHERE a.id=?
+    `, [id]);
     res.json({ success: true, data: rows[0], message: 'Application updated' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });

@@ -6,7 +6,7 @@
 
 .settings-nav {
   width: 250px;
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-right: 1px solid #e2e8f0;
   padding: 1.5rem 0;
   overflow-y: auto;
@@ -47,7 +47,7 @@
 }
 
 .table-card {
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border: 1px solid #e2e8f0;
@@ -131,7 +131,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   width: 100%;
   max-width: 500px;
   border-radius: 16px;
@@ -144,3 +144,4 @@
   font-weight: 600;
   color: #0f172a;
 }
+

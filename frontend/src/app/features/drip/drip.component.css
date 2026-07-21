@@ -40,7 +40,7 @@
   justify-content: space-between;
   align-items: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   box-shadow: 0 4px 12px -2px rgba(17, 24, 39, 0.02);
   position: relative;
   overflow: hidden;
@@ -155,7 +155,7 @@
 }
 
 .step-connector.connector-active::after {
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
 }
 
 /* Stats Section Layout */
@@ -226,7 +226,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   border: 1px solid #e2e8f0;
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   color: #334155;
   padding: 6px 14px;
   transition: all 0.2s;
@@ -238,3 +238,4 @@
   color: #6366f1;
   border-color: #cbd5e1;
 }
+

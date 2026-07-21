@@ -413,11 +413,51 @@ const getEmployeeReport = async (req, res) => {
   }
 };
 
+const getSourceConversionReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    const params = [businessId];
+    if (startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) >= ? AND DATE(c.created_at) <= ?';
+      params.push(startDate, endDate);
+    }
+
+    const [rows] = await pool.query(`
+      SELECT 
+        IFNULL(sc.name, 'Uncategorized') as category_name,
+        COUNT(DISTINCT c.id) as total_leads,
+        SUM(CASE WHEN l.status IN ('Won', 'Converted', 'Closed Won') THEN 1 ELSE 0 END) as converted_leads
+      FROM contacts c
+      LEFT JOIN leads l ON c.id = l.contact_id
+      LEFT JOIN conversations conv ON c.id = conv.contact_id
+      LEFT JOIN social_accounts sa ON conv.social_account_id = sa.id
+      LEFT JOIN source_categories sc ON sa.source_category_id = sc.id
+      WHERE c.business_id = ? ${dateFilter}
+      GROUP BY category_name
+      ORDER BY total_leads DESC
+    `, params);
+
+    // Calculate conversion rate
+    const data = rows.map(r => ({
+      ...r,
+      conversion_rate: r.total_leads > 0 ? ((r.converted_leads / r.total_leads) * 100).toFixed(2) : '0.00'
+    }));
+
+    res.json({ success: true, data, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getEnquiriesReport,
   getStatusReport,
   getTodaysLeadsReport,
   getPendingFollowupsReport,
   getWorkReport,
-  getEmployeeReport
+  getEmployeeReport,
+  getSourceConversionReport
 };

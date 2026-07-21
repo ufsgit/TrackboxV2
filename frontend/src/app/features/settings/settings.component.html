@@ -10,6 +10,12 @@
     <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'lead-fields'" (click)="setActiveTab('lead-fields'); loadLeadFields()">
       <i class="bi bi-list-columns me-2"></i>Lead Fields
     </a>
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'field-categories'" (click)="setActiveTab('field-categories'); loadFieldCategories()">
+      <i class="bi bi-folder me-2"></i>Field Categories
+    </a>
+    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'source-categories'" (click)="setActiveTab('source-categories'); loadSourceCategories()">
+      <i class="bi bi-tag me-2"></i>Source Categories
+    </a>
     <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'api'" (click)="setActiveTab('api')">
       <i class="bi bi-code-slash me-2"></i>API & Webhooks
     </a>
@@ -123,6 +129,19 @@
               <div class="detail-row" *ngIf="account.platform === 'facebook'">
                 <span class="detail-label">Token Status</span>
                 <span class="detail-val" style="color: #0084FF;">{{ account.token ? '● Configured' : '○ Missing' }}</span>
+              </div>
+              
+              <!-- Source Category Link -->
+              <div class="detail-row align-items-center mt-2 pt-2 border-top">
+                <span class="detail-label">Source Category</span>
+                <span class="detail-val" style="flex: 1; max-width: 200px;">
+                  <select class="form-select form-select-sm" 
+                          [ngModel]="account.source_category_id" 
+                          (change)="updateChannelSourceCategory(account, $event)">
+                    <option [ngValue]="null">Unassigned</option>
+                    <option *ngFor="let sc of sourceCategories" [value]="sc.id">{{ sc.name }}</option>
+                  </select>
+                </span>
               </div>
             </div>
 
@@ -265,6 +284,15 @@
               <label class="form-label">Connection Name</label>
               <input type="text" class="form-control" [(ngModel)]="newChannel.account_name" placeholder="e.g., Main Support, Marketing IG" required>
               <span class="form-hint">Internal name to easily identify this account inside the workspace</span>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label">Source Category</label>
+              <select class="form-select" [(ngModel)]="newChannel.source_category_id">
+                <option [ngValue]="null">Select Source Category (Optional)</option>
+                <option *ngFor="let sc of sourceCategories" [value]="sc.id">{{ sc.name }}</option>
+              </select>
+              <span class="form-hint">Categorize this channel for reporting and lead attribution</span>
             </div>
 
             <!-- Platform Specific Form Fields: WHATSAPP -->
@@ -648,7 +676,7 @@
                 </span>
               </td>
               <td class="text-end">
-                <button class="action-btn text-primary me-2" (click)="openEditFieldModal(field)" title="Edit Field">
+                <button class="btn btn-sm btn-outline-primary me-2" (click)="openEditField(field)" title="Edit Field">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button class="action-btn text-danger" (click)="deleteLeadField(field.id)" title="Delete Field">
@@ -699,6 +727,14 @@
                   <span>{{ ft.label }}</span>
                 </label>
               </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Category</label>
+              <select class="form-select" [(ngModel)]="newField.category_id" name="category_id">
+                <option value="">-- Uncategorized --</option>
+                <option *ngFor="let c of fieldCategories" [value]="c.id">{{c.name}}</option>
+              </select>
             </div>
 
             <!-- Dropdown Options (only for dropdown) -->
@@ -793,6 +829,144 @@ Commerce"></textarea>
     <!-- ===================== COURSES ===================== -->
     <div *ngIf="activeTab === 'courses'">
       <app-course-management></app-course-management>
+    </div>
+
+    <!-- ===================== FIELD CATEGORIES ===================== -->
+    <div *ngIf="activeTab === 'field-categories'" class="lead-fields-tab">
+      <div class="d-flex justify-content-between align-items-center mb-4 w-100">
+        <div>
+          <h3 class="section-title mb-0">Field Categories</h3>
+          <p class="section-desc">Organize custom fields into categories.</p>
+        </div>
+        <button class="btn btn-primary" (click)="openAddFieldCategory()">
+          <i class="bi bi-plus-lg me-2"></i>New Category
+        </button>
+      </div>
+
+      <div class="mt-4">
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="fieldCategoriesLoading">
+              <td colspan="2" class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+              </td>
+            </tr>
+            <tr *ngIf="!fieldCategoriesLoading && fieldCategories.length === 0">
+              <td colspan="2" class="text-center py-5 text-muted">No categories found.</td>
+            </tr>
+            <tr *ngFor="let fc of fieldCategories">
+              <td class="fw-semibold">{{ fc.name }}</td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-light me-2 rounded-circle" (click)="openEditFieldCategory(fc)" style="width: 32px; height: 32px; padding: 0;">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-light rounded-circle text-danger" (click)="deleteFieldCategory(fc.id)" style="width: 32px; height: 32px; padding: 0;">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FIELD CATEGORY MODAL -->
+    <div class="modal fade show custom-modal" *ngIf="showFieldCategoryModal" style="display: block; background: rgba(0,0,0,0.5);">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">{{ editingFieldCategory ? 'Edit Category' : 'New Category' }}</h5>
+            <button type="button" class="btn-close" (click)="closeFieldCategoryModal()"></button>
+          </div>
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-semibold text-uppercase">Name</label>
+              <input type="text" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newFieldCategory.name">
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-light rounded-pill px-4" (click)="closeFieldCategoryModal()">Cancel</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveFieldCategory()" [disabled]="saving || !newFieldCategory.name">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SOURCE CATEGORIES ===================== -->
+    <div *ngIf="activeTab === 'source-categories'" class="lead-fields-tab">
+      <div class="d-flex justify-content-between align-items-center mb-4 w-100">
+        <div>
+          <h3 class="section-title mb-0">Source Categories</h3>
+          <p class="section-desc">Organize lead sources and channels.</p>
+        </div>
+        <button class="btn btn-primary" (click)="openAddSourceCategory()">
+          <i class="bi bi-plus-lg me-2"></i>New Source Category
+        </button>
+      </div>
+
+      <div class="mt-4">
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="sourceCategoriesLoading">
+              <td colspan="2" class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+              </td>
+            </tr>
+            <tr *ngIf="!sourceCategoriesLoading && sourceCategories.length === 0">
+              <td colspan="2" class="text-center py-5 text-muted">No source categories found.</td>
+            </tr>
+            <tr *ngFor="let sc of sourceCategories">
+              <td class="fw-semibold">{{ sc.name }}</td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-light me-2 rounded-circle" (click)="openEditSourceCategory(sc)" style="width: 32px; height: 32px; padding: 0;">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-light rounded-circle text-danger" (click)="deleteSourceCategory(sc.id)" style="width: 32px; height: 32px; padding: 0;">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SOURCE CATEGORY MODAL -->
+    <div class="modal fade show custom-modal" *ngIf="showSourceCategoryModal" style="display: block; background: rgba(0,0,0,0.5);">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold">{{ editingSourceCategory ? 'Edit Source Category' : 'New Source Category' }}</h5>
+            <button type="button" class="btn-close" (click)="closeSourceCategoryModal()"></button>
+          </div>
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-semibold text-uppercase">Name</label>
+              <input type="text" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newSourceCategory.name">
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-light rounded-pill px-4" (click)="closeSourceCategoryModal()">Cancel</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveSourceCategory()" [disabled]="saving || !newSourceCategory.name">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>

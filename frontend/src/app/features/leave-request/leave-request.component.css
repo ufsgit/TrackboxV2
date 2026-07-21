@@ -25,7 +25,7 @@
 }
 
 .premium-card {
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 20px;
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.03);
@@ -89,7 +89,7 @@
 }
 
 .premium-input:focus, .premium-textarea:focus {
-  background-color: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-color: #6366f1;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
@@ -127,7 +127,7 @@
 }
 
 .segmented-control input[type="radio"]:checked + .segment-label {
-  background-color: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   color: #4f46e5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   font-weight: 600;
@@ -238,3 +238,4 @@
     width: 100%;
   }
 }
+

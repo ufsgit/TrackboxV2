@@ -15,7 +15,7 @@
   width: 28%;
   min-width: 250px;
   max-width: 350px;
-  background-color: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -144,7 +144,7 @@
 }
 
 .sop-section-card {
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   margin-bottom: 16px;
@@ -171,7 +171,7 @@
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  background-color: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   transition: background-color 0.2s;
 }
 
@@ -271,3 +271,4 @@
     padding: 20px;
   }
 }
+

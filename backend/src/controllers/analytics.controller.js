@@ -71,24 +71,50 @@ const getContactGrowth = async (req, res) => {
 const getCrmDashboardStats = async (req, res) => {
   try {
     const bizId = req.user.businessId;
+    const range = req.query.range || 'today';
 
-    // Based on user feedback (implied to use contacts table which has follow_up_date)
-    const [[{ totalLeads }]] = await pool.query('SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ?', [bizId]);
-    
-    // Using date(follow_up_date) to match accurately
-    const [[{ pendingFollowUps }]] = await pool.query('SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) <= CURDATE()', [bizId]);
-    const [[{ todaysFollowUps }]] = await pool.query('SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()', [bizId]);
-    const [[{ upcomingFollowUps }]] = await pool.query('SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()', [bizId]);
-    
-    // Status based metrics
-    const [[{ wonDeals }]] = await pool.query("SELECT COUNT(*) as wonDeals FROM contacts WHERE business_id = ? AND status_name = 'Converted'", [bizId]);
-    const [[{ lostDeals }]] = await pool.query("SELECT COUNT(*) as lostDeals FROM contacts WHERE business_id = ? AND status_name = 'Sales Loss'", [bizId]);
+    // Build date filter clause
+    let dateClause = '';
+    if (range === 'today') {
+      dateClause = 'AND DATE(created_at) = CURDATE()';
+    } else if (range === 'this_week') {
+      dateClause = 'AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (range === 'this_month') {
+      dateClause = 'AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+    }
 
-    // For funnel stages
+    const [[{ totalLeads }]] = await pool.query(
+      `SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ? ${dateClause}`,
+      [bizId]
+    );
+    
+    // Follow-up counts are scheduling-state based, not date-filtered
+    const [[{ pendingFollowUps }]] = await pool.query(
+      'SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) <= CURDATE()',
+      [bizId]
+    );
+    const [[{ todaysFollowUps }]] = await pool.query(
+      'SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()',
+      [bizId]
+    );
+    const [[{ upcomingFollowUps }]] = await pool.query(
+      'SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()',
+      [bizId]
+    );
+    
+    const [[{ wonDeals }]] = await pool.query(
+      `SELECT COUNT(*) as wonDeals FROM contacts WHERE business_id = ? AND status_name = 'Converted' ${dateClause}`,
+      [bizId]
+    );
+    const [[{ lostDeals }]] = await pool.query(
+      `SELECT COUNT(*) as lostDeals FROM contacts WHERE business_id = ? AND status_name = 'Sales Loss' ${dateClause}`,
+      [bizId]
+    );
+
     const [funnelData] = await pool.query(
       `SELECT status_name as name, COUNT(*) as count 
        FROM contacts 
-       WHERE business_id = ? AND status_name IS NOT NULL
+       WHERE business_id = ? AND status_name IS NOT NULL ${dateClause}
        GROUP BY status_name`,
       [bizId]
     );

@@ -59,7 +59,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 20px;
   padding: 22px 24px;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
@@ -89,6 +89,7 @@
 .kpi-blue  .kpi-glow { background: #3b82f6; }
 .kpi-green .kpi-glow { background: #22c55e; }
 .kpi-orange .kpi-glow { background: #f97316; }
+.kpi-red   .kpi-glow { background: #ef4444; }
 
 .kpi-icon {
   width: 54px;
@@ -104,6 +105,7 @@
 .kpi-blue   .kpi-icon { background: #eff6ff; color: #3b82f6; }
 .kpi-green  .kpi-icon { background: #f0fdf4; color: #22c55e; }
 .kpi-orange .kpi-icon { background: #fff7ed; color: #f97316; }
+.kpi-red    .kpi-icon { background: #fef2f2; color: #ef4444; }
 
 .kpi-body { flex: 1; }
 
@@ -129,6 +131,7 @@
 .kpi-blue   .kpi-value { color: #3b82f6; }
 .kpi-green  .kpi-value { color: #16a34a; }
 .kpi-orange .kpi-value { color: #ea580c; }
+.kpi-red    .kpi-value { color: #dc2626; }
 
 .static-val { font-size: 1.35rem; }
 
@@ -144,7 +147,7 @@
 
 /* ── Chart card ───────────────────────────────────────────────────── */
 .chart-card {
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 24px;
   padding: 28px 28px 16px;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
@@ -227,7 +230,7 @@
 
 /* ── Data Table ───────────────────────────────────────────────────── */
 .table-card {
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
@@ -298,3 +301,4 @@
 .bold-cell  { font-weight: 700; color: #0f172a; }
 .muted-cell { color: #64748b; }
 .star-cell  { font-weight: 700; color: #f59e0b; }
+

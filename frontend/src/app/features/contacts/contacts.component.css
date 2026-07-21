@@ -42,7 +42,7 @@
   font-size: 0.82rem;
   font-weight: 700;
   border: 1px solid #cbd5e1;
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   color: #334155;
   padding: 10px 20px;
   transition: all 0.25s;
@@ -91,7 +91,7 @@
   border-radius: 8px !important;
   font-size: 0.92rem !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  background: #ffffff !important;
+  background: var(--bg-card) !important; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) !important;
   font-weight: 500 !important;
   color: #0f172a !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
@@ -115,14 +115,14 @@
   font-size: 0.92rem !important;
   font-weight: 600 !important;
   color: #475569 !important;
-  background-color: #ffffff !important;
+  background: var(--bg-card) !important; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
 }
 
 .premium-select:focus, .premium-select:hover {
-  background-color: #ffffff !important;
+  background: var(--bg-card) !important; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) !important;
   border-color: #6366f1 !important;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
   outline: none !important;
@@ -389,7 +389,7 @@
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 0;
   box-shadow: none;
   animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -507,7 +507,7 @@
 
 .detail-modal-header {
   padding: 24px 32px;
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);
   display: flex;
   justify-content: space-between;
@@ -568,7 +568,7 @@
 
 .detail-tabs {
   display: flex;
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   padding: 0 32px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.8);
   gap: 24px;
@@ -623,7 +623,7 @@
 }
 
 .detail-section-card {
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -646,16 +646,17 @@
 
 .detail-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
 }
 
 .detail-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.4);
 }
 
 .detail-item:last-child {
@@ -669,6 +670,12 @@
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.detail-item label::after {
+  content: ' :';
 }
 
 .detail-item span {
@@ -700,7 +707,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 2px solid #cbd5e1;
   display: flex;
   align-items: center;
@@ -714,7 +721,7 @@
 .timeline-icon.status { border-color: #8b5cf6; color: #8b5cf6; }
 
 .timeline-content {
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 12px;
   padding: 16px 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -731,7 +738,7 @@
   gap: 20px;
 }
 .document-card {
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -759,7 +766,7 @@
   gap: 16px;
 }
 .note-card {
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 16px;
   padding: 20px;
   border: 1px solid #e2e8f0;
@@ -781,7 +788,7 @@
   gap: 16px;
 }
 .activity-card {
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
@@ -853,7 +860,7 @@
   color: #334155;
   text-align: left;
   list-style: none;
-  background-color: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   background-clip: padding-box;
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 12px;
@@ -1037,7 +1044,7 @@
   min-width: 36px;
   height: 36px;
   border: 1px solid rgba(229, 231, 235, 0.8);
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   color: #475569;
   border-radius: 10px;
   font-size: 0.82rem;
@@ -1106,13 +1113,13 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 3px solid #6366f1;
   box-shadow: 0 0 0 4px #ffffff, 0 2px 4px rgba(0,0,0,0.05);
   z-index: 1;
 }
 .timeline-content-card {
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 1px solid #f1f5f9;
   border-radius: 12px;
   padding: 16px;
@@ -1237,7 +1244,7 @@
   min-width: 36px;
   height: 36px;
   border: 1px solid rgba(229, 231, 235, 0.8);
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   color: #475569;
   border-radius: 10px;
   font-size: 0.82rem;
@@ -1306,13 +1313,13 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 3px solid #6366f1;
   box-shadow: 0 0 0 4px #ffffff, 0 2px 4px rgba(0,0,0,0.05);
   z-index: 1;
 }
 .timeline-content-card {
-  background: #ffffff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 1px solid #f1f5f9;
   border-radius: 12px;
   padding: 16px;
@@ -1394,7 +1401,7 @@
 
 /* Modern Table Container */
 .modern-table-container {
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   overflow: hidden;
@@ -1447,7 +1454,7 @@
 }
 
 .history-card {
-  background: #fff;
+  background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -1516,3 +1523,4 @@
   border: 1px dashed #cbd5e1;
   font-style: italic;
 }
+

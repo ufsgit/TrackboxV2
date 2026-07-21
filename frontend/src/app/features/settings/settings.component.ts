@@ -20,6 +20,10 @@ export class SettingsComponent implements OnInit {
   setActiveTab(tab: string) {
     this.activeTab = tab;
     localStorage.setItem('activeSettingsTab', tab);
+    if (tab === 'whatsapp') {
+      this.loadSocialAccounts();
+      this.loadSourceCategories();
+    }
   }
   showToken = false;
   showFbToken = false;
@@ -57,6 +61,114 @@ export class SettingsComponent implements OnInit {
   fbWebhookUrl = '';
   igWebhookUrl = '';
 
+  // ── Source Categories ────────────────────────────
+  sourceCategories: any[] = [];
+  sourceCategoriesLoading = false;
+  showSourceCategoryModal = false;
+  editingSourceCategory: any = null;
+  newSourceCategory: any = { name: '' };
+  
+  // ── Field Categories ─────────────────────────────
+  fieldCategories: any[] = [];
+  fieldCategoriesLoading = false;
+  showFieldCategoryModal = false;
+  editingFieldCategory: any = null;
+  newFieldCategory: any = { name: ''  }
+
+  // ── Source Categories Methods ──────────────────────
+  openAddSourceCategory() {
+    this.editingSourceCategory = null;
+    this.newSourceCategory = { name: '' };
+    this.showSourceCategoryModal = true;
+  }
+  openEditSourceCategory(sc: any) {
+    this.editingSourceCategory = sc;
+    this.newSourceCategory = { name: sc.name };
+    this.showSourceCategoryModal = true;
+  }
+  closeSourceCategoryModal() {
+    this.showSourceCategoryModal = false;
+    this.editingSourceCategory = null;
+  }
+  saveSourceCategory() {
+    this.saving = true;
+    const req = this.editingSourceCategory 
+      ? this.api.put(`/settings/source-categories/${this.editingSourceCategory.id}`, this.newSourceCategory)
+      : this.api.post('/settings/source-categories', this.newSourceCategory);
+    
+    req.subscribe({
+      next: (res: any) => {
+        this.saving = false;
+        if (res.success) {
+          this.closeSourceCategoryModal();
+          this.loadSourceCategories();
+        } else {
+          alert('Failed to save source category: ' + res.message);
+        }
+      },
+      error: (err) => {
+        this.saving = false;
+        alert('API Error: ' + (err.error?.message || err.message));
+        console.error('Save source category error:', err);
+      }
+    });
+  }
+  deleteSourceCategory(id: number) {
+    if (!confirm('Are you sure you want to delete this source category?')) return;
+    this.api.delete(`/settings/source-categories/${id}`).subscribe({
+      next: (res: any) => {
+        if (res.success) this.loadSourceCategories();
+      }
+    });
+  }
+
+  // ── Field Categories Methods ───────────────────────
+  openAddFieldCategory() {
+    this.editingFieldCategory = null;
+    this.newFieldCategory = { name: '' };
+    this.showFieldCategoryModal = true;
+  }
+  openEditFieldCategory(fc: any) {
+    this.editingFieldCategory = fc;
+    this.newFieldCategory = { name: fc.name };
+    this.showFieldCategoryModal = true;
+  }
+  closeFieldCategoryModal() {
+    this.showFieldCategoryModal = false;
+    this.editingFieldCategory = null;
+  }
+  saveFieldCategory() {
+    this.saving = true;
+    const req = this.editingFieldCategory 
+      ? this.api.put(`/settings/field-categories/${this.editingFieldCategory.id}`, this.newFieldCategory)
+      : this.api.post('/settings/field-categories', this.newFieldCategory);
+    
+    req.subscribe({
+      next: (res: any) => {
+        this.saving = false;
+        if (res.success) {
+          this.closeFieldCategoryModal();
+          this.loadFieldCategories();
+        } else {
+          alert('Failed to save field category: ' + res.message);
+        }
+      },
+      error: (err) => {
+        this.saving = false;
+        alert('API Error: ' + (err.error?.message || err.message));
+        console.error('Save field category error:', err);
+      }
+    });
+  }
+  deleteFieldCategory(id: number) {
+    if (!confirm('Are you sure you want to delete this field category?')) return;
+    this.api.delete(`/settings/field-categories/${id}`).subscribe({
+      next: (res: any) => {
+        if (res.success) this.loadFieldCategories();
+      }
+    });
+  }
+
   // ── Lead Fields ──────────────────────────────────
   leadFields: any[] = [];
   leadFieldsLoading = false;
@@ -68,7 +180,8 @@ export class SettingsComponent implements OnInit {
     field_type: 'text',
     options: '',
     is_required: false,
-    display_order: 0
+    display_order: 0,
+    category_id: ''
   };
   readonly FIELD_TYPES = [
     { value: 'text',     label: 'Text',         icon: 'bi-type' },
@@ -111,6 +224,8 @@ export class SettingsComponent implements OnInit {
     });
     this.loadBusiness();
     this.loadSocialAccounts();
+    this.loadSourceCategories();
+    this.loadFieldCategories();
     const base = window.location.origin.replace('4200', '3000') + '/api/webhooks';
     this.webhookUrl = `${base}/whatsapp`;
     this.fbWebhookUrl = `${base}/facebook`;
@@ -142,6 +257,45 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  updateChannelSourceCategory(account: any, event: any) {
+    const categoryId = event.target.value;
+    const payload = { ...account, source_category_id: categoryId ? parseInt(categoryId, 10) : null };
+    
+    this.api.put(`/settings/social-accounts/${account.id}`, payload).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          account.source_category_id = payload.source_category_id;
+        }
+      },
+      error: (err) => {
+        console.error('Failed to update channel category', err);
+        alert('Failed to update channel category');
+      }
+    });
+  }
+
+  loadSourceCategories() {
+    this.sourceCategoriesLoading = true;
+    this.api.get('/settings/source-categories').subscribe({
+      next: (res: any) => {
+        this.sourceCategoriesLoading = false;
+        if (res.success) this.sourceCategories = res.data;
+      },
+      error: () => this.sourceCategoriesLoading = false
+    });
+  }
+
+  loadFieldCategories() {
+    this.fieldCategoriesLoading = true;
+    this.api.get('/settings/field-categories').subscribe({
+      next: (res: any) => {
+        this.fieldCategoriesLoading = false;
+        if (res.success) this.fieldCategories = res.data;
+      },
+      error: () => this.fieldCategoriesLoading = false
+    });
+  }
+
   openAddChannel() {
     this.editingAccount = null;
     this.newChannel = {
@@ -154,7 +308,8 @@ export class SettingsComponent implements OnInit {
       verify_token: 'trackbox_verify_token_' + Math.random().toString(36).substring(2, 9),
       waba_id: '',
       app_id: '',
-      app_secret: ''
+      app_secret: '',
+      source_category_id: null
     };
     this.showAddChannelModal = true;
   }
@@ -171,7 +326,8 @@ export class SettingsComponent implements OnInit {
       verify_token: account.verify_token || '',
       waba_id: account.waba_id || '',
       app_id: account.app_id || '',
-      app_secret: account.app_secret || ''
+      app_secret: account.app_secret || '',
+      source_category_id: account.source_category_id || ''
     };
     this.showAddChannelModal = true;
   }
@@ -242,7 +398,8 @@ export class SettingsComponent implements OnInit {
       waba_id: account.waba_id,
       app_id: account.app_id,
       app_secret: account.app_secret,
-      is_active: updatedStatus
+      is_active: updatedStatus,
+      source_category_id: account.source_category_id
     }).subscribe({
       next: (res: any) => {
         if (res.success) {
@@ -469,14 +626,15 @@ export class SettingsComponent implements OnInit {
     this.showAddFieldModal = true;
   }
 
-  openEditFieldModal(field: any) {
+  openEditField(field: any) {
     this.editingField = field;
     this.newField = {
       label: field.label,
       field_type: field.field_type,
-      options: Array.isArray(field.options) ? field.options.join('\n') : '',
-      is_required: !!field.is_required,
-      display_order: field.display_order || 0
+      options: Array.isArray(field.options) ? field.options.join(',') : '',
+      is_required: field.is_required,
+      display_order: field.display_order,
+      category_id: field.category_id || ''
     };
     this.showAddFieldModal = true;
   }

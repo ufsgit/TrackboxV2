@@ -14,17 +14,21 @@
 }
 
 .stat-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  border-radius: 24px;
-  padding: 32px 28px;
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 100%);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 1);
+  border-left: 1px solid rgba(255, 255, 255, 1);
+  border-radius: var(--radius-lg); 
+  padding: 24px;
   display: flex;
   align-items: center;
   gap: 24px;
   transition: all 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
-  position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
   
   /* 3D Perspective Physics */
   transform-style: preserve-3d;
@@ -65,15 +69,15 @@
   cursor: pointer;
 }
 
-.stat-card:nth-child(1) { background: linear-gradient(145deg, #eff6ff 0%, #ffffff 100%); border-color: #dbeafe; }
-.stat-card:nth-child(2) { background: linear-gradient(145deg, #faf5ff 0%, #ffffff 100%); border-color: #f3e8ff; }
-.stat-card:nth-child(3) { background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%); border-color: #dcfce7; }
-.stat-card:nth-child(4) { background: linear-gradient(145deg, #fffbeb 0%, #ffffff 100%); border-color: #fef3c7; }
+.stat-card:nth-child(1) { }
+.stat-card:nth-child(2) { }
+.stat-card:nth-child(3) { }
+.stat-card:nth-child(4) { }
 
-.stat-card:nth-child(1):hover { box-shadow: 0 20px 32px -10px rgba(59, 130, 246, 0.28); border-color: #bfdbfe; }
-.stat-card:nth-child(2):hover { box-shadow: 0 20px 32px -10px rgba(168, 85, 247, 0.28); border-color: #e9d5ff; }
-.stat-card:nth-child(3):hover { box-shadow: 0 20px 32px -10px rgba(16, 185, 129, 0.28); border-color: #bbf7d0; }
-.stat-card:nth-child(4):hover { box-shadow: 0 20px 32px -10px rgba(245, 158, 11, 0.28); border-color: #fde68a; }
+.stat-card:nth-child(1):hover { box-shadow: 0 20px 35px rgba(59, 130, 246, 0.15); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(2):hover { box-shadow: 0 20px 35px rgba(168, 85, 247, 0.15); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(3):hover { box-shadow: 0 20px 35px rgba(16, 185, 129, 0.15); border-color: rgba(255,255,255,1); }
+.stat-card:nth-child(4):hover { box-shadow: 0 20px 35px rgba(245, 158, 11, 0.15); border-color: rgba(255,255,255,1); }
 
 .stat-icon {
   width: 60px;

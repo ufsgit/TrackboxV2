@@ -17,7 +17,7 @@ const getContacts = async (req, res) => {
     const { offset, limit: lim, page: p } = paginate(page, limit);
     const bizId = req.user.businessId;
 
-    let where = 'WHERE business_id = ?';
+    let where = 'WHERE c.business_id = ?';
     const params = [bizId];
     if (req.user.role === 'agent') {
       // Get all user IDs who share a team with this agent (including themselves)
@@ -33,19 +33,20 @@ const getContacts = async (req, res) => {
       where += ` AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
       params.push(...teamMemberIds);
     } else if (agent) {
-      where += ' AND assigned_to = ?';
+      where += ' AND c.assigned_to = ?';
       params.push(agent);
     }
-    if (channel) { where += ' AND channel_preference = ?'; params.push(channel); }
-    if (status) { where += ' AND status_name = ?'; params.push(status); }
-    if (search) { where += ' AND (name LIKE ? OR phone LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
-    if (tags) { where += ' AND JSON_CONTAINS(tags, ?)'; params.push(JSON.stringify(tags)); }
+    if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
+    if (status) { where += ' AND c.status_name = ?'; params.push(status); }
+    if (search) { where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (tags) { where += ' AND JSON_CONTAINS(c.tags, ?)'; params.push(JSON.stringify(tags)); }
 
-    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM contacts ${where}`, params);
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM contacts c ${where}`, params);
     const [rows] = await pool.query(`
-      SELECT c.*, 
+      SELECT c.*, u.name as assigned_employee_name,
         (SELECT remarks FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_remark
       FROM contacts c 
+      LEFT JOIN users u ON c.assigned_to = u.id
       ${where} 
       ORDER BY c.created_at DESC 
       LIMIT ? OFFSET ?

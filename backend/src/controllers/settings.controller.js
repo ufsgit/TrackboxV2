@@ -194,10 +194,10 @@ const getSocialAccounts = async (req, res) => {
 
 const createSocialAccount = async (req, res) => {
   try {
-    const { platform, account_name, phone_number, phone_id, account_id, token, verify_token, waba_id, app_id, app_secret } = req.body;
+    const { platform, account_name, phone_number, phone_id, account_id, token, verify_token, waba_id, app_id, app_secret, source_category_id } = req.body;
     const [result] = await pool.query(
-      `INSERT INTO social_accounts (business_id, platform, account_name, phone_number, phone_id, account_id, token, verify_token, waba_id, app_id, app_secret) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO social_accounts (business_id, platform, account_name, phone_number, phone_id, account_id, token, verify_token, waba_id, app_id, app_secret, source_category_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.businessId,
         platform,
@@ -209,7 +209,8 @@ const createSocialAccount = async (req, res) => {
         verify_token || null,
         waba_id || null,
         app_id || null,
-        app_secret || null
+        app_secret || null,
+        source_category_id || null
       ]
     );
     const [rows] = await pool.query('SELECT * FROM social_accounts WHERE id=?', [result.insertId]);
@@ -221,10 +222,10 @@ const createSocialAccount = async (req, res) => {
 
 const updateSocialAccount = async (req, res) => {
   try {
-    const { account_name, phone_number, phone_id, account_id, token, verify_token, waba_id, app_id, app_secret, is_active } = req.body;
+    const { account_name, phone_number, phone_id, account_id, token, verify_token, waba_id, app_id, app_secret, is_active, source_category_id } = req.body;
     await pool.query(
       `UPDATE social_accounts SET 
-        account_name=?, phone_number=?, phone_id=?, account_id=?, token=?, verify_token=?, waba_id=?, app_id=?, app_secret=?, is_active=?
+        account_name=?, phone_number=?, phone_id=?, account_id=?, token=?, verify_token=?, waba_id=?, app_id=?, app_secret=?, is_active=?, source_category_id=?
        WHERE id=? AND business_id=?`,
       [
         account_name,
@@ -237,6 +238,7 @@ const updateSocialAccount = async (req, res) => {
         app_id || null,
         app_secret || null,
         is_active === undefined ? 1 : (is_active ? 1 : 0),
+        source_category_id || null,
         req.params.id,
         req.user.businessId
       ]
@@ -287,7 +289,11 @@ const testSocialAccountConnection = async (req, res) => {
 const getLeadFields = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT * FROM lead_fields WHERE business_id=? ORDER BY display_order ASC, id ASC',
+      `SELECT lf.*, fc.name as category_name 
+       FROM lead_fields lf 
+       LEFT JOIN field_categories fc ON lf.category_id = fc.id 
+       WHERE lf.business_id=? 
+       ORDER BY lf.display_order ASC, lf.id ASC`,
       [req.user.businessId]
     );
     const fields = rows.map(f => ({
@@ -300,14 +306,14 @@ const getLeadFields = async (req, res) => {
 
 const createLeadField = async (req, res) => {
   try {
-    const { label, field_type, options, is_required, display_order } = req.body;
+    const { label, field_type, options, is_required, display_order, category_id } = req.body;
     if (!label || !field_type) return res.status(400).json({ success: false, message: 'label and field_type are required', data: null });
     // Generate a slug key from label
     const field_key = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 80);
     const optionsJson = field_type === 'dropdown' && Array.isArray(options) ? JSON.stringify(options) : null;
     const [result] = await pool.query(
-      'INSERT INTO lead_fields (business_id, label, field_key, field_type, options, is_required, display_order) VALUES (?,?,?,?,?,?,?)',
-      [req.user.businessId, label, field_key, field_type, optionsJson, is_required ? 1 : 0, display_order || 0]
+      'INSERT INTO lead_fields (business_id, label, field_key, field_type, options, is_required, display_order, category_id) VALUES (?,?,?,?,?,?,?,?)',
+      [req.user.businessId, label, field_key, field_type, optionsJson, is_required ? 1 : 0, display_order || 0, category_id || null]
     );
     const [rows] = await pool.query('SELECT * FROM lead_fields WHERE id=?', [result.insertId]);
     const field = { ...rows[0], options: typeof rows[0].options === 'string' ? JSON.parse(rows[0].options || '[]') : (rows[0].options || []) };
@@ -320,11 +326,11 @@ const createLeadField = async (req, res) => {
 
 const updateLeadField = async (req, res) => {
   try {
-    const { label, field_type, options, is_required, display_order } = req.body;
+    const { label, field_type, options, is_required, display_order, category_id } = req.body;
     const optionsJson = field_type === 'dropdown' && Array.isArray(options) ? JSON.stringify(options) : null;
     await pool.query(
-      'UPDATE lead_fields SET label=?, field_type=?, options=?, is_required=?, display_order=? WHERE id=? AND business_id=?',
-      [label, field_type, optionsJson, is_required ? 1 : 0, display_order || 0, req.params.id, req.user.businessId]
+      'UPDATE lead_fields SET label=?, field_type=?, options=?, is_required=?, display_order=?, category_id=? WHERE id=? AND business_id=?',
+      [label, field_type, optionsJson, is_required ? 1 : 0, display_order || 0, category_id || null, req.params.id, req.user.businessId]
     );
     const [rows] = await pool.query('SELECT * FROM lead_fields WHERE id=?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ success: false, message: 'Not found', data: null });

@@ -445,6 +445,31 @@ async function runMigrations() {
     await pool.query("ALTER TABLE contacts ADD COLUMN address TEXT NULL");
   }
 
+  // Create source_categories table
+  await pool.query(`CREATE TABLE IF NOT EXISTS source_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  )`);
+
+  // Add source_category_id to social_accounts if not exists
+  const [saCol] = await pool.query("SHOW COLUMNS FROM social_accounts LIKE 'source_category_id'");
+  if (saCol.length === 0) {
+    await pool.query("ALTER TABLE social_accounts ADD COLUMN source_category_id INT NULL");
+    await pool.query("ALTER TABLE social_accounts ADD CONSTRAINT fk_sa_source_category FOREIGN KEY (source_category_id) REFERENCES source_categories(id) ON DELETE SET NULL");
+  }
+
+  // Create field_categories table
+  await pool.query(`CREATE TABLE IF NOT EXISTS field_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  )`);
+
   // Create lead_fields table for custom field definitions
   await pool.query(`CREATE TABLE IF NOT EXISTS lead_fields (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -459,6 +484,13 @@ async function runMigrations() {
     UNIQUE KEY uq_biz_key (business_id, field_key),
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
   )`);
+
+  // Add category_id to lead_fields if not exists
+  const [lfCol] = await pool.query("SHOW COLUMNS FROM lead_fields LIKE 'category_id'");
+  if (lfCol.length === 0) {
+    await pool.query("ALTER TABLE lead_fields ADD COLUMN category_id INT NULL");
+    await pool.query("ALTER TABLE lead_fields ADD CONSTRAINT fk_lf_field_category FOREIGN KEY (category_id) REFERENCES field_categories(id) ON DELETE SET NULL");
+  }
 
   // Create contact_custom_values table for per-contact values
   await pool.query(`CREATE TABLE IF NOT EXISTS contact_custom_values (

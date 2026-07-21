@@ -152,12 +152,16 @@
             <span>Employee report</span>
           </a>
           <a routerLink="/reports/enquiry" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Enquiry Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Enquiry report</span>
+            <i class="bi bi-circle-fill"></i>
+            <span *ngIf="!isCollapsed">Enquiry Report</span>
           </a>
-          <a routerLink="/reports/status" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Status Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Status report</span>
+          <a routerLink="/reports/status" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Lead Status Report' : ''">
+            <i class="bi bi-circle-fill"></i>
+            <span *ngIf="!isCollapsed">Lead Status</span>
+          </a>
+          <a routerLink="/reports/source-conversion" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Source Conversion' : ''">
+            <i class="bi bi-circle-fill"></i>
+            <span *ngIf="!isCollapsed">Source Conversion</span>
           </a>
         </div>
 
