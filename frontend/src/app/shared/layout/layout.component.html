@@ -35,17 +35,8 @@
           </button>
           
           <div class="dept-dropdown" *ngIf="isDepartmentDropdownOpen" (click)="$event.stopPropagation()">
-            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Leads'" (click)="setDepartment('Leads')">
-              <i class="bi bi-funnel"></i> Leads
-            </a>
             <a class="dept-dropdown-item" [class.active]="activeDepartment === 'CRM'" (click)="setDepartment('CRM')">
               <i class="bi bi-briefcase"></i> CRM
-            </a>
-            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Operation'" (click)="setDepartment('Operation')">
-              <i class="bi bi-tools"></i> Operation
-            </a>
-            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'HR'" (click)="setDepartment('HR')">
-              <i class="bi bi-people"></i> HR
             </a>
           </div>
         </div>
@@ -328,10 +319,7 @@
           </div>
         </div>
         
-        <a routerLink="/crm-settings" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-gear"></i>
-          <span>Settings</span>
-        </a>
+
         <a routerLink="/sop" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item">
           <i class="bi bi-journal-text"></i>
           <span>SOP Guide</span>

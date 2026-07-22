@@ -2,7 +2,6 @@
   <!-- Page Header -->
   <div class="contacts-header d-flex justify-content-between align-items-center" style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; width: 100% !important;">
     <div class="header-left" style="display: flex; align-items: center; gap: 16px; flex: 1; margin-right: 16px;">
-      <h2 style="white-space: nowrap;">Leads</h2>
       <div class="search-box" style="margin: 0; max-width: 300px; width: 100%;">
         <i class="bi bi-search"></i>
         <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name, phone or email..." class="premium-input">
@@ -55,7 +54,7 @@
         </ul>
       </div>
       <button class="btn btn-primary px-4 py-2 shadow-sm ms-1" (click)="openAddModal()" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
-        <i class="bi bi-person-plus me-2"></i> Add Contact
+        <i class="bi bi-person-plus me-2"></i> Add Lead
       </button>
     </div>
   </div>
@@ -86,7 +85,7 @@
           <td colspan="7" class="text-center py-5">
             <div class="empty-state d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
               <i class="bi bi-people d-block mb-3" style="font-size: 3rem; color: #10B981; background: rgba(16, 185, 129, 0.1); width: 80px; height: 80px; line-height: 80px; border-radius: 50%;"></i>
-              <h4 style="font-weight: 800; color: #111827;">No Contacts Found</h4>
+              <h4 style="font-weight: 800; color: #111827;">No Leads Found</h4>
               <p class="text-muted mb-0">Try adjusting your filters or search query.</p>
             </div>
           </td>
@@ -96,7 +95,7 @@
           <td>
             <div class="d-flex align-items-center contact-profile" (click)="openDetailPanel(contact)" title="Click to view details" style="cursor: pointer;">
               <div>
-                <div class="fw-bold contact-name" style="font-size: 0.95rem;">{{ contact.name }}</div>
+                <div class="fw-bold contact-name" style="font-size: 0.95rem; color: #4f46e5; font-weight: 700;">{{ contact.name }}</div>
               </div>
             </div>
           </td>
@@ -166,7 +165,7 @@
   <!-- Pagination -->
   <div class="pagination-bar" *ngIf="totalContacts > 0">
     <div class="pagination-info">
-      Showing <strong>{{ paginationStart }}</strong>–<strong>{{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> contacts
+      Showing <strong>{{ paginationStart }}</strong>–<strong>{{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads
     </div>
     <div class="pagination-controls">
       <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First page">
@@ -704,8 +703,8 @@
           <i class="bi bi-person-vcard" style="color:#fff;font-size:1.1rem;"></i>
         </div>
         <div>
-          <h4>{{ editingContactId ? 'Edit Contact' : 'Add New Contact' }}</h4>
-          <p style="margin:0;font-size:0.8rem;color:#64748b;">Fill in the contact details below</p>
+          <h4>{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
+          <p style="margin:0;font-size:0.8rem;color:#64748b;">Fill in the lead details below</p>
         </div>
       </div>
       <button class="close-btn" (click)="showModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
@@ -715,7 +714,7 @@
     <div class="modal-body-scroll">
 
       <!-- ── Contact Info ── -->
-      <div class="section-divider"><i class="bi bi-person-fill"></i> Contact Information</div>
+      <div class="section-divider"><i class="bi bi-person-fill"></i> Lead Information</div>
 
       <div class="fields-grid">
         <div class="field-row">
@@ -888,7 +887,7 @@
       <button class="btn btn-light px-5 py-2" (click)="showModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
       <button class="btn px-6 py-2" (click)="saveContact()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:10px 32px;">
         <i class="bi bi-check2-circle me-2"></i>
-        {{ editingContactId ? 'Update Contact' : 'Save Contact' }}
+        {{ editingContactId ? 'Update Lead' : 'Save Lead' }}
       </button>
     </div>
   </div>

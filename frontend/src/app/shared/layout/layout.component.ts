@@ -403,7 +403,7 @@ export class LayoutComponent implements OnInit {
   private syncDepartmentWithUrl(url: string) {
     if (!url || url.includes('/sop')) return;
     
-    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings'];
+    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings', 'system-settings'];
     
     const operationRoutes = ['operation-dashboard', 'installation', 'customer-feedback', 'warranty-service', 'complaints', 'installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report', 'operation/leave-request'];
     
