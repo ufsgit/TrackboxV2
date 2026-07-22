@@ -1,44 +1,43 @@
 <div class="report-page">
 
-  <!-- ── Header ─────────────────────────────────────────────── -->
+  <!-- Header -->
   <div class="page-header">
     <div>
-      <h2 class="page-title">Individuals Reports</h2>
-      <p class="page-sub">Evaluate agent lead handling and conversion rates</p>
+      <h2 class="page-title">Agent Performance Report</h2>
+      <p class="page-sub">Evaluate response times, conversion rates, and overall efficiency.</p>
     </div>
     <button class="export-btn">
       <i class="bi bi-cloud-download"></i> Export Report
     </button>
   </div>
 
-  <!-- ── KPI Cards (rolling counters) ──────────────────────── -->
+  <!-- KPI Cards -->
   <div class="kpi-row">
 
     <!-- Top Agent -->
     <div class="kpi-card kpi-blue">
-      <div class="kpi-icon">
-        <i class="bi bi-person-fill-check"></i>
-      </div>
+      <div class="kpi-icon"><i class="bi bi-person-fill-check"></i></div>
       <div class="kpi-body">
         <span class="kpi-label">Top Agent</span>
         <div class="kpi-value static-val">Eva G.</div>
       </div>
       <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
 
-    <!-- Highest Conv Rate – rolling number -->
+    <!-- Highest Conv Rate -->
     <div class="kpi-card kpi-green">
-      <div class="kpi-icon">
-        <i class="bi bi-graph-up-arrow"></i>
-      </div>
+      <div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div>
       <div class="kpi-body">
         <span class="kpi-label">Highest Conv. Rate</span>
-        <div class="kpi-value roll-num">{{ kpi_convRate }}%</div>
+        <div class="kpi-value">{{ kpi_convRate }}%</div>
       </div>
       <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
 
-    <!-- Lowest Conv. Rate – rolling number -->
+
+    <!-- Lowest Conv. Rate -->
     <div class="kpi-card kpi-red">
       <div class="kpi-icon">
         <i class="bi bi-graph-down-arrow"></i>
@@ -48,156 +47,41 @@
         <div class="kpi-value roll-num">{{ kpi_lowestConvRate }}%</div>
       </div>
       <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
+    </div>
+
+    <!-- Avg Response Time -->
+    <div class="kpi-card kpi-orange">
+      <div class="kpi-icon"><i class="bi bi-stopwatch"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Avg Response Time</span>
+        <div class="kpi-value">{{ kpi_respTime }}m</div>
+      </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
 
   </div>
 
-  <!-- ── 3D Bar Chart ─────────────────────────────────────── -->
+  <!-- Chart Section -->
   <div class="chart-card">
     <div class="chart-header">
       <h5 class="chart-title">Agent Performance</h5>
       <div class="chart-legend-row">
         <span class="leg-dot leads-dot"></span><span class="leg-txt">Leads Handled</span>
-        <span class="leg-dot conv-dot"></span><span class="leg-txt">Conversions</span>
+        <span class="leg-dot conv-dot"></span><span class="leg-txt">Converted</span>
       </div>
     </div>
-
-    <div class="svg-scroll-wrap">
-      <svg [attr.width]="svgWidth" [attr.height]="svgHeight + depthY + 10" class="chart-svg">
-
-        <!-- ── Grid lines ── -->
-        <g class="grid-group">
-          <ng-container *ngFor="let gv of gridLines">
-            <line
-              [attr.x1]="44"
-              [attr.y1]="gridY(gv)"
-              [attr.x2]="svgWidth - 4"
-              [attr.y2]="gridY(gv)"
-              stroke="#e2e8f0" stroke-width="1"
-              [attr.stroke-dasharray]="gv === 0 ? 'none' : '4 4'"
-            />
-            <text
-              [attr.x]="38"
-              [attr.y]="gridY(gv) + 4"
-              text-anchor="end"
-              class="axis-label"
-            >{{ gv }}</text>
-          </ng-container>
-        </g>
-
-        <!-- ── Bars per agent ── -->
-        <g *ngFor="let a of agents; let i = index">
-
-          <!-- LEADS bar ── front face -->
-          <rect
-            [attr.x]="leadsX(i)"
-            [attr.y]="chartH - animLeads[i]"
-            [attr.width]="barW"
-            [attr.height]="animLeads[i]"
-            rx="3" ry="3"
-            fill="url(#leadsGrad)"
-          />
-          <!-- LEADS bar ── right (dark) face -->
-          <polygon
-            [attr.points]="rightPoly(leadsX(i), animLeads[i])"
-            fill="url(#leadsRight)"
-          />
-          <!-- LEADS bar ── top face -->
-          <polygon
-            [attr.points]="topPoly(leadsX(i), animLeads[i])"
-            fill="url(#leadsTop)"
-          />
-          <!-- LEADS bar value -->
-          <text
-            [attr.x]="leadsX(i) + barW / 2"
-            [attr.y]="chartH - animLeads[i] - depthY - 6"
-            text-anchor="middle"
-            class="bar-val"
-            *ngIf="animLeads[i] > 8"
-          >{{ a.leadsHandled }}</text>
-
-          <!-- CONV bar ── front face -->
-          <rect
-            [attr.x]="convX(i)"
-            [attr.y]="chartH - animConv[i]"
-            [attr.width]="barW"
-            [attr.height]="animConv[i]"
-            rx="3" ry="3"
-            fill="url(#convGrad)"
-          />
-          <!-- CONV bar ── right face -->
-          <polygon
-            [attr.points]="rightPoly(convX(i), animConv[i])"
-            fill="url(#convRight)"
-          />
-          <!-- CONV bar ── top face -->
-          <polygon
-            [attr.points]="topPoly(convX(i), animConv[i])"
-            fill="url(#convTop)"
-          />
-          <!-- CONV bar value -->
-          <text
-            [attr.x]="convX(i) + barW / 2"
-            [attr.y]="chartH - animConv[i] - depthY - 6"
-            text-anchor="middle"
-            class="bar-val conv-val"
-            *ngIf="animConv[i] > 8"
-          >{{ a.converted }}</text>
-
-          <!-- X-axis label -->
-          <text
-            [attr.x]="groupX(i) + barW + gap / 2"
-            [attr.y]="chartH + 22"
-            text-anchor="middle"
-            class="x-label"
-          >{{ a.agent }}</text>
-        </g>
-
-        <!-- ── SVG gradient defs ── -->
-        <defs>
-          <!-- Leads front -->
-          <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#a5b4fc"/>
-            <stop offset="100%" stop-color="#4f46e5"/>
-          </linearGradient>
-          <!-- Leads right side (darker) -->
-          <linearGradient id="leadsRight" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#4338ca"/>
-            <stop offset="100%" stop-color="#3730a3"/>
-          </linearGradient>
-          <!-- Leads top -->
-          <linearGradient id="leadsTop" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#c7d2fe"/>
-            <stop offset="100%" stop-color="#818cf8"/>
-          </linearGradient>
-
-          <!-- Conv front -->
-          <linearGradient id="convGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#6ee7b7"/>
-            <stop offset="100%" stop-color="#059669"/>
-          </linearGradient>
-          <!-- Conv right side -->
-          <linearGradient id="convRight" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="#047857"/>
-            <stop offset="100%" stop-color="#065f46"/>
-          </linearGradient>
-          <!-- Conv top -->
-          <linearGradient id="convTop" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#a7f3d0"/>
-            <stop offset="100%" stop-color="#34d399"/>
-          </linearGradient>
-
-          <!-- Drop shadow filter -->
-          <filter id="barShadow" x="-10%" y="-10%" width="130%" height="130%">
-            <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#0004"/>
-          </filter>
-        </defs>
-
-      </svg>
+    <div style="height: 350px; padding: 0 8px;">
+      <canvas baseChart
+        [data]="chartData"
+        [options]="chartOptions"
+        [type]="chartType">
+      </canvas>
     </div>
   </div>
 
-  <!-- ── Data Table ──────────────────────────────────────────── -->
+  <!-- Data Table -->
   <div class="table-card">
     <div class="table-header">
       <h5 class="chart-title">Conversion by Agent</h5>
@@ -207,22 +91,29 @@
       <table class="perf-table">
         <thead>
           <tr>
-            <th>Agent</th>
+            <th>Agent Name</th>
             <th>Leads Handled</th>
             <th>Converted</th>
             <th>Conversion Rate</th>
-            <th>Avg Response Time</th>
-            <th class="text-end">Rating</th>
+            <th>Avg. Response</th>
+            <th class="text-end">Client Rating</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let a of filteredAgents; let last = last" [class.last-row]="last">
+          <tr *ngFor="let a of filteredAgents; let i = index; let last = last"
+              [class.last-row]="last"
+              class="table-row"
+              [style.--row-i]="i">
             <td><span class="agent-name">{{ a.agent }}</span></td>
             <td class="num-cell">{{ a.leadsHandled }}</td>
             <td class="num-cell bold-cell">{{ a.converted }}</td>
-            <td><span [ngClass]="getRateClass(a.rate)" style="font-size:0.8rem;font-weight:600;">{{ a.rate }}</span></td>
-            <td class="muted-cell">{{ a.avgResponseTime }}</td>
-            <td class="text-end star-cell"><i class="bi bi-star-fill me-1"></i>{{ a.rating }}</td>
+            <td class="rate-cell">{{ a.rate }}</td>
+            <td class="muted-cell"><i class="bi bi-clock-history me-1"></i>{{ a.avgResponseTime }}</td>
+            <td class="text-end">
+              <span [ngClass]="getRatingClass(a.rating)" style="font-weight:700;">
+                <i class="bi bi-star-fill text-warning me-1"></i>{{ a.rating }}
+              </span>
+            </td>
           </tr>
         </tbody>
       </table>

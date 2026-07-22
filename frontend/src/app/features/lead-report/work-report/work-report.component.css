@@ -130,3 +130,90 @@
   border-bottom: none;
 }
 
+
+/* ── Animations ───────────────────────────────────────────── */
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmerSweep {
+  from { background-position: 250% 0; }
+  to   { background-position: -250% 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1);   opacity: .1; }
+  50%       { transform: scale(1.4); opacity: .2; }
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.kpi-row .kpi-card {
+  position: relative;
+  overflow: hidden;
+  animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.kpi-row .kpi-card:nth-child(1) { animation-delay: 0.08s; }
+.kpi-row .kpi-card:nth-child(2) { animation-delay: 0.18s; }
+.kpi-row .kpi-card:nth-child(3) { animation-delay: 0.28s; }
+.kpi-row .kpi-card:nth-child(4) { animation-delay: 0.38s; }
+
+.kpi-glow {
+  position: absolute;
+  right: -22px;
+  top: -22px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: pulseGlow 3.2s ease-in-out infinite;
+}
+
+.kpi-blue   .kpi-glow { background: #3b82f6; }
+.kpi-green  .kpi-glow { background: #22c55e; }
+.kpi-purple .kpi-glow { background: #a855f7; }
+.kpi-orange .kpi-glow { background: #f97316; }
+
+.kpi-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,.55) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: shimmerSweep 1.8s ease-out 0.2s both;
+  pointer-events: none;
+}
+
+.chart-card {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.grid:nth-of-type(2) .chart-card:nth-child(1) { animation-delay: 0.2s; }
+.grid:nth-of-type(2) .chart-card:nth-child(2) { animation-delay: 0.3s; }
+.grid:nth-of-type(3) .chart-card:nth-child(1) { animation-delay: 0.4s; }
+.grid:nth-of-type(3) .chart-card:nth-child(2) { animation-delay: 0.5s; }
+
+.table-row {
+  animation: rowIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(0.55s + var(--row-i, 0) * 0.07s);
+}
+

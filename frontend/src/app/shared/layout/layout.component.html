@@ -1,536 +1,68 @@
-<div class="app-container" [class.sidebar-collapsed]="isCollapsed">
-  <aside class="sidebar">
-    <div class="logo-section">
-      <div class="logo-container" routerLink="/lead-dashboard" style="cursor: pointer;" title="Go to Dashboard">
-        <div class="logo-icon">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width: 100%; height: 100%; display: block;">
-            <!-- Connecting link paths forming T -->
-            <path d="M25 32 L75 32 M50 32 L50 68" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
-            <!-- Node connectors -->
-            <circle cx="25" cy="32" r="7" fill="#ffffff" />
-            <circle cx="50" cy="68" r="7" fill="#818cf8" />
-            <circle cx="75" cy="32" r="7" fill="#38bdf8" />
-            
-            <defs>
-              <linearGradient id="logo-glow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#ffffff" />
-                <stop offset="50%" stop-color="#818cf8" />
-                <stop offset="100%" stop-color="#38bdf8" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div class="logo-text" *ngIf="!isCollapsed">Trackbox<span class="logo-dot">.</span></div>
-      </div>
-      <button class="collapse-toggle" (click)="toggleSidebar()" [title]="isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
-        <i class="bi" [class.bi-chevron-left]="!isCollapsed" [class.bi-chevron-right]="isCollapsed"></i>
-      </button>
-    </div>
-
-    <!-- Department Switcher -->
-    <div class="department-switcher" *ngIf="!isCollapsed">
-      <button class="dept-btn" (click)="toggleDepartmentDropdown($event)">
-        <div class="dept-info">
-          <i class="bi" [ngClass]="{'bi-funnel': activeDepartment === 'Leads', 'bi-briefcase': activeDepartment === 'CRM', 'bi-tools': activeDepartment === 'Operation', 'bi-people': activeDepartment === 'HR'}"></i>
-          <span>{{ activeDepartment }}</span>
-        </div>
-        <i class="bi bi-chevron-down dept-chevron" [class.rotated]="isDepartmentDropdownOpen"></i>
-      </button>
-      
-      <div class="dept-dropdown" *ngIf="isDepartmentDropdownOpen" (click)="$event.stopPropagation()">
-        <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Leads'" (click)="setDepartment('Leads')">
-          <i class="bi bi-funnel"></i> Leads
-        </a>
-        <a class="dept-dropdown-item" [class.active]="activeDepartment === 'CRM'" (click)="setDepartment('CRM')">
-          <i class="bi bi-briefcase"></i> CRM
-        </a>
-        <!--
-        <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Operation'" (click)="setDepartment('Operation')">
-          <i class="bi bi-tools"></i> Operation
-        </a>
-        <a class="dept-dropdown-item" [class.active]="activeDepartment === 'HR'" (click)="setDepartment('HR')">
-          <i class="bi bi-people"></i> HR
-        </a>
-        -->
-      </div>
-    </div>
-
-    <nav class="nav-links" *ngIf="user$ | async as user">
-      <!-- LEADS MENU -->
-      <ng-container *ngIf="activeDepartment === 'Leads'">
-        <a routerLink="/lead-dashboard" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Lead Dashboard' : ''">
-        <i class="bi bi-speedometer2"></i>
-        <span *ngIf="!isCollapsed">Lead Dashboard</span>
-      </a>
-      <a routerLink="/inbox" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Shared Inbox' : ''">
-        <i class="bi bi-chat-dots"></i>
-        <span *ngIf="!isCollapsed">Shared Inbox</span>
-      </a>
-      
-      <!-- Admin Only Tools -->
-      <ng-container *ngIf="user.role === 'admin' || user.role === 'superadmin'">
-        <a routerLink="/broadcasts" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Broadcasts' : ''">
-          <i class="bi bi-megaphone"></i>
-          <span *ngIf="!isCollapsed">Broadcasts</span>
-        </a>
-        <a routerLink="/chatbots" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Chatbots' : ''">
-          <i class="bi bi-robot"></i>
-          <span *ngIf="!isCollapsed">Chatbots</span>
-        </a>
-      </ng-container>
-
-      <!-- <a routerLink="/contacts" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Leads' : ''">
-        <i class="bi bi-people"></i>
-        <span *ngIf="!isCollapsed">Leads</span>
-      </a> -->
-
-      <!-- Admin Only Strategy & Settings -->
-      <ng-container *ngIf="user.role === 'admin' || user.role === 'superadmin'">
-        <a routerLink="/templates" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Templates' : ''">
-          <i class="bi bi-file-earmark-text"></i>
-          <span *ngIf="!isCollapsed">Templates</span>
-        </a>
-        <!-- 
-        <a routerLink="/drip" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Drip Campaigns' : ''">
-          <i class="bi bi-funnel"></i>
-          <span *ngIf="!isCollapsed">Drip Campaigns</span>
-        </a>
-        <a routerLink="/ecommerce" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Ecommerce' : ''">
-          <i class="bi bi-cart3"></i>
-          <span *ngIf="!isCollapsed">Ecommerce</span>
-        </a>
-        <a routerLink="/rcs" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'RCS Business' : ''">
-          <i class="bi bi-chat-left-text"></i>
-          <span *ngIf="!isCollapsed">RCS Business</span>
-        </a>
-        <a routerLink="/sms" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SMS' : ''">
-          <i class="bi bi-chat-square-text"></i>
-          <span *ngIf="!isCollapsed">SMS</span>
-        </a>
-        <a routerLink="/ivr" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'IVR Flows' : ''">
-          <i class="bi bi-telephone-outbound"></i>
-          <span *ngIf="!isCollapsed">IVR Flows</span>
-        </a>
-        <a routerLink="/ctwa" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Click to WhatsApp' : ''">
-          <i class="bi bi-link-45deg"></i>
-          <span *ngIf="!isCollapsed">Click to WhatsApp</span>
-        </a>
-        <a routerLink="/affiliates" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Affiliates' : ''">
-          <i class="bi bi-award"></i>
-          <span *ngIf="!isCollapsed">Affiliates</span>
-        </a>
-        <a routerLink="/analytics" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Analytics' : ''">
-          <i class="bi bi-graph-up"></i>
-          <span *ngIf="!isCollapsed">Analytics</span>
-        </a>
-        -->
-        <!-- Leave Request -->
-        <a routerLink="/lead/leave-request" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Leave Request' : ''">
-          <i class="bi bi-calendar2-check"></i>
-          <span *ngIf="!isCollapsed">Leave Request</span>
-        </a>
-        
-        <!-- Reports Menu -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isReportsOpen" *ngIf="!isCollapsed" (click)="toggleReports($event)">
-          <div class="nav-item-content">
-            <i class="bi bi-bar-chart-line"></i>
-            <span>Reports</span>
+<div class="app-container">
+  <!-- Top Header with Dual Row Navigation -->
+  <header class="top-header">
+    <!-- Row 1: Brand Logo, Department Switcher, Page Title & Utility Actions -->
+    <div class="top-bar-main">
+      <div class="brand-section">
+        <!-- Logo -->
+        <div class="logo-container" routerLink="/lead-dashboard" title="Go to Dashboard">
+          <div class="logo-icon">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width: 100%; height: 100%; display: block;">
+              <path d="M25 32 L75 32 M50 32 L50 68" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="25" cy="32" r="7" fill="#ffffff" />
+              <circle cx="50" cy="68" r="7" fill="#818cf8" />
+              <circle cx="75" cy="32" r="7" fill="#38bdf8" />
+              <defs>
+                <linearGradient id="logo-glow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="50%" stop-color="#818cf8" />
+                  <stop offset="100%" stop-color="#38bdf8" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <i class="bi" [ngClass]="isReportsOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </a>
-        <div class="submenu" *ngIf="isReportsOpen && !isCollapsed">
-          <a routerLink="/reports/work" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Work Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Work report</span>
-          </a>
-          <a routerLink="/reports/conversation" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Conversation Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Conversation report</span>
-          </a>
-          <a routerLink="/reports/employee" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Employee Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Employee report</span>
-          </a>
-          <a routerLink="/reports/enquiry" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Enquiry Report' : ''">
-            <i class="bi bi-circle-fill"></i>
-            <span *ngIf="!isCollapsed">Enquiry Report</span>
-          </a>
-          <a routerLink="/reports/status" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Lead Status Report' : ''">
-            <i class="bi bi-circle-fill"></i>
-            <span *ngIf="!isCollapsed">Lead Status</span>
-          </a>
-          <a routerLink="/reports/source-conversion" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Source Conversion' : ''">
-            <i class="bi bi-circle-fill"></i>
-            <span *ngIf="!isCollapsed">Source Conversion</span>
-          </a>
+          <div class="logo-text">Trackbox<span class="logo-dot">.</span></div>
         </div>
 
-        <a routerLink="/settings" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
-          <i class="bi bi-gear"></i>
-          <span *ngIf="!isCollapsed">Settings</span>
-        </a>
-        
-        <div class="nav-divider"></div>
-        <a routerLink="/sop" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
-          <i class="bi bi-journal-text"></i>
-          <span *ngIf="!isCollapsed">SOP Guide</span>
-        </a>
-      </ng-container>
-      </ng-container>
-
-      <!-- CRM MENU -->
-      <ng-container *ngIf="activeDepartment === 'CRM'">
-        <a routerLink="/crm-dashboard" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'CRM Dashboard' : ''">
-          <i class="bi bi-speedometer2"></i>
-          <span *ngIf="!isCollapsed">Dashboard</span>
-        </a>
-        <a routerLink="/contacts" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Leads' : ''">
-          <i class="bi bi-person-lines-fill"></i>
-          <span *ngIf="!isCollapsed">Leads</span>
-        </a>
-        <a routerLink="/quotations" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Quotations' : ''" *ngIf="!hideCRMItems">
-          <i class="bi bi-file-earmark-text"></i>
-          <span *ngIf="!isCollapsed">Quotations</span>
-        </a>
-        <a routerLink="/purchase-orders" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Purchase Orders' : ''" *ngIf="!hideCRMItems">
-          <i class="bi bi-receipt"></i>
-          <span *ngIf="!isCollapsed">Purchase Orders</span>
-        </a>
-        <a routerLink="/delivery-management" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Delivery' : ''" *ngIf="!hideCRMItems">
-          <i class="bi bi-truck"></i>
-          <span *ngIf="!isCollapsed">Delivery Management</span>
-        </a>
-
-        <!-- Leave Request -->
-        <a routerLink="/crm/leave-request" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Leave Request' : ''" *ngIf="!hideCRMItems">
-          <i class="bi bi-calendar2-check"></i>
-          <span *ngIf="!isCollapsed">Leave Request</span>
-        </a>
-
-        <!-- Sales Performance 
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isSalesPerformanceOpen" *ngIf="!isCollapsed" (click)="toggleSalesPerformance($event)">
-          <div class="nav-item-content">
-            <i class="bi bi-graph-up-arrow"></i>
-            <span>Sales Performance</span>
-          </div>
-          <i class="bi" [ngClass]="isSalesPerformanceOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </a>
-        <div class="submenu" *ngIf="isSalesPerformanceOpen && !isCollapsed">
-          <a routerLink="/targets" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Targets' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Targets</span>
-          </a>
-          <a routerLink="/achievements" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Achievements' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Achievements</span>
-          </a>
-          <a routerLink="/leaderboard" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Leaderboard' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Leaderboard</span>
-          </a>
-          <a routerLink="/incentives" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Incentives' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Incentives</span>
-          </a>
-          <a routerLink="/underperformers" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Underperformers' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Underperformers</span>
-          </a>
-        </div>
-        -->
-
-        <!-- Reports -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isReportsOpen" *ngIf="!isCollapsed" (click)="toggleReports($event)">
-          <div class="nav-item-content">
-            <i class="bi bi-bar-chart"></i>
-            <span>Reports</span>
-          </div>
-          <i class="bi" [ngClass]="isReportsOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </a>
-        <div class="submenu" *ngIf="isReportsOpen && !isCollapsed">
-          <a routerLink="/pending-followup" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Pending Followup' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Pending Followup</span>
-          </a>
-          <a routerLink="/todays-leads" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Today\'s Leads' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Today's Leads</span>
-          </a>
-          <a routerLink="/quotation-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Quotation Report' : ''" *ngIf="!hideCRMItems">
-            <span class="bullet">&bull;</span>
-            <span>Quotation Report</span>
-          </a>
-          <a routerLink="/purchase-order-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Purchase Order Report' : ''" *ngIf="!hideCRMItems">
-            <span class="bullet">&bull;</span>
-            <span>Purchase Order Report</span>
-          </a>
-          <a routerLink="/sales-funnel-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Sales Funnel Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Sales Funnel Report</span>
-          </a>
-          <a routerLink="/lead-conversion-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Lead Conversion Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Lead Conversion Report</span>
-          </a>
-          <a routerLink="/agent-performance-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Individuals Reports' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Individuals Reports</span>
-          </a>
-          <a routerLink="/won-lost-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Won/Lost Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Won/Lost Report</span>
-          </a>
-          <a routerLink="/salesperson-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Salesperson Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Salesperson Report</span>
-          </a>
-          <a routerLink="/crm/attendance-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Attendance Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Attendance Report</span>
-          </a>
-        </div>
-        
-        <a routerLink="/crm-settings" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
-          <i class="bi bi-gear"></i>
-          <span *ngIf="!isCollapsed">Settings</span>
-        </a>
-
-        <div class="nav-divider"></div>
-        <a routerLink="/sop" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
-          <i class="bi bi-journal-text"></i>
-          <span *ngIf="!isCollapsed">SOP Guide</span>
-        </a>
-      </ng-container>
-
-      <!-- OPERATION MENU -->
-      <ng-container *ngIf="activeDepartment === 'Operation'">
-        <a routerLink="/operation-dashboard" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Operation Dashboard' : ''">
-          <i class="bi bi-speedometer2"></i>
-          <span *ngIf="!isCollapsed">Dashboard</span>
-        </a>
-        <a routerLink="/installation" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Installation' : ''">
-          <i class="bi bi-tools"></i>
-          <span *ngIf="!isCollapsed">Installation</span>
-        </a>
-        <a routerLink="/customer-feedback" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Customer Feedback' : ''">
-          <i class="bi bi-star"></i>
-          <span *ngIf="!isCollapsed">Customer Feedback</span>
-        </a>
-        <a routerLink="/warranty-service" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Warranty & Service' : ''">
-          <i class="bi bi-shield-check"></i>
-          <span *ngIf="!isCollapsed">Warranty & Service</span>
-        </a>
-        <a routerLink="/complaints" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Complaints' : ''">
-          <i class="bi bi-exclamation-triangle"></i>
-          <span *ngIf="!isCollapsed">Complaints</span>
-        </a>
-
-        <!-- Leave Request -->
-        <a routerLink="/operation/leave-request" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Leave Request' : ''">
-          <i class="bi bi-calendar2-check"></i>
-          <span *ngIf="!isCollapsed">Leave Request</span>
-        </a>
-
-        <!-- Reports -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isOperationReportsOpen" *ngIf="!isCollapsed" (click)="toggleOperationReports($event)">
-          <div class="nav-item-content">
-            <i class="bi bi-bar-chart"></i>
-            <span>Reports</span>
-          </div>
-          <i class="bi" [ngClass]="isOperationReportsOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </a>
-        <div class="submenu" *ngIf="isOperationReportsOpen && !isCollapsed">
-          <a routerLink="/installation-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Installation Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Installation Report</span>
-          </a>
-          <a routerLink="/complaint-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Complaint Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Complaint Report</span>
-          </a>
-          <a routerLink="/warranty-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Warranty Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Warranty Report</span>
-          </a>
-          <a routerLink="/technician-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Technician Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Technician Report</span>
-          </a>
-          <a routerLink="/customer-feedback-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Customer Feedback Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Customer Feedback Report</span>
-          </a>
-        </div>
-        
-        <a routerLink="/settings" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
-          <i class="bi bi-gear"></i>
-          <span *ngIf="!isCollapsed">Settings</span>
-        </a>
-
-        <div class="nav-divider"></div>
-        <a routerLink="/sop" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
-          <i class="bi bi-journal-text"></i>
-          <span *ngIf="!isCollapsed">SOP Guide</span>
-        </a>
-      </ng-container>
-
-      <!-- HR MENU -->
-      <ng-container *ngIf="activeDepartment === 'HR'">
-        <a routerLink="/hr-dashboard" class="nav-item" [title]="isCollapsed ? 'HR Dashboard' : ''">
-          <i class="bi bi-speedometer2"></i>
-          <span *ngIf="!isCollapsed">Dashboard</span>
-        </a>
-        <a routerLink="/attendance" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Attendance' : ''">
-          <i class="bi bi-clock"></i>
-          <span *ngIf="!isCollapsed">Attendance</span>
-        </a>
-        <a routerLink="/employee-location" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Employee Location' : ''">
-          <i class="bi bi-geo-alt"></i>
-          <span *ngIf="!isCollapsed">Employee Location</span>
-        </a>
-        <a routerLink="/employees" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Employees' : ''">
-          <i class="bi bi-people"></i>
-          <span *ngIf="!isCollapsed">Employees</span>
-        </a>
-        <a routerLink="/pending-approvals" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Pending Approvals' : ''">
-          <i class="bi bi-check2-square"></i>
-          <span *ngIf="!isCollapsed">Pending Approvals</span>
-        </a>
-
-        <!-- Leave Request -->
-        <a routerLink="/hr/leave-request" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Leave Request' : ''">
-          <i class="bi bi-calendar2-check"></i>
-          <span *ngIf="!isCollapsed">Leave Request</span>
-        </a>
-
-        <!-- Reports -->
-        <a href="javascript:void(0)" class="nav-item submenu-header" [class.expanded]="isHrReportsOpen" *ngIf="!isCollapsed" (click)="toggleHrReports($event)">
-          <div class="nav-item-content">
-            <i class="bi bi-bar-chart"></i>
-            <span>Reports</span>
-          </div>
-          <i class="bi" [ngClass]="isHrReportsOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </a>
-        <div class="submenu" *ngIf="isHrReportsOpen && !isCollapsed">
-          <a routerLink="/attendance-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Attendance' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Attendance</span>
-          </a>
-          <a routerLink="/leave-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Leave' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Leave</span>
-          </a>
-          <a routerLink="/expense-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Expense' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Expense</span>
-          </a>
-          <a routerLink="/gps-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'GPS' : ''">
-            <span class="bullet">&bull;</span>
-            <span>GPS</span>
-          </a>
-          <a routerLink="/performance-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Performance' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Performance</span>
-          </a>
-          <a routerLink="/employee-report" routerLinkActive="active" class="nav-item submenu-item" [title]="isCollapsed ? 'Employee Report' : ''">
-            <span class="bullet">&bull;</span>
-            <span>Employee Report</span>
-          </a>
-        </div>
-        
-        <a routerLink="/settings" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'Settings' : ''">
-          <i class="bi bi-gear"></i>
-          <span *ngIf="!isCollapsed">Settings</span>
-        </a>
-
-        <div class="nav-divider"></div>
-        <a routerLink="/sop" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item" [title]="isCollapsed ? 'SOP Guide' : ''">
-          <i class="bi bi-journal-text"></i>
-          <span *ngIf="!isCollapsed">SOP Guide</span>
-        </a>
-      </ng-container>
-    </nav>
-
-    <div class="user-section" *ngIf="user$ | async as user">
-      <div class="user-profile-clickable" routerLink="/settings" title="Account Settings">
-        <div class="user-avatar">
-          {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
-        </div>
-        <div class="user-info" *ngIf="!isCollapsed">
-          <div class="user-name">{{ (user?.name | titlecase) || 'User' }}</div>
-          <div class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
-        <button class="logout-btn" (click)="toggleSystemSettingsMenu($event)" [class.gear-rotating]="showSystemSettingsMenu" [title]="isCollapsed ? 'System Settings' : 'System Settings'">
-          <i class="bi bi-gear"></i>
-        </button>
-        
-        <!-- System Settings Popup Menu -->
-        <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
-          <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-people"></i> Teams & Users
-          </a>
-          <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-building"></i> Branch
-          </a>
-          <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-diagram-3"></i> Department
-          </a>
-          <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-activity"></i> Status
-          </a>
-          <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-person-badge"></i> Designation
-          </a>
-          <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
-            <i class="bi bi-gear-fill"></i> Application Settings
-            <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
-          </a>
-          <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
-            <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-calendar3"></i> Intake
+        <!-- Department Switcher -->
+        <div class="department-switcher">
+          <button class="dept-btn" (click)="toggleDepartmentDropdown($event)">
+            <div class="dept-info">
+              <i class="bi" [ngClass]="{'bi-funnel': activeDepartment === 'Leads', 'bi-briefcase': activeDepartment === 'CRM', 'bi-tools': activeDepartment === 'Operation', 'bi-people': activeDepartment === 'HR'}"></i>
+              <span>{{ activeDepartment }}</span>
+            </div>
+            <i class="bi bi-chevron-down dept-chevron" [class.rotated]="isDepartmentDropdownOpen"></i>
+          </button>
+          
+          <div class="dept-dropdown" *ngIf="isDepartmentDropdownOpen" (click)="$event.stopPropagation()">
+            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Leads'" (click)="setDepartment('Leads')">
+              <i class="bi bi-funnel"></i> Leads
             </a>
-            <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-calendar-event"></i> Year
+            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'CRM'" (click)="setDepartment('CRM')">
+              <i class="bi bi-briefcase"></i> CRM
             </a>
-            <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-tags"></i> Application Status
+            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Operation'" (click)="setDepartment('Operation')">
+              <i class="bi bi-tools"></i> Operation
+            </a>
+            <a class="dept-dropdown-item" [class.active]="activeDepartment === 'HR'" (click)="setDepartment('HR')">
+              <i class="bi bi-people"></i> HR
             </a>
           </div>
-          <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-question-circle"></i> Enquiry For
-          </a>
-          <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-            <i class="bi bi-file-earmark-text"></i> Document Type
-          </a>
         </div>
-
-        <button class="logout-btn" (click)="logout()" [title]="isCollapsed ? 'Logout' : 'Logout'">
-          <i class="bi bi-box-arrow-right"></i>
-        </button>
       </div>
-    </div>
-  </aside>
 
-  <main class="main-content">
-    <header class="top-nav">
+      <!-- Current Page Title -->
       <div class="page-title">
         {{ pageTitle }}
       </div>
-      <div class="top-actions">
-        <!-- Check In / Check Out Button -->
+
+      <!-- Right Side Actions -->
+      <div class="top-actions" *ngIf="user$ | async as user">
+        <!-- Check In / Check Out -->
         <button class="checkin-btn" [class.checked-in]="isCheckedIn" (click)="toggleCheckIn()">
           <i class="bi" [class.bi-box-arrow-in-right]="!isCheckedIn" [class.bi-box-arrow-left]="isCheckedIn"></i>
           <span>{{ isCheckedIn ? 'Check Out' : 'Check In' }}</span>
         </button>
-
-        <!-- Support Button 
-        <button class="support-btn" (click)="toggleSupportModal()" title="Help & Support">
-          <i class="bi bi-question-circle"></i>
-          <span>Support</span>
-        </button>
-        -->
 
         <!-- Notification Bell & Dropdown Wrapper -->
         <div class="notification-wrapper">
@@ -575,9 +107,381 @@
             </div>
           </div>
         </div>
-      </div>
-    </header>
 
+        <!-- User Profile Pill -->
+        <div class="user-chip-clickable" routerLink="/settings" title="Account Settings">
+          <div class="user-avatar">
+            {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
+          </div>
+          <div class="user-info">
+            <span class="user-name">{{ (user?.name | titlecase) || 'User' }}</span>
+            <span class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</span>
+          </div>
+        </div>
+
+        <!-- System Settings & Logout -->
+        <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
+          <button class="logout-btn" (click)="toggleSystemSettingsMenu($event)" [class.gear-rotating]="showSystemSettingsMenu" title="System Settings">
+            <i class="bi bi-gear"></i>
+          </button>
+          
+          <!-- System Settings Popup Menu -->
+          <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
+            <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-people"></i> Teams & Users
+            </a>
+            <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-building"></i> Branch
+            </a>
+            <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-diagram-3"></i> Department
+            </a>
+            <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-activity"></i> Status
+            </a>
+            <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-person-badge"></i> Designation
+            </a>
+            <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
+              <i class="bi bi-gear-fill"></i> Application Settings
+              <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
+            </a>
+            <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
+              <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+                <i class="bi bi-calendar3"></i> Intake
+              </a>
+              <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+                <i class="bi bi-calendar-event"></i> Year
+              </a>
+              <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+                <i class="bi bi-tags"></i> Application Status
+              </a>
+            </div>
+            <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-question-circle"></i> Enquiry For
+            </a>
+            <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-file-earmark-text"></i> Document Type
+            </a>
+          </div>
+
+          <button class="logout-btn" (click)="logout()" title="Logout">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Always Visible Horizontal Navigation Options -->
+    <nav class="horizontal-nav-bar" *ngIf="user$ | async as user">
+      <!-- LEADS MENU -->
+      <ng-container *ngIf="activeDepartment === 'Leads'">
+        <a routerLink="/lead-dashboard" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-speedometer2"></i>
+          <span>Lead Dashboard</span>
+        </a>
+        <a routerLink="/contacts" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-people"></i>
+          <span>Leads</span>
+        </a>
+        <a routerLink="/inbox" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-chat-dots"></i>
+          <span>Shared Inbox</span>
+        </a>
+        <a routerLink="/broadcasts" routerLinkActive="active" class="nav-item" *ngIf="user.role === 'admin' || user.role === 'superadmin'">
+          <i class="bi bi-megaphone"></i>
+          <span>Broadcasts</span>
+        </a>
+        <a routerLink="/chatbots" routerLinkActive="active" class="nav-item" *ngIf="user.role === 'admin' || user.role === 'superadmin'">
+          <i class="bi bi-robot"></i>
+          <span>Chatbots</span>
+        </a>
+        <a routerLink="/templates" routerLinkActive="active" class="nav-item" *ngIf="user.role === 'admin' || user.role === 'superadmin'">
+          <i class="bi bi-file-earmark-text"></i>
+          <span>Templates</span>
+        </a>
+        <a routerLink="/lead/leave-request" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-calendar2-check"></i>
+          <span>Leave Request</span>
+        </a>
+        
+        <!-- Reports Dropdown Popover Container -->
+        <div class="reports-dropdown-wrapper">
+          <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen" (click)="toggleReports($event)">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>Reports</span>
+            <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
+          </button>
+          <div class="horizontal-submenu" *ngIf="isReportsOpen">
+            <a routerLink="/reports/work" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Work report</span>
+            </a>
+            <a routerLink="/reports/conversation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Conversation report</span>
+            </a>
+            <a routerLink="/reports/employee" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Employee report</span>
+            </a>
+            <a routerLink="/reports/enquiry" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Enquiry Report</span>
+            </a>
+            <a routerLink="/reports/status" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Lead Status</span>
+            </a>
+            <a routerLink="/reports/source-conversion" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Source Conversion</span>
+            </a>
+          </div>
+        </div>
+
+        <a routerLink="/settings" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+        <a routerLink="/sop" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>SOP Guide</span>
+        </a>
+      </ng-container>
+
+      <!-- CRM MENU -->
+      <ng-container *ngIf="activeDepartment === 'CRM'">
+        <a routerLink="/crm-dashboard" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+        <a routerLink="/contacts" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-person-lines-fill"></i>
+          <span>Leads</span>
+        </a>
+        <a routerLink="/quotations" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-file-earmark-text"></i>
+          <span>Quotations</span>
+        </a>
+        <a routerLink="/purchase-orders" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-receipt"></i>
+          <span>Purchase Orders</span>
+        </a>
+        <a routerLink="/delivery-management" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-truck"></i>
+          <span>Delivery Management</span>
+        </a>
+        <a routerLink="/crm/leave-request" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-calendar2-check"></i>
+          <span>Leave Request</span>
+        </a>
+
+        <!-- Reports Popover -->
+        <div class="reports-dropdown-wrapper">
+          <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen" (click)="toggleReports($event)">
+            <i class="bi bi-bar-chart"></i>
+            <span>Reports</span>
+            <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
+          </button>
+          <div class="horizontal-submenu" *ngIf="isReportsOpen">
+            <a routerLink="/pending-followup" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Pending Followup</span>
+            </a>
+            <a routerLink="/todays-leads" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Today's Leads</span>
+            </a>
+            <a routerLink="/quotation-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Quotation Report</span>
+            </a>
+            <a routerLink="/purchase-order-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Purchase Order Report</span>
+            </a>
+            <a routerLink="/sales-funnel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Sales Funnel Report</span>
+            </a>
+            <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Lead Conversion Report</span>
+            </a>
+            <a routerLink="/agent-performance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Individuals Reports</span>
+            </a>
+            <a routerLink="/won-lost-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Won/Lost Report</span>
+            </a>
+            <a routerLink="/salesperson-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Salesperson Report</span>
+            </a>
+            <a routerLink="/crm/attendance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Attendance Report</span>
+            </a>
+          </div>
+        </div>
+        
+        <a routerLink="/crm-settings" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+        <a routerLink="/sop" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>SOP Guide</span>
+        </a>
+      </ng-container>
+
+      <!-- OPERATION MENU -->
+      <ng-container *ngIf="activeDepartment === 'Operation'">
+        <a routerLink="/operation-dashboard" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+        <a routerLink="/installation" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-tools"></i>
+          <span>Installation</span>
+        </a>
+        <a routerLink="/customer-feedback" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-star"></i>
+          <span>Customer Feedback</span>
+        </a>
+        <a routerLink="/warranty-service" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-shield-check"></i>
+          <span>Warranty & Service</span>
+        </a>
+        <a routerLink="/complaints" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-exclamation-triangle"></i>
+          <span>Complaints</span>
+        </a>
+        <a routerLink="/operation/leave-request" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-calendar2-check"></i>
+          <span>Leave Request</span>
+        </a>
+
+        <!-- Operation Reports Popover -->
+        <div class="reports-dropdown-wrapper">
+          <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isOperationReportsOpen" (click)="toggleOperationReports($event)">
+            <i class="bi bi-bar-chart"></i>
+            <span>Reports</span>
+            <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isOperationReportsOpen"></i>
+          </button>
+          <div class="horizontal-submenu" *ngIf="isOperationReportsOpen">
+            <a routerLink="/installation-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Installation Report</span>
+            </a>
+            <a routerLink="/complaint-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Complaint Report</span>
+            </a>
+            <a routerLink="/warranty-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Warranty Report</span>
+            </a>
+            <a routerLink="/technician-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Technician Report</span>
+            </a>
+            <a routerLink="/customer-feedback-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Customer Feedback Report</span>
+            </a>
+          </div>
+        </div>
+        
+        <a routerLink="/settings" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+        <a routerLink="/sop" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>SOP Guide</span>
+        </a>
+      </ng-container>
+
+      <!-- HR MENU -->
+      <ng-container *ngIf="activeDepartment === 'HR'">
+        <a routerLink="/hr-dashboard" class="nav-item">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+        <a routerLink="/attendance" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-clock"></i>
+          <span>Attendance</span>
+        </a>
+        <a routerLink="/employee-location" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-geo-alt"></i>
+          <span>Employee Location</span>
+        </a>
+        <a routerLink="/employees" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-people"></i>
+          <span>Employees</span>
+        </a>
+        <a routerLink="/pending-approvals" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-check2-square"></i>
+          <span>Pending Approvals</span>
+        </a>
+        <a routerLink="/hr/leave-request" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-calendar2-check"></i>
+          <span>Leave Request</span>
+        </a>
+
+        <!-- HR Reports Popover -->
+        <div class="reports-dropdown-wrapper">
+          <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isHrReportsOpen" (click)="toggleHrReports($event)">
+            <i class="bi bi-bar-chart"></i>
+            <span>Reports</span>
+            <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isHrReportsOpen"></i>
+          </button>
+          <div class="horizontal-submenu" *ngIf="isHrReportsOpen">
+            <a routerLink="/attendance-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Attendance</span>
+            </a>
+            <a routerLink="/leave-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Leave</span>
+            </a>
+            <a routerLink="/expense-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Expense</span>
+            </a>
+            <a routerLink="/gps-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>GPS</span>
+            </a>
+            <a routerLink="/performance-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Performance</span>
+            </a>
+            <a routerLink="/employee-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
+              <i class="bi bi-circle-fill"></i>
+              <span>Employee Report</span>
+            </a>
+          </div>
+        </div>
+        
+        <a routerLink="/settings" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+        <a routerLink="/sop" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>SOP Guide</span>
+        </a>
+      </ng-container>
+    </nav>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
     <div class="content-area">
       <router-outlet></router-outlet>
     </div>
@@ -600,7 +504,6 @@
       </div>
 
       <div class="support-modal-body">
-        <!-- Support channels grid -->
         <div class="support-grid">
           <a href="https://docs.trackbox.demo" target="_blank" class="support-card">
             <div class="support-card-icon docs">
@@ -650,7 +553,6 @@
           </div>
         </div>
 
-        <!-- Quick Form -->
         <div class="support-quick-message">
           <h5>Quick Message</h5>
           <form (submit)="submitQuickSupport($event)">

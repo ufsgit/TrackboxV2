@@ -1,55 +1,57 @@
-<div class="report-container" style="display: flex; flex-direction: column; gap: 32px; padding: 24px;">
-  
+<div class="report-page">
+
   <!-- Header -->
-  <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
+  <div class="page-header">
     <div>
-      <h2 class="fw-bold mb-2" style="color: #1e293b;">Sales Funnel Report</h2>
-      <p class="text-muted mb-0" style="font-size: 0.95rem;">Analyze pipeline health and stage conversion rates</p>
+      <h2 class="page-title">Sales Funnel Report</h2>
+      <p class="page-sub">Analyze pipeline health and stage conversion rates</p>
     </div>
-    <button class="btn btn-primary" style="padding: 10px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); border: none; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
-      <i class="bi bi-cloud-download me-2"></i> Export Report
+    <button class="export-btn">
+      <i class="bi bi-cloud-download"></i> Export Report
     </button>
   </div>
 
   <!-- KPI Cards -->
-  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
-    
-    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
-      <div class="stat-icon icon-blue" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
-        <i class="bi bi-funnel"></i>
+  <div class="kpi-row">
+
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon"><i class="bi bi-funnel"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total Pipeline Value</span>
+        <div class="kpi-value static-val">₹1.5M</div>
       </div>
-      <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Total Pipeline Value</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">₹1.5M</h3>
-      </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
 
-    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
-      <div class="stat-icon icon-purple" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #faf5ff; color: #a855f7;">
-        <i class="bi bi-percent"></i>
+    <div class="kpi-card kpi-purple">
+      <div class="kpi-icon"><i class="bi bi-percent"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Overall Conversion</span>
+        <div class="kpi-value">{{ kpi_convRate }}%</div>
       </div>
-      <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Overall Conversion</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">6.8%</h3>
-      </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
 
-    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
-      <div class="stat-icon icon-green" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f0fdf4; color: #22c55e;">
-        <i class="bi bi-stopwatch"></i>
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="bi bi-stopwatch"></i></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Avg. Sales Cycle</span>
+        <div class="kpi-value">{{ kpi_salesCycle }} Days</div>
       </div>
-      <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Avg. Sales Cycle</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">21 Days</h3>
-      </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
 
   </div>
 
   <!-- Chart Section -->
-  <div class="chart-card" style="background: white; border-radius: 24px; padding: 24px 32px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8);">
-    <h5 class="fw-bold mb-4" style="color: #1e293b; font-size: 1.15rem;">Funnel Distribution</h5>
-    <div style="height: 300px; display: flex; justify-content: center; align-items: center;">
+  <div class="chart-card">
+    <div class="chart-header">
+      <h5 class="chart-title">Funnel Distribution</h5>
+    </div>
+    <div style="height: 320px; display:flex; justify-content:center; align-items:center;">
       <canvas baseChart
         [data]="chartData"
         [options]="chartOptions"
@@ -59,49 +61,41 @@
   </div>
 
   <!-- Data Table -->
-  <div class="chart-card" style="background: white; border-radius: 24px; box-shadow: 0 4px 12px -4px rgba(17, 24, 39, 0.05); border: 1px solid rgba(229, 231, 235, 0.8); overflow: hidden;">
-    <div class="flex justify-between items-center" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; gap: 16px;">
-      <h5 class="fw-bold mb-0" style="color: #1e293b; font-size: 1.15rem;">Funnel Stages Breakdown</h5>
-      
-      <div class="flex gap-2" style="gap: 10px;">
-         <input type="text" [(ngModel)]="searchTerm" class="form-control" placeholder="Search stages..." style="border-radius: 12px; padding: 8px 16px; border: 1px solid #e2e8f0; font-size: 0.9rem; min-width: 250px;">
-      </div>
+  <div class="table-card">
+    <div class="table-header">
+      <h5 class="chart-title">Funnel Stages Breakdown</h5>
+      <input type="text" [(ngModel)]="searchTerm" class="search-input" placeholder="Search stages…">
     </div>
-    
     <div class="table-responsive p-0">
-      <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 900px;">
+      <table class="perf-table">
         <thead>
-          <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Stage Name</th>
-            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Count</th>
-            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Value</th>
-            <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Conv. Rate (from prev)</th>
-            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right;">Avg. Time in Stage</th>
+          <tr>
+            <th>Stage Name</th>
+            <th>Count</th>
+            <th>Value</th>
+            <th>Conv. Rate (from prev)</th>
+            <th class="text-end">Avg. Time in Stage</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of filteredStages; let i = index; let last = last" [ngStyle]="{'border-bottom': last ? 'none' : '1px solid #f1f5f9'}" style="transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-            <td style="padding: 20px 32px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div [style.background]="getStageColor(i)" style="width: 12px; height: 12px; border-radius: 50%;"></div>
-                <span style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">{{ s.stage }}</span>
+          <tr *ngFor="let s of filteredStages; let i = index; let last = last"
+              [class.last-row]="last"
+              class="table-row"
+              [style.--row-i]="i">
+            <td>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="stage-dot" [style.background]="getStageColor(i)"></div>
+                <span class="source-name">{{ s.stage }}</span>
               </div>
             </td>
-            <td style="padding: 20px 20px; font-weight: 600; color: #475569; font-size: 0.95rem;">
-              {{ s.count }}
-            </td>
-            <td style="padding: 20px 20px; font-weight: 700; color: #0f172a; font-size: 0.95rem;">
-              {{ s.value }}
-            </td>
-            <td style="padding: 20px 20px; color: #3b82f6; font-weight: 600; font-size: 0.95rem;">
-              {{ s.conversionRate }}
-            </td>
-            <td style="padding: 20px 32px; text-align: right; color: #475569; font-size: 0.95rem;">
-              {{ s.avgTime }}
-            </td>
+            <td class="num-cell">{{ s.count }}</td>
+            <td class="bold-cell">{{ s.value }}</td>
+            <td class="rate-cell">{{ s.conversionRate }}</td>
+            <td class="text-end muted-cell">{{ s.avgTime }}</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
+
 </div>

@@ -16,7 +16,7 @@ import Swal from 'sweetalert2';
   styleUrls: ['./layout.component.css']
 })
 export class LayoutComponent implements OnInit {
-  hideCRMItems = true;
+  hideCRMItems = false;
   // hideCRMItems = false;
   user$: Observable<any>;
   currentUser: any;
@@ -138,6 +138,11 @@ export class LayoutComponent implements OnInit {
     if (!target.closest('.system-settings-wrapper')) {
       this.showSystemSettingsMenu = false;
     }
+    if (!target.closest('.reports-dropdown-wrapper')) {
+      this.isReportsOpen = false;
+      this.isOperationReportsOpen = false;
+      this.isHrReportsOpen = false;
+    }
   }
 
   showSystemSettingsMenu = false;
@@ -154,11 +159,13 @@ export class LayoutComponent implements OnInit {
 
   toggleReports(event: Event) {
     event.preventDefault();
+    event.stopPropagation();
     this.isReportsOpen = !this.isReportsOpen;
   }
 
   toggleSalesPerformance(event: Event) {
     event.preventDefault();
+    event.stopPropagation();
     this.isSalesPerformanceOpen = !this.isSalesPerformanceOpen;
   }
 
@@ -166,6 +173,7 @@ export class LayoutComponent implements OnInit {
 
   toggleOperationReports(event: Event) {
     event.preventDefault();
+    event.stopPropagation();
     this.isOperationReportsOpen = !this.isOperationReportsOpen;
   }
 
@@ -173,6 +181,7 @@ export class LayoutComponent implements OnInit {
 
   toggleHrReports(event: Event) {
     event.preventDefault();
+    event.stopPropagation();
     this.isHrReportsOpen = !this.isHrReportsOpen;
   }
 
@@ -402,30 +411,18 @@ export class LayoutComponent implements OnInit {
 
     const leadsReportRoutes = ['reports/work', 'reports/conversation', 'reports/employee', 'reports/enquiry', 'reports/status'];
 
+    this.isReportsOpen = false;
+    this.isOperationReportsOpen = false;
+    this.isHrReportsOpen = false;
+
     if (crmRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'CRM';
-      
-      const crmReports = ['pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/attendance-report'];
-      if (crmReports.some(r => url.includes(r))) this.isReportsOpen = true;
-      
-      const salesPerf = ['targets', 'achievements', 'leaderboard', 'incentives', 'underperformers'];
-      if (salesPerf.some(r => url.includes(r))) this.isSalesPerformanceOpen = true;
-      
     } else if (operationRoutes.some(route => url.includes(route)) || url.includes('module=operation')) {
       this.activeDepartment = 'Operation';
-      
-      const opReports = ['installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report'];
-      if (opReports.some(r => url.includes(r))) this.isOperationReportsOpen = true;
-      
     } else if (hrRoutes.some(route => url.includes(route)) || url.includes('module=hr')) {
       this.activeDepartment = 'HR';
-      
-      const hrReports = ['attendance-report', 'leave-report', 'expense-report', 'gps-report', 'performance-report', 'employee-report'];
-      if (hrReports.some(r => url.includes(r))) this.isHrReportsOpen = true;
-      
     } else {
       this.activeDepartment = 'Leads'; 
-      if (leadsReportRoutes.some(r => url.includes(r))) this.isReportsOpen = true;
     }
     
     this.updateCheckInStatus();

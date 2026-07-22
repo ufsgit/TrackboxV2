@@ -27,46 +27,54 @@
   </div>
 
   <!-- KPI Cards -->
-  <div class="grid grid-4">
-    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+  <div class="grid grid-4 kpi-row">
+    <div class="kpi-card kpi-blue" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-primary-soft text-primary">
         <i class="bi bi-people-fill"></i>
       </div>
       <div class="kpi-info">
         <h6 class="kpi-title">Total Leads Handled</h6>
-        <h3 class="kpi-value">{{ totalLeads | number }}</h3>
+        <h3 class="kpi-value">{{ kpi_totalLeads | number }}</h3>
         <span class="kpi-trend text-success"><i class="bi bi-arrow-up-right"></i> 12%</span>
       </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
-    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+    <div class="kpi-card kpi-orange" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-warning-soft text-warning">
         <i class="bi bi-telephone-outbound-fill"></i>
       </div>
       <div class="kpi-info">
         <h6 class="kpi-title">Follow-ups Completed</h6>
-        <h3 class="kpi-value">{{ followUpsCompleted | number }}</h3>
+        <h3 class="kpi-value">{{ kpi_followUpsCompleted | number }}</h3>
         <span class="kpi-trend text-success"><i class="bi bi-arrow-up-right"></i> 5%</span>
       </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
-    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+    <div class="kpi-card kpi-green" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-success-soft text-success">
         <i class="bi bi-trophy-fill"></i>
       </div>
       <div class="kpi-info">
         <h6 class="kpi-title">Total Conversions</h6>
-        <h3 class="kpi-value">{{ totalConversions | number }}</h3>
+        <h3 class="kpi-value">{{ kpi_totalConversions | number }}</h3>
         <span class="kpi-trend text-danger"><i class="bi bi-arrow-down-right"></i> 2%</span>
       </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
-    <div class="kpi-card" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+    <div class="kpi-card kpi-purple" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-info-soft text-info">
         <i class="bi bi-percent"></i>
       </div>
       <div class="kpi-info">
         <h6 class="kpi-title">Conversion Rate</h6>
-        <h3 class="kpi-value">{{ conversionRate }}%</h3>
+        <h3 class="kpi-value">{{ kpi_conversionRate }}%</h3>
         <span class="kpi-trend text-success"><i class="bi bi-arrow-up-right"></i> 1.5%</span>
       </div>
+      <div class="kpi-glow"></div>
+      <div class="kpi-shimmer"></div>
     </div>
   </div>
 
@@ -118,7 +126,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let act of recentActivities">
+            <tr *ngFor="let act of recentActivities; let i = index" class="table-row" [style.--row-i]="i">
               <td>
                 <div class="flex items-center gap-8">
                   <div class="avatar-sm bg-primary-soft text-primary" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">

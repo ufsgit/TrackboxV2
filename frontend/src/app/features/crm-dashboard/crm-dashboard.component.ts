@@ -1,6 +1,7 @@
 import { Component, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { ApiService } from '../../core/services/api.service';
 
@@ -9,7 +10,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-crm-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="report-container" style="display: flex; flex-direction: column; gap: 32px;">
       
@@ -37,7 +38,7 @@ Chart.register(...registerables);
 
       <!-- KPI Cards (8 Cards) -->
       <div class="stats-grid">
-        <div class="stat-card">
+        <div class="stat-card clickable" routerLink="/contacts" style="cursor: pointer;" title="View Leads">
           <div class="stat-icon icon-blue"><i class="bi bi-people-fill"></i></div>
           <div class="stat-info">
             <label>Total Leads</label>
@@ -45,7 +46,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card clickable" routerLink="/pending-followup" style="cursor: pointer;" title="View Pending Followups">
           <div class="stat-icon icon-red"><i class="bi bi-exclamation-circle-fill"></i></div>
           <div class="stat-info">
             <label>Pending Followups</label>
@@ -53,7 +54,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card clickable" routerLink="/todays-leads" style="cursor: pointer;" title="View Today's Followups">
           <div class="stat-icon icon-orange"><i class="bi bi-calendar-day-fill"></i></div>
           <div class="stat-info">
             <label>Today's Followups</label>
@@ -61,7 +62,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card clickable" routerLink="/pending-followup" style="cursor: pointer;" title="View Upcoming Followups">
           <div class="stat-icon icon-green"><i class="bi bi-calendar-week-fill"></i></div>
           <div class="stat-info">
             <label>Upcoming Followups</label>
@@ -69,7 +70,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Won Deals">
           <div class="stat-icon icon-green2"><i class="bi bi-trophy-fill"></i></div>
           <div class="stat-info">
             <label>Won Deals</label>
@@ -77,7 +78,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Lost Deals">
           <div class="stat-icon icon-slate"><i class="bi bi-x-circle-fill"></i></div>
           <div class="stat-info">
             <label>Lost Deals</label>
@@ -85,7 +86,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card" *ngIf="!hideMarkedItems">
+        <div class="stat-card clickable" routerLink="/quotations" *ngIf="!hideMarkedItems" style="cursor: pointer;" title="View Quotations">
           <div class="stat-icon icon-purple"><i class="bi bi-file-earmark-text-fill"></i></div>
           <div class="stat-info">
             <label>Quotations</label>
@@ -93,7 +94,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card" *ngIf="!hideMarkedItems">
+        <div class="stat-card clickable" routerLink="/purchase-orders" *ngIf="!hideMarkedItems" style="cursor: pointer;" title="View Purchase Orders">
           <div class="stat-icon icon-pink"><i class="bi bi-receipt"></i></div>
           <div class="stat-info">
             <label>Purchase Orders</label>

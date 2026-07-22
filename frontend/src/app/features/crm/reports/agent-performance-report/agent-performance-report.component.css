@@ -1,4 +1,10 @@
-/* ── Page layout ──────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   Agent Performance Report – Animations
+   All entrance animations are driven by CSS @keyframes so
+   they fire automatically as soon as the component mounts.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Page layout ──────────────────────────────────────────── */
 .report-page {
   display: flex;
   flex-direction: column;
@@ -8,13 +14,45 @@
   min-height: 100%;
 }
 
-/* ── Header ───────────────────────────────────────────────────────── */
+/* ── Shared keyframes ─────────────────────────────────────── */
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmerSweep {
+  from { background-position: 250% 0; }
+  to   { background-position: -250% 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1);   opacity: .1; }
+  50%       { transform: scale(1.4); opacity: .2; }
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Header ───────────────────────────────────────────────── */
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
+  animation: fadeSlideDown 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .page-title {
@@ -38,22 +76,23 @@
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 12px rgba(79,70,229,.35);
   transition: transform .2s, box-shadow .2s;
 }
 
 .export-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.45);
+  box-shadow: 0 8px 20px rgba(79,70,229,.45);
 }
 
-/* ── KPI Cards ────────────────────────────────────────────────────── */
+/* ── KPI Row – cards enter with stagger ───────────────────── */
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
 }
 
+/* Each card gets its own delay via nth-child */
 .kpi-card {
   position: relative;
   display: flex;
@@ -63,42 +102,71 @@
   border-radius: 20px;
   padding: 22px 24px;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
-  border: 1px solid rgba(229, 231, 235, .6);
+  border: 1px solid rgba(229,231,235,.6);
   overflow: hidden;
-  transition: transform .25s, box-shadow .25s;
   cursor: default;
+  /* entrance */
+  animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* hover lift – kept separate so animation doesn't override */
+  transition: transform .25s, box-shadow .25s;
 }
+
+.kpi-card:nth-child(1) { animation-delay: 0.08s; }
+.kpi-card:nth-child(2) { animation-delay: 0.18s; }
+.kpi-card:nth-child(3) { animation-delay: 0.28s; }
 
 .kpi-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0,0,0,.1);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 18px 42px rgba(0,0,0,.13);
 }
 
-/* glowing blob background */
+/* ── Pulsing glow blob ────────────────────────────────────── */
 .kpi-glow {
   position: absolute;
-  right: -20px;
-  top: -20px;
-  width: 90px;
-  height: 90px;
+  right: -22px;
+  top: -22px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
-  opacity: .08;
+  pointer-events: none;
+  animation: pulseGlow 3.2s ease-in-out infinite;
+}
+
+.kpi-blue   .kpi-glow { background: #3b82f6; }
+.kpi-green  .kpi-glow { background: #22c55e; }
+.kpi-orange .kpi-glow { background: #f97316; }
+
+/* ── Shimmer sweep ────────────────────────────────────────── */
+.kpi-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,.55) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: shimmerSweep 1.8s ease-out 0.2s both;
   pointer-events: none;
 }
+
 
 .kpi-blue  .kpi-glow { background: #3b82f6; }
 .kpi-green .kpi-glow { background: #22c55e; }
 .kpi-orange .kpi-glow { background: #f97316; }
 .kpi-red   .kpi-glow { background: #ef4444; }
 
+/* ── Icon ─────────────────────────────────────────────────── */
+
 .kpi-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 15px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.45rem;
+  font-size: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -107,25 +175,25 @@
 .kpi-orange .kpi-icon { background: #fff7ed; color: #f97316; }
 .kpi-red    .kpi-icon { background: #fef2f2; color: #ef4444; }
 
+/* ── Body ─────────────────────────────────────────────────── */
 .kpi-body { flex: 1; }
 
 .kpi-label {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.71rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   color: #94a3b8;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .kpi-value {
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.03em;
-  transition: all .05s;
 }
 
 .kpi-blue   .kpi-value { color: #3b82f6; }
@@ -135,23 +203,14 @@
 
 .static-val { font-size: 1.35rem; }
 
-/* slot-machine shimmer while counting */
-.roll-num {
-  animation: shimmer 1.4s ease-out;
-}
-
-@keyframes shimmer {
-  0%   { opacity: .3; transform: translateY(6px); }
-  100% { opacity: 1;  transform: translateY(0); }
-}
-
-/* ── Chart card ───────────────────────────────────────────────────── */
+/* ── Chart card ───────────────────────────────────────────── */
 .chart-card {
   background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 24px;
-  padding: 28px 28px 16px;
+  padding: 28px 28px 20px;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
-  border: 1px solid rgba(229, 231, 235, .8);
+  border: 1px solid rgba(229,231,235,.8);
+  animation: fadeSlideUp 0.6s cubic-bezier(.22,1,.36,1) 0.32s both;
 }
 
 .chart-header {
@@ -186,55 +245,18 @@
   border-radius: 3px;
 }
 
-.leads-dot { background: #6366f1; }
-.conv-dot  { background: #10b981; margin-left: 16px; }
+.leads-dot { background: #3b82f6; }
+.conv-dot  { background: #22c55e; margin-left: 16px; }
 .leg-txt   { margin-right: 4px; }
 
-/* SVG scroll wrapper */
-.svg-scroll-wrap {
-  overflow-x: auto;
-  overflow-y: visible;
-  padding-bottom: 4px;
-}
-
-.chart-svg {
-  display: block;
-  overflow: visible;
-}
-
-/* SVG text styles */
-.axis-label {
-  font-size: 11px;
-  fill: #94a3b8;
-  font-family: system-ui, sans-serif;
-  font-weight: 600;
-}
-
-.x-label {
-  font-size: 11px;
-  fill: #64748b;
-  font-family: system-ui, sans-serif;
-  font-weight: 600;
-}
-
-.bar-val {
-  font-size: 10px;
-  fill: #4f46e5;
-  font-family: system-ui, sans-serif;
-  font-weight: 700;
-}
-
-.conv-val {
-  fill: #047857;
-}
-
-/* ── Data Table ───────────────────────────────────────────────────── */
+/* ── Table card ───────────────────────────────────────────── */
 .table-card {
   background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0,0,0,.06);
-  border: 1px solid rgba(229, 231, 235, .8);
+  border: 1px solid rgba(229,231,235,.8);
+  animation: fadeSlideUp 0.6s cubic-bezier(.22,1,.36,1) 0.50s both;
 }
 
 .table-header {
@@ -254,7 +276,7 @@
   font-size: 0.9rem;
   min-width: 240px;
   outline: none;
-  transition: border-color .2s;
+  transition: border-color .2s, box-shadow .2s;
 }
 
 .search-input:focus {
@@ -262,6 +284,7 @@
   box-shadow: 0 0 0 3px rgba(99,102,241,.1);
 }
 
+/* ── Table ────────────────────────────────────────────────── */
 .perf-table {
   width: 100%;
   border-collapse: collapse;
@@ -282,9 +305,12 @@
   letter-spacing: .06em;
 }
 
-.perf-table tbody tr {
+/* Staggered row entrance using CSS custom property */
+.perf-table tbody tr.table-row {
   border-bottom: 1px solid #f1f5f9;
   transition: background .18s;
+  animation: rowIn 0.45s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: calc(0.55s + var(--row-i, 0) * 0.07s);
 }
 
 .perf-table tbody tr:hover { background: #f8fafc; }
@@ -296,9 +322,9 @@
   color: #475569;
 }
 
-.agent-name { font-weight: 700; color: #1e293b; }
-.num-cell   { font-weight: 600; color: #475569; }
-.bold-cell  { font-weight: 700; color: #0f172a; }
-.muted-cell { color: #64748b; }
-.star-cell  { font-weight: 700; color: #f59e0b; }
-
+.agent-name  { font-weight: 700; color: #1e293b; }
+.num-cell    { font-weight: 600; color: #475569; }
+.bold-cell   { font-weight: 700; color: #0f172a; }
+.rate-cell   { font-weight: 700; color: #3b82f6; }
+.muted-cell  { color: #64748b; }
+.star-cell   { font-weight: 700; color: #f59e0b; }
