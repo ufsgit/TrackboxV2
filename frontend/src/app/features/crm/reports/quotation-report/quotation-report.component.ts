@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -9,9 +9,42 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './quotation-report.component.html',
   styleUrl: './quotation-report.component.css'
 })
-export class QuotationReportComponent {
+export class QuotationReportComponent implements OnInit {
   searchTerm: string = '';
   
+  stats = { total: 156, accepted: 89, pendingVal: 312 };
+  displayStats = { total: 0, accepted: 0, pendingVal: 0 };
+
+  ngOnInit() {
+    this.animateCount('total', this.stats.total);
+    this.animateCount('accepted', this.stats.accepted);
+    this.animateCount('pendingVal', this.stats.pendingVal);
+  }
+
+  animateCount(key: 'total' | 'accepted' | 'pendingVal', target: number) {
+    if (!target || target <= 0) {
+      this.displayStats[key] = 0;
+      return;
+    }
+    const duration = 1200;
+    const startTime = performance.now();
+    const startVal = 0;
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      this.displayStats[key] = Math.floor(startVal + (target - startVal) * easeProgress);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        this.displayStats[key] = target;
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
   quotations = [
     { id: 'QT-2023-001', client: 'Acme Corp', amount: '₹15,000', date: '2023-10-20', validUntil: '2023-11-20', status: 'Accepted' },
     { id: 'QT-2023-002', client: 'TechFlow Inc', amount: '₹25,000', date: '2023-10-21', validUntil: '2023-11-21', status: 'Pending' },

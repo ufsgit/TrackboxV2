@@ -14,33 +14,33 @@
   <!-- KPI Cards -->
   <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
     
-    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
-      <div class="stat-icon icon-red" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fef2f2; color: #ef4444;">
+    <div class="stat-card-anim" style="animation-delay: 0.1s;">
+      <div class="stat-icon icon-red">
         <i class="bi bi-exclamation-octagon"></i>
       </div>
       <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Overdue</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ stats.overdue }}</h3>
+        <label>Overdue</label>
+        <h3 class="stat-number">{{ displayStats.overdue | number }}</h3>
       </div>
     </div>
 
-    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
-      <div class="stat-icon icon-orange" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #fff7ed; color: #f97316;">
+    <div class="stat-card-anim" style="animation-delay: 0.2s;">
+      <div class="stat-icon icon-orange">
         <i class="bi bi-calendar-event"></i>
       </div>
       <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Due Today</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ stats.dueToday }}</h3>
+        <label>Due Today</label>
+        <h3 class="stat-number">{{ displayStats.dueToday | number }}</h3>
       </div>
     </div>
 
-    <div class="stat-card" style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid rgba(229, 231, 235, 0.5); display: flex; align-items: center; gap: 20px;">
-      <div class="stat-icon icon-blue" style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #eff6ff; color: #3b82f6;">
+    <div class="stat-card-anim" style="animation-delay: 0.3s;">
+      <div class="stat-icon icon-blue">
         <i class="bi bi-calendar2-week"></i>
       </div>
       <div class="stat-info">
-        <label style="color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">Upcoming (7 Days)</label>
-        <h3 style="color: #0f172a; font-size: 1.75rem; font-weight: 800; margin: 0;">{{ stats.upcoming }}</h3>
+        <label>Upcoming (7 Days)</label>
+        <h3 class="stat-number">{{ displayStats.upcoming | number }}</h3>
       </div>
     </div>
 

@@ -151,6 +151,58 @@
   min-height: 0;
 }
 
+/* ── Clickable lead row ─────────────────────────────── */
+.lead-row {
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.lead-row:hover {
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%);
+}
+
+.lead-row:hover td {
+  color: #1e293b;
+}
+
+/* ── Follow-up column badges ────────────────────────── */
+.follow-up-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.follow-up-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  color: #94a3b8;
+  border: 1px dashed #cbd5e1;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.lead-row:hover .follow-up-empty {
+  background: #eff6ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+  border-style: solid;
+}
+
+
 .pagination-bar {
   display: flex;
   justify-content: space-between;

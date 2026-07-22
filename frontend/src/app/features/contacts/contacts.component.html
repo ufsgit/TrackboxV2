@@ -91,8 +91,11 @@
           </td>
         </tr>
         
-        <tr *ngFor="let contact of contacts">
-          <td>
+        <tr *ngFor="let contact of contacts" 
+            class="lead-row"
+            (click)="openQuickStatusModal(contact)"
+            title="Click to update follow-up">
+          <td (click)="$event.stopPropagation()">
             <div class="d-flex align-items-center contact-profile" (click)="openDetailPanel(contact)" title="Click to view details" style="cursor: pointer;">
               <div>
                 <div class="fw-bold contact-name" style="font-size: 0.95rem; color: #4f46e5; font-weight: 700;">{{ contact.name }}</div>
@@ -114,9 +117,7 @@
             <div class="d-flex align-items-center gap-2">
               <span class="badge" 
                     [ngClass]="contact.status_name ? 'bg-primary bg-opacity-10 text-primary border border-primary-subtle' : 'bg-light text-secondary border'" 
-                    style="cursor: pointer; padding: 6px 12px; font-weight: 600; letter-spacing: 0.3px; font-size: 0.75rem;" 
-                    (click)="openQuickStatusModal(contact)" 
-                    title="Click to update status">
+                    style="padding: 6px 12px; font-weight: 600; letter-spacing: 0.3px; font-size: 0.75rem;">
                 {{ contact.status_name || '-' }}
               </span>
             </div>
@@ -133,7 +134,7 @@
             </div>
             <a href="javascript:void(0)" 
                *ngIf="contact.latest_remark && contact.latest_remark.length > 35"
-               (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded" 
+               (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded; $event.stopPropagation()" 
                class="small text-primary text-decoration-none fw-bold" 
                style="font-size: 0.75rem;">
               {{ contact.isRemarkExpanded ? 'Show Less' : 'Read More' }}
@@ -142,16 +143,16 @@
           
           <td>
             <div class="d-flex align-items-center gap-2">
-              <!-- <div class="icon-circle bg-warning bg-opacity-10 text-warning" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;" (click)="openQuickStatusModal(contact)" title="Click to update follow-up date">
-                <i class="bi bi-calendar-event"></i>
-              </div> -->
-              <span class="text-muted small" *ngIf="contact.follow_up_date" style="cursor: pointer;" (click)="openQuickStatusModal(contact)">
-                {{ (contact.follow_up_date | date:'dd MMM yyyy') }}
+              <span *ngIf="contact.follow_up_date" class="follow-up-badge">
+                <i class="bi bi-calendar-check me-1"></i>{{ (contact.follow_up_date | date:'dd MMM yyyy') }}
+              </span>
+              <span *ngIf="!contact.follow_up_date" class="follow-up-empty">
+                <i class="bi bi-calendar-plus me-1"></i>Set Follow Up
               </span>
             </div>
           </td>
 
-          <td>
+          <td (click)="$event.stopPropagation()">
             <button class="btn btn-sm text-primary" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
               <i class="bi bi-calendar-plus" style="font-size: 1.1rem;"></i>
             </button>
