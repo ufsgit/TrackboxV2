@@ -403,7 +403,7 @@ export class LayoutComponent implements OnInit {
   private syncDepartmentWithUrl(url: string) {
     if (!url || url.includes('/sop')) return;
     
-    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings', 'system-settings'];
+    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings'];
     
     const operationRoutes = ['operation-dashboard', 'installation', 'customer-feedback', 'warranty-service', 'complaints', 'installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report', 'operation/leave-request'];
     
@@ -415,11 +415,22 @@ export class LayoutComponent implements OnInit {
     this.isOperationReportsOpen = false;
     this.isHrReportsOpen = false;
 
-    if (crmRoutes.some(route => url.includes(route))) {
+    if (url.includes('/settings') || url.includes('/system-settings')) {
+      if (url.includes('module=operation')) {
+        this.activeDepartment = 'Operation';
+      } else if (url.includes('module=hr')) {
+        this.activeDepartment = 'HR';
+      } else if (url.includes('module=crm')) {
+        this.activeDepartment = 'CRM';
+      } else if (url.includes('module=leads')) {
+        this.activeDepartment = 'Leads';
+      }
+      // Preserve current activeDepartment if no module queryParam is passed
+    } else if (crmRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'CRM';
-    } else if (operationRoutes.some(route => url.includes(route)) || url.includes('module=operation')) {
+    } else if (operationRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'Operation';
-    } else if (hrRoutes.some(route => url.includes(route)) || url.includes('module=hr')) {
+    } else if (hrRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'HR';
     } else {
       this.activeDepartment = 'Leads'; 

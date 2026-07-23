@@ -5,43 +5,12 @@
   border-radius: 28px;
   overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(17, 24, 39, 0.05), 0 8px 10px -6px rgba(17, 24, 39, 0.01);
-  display: flex;
+  display: block;
   min-height: calc(100vh - 120px);
 }
 
-.settings-nav {
-  width: 240px;
-  background: #fafbfc;
-  border-right: 1px solid rgba(229, 231, 235, 0.6);
-  padding: 32px 0;
-  flex-shrink: 0;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  padding: 14px 28px;
-  color: #64748b;
-  text-decoration: none;
-  font-size: 0.88rem;
-  font-weight: 700;
-  transition: all 0.25s ease;
-  border-left: 4px solid transparent;
-}
-
-.nav-link:hover {
-  color: #0f172a;
-  background: #f1f5f9;
-}
-
-.nav-link.active {
-  color: #4f46e5;
-  background: rgba(99, 102, 241, 0.06);
-  border-left-color: #6366f1;
-}
-
 .settings-content {
-  flex: 1;
+  width: 100%;
   padding: 40px;
   overflow-y: auto;
 }

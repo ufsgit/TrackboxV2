@@ -1,37 +1,4 @@
 <div class="settings-page">
-  <div class="settings-nav">
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'whatsapp'" (click)="setActiveTab('whatsapp')">
-      <i class="bi bi-cpu me-2"></i>Channels Manager
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team'); loadTeam()">
-      <i class="bi bi-person-lines-fill me-2"></i>Users / Agents
-    </a>
-
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'lead-fields'" (click)="setActiveTab('lead-fields'); loadLeadFields()">
-      <i class="bi bi-list-columns me-2"></i>Lead Fields
-    </a>
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'field-categories'" (click)="setActiveTab('field-categories'); loadFieldCategories()">
-      <i class="bi bi-folder me-2"></i>Field Categories
-    </a>
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'source-categories'" (click)="setActiveTab('source-categories'); loadSourceCategories()">
-      <i class="bi bi-tag me-2"></i>Source Categories
-    </a>
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'api'" (click)="setActiveTab('api')">
-      <i class="bi bi-code-slash me-2"></i>API & Webhooks
-    </a>
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'integrations'" (click)="setActiveTab('integrations')">
-      <i class="bi bi-plug me-2"></i>Integrations
-    </a>
-    <a *ngIf="activeModule === 'leads'" href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'courses'" (click)="setActiveTab('courses')">
-      <i class="bi bi-journal-bookmark me-2"></i>Courses
-    </a>
-    <!-- 
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'billing'" (click)="activeTab = 'billing'; loadBilling()">
-      <i class="bi bi-credit-card me-2"></i>Billing
-    </a>
-    -->
-  </div>
-
   <div class="settings-content">
 
     <!-- ===================== CHANNELS MANAGER ===================== -->
