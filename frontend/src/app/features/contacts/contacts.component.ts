@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-contacts',
@@ -111,6 +112,25 @@ export class ContactsComponent implements OnInit {
   showUploadDocumentModal = false;
   uploadDocData: any = { documentType: '', file: null, fileName: '', notes: '' };
   documentOptions = ['Passport', 'Visa', 'Offer Letter', 'Resume', 'Other'];
+
+  // Bulk Import Modal
+  showBulkImportModal = false;
+  bulkImportLoading = false;
+  selectedImportFile: File | null = null;
+  totalFileLeads = 0;
+  bulkImportUsers: any[] = [];
+  userAllocations: { userId: number, userName: string, count: number }[] = [];
+  
+  // New Bulk Import UI State
+  globalImportSettings = {
+    branch_id: '',
+    department_id: '',
+    status_id: '',
+    enquiry_source_id: '',
+    assigned_to: ''
+  };
+  parsedLeadsPreview: any[] = [];
+  showImportDetailsView = false; // Used to toggle full page import view
 
   openUploadDocumentModal() {
     this.uploadDocData = { documentType: '', file: null, fileName: '', notes: '' };
@@ -593,6 +613,143 @@ export class ContactsComponent implements OnInit {
     this.showAddApplicationModal = true;
   }
 
+  // --- BULK IMPORT & EXPORT LOGIC ---
+  
+  exportContacts() {
+    window.open(`${environment.apiUrl}/contacts/export?token=${localStorage.getItem('uc_token')}`, '_blank');
+  }
+
+  openBulkImportModal() {
+    this.showImportDetailsView = true;
+    this.selectedImportFile = null;
+    this.totalFileLeads = 0;
+    this.userAllocations = [];
+    this.parsedLeadsPreview = [];
+    this.globalImportSettings = {
+      branch_id: '',
+      department_id: '',
+      status_id: '',
+      enquiry_source_id: '',
+      assigned_to: ''
+    };
+    this.showImportExportDropdown = false;
+    
+    // Fetch users for allocation
+    this.api.get('/settings/team').subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.bulkImportUsers = res.data;
+        }
+      }
+    });
+  }
+
+  closeBulkImportModal() {
+    this.showImportDetailsView = false;
+    this.selectedImportFile = null;
+    this.totalFileLeads = 0;
+    this.userAllocations = [];
+    this.parsedLeadsPreview = [];
+  }
+
+  downloadExcelTemplate() {
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet([
+      { 'Full Name': '', 'Mobile': '', 'Whatsapp': '', 'Email': '', 'Address': '', 'Remarks': '' }
+    ]);
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads_Template');
+    XLSX.writeFile(wb, 'lead_import_template.xlsx');
+  }
+
+  onBulkImportFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedImportFile = file;
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+        this.totalFileLeads = jsonData.length;
+        this.parsedLeadsPreview = jsonData.slice(0, 5); // Preview first 5
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  }
+
+  addUserAllocation() {
+    this.userAllocations.push({ userId: 0, userName: '', count: 0 });
+  }
+  
+  removeUserAllocation(index: number) {
+    this.userAllocations.splice(index, 1);
+  }
+  
+  autoDistributeCounts() {
+    if (this.userAllocations.length === 0 || this.totalFileLeads === 0) return;
+    
+    const baseCount = Math.floor(this.totalFileLeads / this.userAllocations.length);
+    let remainder = this.totalFileLeads % this.userAllocations.length;
+    
+    this.userAllocations.forEach((alloc, i) => {
+      alloc.count = baseCount + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
+    });
+  }
+  
+  get totalAssignedLeads(): number {
+    return this.userAllocations.reduce((sum, alloc) => sum + (alloc.count || 0), 0);
+  }
+
+  submitBulkImport() {
+    if (!this.selectedImportFile) {
+      Swal.fire('Error', 'Please select a file to import.', 'error');
+      return;
+    }
+    
+    if (this.totalAssignedLeads > this.totalFileLeads) {
+      Swal.fire('Error', 'Total assigned leads cannot exceed the total leads in the file.', 'error');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', this.selectedImportFile);
+    
+    // Append global settings
+    formData.append('branch_id', this.globalImportSettings.branch_id);
+    formData.append('department_id', this.globalImportSettings.department_id);
+    formData.append('status_id', this.globalImportSettings.status_id);
+    formData.append('enquiry_source_id', this.globalImportSettings.enquiry_source_id);
+    if (this.globalImportSettings.assigned_to) {
+      formData.append('assigned_to', this.globalImportSettings.assigned_to);
+    }
+
+    const validAllocations = this.userAllocations.filter(a => a.userId && a.count > 0);
+    if (validAllocations.length > 0) {
+      formData.append('assignments', JSON.stringify(validAllocations));
+    }
+
+    this.bulkImportLoading = true;
+    this.api.post('/contacts/import', formData).subscribe({
+      next: (res: any) => {
+        this.bulkImportLoading = false;
+        if (res.success) {
+          Swal.fire('Success', res.message, 'success');
+          this.closeBulkImportModal();
+          this.loadContacts();
+        } else {
+          Swal.fire('Error', res.message, 'error');
+        }
+      },
+      error: (err) => {
+        this.bulkImportLoading = false;
+        Swal.fire('Error', err.error?.message || 'Failed to import contacts.', 'error');
+      }
+    });
+  }
+
   openEditApplicationModal(app: any) {
     this.currentApplication = { ...app };
     this.showAddApplicationModal = true;
@@ -1044,40 +1201,7 @@ export class ContactsComponent implements OnInit {
     });
   }
 
-  exportContacts() {
-    window.open(`${this.api.apiUrl}/contacts/export`, '_blank');
-  }
 
-  importContacts(event: any) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    this.api.post('/contacts/import', formData).subscribe({
-      next: (res: any) => {
-        Swal.fire({
-          icon: 'success',
-          title: 'Success',
-          text: res.message,
-          confirmButtonColor: '#10B981',
-          timer: 2000,
-          showConfirmButton: false
-        });
-        this.loadContacts();
-        this.loadTags();
-      },
-      error: (err: any) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Import Failed',
-          text: err.error?.message || 'Error importing contacts',
-          confirmButtonColor: '#ef4444'
-        });
-      }
-    });
-  }
 
   goToChat(contact: any) {
     this.activeChatContact = contact;

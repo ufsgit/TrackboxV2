@@ -1,5 +1,5 @@
 const pool = require('../db/pool');
-const { parseCSV, buildCSV } = require('../utils/csvParser');
+const { parseFile, buildCSV } = require('../utils/csvParser');
 const { v4: uuidv4 } = require('crypto');
 const crypto = require('crypto');
 const path = require('path');
@@ -423,27 +423,153 @@ const deleteContact = async (req, res) => {
 };
 
 const importContacts = async (req, res) => {
+  const conn = await pool.getConnection();
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded', data: null });
-    const rows = await parseCSV(req.file.path);
+    const rows = await parseFile(req.file.path);
     const bizId = req.user.businessId;
     let imported = 0;
-    for (const row of rows) {
-      const name = row.name || row.Name || '';
-      const phone = row.phone || row.Phone || '';
-      const email = row.email || row.Email || '';
-      const tags = row.tags ? JSON.stringify(row.tags.split('|').map(t => t.trim())) : '[]';
-      if (!phone) continue;
-      await pool.query(
-        'INSERT INTO contacts (business_id, name, phone, email, tags, opt_in_source) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name)',
-        [bizId, name, phone, email, tags, 'import']
+    
+    // Parse assignments if provided
+    let assignments = [];
+    if (req.body.assignments) {
+      try {
+        assignments = JSON.parse(req.body.assignments);
+      } catch (e) {
+        console.error('Failed to parse assignments:', e);
+      }
+    }
+    
+    // Global Settings
+    const globalBranchId = req.body.branch_id || null;
+    const globalDepartmentId = req.body.department_id || null;
+    const globalStatusId = req.body.status_id || null;
+    const globalEnquirySourceId = req.body.enquiry_source_id || null;
+    
+    let globalBranchName = null;
+    let globalDepartmentName = null;
+    
+    if (globalBranchId) {
+      const [b] = await conn.query('SELECT name FROM branches WHERE id = ?', [globalBranchId]);
+      if (b.length) globalBranchName = b[0].name;
+    }
+    if (globalDepartmentId) {
+      const [d] = await conn.query('SELECT name FROM departments WHERE id = ?', [globalDepartmentId]);
+      if (d.length) globalDepartmentName = d[0].name;
+    }
+
+    // Get uploader's info as fallback
+    const [uploaderRows] = await conn.query(
+      `SELECT u.branch_id, b.name as branch_name, u.department_id, d.name as department_name 
+       FROM users u 
+       LEFT JOIN branches b ON u.branch_id = b.id 
+       LEFT JOIN departments d ON u.department_id = d.id 
+       WHERE u.id = ?`,
+      [req.user.userId]
+    );
+    const uploaderInfo = uploaderRows[0] || {};
+    
+    // Get info for all assigned users to avoid querying in the loop
+    const userDetailsMap = {};
+    if (assignments && assignments.length > 0) {
+      const userIds = assignments.map(a => a.userId);
+      const [uRows] = await conn.query(
+        `SELECT u.id, u.branch_id, b.name as branch_name, u.department_id, d.name as department_name 
+         FROM users u 
+         LEFT JOIN branches b ON u.branch_id = b.id 
+         LEFT JOIN departments d ON u.department_id = d.id 
+         WHERE u.id IN (?)`,
+        [userIds]
       );
+      for (const r of uRows) {
+        userDetailsMap[r.id] = r;
+      }
+    }
+    
+    await conn.beginTransaction();
+
+    let currentUserAssignmentIndex = 0;
+    let currentUserCount = 0;
+
+    for (const row of rows) {
+      // Normalize keys by converting to lowercase
+      const normalizedRow = {};
+      for (let key in row) {
+        if (Object.prototype.hasOwnProperty.call(row, key)) {
+          normalizedRow[key.toLowerCase().trim()] = row[key];
+        }
+      }
+      
+      const name = normalizedRow.name || '';
+      const phone = normalizedRow.phone || normalizedRow.contact || '';
+      const email = normalizedRow.email || '';
+      const rawTags = normalizedRow.tags || '';
+      const tags = rawTags ? JSON.stringify(rawTags.split('|').map(t => t.trim())) : '[]';
+      const address = normalizedRow.address || null;
+      
+      if (!phone) continue; // Skip rows without phone
+
+      // Distribution Logic
+      let assignTo = req.user.userId; // Default to uploader
+      let branch_id = globalBranchId || uploaderInfo.branch_id || null;
+      let branch_name = globalBranchName || uploaderInfo.branch_name || null;
+      let department_id = globalDepartmentId || uploaderInfo.department_id || null;
+      let department_name = globalDepartmentName || uploaderInfo.department_name || null;
+
+      if (assignments && assignments.length > 0 && currentUserAssignmentIndex < assignments.length) {
+        const currentAssignment = assignments[currentUserAssignmentIndex];
+        assignTo = currentAssignment.userId;
+        
+        // Only use agent's branch/dept if global wasn't provided
+        const targetUserDetails = userDetailsMap[assignTo];
+        if (targetUserDetails) {
+          if (!globalBranchId) branch_id = targetUserDetails.branch_id;
+          if (!globalBranchName) branch_name = targetUserDetails.branch_name;
+          if (!globalDepartmentId) department_id = targetUserDetails.department_id;
+          if (!globalDepartmentName) department_name = targetUserDetails.department_name;
+        }
+        
+        currentUserCount++;
+        if (currentUserCount >= currentAssignment.count) {
+          currentUserAssignmentIndex++;
+          currentUserCount = 0;
+        }
+      }
+
+      const userList = [assignTo];
+      const enquiryForId = globalEnquirySourceId || null;
+      const statusId = globalStatusId || null;
+
+      const [result] = await conn.query(
+        `INSERT INTO contacts 
+         (business_id, name, phone, email, tags, address, opt_in_source, assigned_to, branch_id, branch_name, department_id, department_name, user_list, enquiry_for_id, status_id) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+         ON DUPLICATE KEY UPDATE name=VALUES(name), tags=VALUES(tags), address=VALUES(address), assigned_to=VALUES(assigned_to), branch_id=VALUES(branch_id), branch_name=VALUES(branch_name), department_id=VALUES(department_id), department_name=VALUES(department_name), user_list=VALUES(user_list), enquiry_for_id=IFNULL(VALUES(enquiry_for_id), enquiry_for_id), status_id=IFNULL(VALUES(status_id), status_id)`,
+        [bizId, name, phone, email, tags, address, 'import', assignTo, branch_id, branch_name, department_id, department_name, JSON.stringify(userList), enquiryForId, statusId]
+      );
+      
+      // Check if it's a new insert or update by checking affectedRows.
+      // If it's a new insert, let's create a follow_up entry.
+      // 1 means inserted, 2 means updated
+      if (result.affectedRows === 1) {
+        await conn.query(
+          'INSERT INTO follow_ups (contact_id, contact_name, by_user_id, to_user_id, branch_id, branch_name, department_id, department_name, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [result.insertId, name, req.user.userId, assignTo, branch_id, branch_name, department_id, department_name, 'Contact imported']
+        );
+      }
+      
       imported++;
     }
+    
+    await conn.commit();
     fs.unlinkSync(req.file.path);
-    res.json({ success: true, data: { imported }, message: `${imported} contacts imported` });
+    res.json({ success: true, data: { imported }, message: `${imported} contacts imported successfully` });
   } catch (err) {
+    await conn.rollback();
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ success: false, message: err.message, data: null });
+  } finally {
+    conn.release();
   }
 };
 

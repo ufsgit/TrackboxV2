@@ -1,14 +1,21 @@
 const { parse } = require('fast-csv');
 const fs = require('fs');
 
-function parseCSV(filePath) {
+const xlsx = require('xlsx');
+
+function parseFile(filePath) {
   return new Promise((resolve, reject) => {
-    const rows = [];
-    fs.createReadStream(filePath)
-      .pipe(parse({ headers: true, trim: true }))
-      .on('data', row => rows.push(row))
-      .on('end', () => resolve(rows))
-      .on('error', err => reject(err));
+    try {
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(worksheet, { raw: false, defval: '' });
+      
+      // Clean up headers (trim, lowercase, etc. can be done here or in controller)
+      resolve(data);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -20,4 +27,4 @@ function buildCSV(data, headers) {
   return lines.join('\n');
 }
 
-module.exports = { parseCSV, buildCSV };
+module.exports = { parseFile, buildCSV };
