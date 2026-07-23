@@ -5,7 +5,7 @@
     <div class="top-bar-main">
       <div class="brand-section">
         <!-- Logo -->
-        <div class="logo-container" routerLink="/lead-dashboard" title="Go to Dashboard">
+        <div class="logo-container" [routerLink]="dashboardRoute" title="Go to Dashboard">
           <div class="logo-icon">
             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width: 100%; height: 100%; display: block;">
               <path d="M25 32 L75 32 M50 32 L50 68" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
@@ -258,10 +258,6 @@
           </div>
         </div>
 
-        <a routerLink="/settings" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-gear"></i>
-          <span>Settings</span>
-        </a>
         <a routerLink="/sop" [queryParams]="{module: 'leads'}" routerLinkActive="active" class="nav-item">
           <i class="bi bi-journal-text"></i>
           <span>SOP Guide</span>
@@ -347,10 +343,6 @@
         </div>
         
 
-        <a routerLink="/settings" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-gear"></i>
-          <span>Settings</span>
-        </a>
         <a routerLink="/sop" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item">
           <i class="bi bi-journal-text"></i>
           <span>SOP Guide</span>
@@ -415,10 +407,6 @@
           </div>
         </div>
         
-        <a routerLink="/settings" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-gear"></i>
-          <span>Settings</span>
-        </a>
         <a routerLink="/sop" [queryParams]="{module: 'operation'}" routerLinkActive="active" class="nav-item">
           <i class="bi bi-journal-text"></i>
           <span>SOP Guide</span>
@@ -487,10 +475,6 @@
           </div>
         </div>
         
-        <a routerLink="/settings" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-gear"></i>
-          <span>Settings</span>
-        </a>
         <a routerLink="/sop" [queryParams]="{module: 'hr'}" routerLinkActive="active" class="nav-item">
           <i class="bi bi-journal-text"></i>
           <span>SOP Guide</span>

@@ -213,6 +213,13 @@ export class LayoutComponent implements OnInit {
     this.showNotificationDropdown = !this.showNotificationDropdown;
   }
 
+  get dashboardRoute(): string {
+    if (this.activeDepartment === 'CRM') return '/crm-dashboard';
+    if (this.activeDepartment === 'Operation') return '/operation-dashboard';
+    if (this.activeDepartment === 'HR') return '/hr-dashboard';
+    return '/lead-dashboard';
+  }
+
   get unreadNotificationsCount(): number {
     return this.notifications.filter(n => n.unread).length;
   }
