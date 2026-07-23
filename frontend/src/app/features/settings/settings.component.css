@@ -11,7 +11,7 @@
 
 .settings-content {
   width: 100%;
-  padding: 40px;
+  padding: 36px 40px;
   overflow-y: auto;
 }
 
@@ -2622,4 +2622,142 @@ input:checked+.slider:before {
   font-size: 0.72rem;
   color: #64748b;
   margin-top: 1px;
+}
+
+/* ====================================================
+   LEAD FIELD MANAGER — REDESIGNED
+   ==================================================== */
+
+/* Hero Header Card */
+.lf-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(238, 242, 255, 0.75) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(129, 140, 248, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 4px 24px -4px rgba(79, 70, 229, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  position: relative;
+  overflow: hidden;
+}
+
+.lf-hero-header::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.lf-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.lf-hero-icon {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4F46E5 0%, #818CF8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #fff;
+  box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.35);
+}
+
+.lf-hero-title {
+  font-size: 1.55rem !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 60%, #818CF8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px !important;
+  line-height: 1.2 !important;
+  border: none !important;
+  padding-bottom: 0 !important;
+}
+
+.lf-hero-desc {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 520px;
+}
+
+.lf-add-btn {
+  white-space: nowrap;
+  padding: 10px 20px !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  gap: 6px;
+  box-shadow: 0 6px 16px -4px rgba(79, 70, 229, 0.3) !important;
+}
+
+/* Lead Fields Table Card */
+.lf-table-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 255, 0.75) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(226, 232, 240, 0.7);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+}
+
+/* Empty State */
+.lf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 32px;
+  text-align: center;
+}
+
+.lf-empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(129, 140, 248, 0.12) 100%);
+  border: 1.5px solid rgba(129, 140, 248, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #818CF8;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px -6px rgba(79, 70, 229, 0.15);
+}
+
+.lf-empty-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.025em;
+  margin-bottom: 8px;
+}
+
+.lf-empty-desc {
+  font-size: 0.92rem;
+  color: #64748b;
+  font-weight: 500;
+  max-width: 400px;
+  line-height: 1.65;
+  margin-bottom: 0;
 }

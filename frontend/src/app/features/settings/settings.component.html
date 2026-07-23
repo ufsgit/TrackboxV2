@@ -602,15 +602,20 @@
 
     <!-- ===================== LEAD FIELDS ===================== -->
     <div *ngIf="activeTab === 'lead-fields'" class="lead-fields-tab">
-      <!-- Header -->
-      <div class="team-header-container">
-        <div>
-          <h3 class="section-title mb-0">Lead Field Manager</h3>
-          <p class="section-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns,
-            dates, text fields and more.</p>
+
+      <!-- Hero Header Card -->
+      <div class="lf-hero-header">
+        <div class="lf-hero-left">
+          <div class="lf-hero-icon">
+            <i class="bi bi-sliders"></i>
+          </div>
+          <div>
+            <h3 class="lf-hero-title">Lead Field Manager</h3>
+            <p class="lf-hero-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns, dates, text fields and more.</p>
+          </div>
         </div>
-        <button class="btn btn-primary" (click)="openAddFieldModal()">
-          <i class="bi bi-plus-lg me-2"></i> Add New Field
+        <button class="btn btn-primary lf-add-btn" (click)="openAddFieldModal()">
+          <i class="bi bi-plus-lg"></i> Add New Field
         </button>
       </div>
 
@@ -628,15 +633,14 @@
       </div>
 
       <!-- Fields Table -->
-      <div class="team-table-card mt-4" *ngIf="!leadFieldsLoading">
+      <div class="lf-table-card mt-4" *ngIf="!leadFieldsLoading">
 
         <!-- Empty state -->
         <div *ngIf="leadFields.length === 0" class="lf-empty-state">
-          <div class="lf-empty-icon"><i class="bi bi-list-columns"></i></div>
-          <h4>No Custom Fields Yet</h4>
-          <p>Add fields like &quot;Course Selected&quot;, &quot;Date of Birth&quot;, &quot;City&quot;, etc. to enrich
-            your lead profiles.</p>
-          <button class="btn btn-primary mt-2" (click)="openAddFieldModal()">
+          <div class="lf-empty-icon"><i class="bi bi-layout-text-sidebar-reverse"></i></div>
+          <h4 class="lf-empty-title">No Custom Fields Yet</h4>
+          <p class="lf-empty-desc">Add fields like "Course Selected", "Date of Birth", "City", etc. to enrich your lead profiles.</p>
+          <button class="btn btn-primary mt-3" (click)="openAddFieldModal()">
             <i class="bi bi-plus-lg me-2"></i> Add Your First Field
           </button>
         </div>
