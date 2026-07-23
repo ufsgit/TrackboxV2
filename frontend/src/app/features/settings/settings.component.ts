@@ -725,3 +725,4 @@ export class SettingsComponent implements OnInit {
     return this.FIELD_TYPES.find(t => t.value === type)?.icon || 'bi-type';
   }
 }
+

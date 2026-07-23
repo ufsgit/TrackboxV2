@@ -3,7 +3,8 @@
   <header class="top-header">
     <!-- Row 1: Brand Logo, Department Switcher, Page Title & Utility Actions -->
     <div class="top-bar-main">
-      <div class="brand-section">
+      <!-- Brand Column: Trackbox Logo on top, CRM Dropdown Underneath -->
+      <div class="brand-column">
         <!-- Logo -->
         <div class="logo-container" [routerLink]="dashboardRoute" title="Go to Dashboard">
           <div class="logo-icon">
@@ -24,7 +25,7 @@
           <div class="logo-text">Trackbox<span class="logo-dot">.</span></div>
         </div>
 
-        <!-- Department Switcher (hidden on settings pages) -->
+        <!-- Department Switcher (under Trackbox logo) -->
         <div class="department-switcher" *ngIf="!isSettingsRoute">
           <button class="dept-btn" (click)="toggleDepartmentDropdown($event)">
             <div class="dept-info">
@@ -42,157 +43,16 @@
         </div>
       </div>
 
-      <!-- Current Page Title -->
-      <div class="page-title">
-        {{ pageTitle }}
-      </div>
-
-      <!-- Right Side Actions -->
-      <div class="top-actions" *ngIf="user$ | async as user">
-        <!-- Check In / Check Out -->
-        <button class="checkin-btn" [class.checked-in]="isCheckedIn" (click)="toggleCheckIn()">
-          <i class="bi" [class.bi-box-arrow-in-right]="!isCheckedIn" [class.bi-box-arrow-left]="isCheckedIn"></i>
-          <span>{{ isCheckedIn ? 'Check Out' : 'Check In' }}</span>
-        </button>
-
-        <!-- Notification Bell & Dropdown Wrapper -->
-        <div class="notification-wrapper">
-          <button class="notification-trigger" (click)="toggleNotificationDropdown($event)" title="Notifications">
-            <i class="bi bi-bell"></i>
-            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
-              {{ unreadNotificationsCount }}
-            </span>
-          </button>
-
-          <!-- Floating Notification Dropdown Card -->
-          <div class="notification-dropdown" *ngIf="showNotificationDropdown" (click)="$event.stopPropagation()">
-            <div class="dropdown-header">
-              <h4>Notifications</h4>
-              <button class="btn-text-action" (click)="markAllAsRead()" *ngIf="unreadNotificationsCount > 0">Mark all as read</button>
-            </div>
-            <div class="dropdown-body">
-              <div class="notification-list" *ngIf="notifications.length > 0; else emptyNotifications">
-                <div class="notification-item" *ngFor="let n of notifications" [class.unread]="n.unread" (click)="readNotification(n)">
-                  <div class="notification-icon-wrapper" [class]="n.type">
-                    <i class="bi" [class]="n.icon"></i>
-                  </div>
-                  <div class="notification-content">
-                    <div class="notification-title-row">
-                      <span class="notification-item-title">{{ n.title }}</span>
-                      <span class="notification-item-time">{{ n.time }}</span>
-                    </div>
-                    <p class="notification-item-message">{{ n.message }}</p>
-                  </div>
-                  <div class="unread-dot" *ngIf="n.unread"></div>
-                </div>
-              </div>
-              <ng-template #emptyNotifications>
-                <div class="empty-notifications">
-                  <i class="bi bi-bell-slash"></i>
-                  <p>All caught up! No new notifications.</p>
-                </div>
-              </ng-template>
-            </div>
-            <div class="dropdown-footer">
-              <button class="btn-view-all" (click)="clearAllNotifications()">Clear All</button>
-            </div>
-          </div>
+      <!-- Navigation & Title Section to the right of Trackbox Logo -->
+      <div class="header-nav-section">
+        <!-- Current Page Title -->
+        <div class="page-title">
+          {{ pageTitle }}
         </div>
 
-        <!-- User Profile Pill -->
-        <div class="user-chip-clickable" routerLink="/settings" title="Account Settings">
-          <div class="user-avatar">
-            {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
-          </div>
-          <div class="user-info">
-            <span class="user-name">{{ (user?.name | titlecase) || 'User' }}</span>
-            <span class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</span>
-          </div>
-        </div>
-
-        <!-- System Settings & Logout -->
-        <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
-          <button class="logout-btn" (click)="toggleSystemSettingsMenu($event)" [class.gear-rotating]="showSystemSettingsMenu" title="System Settings">
-            <i class="bi bi-gear"></i>
-          </button>
-          
-          <!-- System Settings Popup Menu -->
-          <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
-            <div class="popup-section-header">System Settings</div>
-            <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-people"></i> Teams & Users
-            </a>
-            <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-building"></i> Branch
-            </a>
-            <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-diagram-3"></i> Department
-            </a>
-            <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-activity"></i> Status
-            </a>
-            <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-person-badge"></i> Designation
-            </a>
-            <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
-              <i class="bi bi-gear-fill"></i> Application Settings
-              <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
-            </a>
-            <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
-              <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-                <i class="bi bi-calendar3"></i> Intake
-              </a>
-              <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-                <i class="bi bi-calendar-event"></i> Year
-              </a>
-              <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-                <i class="bi bi-tags"></i> Application Status
-              </a>
-            </div>
-            <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-question-circle"></i> Enquiry For
-            </a>
-            <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-file-earmark-text"></i> Document Type
-            </a>
-
-            <div class="popup-section-header">General & Lead Settings</div>
-            <a routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-cpu"></i> Channels Manager
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'team'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-person-lines-fill"></i> Users / Agents
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'lead-fields'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-list-columns"></i> Lead Fields
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-folder"></i> Field Categories
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-tag"></i> Source Categories
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-code-slash"></i> API & Webhooks
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-plug"></i> Integrations
-            </a>
-            <a routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-              <i class="bi bi-journal-bookmark"></i> Courses
-            </a>
-          </div>
-
-          <button class="logout-btn" (click)="logout()" title="Logout">
-            <i class="bi bi-box-arrow-right"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Row 2: Always Visible Horizontal Navigation Options (hidden on settings pages) -->
-    <nav class="horizontal-nav-bar" *ngIf="!isSettingsRoute">
-      <ng-container *ngIf="user$ | async as user">
+        <!-- Always Visible Horizontal Navigation Options -->
+        <nav class="horizontal-nav-bar" *ngIf="!isSettingsRoute">
+          <ng-container *ngIf="user$ | async as user">
       <ng-container *ngIf="activeDepartment === 'Leads'">
         <a routerLink="/lead-dashboard" routerLinkActive="active" class="nav-item">
           <i class="bi bi-speedometer2"></i>
@@ -274,22 +134,6 @@
           <i class="bi bi-person-lines-fill"></i>
           <span>Leads</span>
         </a>
-        <a routerLink="/quotations" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-file-earmark-text"></i>
-          <span>Quotations</span>
-        </a>
-        <a routerLink="/purchase-orders" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-receipt"></i>
-          <span>Purchase Orders</span>
-        </a>
-        <a routerLink="/delivery-management" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-truck"></i>
-          <span>Delivery Management</span>
-        </a>
-        <a routerLink="/crm/leave-request" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-calendar2-check"></i>
-          <span>Leave Request</span>
-        </a>
 
         <!-- Reports Popover -->
         <div class="reports-dropdown-wrapper">
@@ -341,12 +185,6 @@
             </a>
           </div>
         </div>
-        
-
-        <a routerLink="/sop" [queryParams]="{module: 'crm'}" routerLinkActive="active" class="nav-item">
-          <i class="bi bi-journal-text"></i>
-          <span>SOP Guide</span>
-        </a>
       </ng-container>
 
       <!-- OPERATION MENU -->
@@ -482,7 +320,151 @@
       </ng-container>
       </ng-container>
     </nav>
-  </header>
+  </div>
+
+  <!-- Right Side Actions -->
+  <div class="top-actions" *ngIf="user$ | async as user">
+    <!-- Check In / Check Out -->
+    <button class="checkin-btn" [class.checked-in]="isCheckedIn" (click)="toggleCheckIn()">
+      <i class="bi" [class.bi-box-arrow-in-right]="!isCheckedIn" [class.bi-box-arrow-left]="isCheckedIn"></i>
+      <span>{{ isCheckedIn ? 'Check Out' : 'Check In' }}</span>
+    </button>
+
+    <!-- Notification Bell & Dropdown Wrapper -->
+    <div class="notification-wrapper">
+      <button class="notification-trigger" (click)="toggleNotificationDropdown($event)" title="Notifications">
+        <i class="bi bi-bell"></i>
+        <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+          {{ unreadNotificationsCount }}
+        </span>
+      </button>
+
+      <!-- Floating Notification Dropdown Card -->
+      <div class="notification-dropdown" *ngIf="showNotificationDropdown" (click)="$event.stopPropagation()">
+        <div class="dropdown-header">
+          <h4>Notifications</h4>
+          <button class="btn-text-action" (click)="markAllAsRead()" *ngIf="unreadNotificationsCount > 0">Mark all as read</button>
+        </div>
+        <div class="dropdown-body">
+          <div class="notification-list" *ngIf="notifications.length > 0; else emptyNotifications">
+            <div class="notification-item" *ngFor="let n of notifications" [class.unread]="n.unread" (click)="readNotification(n)">
+              <div class="notification-icon-wrapper" [class]="n.type">
+                <i class="bi" [class]="n.icon"></i>
+              </div>
+              <div class="notification-content">
+                <div class="notification-title-row">
+                  <span class="notification-item-title">{{ n.title }}</span>
+                  <span class="notification-item-time">{{ n.time }}</span>
+                </div>
+                <p class="notification-item-message">{{ n.message }}</p>
+              </div>
+              <div class="unread-dot" *ngIf="n.unread"></div>
+            </div>
+          </div>
+          <ng-template #emptyNotifications>
+            <div class="empty-notifications">
+              <i class="bi bi-bell-slash"></i>
+              <p>All caught up! No new notifications.</p>
+            </div>
+          </ng-template>
+        </div>
+        <div class="dropdown-footer">
+          <button class="btn-view-all" (click)="clearAllNotifications()">Clear All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile Chip -->
+    <div class="user-chip-clickable" routerLink="/settings" title="Account Settings">
+      <div class="user-avatar">
+        {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
+      </div>
+      <div class="user-info">
+        <span class="user-name">{{ (user?.name | titlecase) || 'User' }}</span>
+        <span class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</span>
+      </div>
+    </div>
+
+    <!-- System Settings & Logout -->
+    <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
+      <button class="logout-btn" (click)="toggleSystemSettingsMenu($event)" [class.gear-rotating]="showSystemSettingsMenu" title="System Settings">
+        <i class="bi bi-gear"></i>
+      </button>
+      
+      <!-- System Settings Popup Menu -->
+      <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
+        <div class="popup-section-header">System Settings</div>
+        <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-people"></i> Teams & Users
+        </a>
+        <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-building"></i> Branch
+        </a>
+        <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-diagram-3"></i> Department
+        </a>
+        <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-activity"></i> Status
+        </a>
+        <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-person-badge"></i> Designation
+        </a>
+        <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
+          <i class="bi bi-gear-fill"></i> Application Settings
+          <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
+        </a>
+        <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
+          <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-calendar3"></i> Intake
+          </a>
+          <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-calendar-event"></i> Year
+          </a>
+          <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+            <i class="bi bi-tags"></i> Application Status
+          </a>
+        </div>
+        <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-question-circle"></i> Enquiry For
+        </a>
+        <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-file-earmark-text"></i> Document Type
+        </a>
+
+        <div class="popup-section-header">General & Lead Settings</div>
+        <a routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-cpu"></i> Channels Manager
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'team'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-person-lines-fill"></i> Users / Agents
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'lead-fields'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-list-columns"></i> Lead Fields
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-folder"></i> Field Categories
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-tag"></i> Source Categories
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-code-slash"></i> API & Webhooks
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-plug"></i> Integrations
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-journal-bookmark"></i> Courses
+        </a>
+      </div>
+
+      <button class="logout-btn" (click)="logout()" title="Logout">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+</header>
 
   <!-- Main Content Area -->
   <main class="main-content">

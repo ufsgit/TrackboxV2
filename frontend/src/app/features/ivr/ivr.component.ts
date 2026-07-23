@@ -15,3 +15,4 @@ export class IvrComponent {
     { name: 'Sales Inquiry', number: '+911234577777', active: false },
   ];
 }
+

@@ -116,3 +116,4 @@ export class FlowEditorComponent implements OnInit {
     return this.nodeTypes.find(nt => nt.type === type) || this.nodeTypes[0];
   }
 }
+

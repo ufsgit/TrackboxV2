@@ -62,3 +62,4 @@ export class LeadDashboardComponent implements OnInit {
     window.requestAnimationFrame(step);
   }
 }
+

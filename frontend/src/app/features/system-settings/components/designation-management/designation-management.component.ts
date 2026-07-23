@@ -153,3 +153,4 @@ export class DesignationManagementComponent implements OnInit {
     });
   }
 }
+

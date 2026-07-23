@@ -15,8 +15,8 @@ Chart.register(...registerables);
       <!-- Header -->
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
         <div>
-          <h2 class="fw-bold mb-2">Operations Dashboard</h2>
-          <p class="text-muted mb-0">Overview of field services, installations, and support health</p>
+          <h2 class="fw-black mb-1 page-heading">Operations Dashboard</h2>
+          <p class="text-muted mb-0" style="font-size: 1rem; font-weight: 500;">Overview of field services, installations, and support health</p>
         </div>
         
         <div class="flex items-center" style="gap: 16px; flex-wrap: wrap;">
@@ -499,3 +499,4 @@ export class OperationDashboardComponent implements OnInit, AfterViewInit {
     });
   }
 }
+

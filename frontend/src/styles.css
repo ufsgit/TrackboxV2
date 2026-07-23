@@ -50,17 +50,77 @@ html { font-size: 14px; scroll-behavior: smooth; }
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   color: var(--text-primary);
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.025em;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
 }
 
-h1 { font-size: 2.2rem; letter-spacing: -0.03em; }
-h2 { font-size: 1.75rem; letter-spacing: -0.025em; }
-h3 { font-size: 1.35rem; letter-spacing: -0.02em; font-weight: 600; }
-h4 { font-size: 1.15rem; letter-spacing: -0.015em; font-weight: 600; }
-h5 { font-size: 1rem; letter-spacing: -0.01em; font-weight: 600; }
-h6 { font-size: 0.875rem; letter-spacing: -0.005em; font-weight: 600; }
+h1 { font-size: 2.5rem; letter-spacing: -0.04em; font-weight: 900; }
+h2 { font-size: 2rem; letter-spacing: -0.035em; font-weight: 800; }
+h3 { font-size: 1.4rem; letter-spacing: -0.025em; font-weight: 700; }
+h4 { font-size: 1.15rem; letter-spacing: -0.02em; font-weight: 700; }
+h5 { font-size: 1rem; letter-spacing: -0.015em; font-weight: 600; }
+h6 { font-size: 0.875rem; letter-spacing: -0.01em; font-weight: 600; }
+
+/* ============================================
+   GLOBAL PAGE HEADING SYSTEM
+   Use class="page-heading" on any h1/h2
+   ============================================ */
+
+/* Bold gradient for major page titles (h2 inside .report-container, .contacts-page, etc.) */
+.report-container h2.fw-bold,
+.report-container h2.fw-black,
+.report-container h2 {
+  font-size: 2.2rem !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 60%, #818CF8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(79, 70, 229, 0.18));
+  margin-bottom: 4px !important;
+}
+
+/* Section sub-headings (h5 inside cards) */
+.report-container h5.fw-bold,
+.card h5.fw-bold,
+.card-body h5.fw-bold {
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Page description subtitles */
+.report-container .text-muted:first-of-type,
+.report-container p.text-muted {
+  font-size: 0.98rem !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Generic utility class for any page-level heading */
+.page-heading {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 60%, #818CF8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(79, 70, 229, 0.18));
+  line-height: 1.15;
+}
+
+.page-subheading {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
 
 body {
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;

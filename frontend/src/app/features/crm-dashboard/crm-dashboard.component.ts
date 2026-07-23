@@ -17,8 +17,8 @@ Chart.register(...registerables);
       <!-- Header -->
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
         <div>
-          <h2 class="fw-bold mb-2" style="color: #1e293b;">CRM Dashboard</h2>
-          <p class="text-muted mb-0" style="font-size: 0.95rem;">Overview of leads, deals, and pipeline health</p>
+          <h2 class="fw-black mb-1" style="font-size: 2.2rem; letter-spacing: -0.04em; background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.15));">CRM Dashboard</h2>
+          <p class="text-muted mb-0" style="font-size: 1rem; font-weight: 500; letter-spacing: -0.01em;">Overview of leads, deals, and pipeline health</p>
         </div>
         
         <div class="flex items-center" style="gap: 16px; flex-wrap: wrap;">
@@ -529,3 +529,4 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
     });
   }
 }
+

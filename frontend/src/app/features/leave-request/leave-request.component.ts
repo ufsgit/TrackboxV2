@@ -72,3 +72,4 @@ export class LeaveRequestComponent implements OnInit {
     this.submitted = false;
   }
 }
+

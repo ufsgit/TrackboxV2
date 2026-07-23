@@ -269,3 +269,4 @@ export class StatusReportComponent implements OnInit {
     requestAnimationFrame(tick);
   }
 }
+

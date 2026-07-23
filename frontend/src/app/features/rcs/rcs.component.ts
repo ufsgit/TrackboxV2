@@ -11,3 +11,4 @@ import { CommonModule } from '@angular/common';
 export class RcsComponent {
   // Logic for RCS templates and campaigns
 }
+

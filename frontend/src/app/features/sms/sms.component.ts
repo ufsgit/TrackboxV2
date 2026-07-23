@@ -15,3 +15,4 @@ export class SmsComponent {
     { name: 'Draft Promo', senderId: 'URBCHT', status: 'Draft', recipients: 0 },
   ];
 }
+

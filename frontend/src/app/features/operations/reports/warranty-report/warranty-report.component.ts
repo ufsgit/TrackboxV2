@@ -91,3 +91,4 @@ export class WarrantyReportComponent implements OnInit {
     this.showToast(`Exporting report as ${format}...`);
   }
 }
+

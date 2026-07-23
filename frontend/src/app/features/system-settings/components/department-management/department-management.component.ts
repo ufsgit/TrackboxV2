@@ -176,3 +176,4 @@ export class DepartmentManagementComponent implements OnInit {
     });
   }
 }
+

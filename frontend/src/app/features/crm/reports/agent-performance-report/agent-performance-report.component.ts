@@ -119,3 +119,4 @@ export class AgentPerformanceReportComponent implements AfterViewInit {
     return 'badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-2 py-1';
   }
 }
+

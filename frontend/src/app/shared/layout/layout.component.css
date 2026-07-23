@@ -25,8 +25,8 @@
 
 /* Row 1: Brand & Actions */
 .top-bar-main {
-  height: 64px;
-  padding: 0 24px;
+  min-height: 68px;
+  padding: 8px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -34,30 +34,32 @@
   gap: 20px;
 }
 
-.brand-section {
+.brand-column {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   cursor: pointer;
 }
 
 .logo-icon {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   background: linear-gradient(135deg, #4F46E5, #1E1B4B);
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(79, 70, 229, 0.25);
-  padding: 5px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 3px 8px rgba(79, 70, 229, 0.25);
+  padding: 4px;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -66,7 +68,7 @@
 }
 
 .logo-text {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #111827;
@@ -78,20 +80,22 @@
   font-weight: 900;
 }
 
-/* Department Switcher Pill */
+/* Department Switcher Pill (under Trackbox Logo) */
 .department-switcher {
   position: relative;
   z-index: 500;
+  margin-top: 6px;
 }
 
 .dept-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 6px 14px;
+  border-radius: 8px;
+  padding: 4px 12px;
+  height: 28px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -105,20 +109,20 @@
 .dept-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: #1e293b;
 }
 
 .dept-info i {
   color: #4F46E5;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 
 .dept-chevron {
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   transition: transform 0.3s ease;
 }
 
@@ -130,15 +134,15 @@
   position: absolute;
   top: 100%;
   left: 0;
-  margin-top: 6px;
-  width: 170px;
+  margin-top: 4px;
+  width: 150px;
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 16px -6px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
-  padding: 6px;
+  padding: 4px;
   z-index: 500;
   animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -146,12 +150,12 @@
 .dept-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
   color: #475569;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s;
@@ -167,18 +171,43 @@
   color: #4F46E5;
 }
 
+/* Header Nav Section (Right side of Trackbox logo) */
+.header-nav-section {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  margin-left: 20px;
+  overflow: hidden;
+}
+
 /* Page Title */
 .page-title {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, #0F172A 0%, #4F46E5 100%);
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 50%, #818CF8 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
   white-space: nowrap;
+  padding-right: 12px;
+  position: relative;
+  text-transform: capitalize;
+  filter: drop-shadow(0 2px 4px rgba(79, 70, 229, 0.2));
+}
+
+.page-title::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 15%;
+  height: 70%;
+  width: 2px;
+  background: rgba(226, 232, 240, 0.8);
+  border-radius: 2px;
 }
 
 /* Top Actions */
@@ -255,17 +284,17 @@
   color: #ef4444;
 }
 
-/* Row 2: Horizontal Navigation Bar */
+/* Horizontal Navigation Bar (right of Trackbox logo) */
 .horizontal-nav-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 24px;
+  gap: 4px;
+  padding: 0;
   position: relative;
-  overflow: visible;
-  flex-wrap: wrap;
-  background: #ffffff;
-  z-index: 150;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  background: transparent;
+  width: 100%;
 }
 
 .nav-item {

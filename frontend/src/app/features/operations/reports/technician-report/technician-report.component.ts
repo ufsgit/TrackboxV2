@@ -87,3 +87,4 @@ export class TechnicianReportComponent implements OnInit {
     this.showToast(`Exporting report as ${format}...`);
   }
 }
+

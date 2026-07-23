@@ -274,3 +274,4 @@ export class AttendanceReportComponent implements OnInit {
     }
   }
 }
+

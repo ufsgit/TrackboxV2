@@ -11,3 +11,4 @@ import { CommonModule } from '@angular/common';
 export class AnalyticsComponent {
   // Logic for fetching analytics metrics
 }
+

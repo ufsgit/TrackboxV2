@@ -14,3 +14,4 @@ export class CtwaComponent {
     { name: 'Facebook Ad - Summer', shortCode: 'fb_sum', message: 'I want to know more about the summer sale', clicks: 3500, conversions: 210 },
   ];
 }
+

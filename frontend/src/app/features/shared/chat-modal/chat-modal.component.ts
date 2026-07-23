@@ -18,3 +18,4 @@ export class ChatModalComponent {
     this.close.emit();
   }
 }
+

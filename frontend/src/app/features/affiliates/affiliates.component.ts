@@ -11,3 +11,4 @@ import { CommonModule } from '@angular/common';
 export class AffiliatesComponent {
   // Logic for tracking referrals and earnings
 }
+

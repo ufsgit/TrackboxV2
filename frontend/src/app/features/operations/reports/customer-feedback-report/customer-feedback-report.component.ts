@@ -94,3 +94,4 @@ export class CustomerFeedbackReportComponent implements OnInit {
     this.showToast(`Exporting report as ${format}...`);
   }
 }
+

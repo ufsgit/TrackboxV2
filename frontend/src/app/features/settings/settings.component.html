@@ -11,7 +11,8 @@
           </div>
           <div>
             <h3>Connected Channels Hub</h3>
-            <p>Connect and manage multiple social media accounts for WhatsApp, Instagram, and Facebook Messenger. Route incoming messages dynamically to your workspace.</p>
+            <p>Connect and manage multiple social media accounts for WhatsApp, Instagram, and Facebook Messenger. Route
+              incoming messages dynamically to your workspace.</p>
           </div>
         </div>
         <button class="btn btn-primary" (click)="openAddChannel()">
@@ -31,32 +32,32 @@
       <div class="channels-grid-layout mt-4">
         <!-- Loop over socialAccounts -->
         <div class="channel-card-premium" *ngFor="let account of socialAccounts"
-          [class.whatsapp]="account.platform === 'whatsapp'"
-          [class.instagram]="account.platform === 'instagram'"
+          [class.whatsapp]="account.platform === 'whatsapp'" [class.instagram]="account.platform === 'instagram'"
           [class.facebook]="account.platform === 'facebook'">
           <!-- Card Glowing Border effect -->
           <div class="card-glow"></div>
-          
+
           <div class="channel-card-body">
             <!-- Platform Logo & Status -->
             <div class="channel-header-row">
               <div class="platform-meta">
                 <div class="platform-badge-icon"
                   [style.color]="account.platform === 'whatsapp' ? '#25D366' : (account.platform === 'instagram' ? '#E1306C' : '#0084FF')">
-                  <i class="bi"
-                    [class.bi-whatsapp]="account.platform === 'whatsapp'"
+                  <i class="bi" [class.bi-whatsapp]="account.platform === 'whatsapp'"
                     [class.bi-instagram]="account.platform === 'instagram'"
                     [class.bi-messenger]="account.platform === 'facebook'"></i>
                 </div>
                 <div>
                   <h4 class="channel-title">{{ account.account_name || 'Unnamed Channel' }}</h4>
-                  <span class="platform-text-tag">{{ account.platform === 'facebook' ? 'MESSENGER' : (account.platform | uppercase) }}</span>
+                  <span class="platform-text-tag">{{ account.platform === 'facebook' ? 'MESSENGER' : (account.platform |
+                    uppercase) }}</span>
                 </div>
               </div>
 
               <!-- Active Status Toggle Switch -->
               <div class="status-toggle-wrap">
-                <span class="status-indicator-text" [class.active]="account.is_active">{{ account.is_active ? 'Active' : 'Disabled' }}</span>
+                <span class="status-indicator-text" [class.active]="account.is_active">{{ account.is_active ? 'Active' :
+                  'Disabled' }}</span>
                 <label class="switch">
                   <input type="checkbox" [checked]="account.is_active" (change)="toggleSocialAccountActive(account)">
                   <span class="slider round"></span>
@@ -95,16 +96,16 @@
               </div>
               <div class="detail-row" *ngIf="account.platform === 'facebook'">
                 <span class="detail-label">Token Status</span>
-                <span class="detail-val" style="color: #0084FF;">{{ account.token ? '● Configured' : '○ Missing' }}</span>
+                <span class="detail-val" style="color: #0084FF;">{{ account.token ? '● Configured' : '○ Missing'
+                  }}</span>
               </div>
-              
+
               <!-- Source Category Link -->
               <div class="detail-row align-items-center mt-2 pt-2 border-top">
                 <span class="detail-label">Source Category</span>
                 <span class="detail-val" style="flex: 1; max-width: 200px;">
-                  <select class="form-select form-select-sm" 
-                          [ngModel]="account.source_category_id" 
-                          (change)="updateChannelSourceCategory(account, $event)">
+                  <select class="form-select form-select-sm" [ngModel]="account.source_category_id"
+                    (change)="updateChannelSourceCategory(account, $event)">
                     <option [ngValue]="null">Unassigned</option>
                     <option *ngFor="let sc of sourceCategories" [value]="sc.id">{{ sc.name }}</option>
                   </select>
@@ -114,25 +115,29 @@
 
             <!-- Connection Test Result Area -->
             <div class="connection-test-result mt-3 animate-fade-in" *ngIf="account.testResult">
-              <div class="test-badge" [class.success]="account.testResult.success" [class.failed]="!account.testResult.success">
-                <i class="bi" [class.bi-check-circle-fill]="account.testResult.success" [class.bi-exclamation-triangle-fill]="!account.testResult.success"></i>
+              <div class="test-badge" [class.success]="account.testResult.success"
+                [class.failed]="!account.testResult.success">
+                <i class="bi" [class.bi-check-circle-fill]="account.testResult.success"
+                  [class.bi-exclamation-triangle-fill]="!account.testResult.success"></i>
                 <span>{{ account.testResult.message }}</span>
               </div>
             </div>
 
             <!-- Card Actions footer -->
             <div class="channel-card-footer mt-4">
-              <button class="btn btn-sm btn-action-test" (click)="testSocialAccountConnection(account)" [disabled]="account.testing">
+              <button class="btn btn-sm btn-action-test" (click)="testSocialAccountConnection(account)"
+                [disabled]="account.testing">
                 <i class="bi bi-arrow-repeat spin" *ngIf="account.testing"></i>
                 <i class="bi bi-wifi" *ngIf="!account.testing"></i>
                 {{ account.testing ? 'Testing...' : 'Test Connection' }}
               </button>
-              
+
               <div class="action-btn-group">
                 <button class="btn btn-sm btn-icon-edit" (click)="openEditChannel(account)" title="Edit Credentials">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <button class="btn btn-sm btn-icon-delete" (click)="deleteSocialAccount(account.id)" title="Disconnect Channel">
+                <button class="btn btn-sm btn-icon-delete" (click)="deleteSocialAccount(account.id)"
+                  title="Disconnect Channel">
                   <i class="bi bi-trash3-fill"></i>
                 </button>
               </div>
@@ -156,7 +161,8 @@
       <!-- Webhook Configuration -->
       <div class="webhook-section mt-5">
         <h4 class="section-title">Developer Webhook URLs</h4>
-        <p class="section-desc">To receive inbound messages, copy these URLs and paste them into your Meta Developer Dashboard Webhook Configuration.</p>
+        <p class="section-desc">To receive inbound messages, copy these URLs and paste them into your Meta Developer
+          Dashboard Webhook Configuration.</p>
 
         <div class="webhook-cards mt-3">
           <!-- WhatsApp Webhook -->
@@ -170,7 +176,8 @@
             </div>
             <div class="copy-input">
               <input type="text" class="form-control" [value]="webhookUrl" readonly>
-              <button class="copy-btn" (click)="copyToClipboard(webhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+              <button class="copy-btn" (click)="copyToClipboard(webhookUrl)"><i class="bi bi-clipboard"></i>
+                Copy</button>
             </div>
           </div>
 
@@ -185,7 +192,8 @@
             </div>
             <div class="copy-input">
               <input type="text" class="form-control" [value]="igWebhookUrl" readonly>
-              <button class="copy-btn" (click)="copyToClipboard(igWebhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+              <button class="copy-btn" (click)="copyToClipboard(igWebhookUrl)"><i class="bi bi-clipboard"></i>
+                Copy</button>
             </div>
           </div>
 
@@ -199,8 +207,11 @@
               </div>
             </div>
             <div class="copy-input">
-              <input type="text" class="form-control" [value]="business.fb_verify_token || 'trackbox_fb_verify_token'" readonly>
-              <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'trackbox_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
+              <input type="text" class="form-control" [value]="business.fb_verify_token || 'trackbox_fb_verify_token'"
+                readonly>
+              <button class="copy-btn"
+                (click)="copyToClipboard(business.fb_verify_token || 'trackbox_fb_verify_token')"><i
+                  class="bi bi-clipboard"></i> Copy</button>
             </div>
           </div>
         </div>
@@ -212,7 +223,8 @@
           <div class="drawer-header">
             <div>
               <h3>{{ editingAccount ? 'Edit Channel Credentials' : 'Connect New Channel' }}</h3>
-              <p>{{ editingAccount ? 'Update settings for this social connection' : 'Add another social profile/API link to this account' }}</p>
+              <p>{{ editingAccount ? 'Update settings for this social connection' : 'Add another social profile/API link
+                to this account' }}</p>
             </div>
             <button class="close-drawer-btn" (click)="closeChannelModal()">
               <i class="bi bi-x-lg"></i>
@@ -238,18 +250,19 @@
                 </label>
               </div>
               <div class="selected-platform-locked" *ngIf="editingAccount">
-                <i class="bi"
-                  [class.bi-whatsapp]="editingAccount.platform === 'whatsapp'"
+                <i class="bi" [class.bi-whatsapp]="editingAccount.platform === 'whatsapp'"
                   [class.bi-instagram]="editingAccount.platform === 'instagram'"
                   [class.bi-messenger]="editingAccount.platform === 'facebook'"></i>
-                <span>{{ editingAccount.platform === 'facebook' ? 'MESSENGER' : (editingAccount.platform | uppercase) }} (Locked)</span>
+                <span>{{ editingAccount.platform === 'facebook' ? 'MESSENGER' : (editingAccount.platform | uppercase) }}
+                  (Locked)</span>
               </div>
             </div>
 
             <!-- Shared Fields -->
             <div class="form-group mb-3">
               <label class="form-label">Connection Name</label>
-              <input type="text" class="form-control" [(ngModel)]="newChannel.account_name" placeholder="e.g., Main Support, Marketing IG" required>
+              <input type="text" class="form-control" [(ngModel)]="newChannel.account_name"
+                placeholder="e.g., Main Support, Marketing IG" required>
               <span class="form-hint">Internal name to easily identify this account inside the workspace</span>
             </div>
 
@@ -266,31 +279,36 @@
             <div *ngIf="newChannel.platform === 'whatsapp'">
               <div class="form-group mb-3">
                 <label class="form-label">WhatsApp Phone Number</label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.phone_number" placeholder="e.g., +919876543210" required>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.phone_number"
+                  placeholder="e.g., +919876543210" required>
                 <span class="form-hint">Include country code without any spaces or plus sign</span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Phone Number ID</label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.phone_id" placeholder="15-digit Meta phone ID" required>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.phone_id"
+                  placeholder="15-digit Meta phone ID" required>
                 <span class="form-hint">From Meta Developer Dashboard → WhatsApp → API Setup</span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">WhatsApp Business Account ID (WABA ID)</label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.waba_id" placeholder="15-digit WABA ID" required>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.waba_id" placeholder="15-digit WABA ID"
+                  required>
                 <span class="form-hint">Found in Meta Developer Dashboard or WhatsApp Business Manager</span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Permanent Access Token</label>
                 <div class="token-input">
-                  <input [type]="showToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token" placeholder="EAABxyz..." required>
+                  <input [type]="showToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token"
+                    placeholder="EAABxyz..." required>
                   <button class="toggle-visibility" (click)="showToken = !showToken">
                     <i class="bi" [class.bi-eye]="!showToken" [class.bi-eye-slash]="showToken"></i>
                   </button>
                 </div>
-                <span class="form-hint">Meta developer Access Token with <code>whatsapp_business_messaging</code> scope</span>
+                <span class="form-hint">Meta developer Access Token with <code>whatsapp_business_messaging</code>
+                  scope</span>
               </div>
             </div>
 
@@ -298,36 +316,42 @@
             <div *ngIf="newChannel.platform === 'instagram'">
               <div class="form-group mb-3">
                 <label class="form-label">Instagram Business Account ID</label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.account_id" placeholder="IG Account ID" required>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.account_id" placeholder="IG Account ID"
+                  required>
                 <span class="form-hint">Instagram Account ID linked to Facebook Page</span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Facebook Page ID</label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.app_id" placeholder="Facebook Page ID" required>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.app_id" placeholder="Facebook Page ID"
+                  required>
                 <span class="form-hint">Page ID linked to this Instagram Business account</span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Facebook Page Access Token</label>
                 <div class="token-input">
-                  <input [type]="showIgToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token" placeholder="EAAS..." required>
+                  <input [type]="showIgToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token"
+                    placeholder="EAAS..." required>
                   <button class="toggle-visibility" (click)="showIgToken = !showIgToken">
                     <i class="bi" [class.bi-eye]="!showIgToken" [class.bi-eye-slash]="showIgToken"></i>
                   </button>
                 </div>
-                <span class="form-hint">Page Access Token with <code>instagram_basic</code> and <code>instagram_manage_messages</code></span>
+                <span class="form-hint">Page Access Token with <code>instagram_basic</code> and
+                  <code>instagram_manage_messages</code></span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Instagram App ID <span class="optional">(optional)</span></label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.app_secret" placeholder="Instagram/Meta App ID">
+                <input type="text" class="form-control" [(ngModel)]="newChannel.app_secret"
+                  placeholder="Instagram/Meta App ID">
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Instagram App Secret <span class="optional">(optional)</span></label>
                 <div class="token-input">
-                  <input [type]="showIgSecret ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.verify_token" placeholder="Instagram/Meta App Secret">
+                  <input [type]="showIgSecret ? 'text' : 'password'" class="form-control"
+                    [(ngModel)]="newChannel.verify_token" placeholder="Instagram/Meta App Secret">
                   <button class="toggle-visibility" (click)="showIgSecret = !showIgSecret">
                     <i class="bi" [class.bi-eye]="!showIgSecret" [class.bi-eye-slash]="showIgSecret"></i>
                   </button>
@@ -339,26 +363,31 @@
             <div *ngIf="newChannel.platform === 'facebook'">
               <div class="form-group mb-3">
                 <label class="form-label">Facebook Page ID</label>
-                <input type="text" class="form-control" [(ngModel)]="newChannel.app_id" placeholder="e.g., 1139806642546903" required>
+                <input type="text" class="form-control" [(ngModel)]="newChannel.app_id"
+                  placeholder="e.g., 1139806642546903" required>
                 <span class="form-hint">Found in your Facebook Page Settings → About → Page ID</span>
               </div>
 
               <div class="form-group mb-3">
                 <label class="form-label">Facebook Page Access Token</label>
                 <div class="token-input">
-                  <input [type]="showFbToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token" placeholder="EAABxyz..." required>
+                  <input [type]="showFbToken ? 'text' : 'password'" class="form-control" [(ngModel)]="newChannel.token"
+                    placeholder="EAABxyz..." required>
                   <button class="toggle-visibility" (click)="showFbToken = !showFbToken">
                     <i class="bi" [class.bi-eye]="!showFbToken" [class.bi-eye-slash]="showFbToken"></i>
                   </button>
                 </div>
-                <span class="form-hint">Page Access Token with <code>pages_messaging</code> and <code>pages_read_engagement</code> permissions</span>
+                <span class="form-hint">Page Access Token with <code>pages_messaging</code> and
+                  <code>pages_read_engagement</code> permissions</span>
               </div>
 
               <div class="fb-messenger-info-box">
                 <i class="bi bi-info-circle-fill" style="color: #0084FF;"></i>
                 <div>
                   <strong>Webhook Setup Reminder</strong>
-                  <p>After saving, go to your Meta Developer Dashboard → Messenger → Webhooks and subscribe to <code>messages</code> and <code>messaging_postbacks</code> events using the webhook URL from the API &amp; Webhooks tab.</p>
+                  <p>After saving, go to your Meta Developer Dashboard → Messenger → Webhooks and subscribe to
+                    <code>messages</code> and <code>messaging_postbacks</code> events using the webhook URL from the API
+                    &amp; Webhooks tab.</p>
                 </div>
               </div>
             </div>
@@ -367,9 +396,11 @@
           <!-- Drawer Footer Actions -->
           <div class="drawer-footer">
             <button class="btn btn-outline-secondary" (click)="closeChannelModal()" [disabled]="saving">Cancel</button>
-            <button class="btn btn-primary" (click)="saveSocialAccount()" [disabled]="saving || !newChannel.account_name || !newChannel.token">
+            <button class="btn btn-primary" (click)="saveSocialAccount()"
+              [disabled]="saving || !newChannel.account_name || !newChannel.token">
               <span *ngIf="saving"><i class="bi bi-arrow-repeat spin"></i> Saving...</span>
-              <span *ngIf="!saving"><i class="bi bi-check-lg"></i> {{ editingAccount ? 'Update Credentials' : 'Connect Channel' }}</span>
+              <span *ngIf="!saving"><i class="bi bi-check-lg"></i> {{ editingAccount ? 'Update Credentials' : 'Connect
+                Channel' }}</span>
             </button>
           </div>
         </div>
@@ -450,7 +481,8 @@
         </div>
 
         <div class="profile-form-actions">
-          <button class="btn btn-primary" (click)="saveWhatsAppConfig()"><i class="bi bi-check-lg"></i> Save Business Info</button>
+          <button class="btn btn-primary" (click)="saveWhatsAppConfig()"><i class="bi bi-check-lg"></i> Save Business
+            Info</button>
         </div>
       </div>
     </div>
@@ -492,7 +524,8 @@
           </div>
           <div class="copy-input">
             <input type="text" class="form-control" [value]="igWebhookUrl" readonly>
-            <button class="copy-btn" (click)="copyToClipboard(igWebhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="copy-btn" (click)="copyToClipboard(igWebhookUrl)"><i class="bi bi-clipboard"></i>
+              Copy</button>
           </div>
         </div>
 
@@ -507,7 +540,8 @@
           </div>
           <div class="copy-input">
             <input type="text" class="form-control" [value]="fbWebhookUrl" readonly>
-            <button class="copy-btn" (click)="copyToClipboard(fbWebhookUrl)"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="copy-btn" (click)="copyToClipboard(fbWebhookUrl)"><i class="bi bi-clipboard"></i>
+              Copy</button>
           </div>
         </div>
 
@@ -521,8 +555,11 @@
             </div>
           </div>
           <div class="copy-input">
-            <input type="text" class="form-control" [value]="business.fb_verify_token || 'trackbox_fb_verify_token'" readonly>
-            <button class="copy-btn" (click)="copyToClipboard(business.fb_verify_token || 'trackbox_fb_verify_token')"><i class="bi bi-clipboard"></i> Copy</button>
+            <input type="text" class="form-control" [value]="business.fb_verify_token || 'trackbox_fb_verify_token'"
+              readonly>
+            <button class="copy-btn"
+              (click)="copyToClipboard(business.fb_verify_token || 'trackbox_fb_verify_token')"><i
+                class="bi bi-clipboard"></i> Copy</button>
           </div>
         </div>
       </div>
@@ -547,17 +584,15 @@
               <i class="bi bi-check-circle-fill"></i> Connected
             </span>
           </div>
-          
+
           <div class="intg-body">
             <h4>{{ intg.name }}</h4>
             <p>{{ intg.desc }}</p>
           </div>
-          
+
           <div class="intg-footer">
-            <button class="btn w-100" 
-              [class.btn-connect]="!isIntegrated(intg.key)" 
-              [class.btn-manage]="isIntegrated(intg.key)"
-              (click)="connectIntegration(intg.key)">
+            <button class="btn w-100" [class.btn-connect]="!isIntegrated(intg.key)"
+              [class.btn-manage]="isIntegrated(intg.key)" (click)="connectIntegration(intg.key)">
               {{ isIntegrated(intg.key) ? 'Manage Settings' : 'Connect App' }}
             </button>
           </div>
@@ -571,7 +606,8 @@
       <div class="team-header-container">
         <div>
           <h3 class="section-title mb-0">Lead Field Manager</h3>
-          <p class="section-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns, dates, text fields and more.</p>
+          <p class="section-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns,
+            dates, text fields and more.</p>
         </div>
         <button class="btn btn-primary" (click)="openAddFieldModal()">
           <i class="bi bi-plus-lg me-2"></i> Add New Field
@@ -598,7 +634,8 @@
         <div *ngIf="leadFields.length === 0" class="lf-empty-state">
           <div class="lf-empty-icon"><i class="bi bi-list-columns"></i></div>
           <h4>No Custom Fields Yet</h4>
-          <p>Add fields like &quot;Course Selected&quot;, &quot;Date of Birth&quot;, &quot;City&quot;, etc. to enrich your lead profiles.</p>
+          <p>Add fields like &quot;Course Selected&quot;, &quot;Date of Birth&quot;, &quot;City&quot;, etc. to enrich
+            your lead profiles.</p>
           <button class="btn btn-primary mt-2" (click)="openAddFieldModal()">
             <i class="bi bi-plus-lg me-2"></i> Add Your First Field
           </button>
@@ -659,7 +696,8 @@
       <div class="lf-info-box mt-4" *ngIf="leadFields.length > 0">
         <i class="bi bi-lightbulb-fill"></i>
         <div>
-          <strong>How it works:</strong> These fields appear in the <em>Lead Details</em> panel when you click the eye icon on any contact, and also in the Add/Edit Contact form. Values are stored per contact.
+          <strong>How it works:</strong> These fields appear in the <em>Lead Details</em> panel when you click the eye
+          icon on any contact, and also in the Add/Edit Contact form. Values are stored per contact.
         </div>
       </div>
 
@@ -670,7 +708,8 @@
           <div class="lf-modal-header">
             <div>
               <h4 class="mb-0">{{ editingField ? 'Edit Field' : 'Add New Field' }}</h4>
-              <p class="text-muted small mb-0">{{ editingField ? 'Update this custom lead field' : 'Define a new field for your lead profiles' }}</p>
+              <p class="text-muted small mb-0">{{ editingField ? 'Update this custom lead field' : 'Define a new field
+                for your lead profiles' }}</p>
             </div>
             <button class="close-btn" (click)="closeFieldModal()">&times;</button>
           </div>
@@ -679,7 +718,8 @@
             <!-- Label -->
             <div class="form-group mb-4">
               <label class="lf-form-label">Field Label <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" [(ngModel)]="newField.label" placeholder="e.g. Course Selected, Date of Birth, City">
+              <input type="text" class="form-control" [(ngModel)]="newField.label"
+                placeholder="e.g. Course Selected, Date of Birth, City">
               <span class="form-hint">This label will be shown on the contact detail panel and forms.</span>
             </div>
 
@@ -707,8 +747,7 @@
             <!-- Dropdown Options (only for dropdown) -->
             <div class="form-group mb-4" *ngIf="newField.field_type === 'dropdown'">
               <label class="lf-form-label">Dropdown Options <span class="text-danger">*</span></label>
-              <textarea class="form-control" rows="5" [(ngModel)]="newField.options"
-                placeholder="Enter each option on a new line:
+              <textarea class="form-control" rows="5" [(ngModel)]="newField.options" placeholder="Enter each option on a new line:
 Engineering
 Medical
 Arts
@@ -730,10 +769,12 @@ Commerce"></textarea>
           </div>
 
           <div class="lf-modal-footer">
-            <button class="btn btn-outline-secondary" (click)="closeFieldModal()" [disabled]="fieldSaving">Cancel</button>
+            <button class="btn btn-outline-secondary" (click)="closeFieldModal()"
+              [disabled]="fieldSaving">Cancel</button>
             <button class="btn btn-primary" (click)="saveLeadField()" [disabled]="fieldSaving || !newField.label">
               <span *ngIf="fieldSaving"><i class="bi bi-arrow-repeat spin"></i> Saving...</span>
-              <span *ngIf="!fieldSaving"><i class="bi bi-check-lg me-1"></i>{{ editingField ? 'Update Field' : 'Add Field' }}</span>
+              <span *ngIf="!fieldSaving"><i class="bi bi-check-lg me-1"></i>{{ editingField ? 'Update Field' : 'Add
+                Field' }}</span>
             </button>
           </div>
         </div>
@@ -755,7 +796,8 @@ Commerce"></textarea>
           <div class="plan-icon"><i class="bi bi-star-fill"></i></div>
           <div>
             <h4 class="mb-1">Current Plan: <strong>{{ (billingData.plan || 'Starter') | titlecase }}</strong></h4>
-            <p class="mb-0 text-muted small">Your next billing date is <strong>Oct 1, 2026</strong>. <a href="#" class="text-primary text-decoration-none fw-bold">View invoices</a></p>
+            <p class="mb-0 text-muted small">Your next billing date is <strong>Oct 1, 2026</strong>. <a href="#"
+                class="text-primary text-decoration-none fw-bold">View invoices</a></p>
           </div>
         </div>
         <div class="banner-right">
@@ -764,35 +806,39 @@ Commerce"></textarea>
         </div>
       </div>
 
-      <h4 class="mt-5 mb-4" style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.2rem; color: #0f172a;">Available Plans</h4>
+      <h4 class="mt-5 mb-4"
+        style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.2rem; color: #0f172a;">
+        Available Plans</h4>
 
       <div class="plan-grid" *ngIf="billingData">
         <div class="plan-card" *ngFor="let plan of billingPlans" [class.current]="billingData.plan === plan.key">
           <div class="plan-badge" *ngIf="billingData.plan === plan.key">Current Plan</div>
           <h4>{{ plan.name }}</h4>
-          <p class="plan-desc text-muted small mb-4">Perfect for {{ plan.name === 'Starter' ? 'small businesses' : plan.name === 'Pro' ? 'growing teams' : 'large enterprises' }}</p>
-          
+          <p class="plan-desc text-muted small mb-4">Perfect for {{ plan.name === 'Starter' ? 'small businesses' :
+            plan.name === 'Pro' ? 'growing teams' : 'large enterprises' }}</p>
+
           <div class="plan-price">
             <span class="currency">₹</span>{{ plan.price }}<span class="period">/mo</span>
           </div>
-          
+
           <ul class="plan-features">
-            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.contacts | number }}</strong> Contacts</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.broadcasts }}</strong> Broadcasts/mo</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.agents }}</strong> Team Members</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.contacts | number }}</strong>
+              Contacts</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.broadcasts }}</strong>
+              Broadcasts/mo</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>{{ plan.agents }}</strong> Team Members
+            </li>
             <li><i class="bi bi-check-circle-fill text-success"></i> Basic Support</li>
           </ul>
-          
-          <button class="btn w-100 mt-auto" 
-            [class.btn-primary]="billingData.plan !== plan.key" 
-            [class.btn-outline-secondary]="billingData.plan === plan.key" 
-            [disabled]="billingData.plan === plan.key">
+
+          <button class="btn w-100 mt-auto" [class.btn-primary]="billingData.plan !== plan.key"
+            [class.btn-outline-secondary]="billingData.plan === plan.key" [disabled]="billingData.plan === plan.key">
             {{ billingData.plan === plan.key ? 'Active Plan' : 'Upgrade to ' + plan.name }}
           </button>
         </div>
       </div>
     </div>
-    
+
     <!-- ===================== COURSES ===================== -->
     <div *ngIf="activeTab === 'courses'">
       <app-course-management></app-course-management>
@@ -800,7 +846,7 @@ Commerce"></textarea>
 
     <!-- ===================== FIELD CATEGORIES ===================== -->
     <div *ngIf="activeTab === 'field-categories'" class="lead-fields-tab">
-      <div class="d-flex justify-content-between align-items-center mb-4 w-100">
+      <div class="team-header-container">
         <div>
           <h3 class="section-title mb-0">Field Categories</h3>
           <p class="section-desc">Organize custom fields into categories.</p>
@@ -830,10 +876,12 @@ Commerce"></textarea>
             <tr *ngFor="let fc of fieldCategories">
               <td class="fw-semibold">{{ fc.name }}</td>
               <td class="text-end">
-                <button class="btn btn-sm btn-light me-2 rounded-circle" (click)="openEditFieldCategory(fc)" style="width: 32px; height: 32px; padding: 0;">
+                <button class="btn btn-sm btn-light me-2 rounded-circle" (click)="openEditFieldCategory(fc)"
+                  style="width: 32px; height: 32px; padding: 0;">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-light rounded-circle text-danger" (click)="deleteFieldCategory(fc.id)" style="width: 32px; height: 32px; padding: 0;">
+                <button class="btn btn-sm btn-light rounded-circle text-danger" (click)="deleteFieldCategory(fc.id)"
+                  style="width: 32px; height: 32px; padding: 0;">
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
@@ -844,7 +892,8 @@ Commerce"></textarea>
     </div>
 
     <!-- FIELD CATEGORY MODAL -->
-    <div class="modal fade show custom-modal" *ngIf="showFieldCategoryModal" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal fade show custom-modal" *ngIf="showFieldCategoryModal"
+      style="display: block; background: rgba(0,0,0,0.5);">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header border-0">
@@ -854,12 +903,15 @@ Commerce"></textarea>
           <div class="modal-body py-4">
             <div class="mb-3">
               <label class="form-label text-muted small fw-semibold text-uppercase">Name</label>
-              <input type="text" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newFieldCategory.name">
+              <input type="text" class="form-control form-control-lg bg-light border-0"
+                [(ngModel)]="newFieldCategory.name">
             </div>
           </div>
           <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light rounded-pill px-4" (click)="closeFieldCategoryModal()">Cancel</button>
-            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveFieldCategory()" [disabled]="saving || !newFieldCategory.name">
+            <button type="button" class="btn btn-light rounded-pill px-4"
+              (click)="closeFieldCategoryModal()">Cancel</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveFieldCategory()"
+              [disabled]="saving || !newFieldCategory.name">
               {{ saving ? 'Saving...' : 'Save' }}
             </button>
           </div>
@@ -869,7 +921,7 @@ Commerce"></textarea>
 
     <!-- ===================== SOURCE CATEGORIES ===================== -->
     <div *ngIf="activeTab === 'source-categories'" class="lead-fields-tab">
-      <div class="d-flex justify-content-between align-items-center mb-4 w-100">
+      <div class="team-header-container">
         <div>
           <h3 class="section-title mb-0">Source Categories</h3>
           <p class="section-desc">Organize lead sources and channels.</p>
@@ -899,10 +951,12 @@ Commerce"></textarea>
             <tr *ngFor="let sc of sourceCategories">
               <td class="fw-semibold">{{ sc.name }}</td>
               <td class="text-end">
-                <button class="btn btn-sm btn-light me-2 rounded-circle" (click)="openEditSourceCategory(sc)" style="width: 32px; height: 32px; padding: 0;">
+                <button class="btn btn-sm btn-light me-2 rounded-circle" (click)="openEditSourceCategory(sc)"
+                  style="width: 32px; height: 32px; padding: 0;">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-light rounded-circle text-danger" (click)="deleteSourceCategory(sc.id)" style="width: 32px; height: 32px; padding: 0;">
+                <button class="btn btn-sm btn-light rounded-circle text-danger" (click)="deleteSourceCategory(sc.id)"
+                  style="width: 32px; height: 32px; padding: 0;">
                   <i class="bi bi-trash"></i>
                 </button>
               </td>
@@ -913,22 +967,27 @@ Commerce"></textarea>
     </div>
 
     <!-- SOURCE CATEGORY MODAL -->
-    <div class="modal fade show custom-modal" *ngIf="showSourceCategoryModal" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal fade show custom-modal" *ngIf="showSourceCategoryModal"
+      style="display: block; background: rgba(0,0,0,0.5);">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold">{{ editingSourceCategory ? 'Edit Source Category' : 'New Source Category' }}</h5>
+            <h5 class="modal-title fw-bold">{{ editingSourceCategory ? 'Edit Source Category' : 'New Source Category' }}
+            </h5>
             <button type="button" class="btn-close" (click)="closeSourceCategoryModal()"></button>
           </div>
           <div class="modal-body py-4">
             <div class="mb-3">
               <label class="form-label text-muted small fw-semibold text-uppercase">Name</label>
-              <input type="text" class="form-control form-control-lg bg-light border-0" [(ngModel)]="newSourceCategory.name">
+              <input type="text" class="form-control form-control-lg bg-light border-0"
+                [(ngModel)]="newSourceCategory.name">
             </div>
           </div>
           <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light rounded-pill px-4" (click)="closeSourceCategoryModal()">Cancel</button>
-            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveSourceCategory()" [disabled]="saving || !newSourceCategory.name">
+            <button type="button" class="btn btn-light rounded-pill px-4"
+              (click)="closeSourceCategoryModal()">Cancel</button>
+            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveSourceCategory()"
+              [disabled]="saving || !newSourceCategory.name">
               {{ saving ? 'Saving...' : 'Save' }}
             </button>
           </div>
@@ -938,3 +997,4 @@ Commerce"></textarea>
 
   </div>
 </div>
+

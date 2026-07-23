@@ -31,3 +31,4 @@ export class SystemSettingsComponent {
     this.activeTab = tab;
   }
 }
+

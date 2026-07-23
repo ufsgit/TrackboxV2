@@ -261,3 +261,4 @@ export class PerformanceReportComponent implements OnInit {
     }
   }
 }
+

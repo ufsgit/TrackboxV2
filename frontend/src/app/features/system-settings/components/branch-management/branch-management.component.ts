@@ -171,3 +171,4 @@ export class BranchManagementComponent implements OnInit {
     });
   }
 }
+

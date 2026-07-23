@@ -274,3 +274,4 @@ export class CrmAttendanceReportComponent implements OnInit, OnDestroy {
     }
   }
 }
+

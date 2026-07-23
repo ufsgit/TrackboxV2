@@ -15,8 +15,8 @@ Chart.register(...registerables);
       <!-- Header -->
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
         <div>
-          <h2 class="fw-bold mb-2" style="color: #1e293b;">Executive HR Dashboard</h2>
-          <p class="text-muted mb-0" style="font-size: 0.95rem;">Real-time overview of your workforce and operations</p>
+          <h2 class="fw-black mb-1 page-heading">Executive HR Dashboard</h2>
+          <p class="text-muted mb-0" style="font-size: 1rem; font-weight: 500;">Real-time overview of your workforce and operations</p>
         </div>
         
         <div class="flex items-center" style="gap: 16px; flex-wrap: wrap;">
@@ -432,3 +432,4 @@ export class HrDashboardComponent implements OnInit, AfterViewInit {
     });
   }
 }
+

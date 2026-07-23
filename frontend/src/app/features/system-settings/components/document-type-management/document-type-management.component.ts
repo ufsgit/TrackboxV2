@@ -161,3 +161,4 @@ export class DocumentTypeManagementComponent implements OnInit {
     });
   }
 }
+

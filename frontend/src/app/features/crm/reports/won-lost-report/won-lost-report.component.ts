@@ -115,3 +115,4 @@ export class WonLostReportComponent implements AfterViewInit {
 }
 
 function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
+

@@ -16,3 +16,4 @@ export class EcommerceComponent {
     { name: 'USB-C Fast Charger', price: '799', stock: 156 },
   ];
 }
+
