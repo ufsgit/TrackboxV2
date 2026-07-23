@@ -37,7 +37,12 @@ const getContacts = async (req, res) => {
       params.push(agent);
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
-    if (status) { where += ' AND c.status_name = ?'; params.push(status); }
+    if (status === 'No Follow Up' || status === 'no_followup') {
+      where += ' AND (c.follow_up_date IS NULL OR c.follow_up_date = "")';
+    } else if (status) {
+      where += ' AND (c.status_name = ? OR c.status = ?)';
+      params.push(status, status);
+    }
     if (search) { where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
     if (tags) { where += ' AND JSON_CONTAINS(c.tags, ?)'; params.push(JSON.stringify(tags)); }
 
@@ -218,9 +223,13 @@ const updateContact = async (req, res) => {
     }
     const oldContact = existingRows[0];
 
-    // Format follow_up_date if provided
-    if (updateFields.follow_up_date) {
-      updateFields.follow_up_date = new Date(updateFields.follow_up_date).toISOString().split('T')[0];
+    // Format follow_up_date if provided; convert empty string to null
+    if (updateFields.follow_up_date !== undefined) {
+      if (updateFields.follow_up_date && updateFields.follow_up_date !== '') {
+        updateFields.follow_up_date = new Date(updateFields.follow_up_date).toISOString().split('T')[0];
+      } else {
+        updateFields.follow_up_date = null;
+      }
     }
 
     // Step 1: Log to follow_ups BEFORE updating contacts
@@ -242,7 +251,7 @@ const updateContact = async (req, res) => {
         [
           contactId, 
           oldContact.name, 
-          updateFields.follow_up_date !== undefined ? updateFields.follow_up_date : oldContact.follow_up_date, 
+          (updateFields.follow_up_date !== undefined ? updateFields.follow_up_date : oldContact.follow_up_date) || null, 
           userId, 
           byUserName,
           toUserId, 
@@ -352,6 +361,7 @@ const updateContact = async (req, res) => {
 };
 
 const deleteContact = async (req, res) => {
+  let conn;
   try {
     const contactId = req.params.id;
     const bizId = req.user.businessId;
@@ -367,18 +377,48 @@ const deleteContact = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Not found or access denied', data: null });
     }
 
-    // Find and delete associated conversations and messages to satisfy foreign key constraints
-    const [convos] = await pool.query('SELECT id FROM conversations WHERE contact_id = ?', [contactId]);
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Helper to safely execute delete on related tables (ignores table if it doesn't exist)
+    const safeDelete = async (query, args = [contactId]) => {
+      try {
+        await conn.query(query, args);
+      } catch (e) {
+        // Table might not exist or ignore minor non-fatal errors
+      }
+    };
+
+    // 1. Delete associated conversations & messages
+    const [convos] = await conn.query('SELECT id FROM conversations WHERE contact_id = ?', [contactId]);
     if (convos.length > 0) {
       const convoIds = convos.map(c => c.id);
-      await pool.query('DELETE FROM messages WHERE conversation_id IN (?)', [convoIds]);
-      await pool.query('DELETE FROM conversations WHERE contact_id = ?', [contactId]);
+      await conn.query('DELETE FROM messages WHERE conversation_id IN (?)', [convoIds]);
+      await conn.query('DELETE FROM conversations WHERE contact_id = ?', [contactId]);
     }
 
-    await pool.query('DELETE FROM contacts WHERE id = ?', [contactId]);
-    res.json({ success: true, data: null, message: 'Deleted' });
+    // 2. Delete all related foreign key rows
+    await safeDelete('DELETE FROM chatbot_sessions WHERE contact_id = ?');
+    await safeDelete('DELETE FROM follow_ups WHERE contact_id = ?');
+    await safeDelete('DELETE FROM contact_history WHERE contact_id = ?');
+    await safeDelete('DELETE FROM contact_custom_values WHERE contact_id = ?');
+    await safeDelete('DELETE FROM applications WHERE contact_id = ?');
+    await safeDelete('DELETE FROM leads WHERE contact_id = ?');
+    await safeDelete('DELETE FROM contact_documents WHERE contact_id = ?');
+    await safeDelete('DELETE FROM drip_enrollments WHERE contact_id = ?');
+    await safeDelete('DELETE FROM broadcast_logs WHERE contact_id = ?');
+    await safeDelete('DELETE FROM orders WHERE contact_id = ?');
+
+    // 3. Delete contact row
+    await conn.query('DELETE FROM contacts WHERE id = ?', [contactId]);
+
+    await conn.commit();
+    res.json({ success: true, data: null, message: 'Deleted successfully' });
   } catch (err) {
+    if (conn) await conn.rollback();
     res.status(500).json({ success: false, message: err.message, data: null });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

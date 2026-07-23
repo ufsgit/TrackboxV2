@@ -970,6 +970,7 @@ export class ContactsComponent implements OnInit {
 
     const payload = {
       ...this.newContact,
+      follow_up_date: this.newContact.follow_up_date || null,
       tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
       custom_field_values: this.newContact.custom_field_values
     };
@@ -1246,7 +1247,7 @@ export class ContactsComponent implements OnInit {
       status_id: this.quickStatusData.status_id,
       status_name: this.quickStatusData.status_name,
       remarks: this.quickStatusData.remark,
-      follow_up_date: this.isFollowupStatus(this.quickStatusData.status) ? this.quickStatusData.follow_up_date : null,
+      follow_up_date: (this.isFollowupStatus(this.quickStatusData.status) && this.quickStatusData.follow_up_date) ? this.quickStatusData.follow_up_date : null,
       loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
     };
 

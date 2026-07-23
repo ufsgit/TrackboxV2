@@ -19,11 +19,17 @@
         
         <select class="form-select premium-select shadow-sm" [(ngModel)]="activeStatus" (change)="currentPage = 1; loadContacts()">
           <option value="">All Statuses</option>
-          <option value="New">New</option>
-          <option value="Contacted">Contacted</option>
-          <option value="Interested">Interested</option>
-          <option value="Not Interested">Not Interested</option>
-          <option value="Converted">Converted</option>
+          <ng-container *ngIf="leadStatuses && leadStatuses.length > 0; else defaultStatusList">
+            <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
+          </ng-container>
+          <ng-template #defaultStatusList>
+            <option value="New">New</option>
+            <option value="Contacted">Contacted</option>
+            <option value="Interested">Interested</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Converted">Converted</option>
+          </ng-template>
+          <option value="No Follow Up">No Follow Up</option>
         </select>
 
         <select *ngIf="isAdmin" class="form-select premium-select shadow-sm" [(ngModel)]="activeAgent" (change)="currentPage = 1; loadContacts()">
