@@ -118,6 +118,7 @@
           
           <!-- System Settings Popup Menu -->
           <div class="system-settings-popup" *ngIf="showSystemSettingsMenu">
+            <div class="popup-section-header">System Settings</div>
             <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
               <i class="bi bi-people"></i> Teams & Users
             </a>
@@ -153,6 +154,32 @@
             </a>
             <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
               <i class="bi bi-file-earmark-text"></i> Document Type
+            </a>
+
+            <div class="popup-section-header">General & Lead Settings</div>
+            <a routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-cpu"></i> Channels Manager
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'team'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-person-lines-fill"></i> Users / Agents
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'lead-fields'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-list-columns"></i> Lead Fields
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-folder"></i> Field Categories
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-tag"></i> Source Categories
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-code-slash"></i> API & Webhooks
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-plug"></i> Integrations
+            </a>
+            <a routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showSystemSettingsMenu = false">
+              <i class="bi bi-journal-bookmark"></i> Courses
             </a>
           </div>
 

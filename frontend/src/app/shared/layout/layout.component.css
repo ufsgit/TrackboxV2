@@ -620,10 +620,23 @@
   border-radius: 14px;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
   width: 250px;
-  overflow: hidden;
+  max-height: 480px;
+  overflow-y: auto;
   z-index: 300;
   border: 1px solid #e2e8f0;
   animation: dropdownFadeIn 0.2s ease-out;
+}
+
+.popup-section-header {
+  padding: 8px 14px 4px 14px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  background-color: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .system-settings-popup .popup-item {

@@ -23,6 +23,14 @@ export class SettingsComponent implements OnInit {
     if (tab === 'whatsapp') {
       this.loadSocialAccounts();
       this.loadSourceCategories();
+    } else if (tab === 'team') {
+      this.loadTeam();
+    } else if (tab === 'lead-fields') {
+      this.loadLeadFields();
+    } else if (tab === 'field-categories') {
+      this.loadFieldCategories();
+    } else if (tab === 'source-categories') {
+      this.loadSourceCategories();
     }
   }
   showToken = false;
@@ -220,6 +228,11 @@ export class SettingsComponent implements OnInit {
           this.activeTab = 'team';
           this.loadTeam();
         }
+      }
+      if (params['tab']) {
+        this.setActiveTab(params['tab']);
+      } else if (this.activeTab) {
+        this.setActiveTab(this.activeTab);
       }
     });
     this.loadBusiness();
