@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { LoginComponent } from './features/auth/login/login.component';
 import { RegisterComponent } from './features/auth/register/register.component';
 import { LayoutComponent } from './shared/layout/layout.component';
+import { DashboardRedirectComponent } from './shared/dashboard-redirect.component';
 import { InboxComponent } from './features/inbox/inbox.component';
 import { ContactsComponent } from './features/contacts/contacts.component';
 import { BroadcastsComponent } from './features/broadcasts/broadcasts.component';
@@ -27,7 +28,8 @@ export const routes: Routes = [
     component: LayoutComponent,
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'lead-dashboard', pathMatch: 'full' },
+      { path: '', component: DashboardRedirectComponent, pathMatch: 'full' },
+      { path: 'dashboard', component: DashboardRedirectComponent },
       { path: 'lead-dashboard', loadComponent: () => import('./features/lead-dashboard/lead-dashboard.component').then(m => m.LeadDashboardComponent) },
       { path: 'crm-dashboard', loadComponent: () => import('./features/crm-dashboard/crm-dashboard.component').then(m => m.CrmDashboardComponent) },
       { path: 'quotations', loadComponent: () => import('./features/crm/quotations/quotations.component').then(m => m.QuotationsComponent) },

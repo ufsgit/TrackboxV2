@@ -24,8 +24,8 @@
           <div class="logo-text">Trackbox<span class="logo-dot">.</span></div>
         </div>
 
-        <!-- Department Switcher -->
-        <div class="department-switcher">
+        <!-- Department Switcher (hidden on settings pages) -->
+        <div class="department-switcher" *ngIf="!isSettingsRoute">
           <button class="dept-btn" (click)="toggleDepartmentDropdown($event)">
             <div class="dept-info">
               <i class="bi" [ngClass]="{'bi-funnel': activeDepartment === 'Leads', 'bi-briefcase': activeDepartment === 'CRM', 'bi-tools': activeDepartment === 'Operation', 'bi-people': activeDepartment === 'HR'}"></i>
@@ -190,9 +190,9 @@
       </div>
     </div>
 
-    <!-- Row 2: Always Visible Horizontal Navigation Options -->
-    <nav class="horizontal-nav-bar" *ngIf="user$ | async as user">
-      <!-- LEADS MENU -->
+    <!-- Row 2: Always Visible Horizontal Navigation Options (hidden on settings pages) -->
+    <nav class="horizontal-nav-bar" *ngIf="!isSettingsRoute">
+      <ng-container *ngIf="user$ | async as user">
       <ng-container *ngIf="activeDepartment === 'Leads'">
         <a routerLink="/lead-dashboard" routerLinkActive="active" class="nav-item">
           <i class="bi bi-speedometer2"></i>
@@ -479,6 +479,7 @@
           <i class="bi bi-journal-text"></i>
           <span>SOP Guide</span>
         </a>
+      </ng-container>
       </ng-container>
     </nav>
   </header>

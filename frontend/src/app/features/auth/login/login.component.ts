@@ -19,7 +19,20 @@ export class LoginComponent {
 
   constructor(private authService: AuthService, private router: Router) {
     if (this.authService.isLoggedIn()) {
-      this.router.navigate(['/dashboard']);
+      this.navigateToDashboard();
+    }
+  }
+
+  private navigateToDashboard() {
+    const dept = localStorage.getItem('activeDepartment') || 'Leads';
+    if (dept === 'CRM') {
+      this.router.navigate(['/crm-dashboard']);
+    } else if (dept === 'Operation') {
+      this.router.navigate(['/operation-dashboard']);
+    } else if (dept === 'HR') {
+      this.router.navigate(['/hr-dashboard']);
+    } else {
+      this.router.navigate(['/lead-dashboard']);
     }
   }
 
@@ -34,7 +47,7 @@ export class LoginComponent {
 
     this.authService.login(this.email, this.password).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard']);
+        this.navigateToDashboard();
       },
       error: (err) => {
         this.error = err.error?.message || 'Login failed. Please check your credentials.';

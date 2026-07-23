@@ -26,7 +26,8 @@ export class LayoutComponent implements OnInit {
   isSalesPerformanceOpen = false;
 
   // Department State
-  activeDepartment = 'Leads';
+  activeDepartment = localStorage.getItem('activeDepartment') || 'Leads';
+  isSettingsRoute = false;
   isDepartmentDropdownOpen = false;
   departments = ['Leads', 'CRM', 'Operation', 'HR'];
 
@@ -41,6 +42,11 @@ export class LayoutComponent implements OnInit {
 
   ngOnInit() {
     this.setupSocketNotifications();
+    // Restore last active department from localStorage
+    const savedDept = localStorage.getItem('activeDepartment');
+    if (savedDept && this.departments.includes(savedDept)) {
+      this.activeDepartment = savedDept;
+    }
     this.user$.subscribe(user => {
       this.currentUser = user;
       if (user?.name) {
@@ -194,6 +200,7 @@ export class LayoutComponent implements OnInit {
     this.activeDepartment = dept;
     this.isDepartmentDropdownOpen = false;
     this.updateCheckInStatus();
+    localStorage.setItem('activeDepartment', dept);
     
     if (dept === 'System Settings') {
       this.router.navigate(['/system-settings/teams']);
@@ -410,6 +417,18 @@ export class LayoutComponent implements OnInit {
   private syncDepartmentWithUrl(url: string) {
     if (!url || url.includes('/sop')) return;
     
+    // Only hide nav on /system-settings/* pages (truly global settings).
+    // /settings?tab=... pages are department-specific and should keep their nav.
+    if (url.includes('/system-settings')) {
+      this.isSettingsRoute = true;
+      this.isReportsOpen = false;
+      this.isOperationReportsOpen = false;
+      this.isHrReportsOpen = false;
+      return;
+    }
+
+    this.isSettingsRoute = false;
+
     const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings'];
     
     const operationRoutes = ['operation-dashboard', 'installation', 'customer-feedback', 'warranty-service', 'complaints', 'installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report', 'operation/leave-request'];
@@ -422,26 +441,20 @@ export class LayoutComponent implements OnInit {
     this.isOperationReportsOpen = false;
     this.isHrReportsOpen = false;
 
-    if (url.includes('/settings') || url.includes('/system-settings')) {
-      if (url.includes('module=operation')) {
-        this.activeDepartment = 'Operation';
-      } else if (url.includes('module=hr')) {
-        this.activeDepartment = 'HR';
-      } else if (url.includes('module=crm')) {
-        this.activeDepartment = 'CRM';
-      } else if (url.includes('module=leads')) {
-        this.activeDepartment = 'Leads';
-      }
-      // Preserve current activeDepartment if no module queryParam is passed
-    } else if (crmRoutes.some(route => url.includes(route))) {
+    if (crmRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'CRM';
+      localStorage.setItem('activeDepartment', 'CRM');
     } else if (operationRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'Operation';
+      localStorage.setItem('activeDepartment', 'Operation');
     } else if (hrRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'HR';
-    } else {
-      this.activeDepartment = 'Leads'; 
+      localStorage.setItem('activeDepartment', 'HR');
+    } else if (url.includes('lead-dashboard') || leadsReportRoutes.some(r => url.includes(r)) || url.includes('/inbox') || url.includes('/broadcasts') || url.includes('/chatbots') || url.includes('/templates')) {
+      this.activeDepartment = 'Leads';
+      localStorage.setItem('activeDepartment', 'Leads');
     }
+    // else: preserve current activeDepartment (e.g. SOP, unknown routes)
     
     this.updateCheckInStatus();
   }
