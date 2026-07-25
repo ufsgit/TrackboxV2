@@ -117,11 +117,11 @@ Chart.register(...registerables);
 
             <div *ngIf="!isLoading" style="width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center;">
               <ng-container *ngFor="let stage of funnelStages; let i = index">
-                <div class="funnel-stage build-up" [ngStyle]="{'background': stage.gradient, 'width': (100 - i * 5) + '%', 'animation-delay': (i * 0.18) + 's'}">
+                <div class="funnel-stage build-up" [ngStyle]="{'background': stage.gradient, 'width': (100 - i * 5) + '%', 'animation-delay': (i * 0.15) + 's'}">
                   <span class="stage-name">{{ stage.name }}</span>
-                  <span class="stage-count">{{ stage.count | number }}</span>
+                  <span class="stage-count">{{ (stage.displayCount !== undefined ? stage.displayCount : stage.count) | number }}</span>
                 </div>
-                <div class="funnel-arrow build-up" *ngIf="i < funnelStages.length - 1" [style.animation-delay]="(i * 0.18 + 0.09) + 's'">
+                <div class="funnel-arrow arrow-pop" *ngIf="i < funnelStages.length - 1" [style.animation-delay]="(i * 0.15 + 0.1) + 's'">
                   <i class="bi bi-chevron-down"></i>
                 </div>
               </ng-container>
@@ -144,23 +144,106 @@ Chart.register(...registerables);
         </div>
 
       </div>
+
+      <!-- Gamification / Achievements Row -->
+      <div class="gamification-container mt-2">
+        <h4 class="fw-bold mb-3" style="font-size: 1.25rem; color: #1e293b;">Your Achievements</h4>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+          
+          <!-- Achievement 1: 10 Admissions -->
+          <div class="achievement-card">
+            <div class="achievement-icon icon-gold trophy-anim">
+              <i class="bi bi-trophy-fill"></i>
+            </div>
+            <div class="achievement-info">
+              <div class="achievement-title">10 Admissions</div>
+              <div class="achievement-desc">Completed this month</div>
+              <div class="progress-container mt-2">
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill gold-fill" style="width: 100%;"></div>
+                </div>
+                <div class="progress-text">10/10</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Achievement 2: Streak -->
+          <div class="achievement-card">
+            <div class="achievement-icon icon-flame flame-anim">
+              <i class="bi bi-fire"></i>
+            </div>
+            <div class="achievement-info">
+              <div class="achievement-title">7-Day Follow-up Streak</div>
+              <div class="achievement-desc">You are on fire!</div>
+              <div class="progress-container mt-2">
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill orange-fill" style="width: 100%;"></div>
+                </div>
+                <div class="progress-text">Level 2</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Achievement 3: Top Performer -->
+          <div class="achievement-card">
+            <div class="achievement-icon icon-star star-anim">
+              <i class="bi bi-star-fill"></i>
+            </div>
+            <div class="achievement-info">
+              <div class="achievement-title">Top Performer</div>
+              <div class="achievement-desc">Ranked #1 in branch</div>
+              <div class="progress-container mt-2">
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill purple-fill" style="width: 100%;"></div>
+                </div>
+                <div class="progress-text">Elite Status</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   `,
   styles: [`
-    /* ── Build-Up Entrance Animation ── */
-    .build-up {
-      animation: growUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    /* ── Funnel Entrance Animations ── */
+    .funnel-stage.build-up {
+      animation: growAndSlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
-    @keyframes growUp {
+    
+    .funnel-arrow.arrow-pop {
+      animation: arrowPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    }
+
+    @keyframes growAndSlide {
       0% {
         opacity: 0;
-        transform: scaleY(0) translateY(20px);
+        transform: translateY(-20px) scale(0.95);
         max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-width: 0;
       }
       100% {
         opacity: 1;
-        transform: scaleY(1) translateY(0);
-        max-height: 200px;
+        transform: translateY(0) scale(1);
+        max-height: 100px;
+      }
+    }
+
+    @keyframes arrowPopIn {
+      0% {
+        opacity: 0;
+        transform: scale(0);
+        max-height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+        max-height: 50px;
       }
     }
 
@@ -342,6 +425,91 @@ Chart.register(...registerables);
       0%, 100% { transform: translateY(0); opacity: 0.5; }
       50% { transform: translateY(6px); opacity: 1; }
     }
+
+    /* ── Gamification Achievements ── */
+    .gamification-container {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px dashed #e2e8f0;
+    }
+
+    .achievement-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid #f1f5f9;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .achievement-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+      border-color: #e2e8f0;
+    }
+
+    .achievement-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+
+    .icon-gold { background: linear-gradient(135deg, #fef08a, #eab308); color: #854d0e; }
+    .icon-flame { background: linear-gradient(135deg, #fed7aa, #f97316); color: #9a3412; }
+    .icon-star { background: linear-gradient(135deg, #e9d5ff, #a855f7); color: #581c87; }
+
+    .trophy-anim { animation: float 3s ease-in-out infinite; }
+    .flame-anim { animation: flicker 2s infinite alternate; }
+    .star-anim { animation: pulse-star 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    @keyframes flicker {
+      0% { transform: scale(1); opacity: 0.9; }
+      100% { transform: scale(1.05); opacity: 1; }
+    }
+    @keyframes pulse-star {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.9); }
+    }
+
+    .achievement-info { flex: 1; }
+    .achievement-title { font-weight: 700; font-size: 1.05rem; color: #1e293b; margin-bottom: 2px; }
+    .achievement-desc { font-size: 0.85rem; color: #64748b; }
+
+    .progress-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .progress-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1s ease-in-out;
+    }
+    .gold-fill { background: linear-gradient(90deg, #facc15, #eab308); }
+    .orange-fill { background: linear-gradient(90deg, #fb923c, #ea580c); }
+    .purple-fill { background: linear-gradient(90deg, #c084fc, #9333ea); }
+    .progress-text { font-size: 0.8rem; font-weight: 700; color: #475569; }
   `]
 })
 export class CrmDashboardComponent implements OnInit, AfterViewInit {
@@ -363,13 +531,13 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   purchaseOrders = 12;
 
   // Funnel Data with premium gradients
-  funnelStages = [
-    { name: 'Contacted', count: 120, gradient: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' },
-    { name: 'Interested', count: 85, gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)' },
-    { name: 'Not Interested', count: 68, gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' },
-    { name: 'Converted', count: 25, gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' },
-    { name: 'Assign to Branch', count: 18, gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
-    { name: 'Sales Loss', count: 10, gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)' }
+  funnelStages: any[] = [
+    { name: 'Contacted', count: 120, displayCount: 0, gradient: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' },
+    { name: 'Interested', count: 85, displayCount: 0, gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)' },
+    { name: 'Not Interested', count: 68, displayCount: 0, gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' },
+    { name: 'Converted', count: 25, displayCount: 0, gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' },
+    { name: 'Assign to Branch', count: 18, displayCount: 0, gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
+    { name: 'Sales Loss', count: 10, displayCount: 0, gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)' }
   ];
 
   followUpChart: any;
@@ -448,10 +616,44 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
               return {
                 name: item.name,
                 count: item.count,
+                displayCount: 0,
                 gradient: gradients[index % gradients.length]
               };
             });
+          } else {
+            // Initialize displayCount for dummy data if no API data
+            this.funnelStages = this.funnelStages.map(s => ({ ...s, displayCount: 0 }));
           }
+
+          // Animate funnel counts staggered
+          this.funnelStages.forEach((stage: any, i: number) => {
+            const duration = 1200;
+            const end = stage.count;
+            stage.displayCount = 0;
+            
+            let startTimestamp: number | null = null;
+            const step = (timestamp: number) => {
+              if (!startTimestamp) startTimestamp = timestamp;
+              const delay = i * 150; // Stagger start
+              const elapsed = timestamp - startTimestamp - delay;
+              
+              if (elapsed < 0) {
+                window.requestAnimationFrame(step);
+                return;
+              }
+              
+              const progress = Math.min(elapsed / duration, 1);
+              const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+              stage.displayCount = Math.floor(easeProgress * end);
+              
+              if (progress < 1) {
+                window.requestAnimationFrame(step);
+              } else {
+                stage.displayCount = end;
+              }
+            };
+            window.requestAnimationFrame(step);
+          });
 
           setTimeout(() => this.initFollowUpChart(), 50);
         } else {

@@ -13,6 +13,7 @@ router.get('/leads/source-conversion', c.getSourceConversionReport);
 
 // Work and Employee Reports
 router.get('/work', c.getWorkReport);
+router.get('/time-track', c.getTimeTrackReport);
 router.get('/employee', c.getEmployeeReport);
 
 module.exports = router;

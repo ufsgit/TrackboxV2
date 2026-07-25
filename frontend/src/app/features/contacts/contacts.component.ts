@@ -1,5 +1,5 @@
-import { Component, OnInit, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, HostListener, Inject } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
@@ -8,6 +8,7 @@ import { ApplicationsService } from '../../core/services/applications.service';
 import { SystemSettingsService } from '../../core/services/system-settings.service';
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
+import { AnimationService } from '../../core/services/animation.service';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
@@ -71,6 +72,18 @@ export class ContactsComponent implements OnInit {
   pageSize = 10;
   totalContacts = 0;
   totalPages = 1;
+
+  // Calendar View State
+  viewMode: 'list' | 'calendar' = 'list';
+  calendarCurrentDate = new Date();
+  calendarWeeks: any[][] = [];
+  calendarAllLeads: any[] = [];
+  calendarLoading = false;
+  
+  // Daily Leads Modal State
+  showDailyLeadsModal = false;
+  selectedDailyDate: Date | null = null;
+  selectedDailyLeads: any[] = [];
 
   toggleDropdown(contactId: number, event: Event) {
     event.stopPropagation();
@@ -319,6 +332,78 @@ export class ContactsComponent implements OnInit {
     }, 3000);
   }
 
+  triggerSaveAnimation() {
+    const doc = this.document;
+
+    // Keyframes injected once
+    if (!doc.getElementById('__save-anim-styles')) {
+      const styleEl = doc.createElement('style');
+      styleEl.id = '__save-anim-styles';
+      styleEl.textContent = `
+        @keyframes __sovIn{from{opacity:0}to{opacity:1}}
+        @keyframes __sovOut{from{opacity:1}to{opacity:0}}
+        @keyframes __scardIn{0%{transform:scale(.5) translateY(40px);opacity:0}65%{transform:scale(1.08) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+        @keyframes __sGlow{0%{box-shadow:0 0 0 0 rgba(16,185,129,.8),0 20px 50px rgba(16,185,129,.45)}60%{box-shadow:0 0 0 28px rgba(16,185,129,0),0 20px 50px rgba(16,185,129,.45)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0),0 20px 50px rgba(16,185,129,.45)}}
+        @keyframes __sTick{to{stroke-dashoffset:0}}
+        @keyframes __sLabel{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes __sRipple{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
+      `;
+      doc.head.appendChild(styleEl);
+    }
+
+    // Overlay
+    const overlay = doc.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:__sovIn .3s ease forwards';
+
+    // Card
+    const card = doc.createElement('div');
+    card.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;animation:__scardIn .65s cubic-bezier(.34,1.56,.64,1) forwards';
+
+    // Ripple wrapper
+    const rippleWrap = doc.createElement('div');
+    rippleWrap.style.cssText = 'position:relative;width:128px;height:128px';
+
+    // Three ripple rings
+    ['.45s', '.7s', '.95s'].forEach(delay => {
+      const r = doc.createElement('div');
+      r.style.cssText = `position:absolute;top:50%;left:50%;width:128px;height:128px;border-radius:50%;border:3px solid rgba(16,185,129,.55);animation:__sRipple 1.6s ease-out ${delay} infinite`;
+      rippleWrap.appendChild(r);
+    });
+
+    // Green circle
+    const circle = doc.createElement('div');
+    circle.style.cssText = 'position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;animation:__sGlow 1.6s ease-out .3s forwards';
+
+    // SVG checkmark
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = doc.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 52 52');
+    svg.setAttribute('width', '68');
+    svg.setAttribute('height', '68');
+    const path = doc.createElementNS(ns, 'path');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8');
+    path.style.cssText = 'stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:52;stroke-dashoffset:52;animation:__sTick .5s cubic-bezier(.4,0,.2,1) .4s forwards';
+    svg.appendChild(path);
+    circle.appendChild(svg);
+    rippleWrap.appendChild(circle);
+
+    // Label
+    const label = doc.createElement('div');
+    label.textContent = 'Saved Successfully!';
+    label.style.cssText = 'font-family:\'Plus Jakarta Sans\',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:-.02em;text-shadow:0 2px 12px rgba(0,0,0,.25);opacity:0;animation:__sLabel .4s ease .65s forwards';
+
+    card.appendChild(rippleWrap);
+    card.appendChild(label);
+    overlay.appendChild(card);
+    doc.body.appendChild(overlay);
+
+    setTimeout(() => {
+      overlay.style.animation = '__sovOut 0.45s ease forwards';
+      setTimeout(() => overlay.remove(), 450);
+    }, 1800);
+  }
+
   get today(): string {
     return new Date().toISOString().split('T')[0];
   }
@@ -328,7 +413,9 @@ export class ContactsComponent implements OnInit {
     private router: Router, 
     private auth: AuthService,
     private appsService: ApplicationsService,
-    private settingsService: SystemSettingsService
+    private settingsService: SystemSettingsService,
+    private animationService: AnimationService,
+    @Inject(DOCUMENT) private document: Document
   ) {}
 
   ngOnInit() {
@@ -409,6 +496,12 @@ export class ContactsComponent implements OnInit {
         if (res.success) this.leadStatuses = res.data;
       }
     });
+  }
+
+  getStatusColor(statusName: string): string {
+    if (!statusName) return '#94a3b8'; // default gray
+    const status = this.leadStatuses.find(s => s.name === statusName);
+    return status?.color || '#4f46e5'; // default primary
   }
 
   loadLeadFields() {
@@ -1087,6 +1180,20 @@ export class ContactsComponent implements OnInit {
       return;
     }
 
+    // Phone validation for exactly 12 digits
+    const numericPhone = this.newContact.phone.replace(/\D/g, '');
+    if (numericPhone.length !== 12) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Phone Number',
+        text: 'Phone number must be exactly 12 digits (including country code).',
+        confirmButtonColor: '#10B981'
+      });
+      return;
+    }
+    // Optionally update the phone to be the numeric one, or keep user formatting
+    this.newContact.phone = numericPhone;
+
     if (this.newContact.status === 'Branch' || this.newContact.status === 'Sales Loss') {
       Swal.fire({
         icon: 'success',
@@ -1142,14 +1249,16 @@ export class ContactsComponent implements OnInit {
           this.loadContacts();
           this.loadTags();
           this.showModal = false;
+          this.triggerSaveAnimation();
         }
       },
       error: (err: any) => {
+        const isDuplicate = err.status === 409;
         Swal.fire({
-          icon: 'error',
-          title: 'Error',
+          icon: isDuplicate ? 'warning' : 'error',
+          title: isDuplicate ? 'Duplicate Contact' : 'Error',
           text: err.error?.message || 'Error saving contact',
-          confirmButtonColor: '#ef4444'
+          confirmButtonColor: isDuplicate ? '#f59e0b' : '#ef4444'
         });
       }
     });
@@ -1392,7 +1501,7 @@ export class ContactsComponent implements OnInit {
     this.api.put(`/contacts/${this.quickStatusContactId}`, updateData).subscribe({
       next: (res: any) => {
         this.quickStatusLoading = false;
-        if (res.success) {
+          if (res.success) {
           Swal.fire({
             icon: 'success',
             title: 'Status Updated',
@@ -1401,6 +1510,13 @@ export class ContactsComponent implements OnInit {
             showConfirmButton: false,
             timer: 3000
           });
+          
+          // Trigger gamification if status is a "success" state
+          const gamifiedStatuses = ['sales won', 'converted', 'admitted', 'payment received', 'enrolled', 'visa approved'];
+          if (this.quickStatusData.status_name && gamifiedStatuses.includes(this.quickStatusData.status_name.toLowerCase())) {
+            this.animationService.triggerConversionSuccess();
+          }
+
           this.closeQuickStatusModal();
           this.loadContacts();
         } else {
@@ -1412,5 +1528,94 @@ export class ContactsComponent implements OnInit {
         Swal.fire('Error', 'Failed to update status', 'error');
       }
     });
-  }}
+  }
+
+  // ═══════════════════ CALENDAR VIEW ═══════════════════
+
+  toggleViewMode() {
+    this.viewMode = this.viewMode === 'list' ? 'calendar' : 'list';
+    if (this.viewMode === 'calendar') {
+      this.loadCalendarData();
+    }
+  }
+
+  prevCalendarMonth() {
+    this.calendarCurrentDate = new Date(this.calendarCurrentDate.getFullYear(), this.calendarCurrentDate.getMonth() - 1, 1);
+    this.loadCalendarData();
+  }
+
+  nextCalendarMonth() {
+    this.calendarCurrentDate = new Date(this.calendarCurrentDate.getFullYear(), this.calendarCurrentDate.getMonth() + 1, 1);
+    this.loadCalendarData();
+  }
+
+  loadCalendarData() {
+    this.calendarLoading = true;
+    // We fetch a larger limit to ensure we get most leads for the calendar view. 
+    // In a production scenario with millions of leads, we'd want a dedicated endpoint.
+    const params: any = { limit: 5000 };
+    if (this.activeTag) params.tags = this.activeTag;
+    if (this.activeChannel) params.channel = this.activeChannel;
+    if (this.activeStatus) params.status = this.activeStatus;
+    if (this.activeAgent) params.agent = this.activeAgent;
+
+    this.api.get('/contacts', params).subscribe({
+      next: (res: any) => {
+        this.calendarAllLeads = res.data || [];
+        this.generateCalendarWeeks();
+        this.calendarLoading = false;
+      },
+      error: () => {
+        this.calendarLoading = false;
+        Swal.fire('Error', 'Failed to load calendar data', 'error');
+      }
+    });
+  }
+
+  generateCalendarWeeks() {
+    const year = this.calendarCurrentDate.getFullYear();
+    const month = this.calendarCurrentDate.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    let currentDay = new Date(year, month, 1 - firstDay.getDay());
+    this.calendarWeeks = [];
+    
+    while (currentDay <= lastDay || currentDay.getDay() !== 0) {
+      if (currentDay.getDay() === 0) {
+        this.calendarWeeks.push([]);
+      }
+      
+      const dateStr = currentDay.toISOString().split('T')[0];
+      const leadsOnDay = this.calendarAllLeads.filter(l => {
+        if (!l.created_at) return false;
+        return l.created_at.startsWith(dateStr);
+      });
+      
+      this.calendarWeeks[this.calendarWeeks.length - 1].push({
+        date: new Date(currentDay),
+        isCurrentMonth: currentDay.getMonth() === month,
+        leads: leadsOnDay,
+        count: leadsOnDay.length
+      });
+      
+      currentDay.setDate(currentDay.getDate() + 1);
+    }
+  }
+
+  openDailyLeadsModal(day: any) {
+    if (!day || day.count === 0) return;
+    this.selectedDailyDate = day.date;
+    this.selectedDailyLeads = day.leads;
+    this.showDailyLeadsModal = true;
+  }
+
+  closeDailyLeadsModal() {
+    this.showDailyLeadsModal = false;
+    this.selectedDailyDate = null;
+    this.selectedDailyLeads = [];
+  }
+
+}
 

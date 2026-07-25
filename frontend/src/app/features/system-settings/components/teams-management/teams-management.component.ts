@@ -66,9 +66,9 @@ import Swal from 'sweetalert2';
           <tr *ngFor="let member of filteredTeams">
             <td>
               <div class="d-flex align-items-center">
-                <div class="avatar me-3">{{ member.name[0] | uppercase }}</div>
+                <div class="avatar me-3">{{ member.name ? (member.name[0] | uppercase) : '?' }}</div>
                 <div>
-                  <div class="fw-bold">{{ member.name }}</div>
+                  <div class="fw-bold">{{ member.name || 'Unknown Agent' }}</div>
                 </div>
               </div>
             </td>
@@ -371,7 +371,9 @@ export class TeamsManagementComponent implements OnInit {
       let match = true;
       if (this.searchTerm) {
         const term = this.searchTerm.toLowerCase();
-        match = t.name.toLowerCase().includes(term) || t.email.toLowerCase().includes(term);
+        const nameMatch = t.name ? t.name.toLowerCase().includes(term) : false;
+        const emailMatch = t.email ? t.email.toLowerCase().includes(term) : false;
+        match = nameMatch || emailMatch;
       }
       if (match && this.filterBranchId) {
         match = t.branch_id == this.filterBranchId;

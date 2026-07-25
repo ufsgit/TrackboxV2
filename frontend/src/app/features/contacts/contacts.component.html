@@ -1,4 +1,5 @@
 <div class="contacts-page-wrapper">
+
 <div class="contacts-page" *ngIf="!showImportDetailsView">
   <!-- Page Header -->
   <div class="contacts-header d-flex justify-content-between align-items-center" style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; width: 100% !important;">
@@ -59,16 +60,22 @@
           </li>
         </ul>
       </div>
-      <button class="btn btn-primary px-4 py-2 shadow-sm ms-1" (click)="openAddModal()" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
-        <i class="bi bi-person-plus me-2"></i> Add Lead
-      </button>
+      <div class="d-flex align-items-center gap-2 ms-1">
+        <button class="btn btn-outline-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" (click)="toggleViewMode()" style="border-radius: 12px; font-weight: 600;" title="Toggle Calendar View">
+          <i class="bi" [ngClass]="viewMode === 'list' ? 'bi-calendar3' : 'bi-list-ul'"></i>
+          <span>{{ viewMode === 'list' ? 'Calendar View' : 'List View' }}</span>
+        </button>
+        <button class="btn btn-primary px-4 py-2 shadow-sm" (click)="openAddModal()" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
+          <i class="bi bi-person-plus me-2"></i> Add Lead
+        </button>
+      </div>
     </div>
   </div>
 
 
 
-  <!-- Contacts Table Section -->
-  <div class="contacts-table-container">
+  <!-- Contacts Table Section (List View) -->
+  <div class="contacts-table-container" *ngIf="viewMode === 'list'">
     <table class="contacts-table">
       <thead>
         <tr>
@@ -89,10 +96,24 @@
         </tr>
         <tr *ngIf="!loading && contacts.length === 0">
           <td colspan="7" class="text-center py-5">
-            <div class="empty-state d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
-              <i class="bi bi-people d-block mb-3" style="font-size: 3rem; color: #10B981; background: rgba(16, 185, 129, 0.1); width: 80px; height: 80px; line-height: 80px; border-radius: 50%;"></i>
-              <h4 style="font-weight: 800; color: #111827;">No Leads Found</h4>
-              <p class="text-muted mb-0">Try adjusting your filters or search query.</p>
+            <div class="empty-state-wrapper">
+              <div class="empty-state-illustration">
+                <!-- Abstract document/CRM SVG -->
+                <svg width="160" height="160" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect class="doc-back" x="40" y="30" width="100" height="130" rx="12" fill="#E2E8F0"/>
+                  <rect class="doc-front" x="60" y="50" width="100" height="130" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="4"/>
+                  <path class="doc-line" d="M80 80h60M80 100h60M80 120h40" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+                  <circle class="badge-float" cx="160" cy="140" r="24" fill="#10B981"/>
+                  <path class="badge-float" d="M152 140l5 5 11-11" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path class="sparkle s1" d="M20 70l5-15 15-5-15-5-5-15-5 15-15 5 15 5 5 15z" fill="#FBBF24"/>
+                  <path class="sparkle s2" d="M180 50l3-9 9-3-9-3-3-9-3 9-9 3 9 3 3 9z" fill="#60A5FA"/>
+                </svg>
+              </div>
+              <h4 class="empty-state-title">Your Pipeline is Empty</h4>
+              <p class="empty-state-desc">Start building your success story by adding your very first lead.</p>
+              <button class="btn btn-primary add-first-btn mt-3" (click)="openAddModal()">
+                <i class="bi bi-plus-circle-fill me-2"></i> Add First Lead
+              </button>
             </div>
           </td>
         </tr>
@@ -122,8 +143,10 @@
           <td>
             <div class="d-flex align-items-center gap-2">
               <span class="badge" 
-                    [ngClass]="contact.status_name ? 'bg-primary bg-opacity-10 text-primary border border-primary-subtle' : 'bg-light text-secondary border'" 
-                    style="padding: 6px 12px; font-weight: 600; letter-spacing: 0.3px; font-size: 0.75rem;">
+                    [style.backgroundColor]="contact.status_name ? getStatusColor(contact.status_name) + '20' : '#f1f5f9'"
+                    [style.color]="contact.status_name ? getStatusColor(contact.status_name) : '#64748b'"
+                    [style.borderColor]="contact.status_name ? getStatusColor(contact.status_name) + '50' : '#e2e8f0'"
+                    style="padding: 6px 12px; font-weight: 700; letter-spacing: 0.5px; font-size: 0.72rem; text-transform: uppercase; border: 1px solid;">
                 {{ contact.status_name || '-' }}
               </span>
             </div>
@@ -159,9 +182,17 @@
           </td>
 
           <td (click)="$event.stopPropagation()">
-            <button class="btn btn-sm text-primary" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
-              <i class="bi bi-calendar-plus" style="font-size: 1.1rem;"></i>
-            </button>
+            <div class="quick-actions-container d-flex align-items-center gap-2">
+              <a *ngIf="contact.phone" [href]="'https://wa.me/' + contact.phone" target="_blank" class="btn btn-sm text-success quick-action-btn wa-btn" title="WhatsApp">
+                <i class="bi bi-whatsapp" style="font-size: 1.1rem;"></i>
+              </a>
+              <a *ngIf="contact.phone" [href]="'tel:' + contact.phone" class="btn btn-sm text-primary quick-action-btn call-btn" title="Call">
+                <i class="bi bi-telephone-fill" style="font-size: 1.1rem;"></i>
+              </a>
+              <button class="btn btn-sm text-primary default-action-btn" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
+                <i class="bi bi-calendar-plus" style="font-size: 1.1rem;"></i>
+              </button>
+            </div>
           </td>
           
         </tr>
@@ -169,8 +200,59 @@
     </table>
   </div>
 
+  <!-- Calendar View Section -->
+  <div class="calendar-container" *ngIf="viewMode === 'calendar'">
+    <img src="assets/app_banner.png" alt="Calendar Banner" style="width: 100%; height: 120px; object-fit: cover; border-radius: 12px; margin-bottom: 24px; display: block;">
+    <!-- Calendar Header (Month / Year Controls) -->
+    <div class="calendar-header d-flex justify-content-between align-items-center mb-4">
+      <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
+      <div>
+        <button class="btn btn-outline-secondary me-2 shadow-sm rounded-circle" (click)="prevCalendarMonth()">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button class="btn btn-outline-secondary shadow-sm rounded-circle" (click)="nextCalendarMonth()">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="text-center py-5" *ngIf="calendarLoading">
+      <div class="spinner-border text-success"></div>
+      <p class="mt-2 text-muted">Loading calendar data...</p>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-grid" *ngIf="!calendarLoading">
+      <!-- Days of Week Header -->
+      <div class="calendar-days-header">
+        <div class="day-label">Sun</div>
+        <div class="day-label">Mon</div>
+        <div class="day-label">Tue</div>
+        <div class="day-label">Wed</div>
+        <div class="day-label">Thu</div>
+        <div class="day-label">Fri</div>
+        <div class="day-label">Sat</div>
+      </div>
+      
+      <!-- Calendar Weeks/Days -->
+      <div class="calendar-week" *ngFor="let week of calendarWeeks">
+        <div class="calendar-day" 
+             *ngFor="let day of week" 
+             [class.inactive-month]="!day.isCurrentMonth"
+             [class.has-leads]="day.count > 0"
+             (click)="openDailyLeadsModal(day)">
+          <div class="day-number">{{ day.date | date:'d' }}</div>
+          <div class="day-content" *ngIf="day.count > 0">
+            <span class="lead-count-badge">{{ day.count }} Lead{{ day.count > 1 ? 's' : '' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Pagination -->
-  <div class="pagination-bar" *ngIf="totalContacts > 0">
+  <div class="pagination-bar" *ngIf="viewMode === 'list' && totalContacts > 0">
     <div class="pagination-info">
       Showing <strong>{{ paginationStart }}</strong>ΓÇô<strong>{{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads
     </div>
@@ -698,82 +780,85 @@
   </div>
 </div>
 
-<!-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ ADD/EDIT CONTACT MODAL ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ -->
+<!-- ═══════════════ ADD/EDIT LEAD MODAL ═══════════════ -->
 <div class="custom-modal" *ngIf="showModal">
   <div class="modal-backdrop" (click)="showModal = false"></div>
   <div class="modal-card">
 
+    <!-- Banner Image -->
+    <img src="assets/lead_banner.png" alt="Lead Banner" style="width: 100%; height: 160px; object-fit: cover; border-radius: 0; display: block;">
+
     <!-- Header -->
-    <div class="modal-header-fs">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center;">
-          <i class="bi bi-person-vcard" style="color:#fff;font-size:1.1rem;"></i>
+    <div class="modal-header-fs" style="padding-top: 16px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+          <i class="bi bi-person-vcard" style="color:#fff;font-size:1.3rem;"></i>
         </div>
         <div>
-          <h4>{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
-          <p style="margin:0;font-size:0.8rem;color:#64748b;">Fill in the lead details below</p>
+          <h4 style="margin:0;font-weight:800;font-size:1.35rem;color:#0f172a;letter-spacing:-0.02em;">{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
+          <p style="margin:2px 0 0;font-size:0.82rem;color:#64748b;font-weight:500;">Fill in the lead details below</p>
         </div>
       </div>
-      <button class="close-btn" (click)="showModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
+      <button class="close-btn" (click)="showModal = false" style="font-size:1.4rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition:all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">&times;</button>
     </div>
 
     <!-- Scrollable Body -->
     <div class="modal-body-scroll">
 
-      <!-- ΓöÇΓöÇ Contact Info ΓöÇΓöÇ -->
-      <div class="section-divider"><i class="bi bi-person-fill"></i> Lead Information</div>
+      <!-- ── Lead Information ── -->
+      <div class="modal-section-card">
+        <div class="section-divider"><i class="bi bi-person-fill"></i> Lead Information</div>
+        <div class="fields-grid">
+          <div class="field-row">
+            <label>Full Name <span class="required">*</span></label>
+            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.name" placeholder="Enter full name">
+          </div>
 
-      <div class="fields-grid">
-        <div class="field-row">
-          <label>Full Name <span class="required">*</span></label>
-          <input type="text" class="form-control premium-input" [(ngModel)]="newContact.name">
+          <div class="field-row">
+            <label>Phone <span class="required">*</span></label>
+            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.phone" placeholder="+91 XXXXX XXXXX">
+          </div>
+
+          <div class="field-row">
+            <label>Email</label>
+            <input type="email" class="form-control premium-input" [(ngModel)]="newContact.email" placeholder="email@example.com">
+          </div>
+
+          <div class="field-row">
+            <label>Tags <span style="font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;">(comma sep.)</span></label>
+            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.tags" placeholder="e.g. lead, vip, warm">
+          </div>
+
+          <div class="field-row">
+            <label>Enquiry For</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.enquiry_for_id" style="display:block;">
+              <option [ngValue]="null">-- Select Enquiry For --</option>
+              <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label>Channel</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
+              <option value="whatsapp">WhatsApp</option>
+              <option value="sms">SMS</option>
+              <option value="rcs">RCS</option>
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="website">Website</option>
+            </select>
+          </div>
+
+          <div class="field-row full-width">
+            <label>Address</label>
+            <textarea class="form-control premium-input" rows="1" [(ngModel)]="newContact.address" placeholder="Enter address..."></textarea>
+          </div>
         </div>
-
-        <div class="field-row">
-          <label>Phone <span class="required">*</span></label>
-          <input type="text" class="form-control premium-input" [(ngModel)]="newContact.phone">
-        </div>
-
-        <div class="field-row">
-          <label>Email</label>
-          <input type="email" class="form-control premium-input" [(ngModel)]="newContact.email">
-        </div>
-
-        <div class="field-row">
-          <label>Tags <span style="font-weight:400;color:#94a3b8;">(comma sep.)</span></label>
-          <input type="text" class="form-control premium-input" [(ngModel)]="newContact.tags">
-        </div>
-
-        <div class="field-row full-width">
-          <label>Address</label>
-          <textarea class="form-control premium-input" rows="2" [(ngModel)]="newContact.address"></textarea>
-        </div>
-
-        <div class="field-row">
-          <label>Enquiry For</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.enquiry_for_id" style="display:block;">
-            <option [ngValue]="null">-- Select Enquiry For --</option>
-            <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
-          </select>
-        </div>
-
-        <div class="field-row">
-          <label>Channel</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
-            <option value="whatsapp">WhatsApp</option>
-            <option value="sms">SMS</option>
-            <option value="rcs">RCS</option>
-            <option value="instagram">Instagram</option>
-            <option value="facebook">Facebook</option>
-            <option value="website">Website</option>
-          </select>
-        </div>
-
       </div>
 
-      <!-- ΓöÇΓöÇ Additional Details ΓöÇΓöÇ -->
+      <!-- ── Additional Details ── -->
       <div *ngIf="groupedLeadFields.length > 0">
-        <div *ngFor="let group of groupedLeadFields">
+        <div *ngFor="let group of groupedLeadFields" class="modal-section-card">
           <div class="section-divider"><i class="bi bi-folder2-open"></i> {{ group.categoryName }}</div>
           <div class="fields-grid">
             <div *ngFor="let field of group.fields" class="field-row">
@@ -814,85 +899,75 @@
         </div>
       </div>
 
-      <!-- ΓöÇΓöÇ Status & Assignment ΓöÇΓöÇ -->
+      <!-- ── Status & Assignment ── -->
       <ng-container *ngIf="!editingContactId">
-        <div class="section-divider"><i class="bi bi-arrow-right-circle-fill"></i> Status & Assignment</div>
+        <div class="modal-section-card">
+          <div class="section-divider"><i class="bi bi-arrow-right-circle-fill"></i> Status &amp; Assignment</div>
+          <div class="fields-grid">
 
-        <div class="fields-grid">
-
-        <!-- Status Dropdown (dynamic from DB) -->
-        <div class="field-row">
-          <label>Status</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
-            <option value="">-- Select --</option>
-            <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
-          </select>
-        </div>
-
-        <!-- Transfer For Department fields -->
-        <ng-container *ngIf="isTransferStatus(newContact.status)">
+          <!-- Status Dropdown (dynamic from DB) -->
           <div class="field-row">
-            <label>Branch</label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''" style="display:block;">
-              <option value="">-- Select Branch --</option>
-              <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+            <label>Status</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
+              <option value="">-- Select --</option>
+              <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
             </select>
           </div>
-          <div class="field-row">
-            <label>Department</label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''" style="display:block;">
-              <option value="">-- Select Department --</option>
-              <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
-            </select>
-          </div>
-          <!-- <div class="field-row full-width">
-            <label>Assign To</label>
-            <div style="display: flex; gap: 16px; margin-top: 8px;">
-              <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
-                <input type="radio" name="assign_type_add" value="auto" [(ngModel)]="newContact.assign_type"> Auto Assign
-              </label>
-              <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
-                <input type="radio" name="assign_type_add" value="employee" [(ngModel)]="newContact.assign_type"> Select Employee
-              </label>
+
+          <!-- Transfer For Department fields -->
+          <ng-container *ngIf="isTransferStatus(newContact.status)">
+            <div class="field-row">
+              <label>Branch</label>
+              <select class="form-select premium-input" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''" style="display:block;">
+                <option value="">-- Select Branch --</option>
+                <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+              </select>
             </div>
-          </div> -->
-          <div class="field-row" *ngIf="newContact.department">
-            <label>Employee</label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
-              <option value="">-- Select Employee --</option>
-              <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
-            </select>
+            <div class="field-row">
+              <label>Department</label>
+              <select class="form-select premium-input" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''" style="display:block;">
+                <option value="">-- Select Department --</option>
+                <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
+              </select>
+            </div>
+            <div class="field-row" *ngIf="newContact.department">
+              <label>Employee</label>
+              <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
+                <option value="">-- Select Employee --</option>
+                <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
+              </select>
+            </div>
+            
+            <div class="field-row full-width">
+              <label>Remark / Note <span class="required">*</span></label>
+              <textarea class="form-control premium-input" [(ngModel)]="newContact.remark" rows="3" style="resize: vertical;" placeholder="Add a remark or note..."></textarea>
+            </div>
+          </ng-container>
+
+          <!-- Follow-up Date: shown if status has follow_needed = Yes -->
+          <div class="field-row" *ngIf="isFollowupStatus(newContact.status)">
+            <label>Follow Up Date</label>
+            <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
           </div>
           
-          <div class="field-row full-width">
-            <label>Remark / Note <span class="required">*</span></label>
-            <textarea class="form-control premium-input" [(ngModel)]="newContact.remark" rows="3" style="resize: vertical;"></textarea>
+          <!-- Sales Loss: show reason -->
+          <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
+            <label>Loss Reason</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.loss_reason" style="display:block;">
+              <option value="">-- Select Reason --</option>
+              <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
+            </select>
           </div>
-        </ng-container>
 
-        <!-- Follow-up Date: shown if status has follow_needed = Yes -->
-        <div class="field-row" *ngIf="isFollowupStatus(newContact.status)">
-          <label>Follow Up Date</label>
-          <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
         </div>
-        
-        <!-- Sales Loss: show reason -->
-        <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
-          <label>Loss Reason</label>
-          <select class="form-select premium-input" [(ngModel)]="newContact.loss_reason" style="display:block;">
-            <option value="">-- Select Reason --</option>
-            <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
-          </select>
         </div>
-
-      </div>
       </ng-container>
     </div>
 
     <!-- Footer -->
     <div class="modal-footer-fs">
-      <button class="btn btn-light px-5 py-2" (click)="showModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
-      <button class="btn px-6 py-2" (click)="saveContact()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;padding:10px 32px;">
+      <button class="btn btn-light px-5 py-2" (click)="showModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;color:#475569;font-size:0.9rem;transition:all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">Cancel</button>
+      <button class="btn px-5 py-2" (click)="saveContact()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-size:0.9rem;box-shadow:0 4px 12px rgba(16,185,129,0.35);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(16,185,129,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(16,185,129,0.35)'">
         <i class="bi bi-check2-circle me-2"></i>
         {{ editingContactId ? 'Update Lead' : 'Save Lead' }}
       </button>
@@ -974,7 +1049,7 @@
           <i class="bi bi-pencil-square" style="color:#4f46e5;font-size:1.1rem;"></i>
         </div>
         <div>
-          <h4>Status Updation</h4>
+          <h4 style="margin:0; font-weight:800; font-size:1.15rem; color:#0f172a;">Update Lead Status</h4>
           <p style="margin:0;font-size:0.8rem;color:#64748b;">{{ quickStatusContactName }}</p>
         </div>
       </div>
@@ -1150,11 +1225,14 @@
 </div>
 
 <!-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ ADD/EDIT APPLICATION MODAL ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ -->
-<div class="custom-modal center-modal" *ngIf="showAddApplicationModal">
-  <div class="modal-backdrop" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);" (click)="showAddApplicationModal = false"></div>
-  <div class="modal-card popup-card" style="border-radius: 20px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); max-width: 600px; width: 95%;">
+<div class="custom-modal" *ngIf="showAddApplicationModal">
+  <div class="modal-backdrop" (click)="showAddApplicationModal = false"></div>
+  <div class="modal-card">
     
-    <div class="modal-header-fs" style="padding: 24px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+    <!-- Banner Image -->
+    <img src="assets/app_banner.png" alt="Application Banner" style="width: 100%; height: 160px; object-fit: cover; border-radius: 0; display: block;">
+
+    <div class="modal-header-fs" style="padding: 24px 32px 16px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
       <div style="display:flex; align-items:center; gap:16px;">
         <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(79,70,229,0.2);">
           <i class="bi bi-mortarboard-fill" style="color:#fff;font-size:1.4rem;"></i>
@@ -1283,18 +1361,21 @@
   (close)="closeChatModal()">
 </app-chat-modal>
 
-<!-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ UPLOAD DOCUMENT MODAL ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ -->
-<div class="custom-modal center-modal" *ngIf="showUploadDocumentModal">
+<!-- =================== UPLOAD DOCUMENT MODAL =================== -->
+<div class="custom-modal" *ngIf="showUploadDocumentModal">
   <div class="modal-backdrop" (click)="closeUploadDocumentModal()"></div>
-  <div class="modal-card popup-card" style="max-width: 650px; padding: 0; border: none; border-radius: 12px; overflow: hidden;">
+  <div class="modal-card">
     
-    <div style="display: flex; align-items: center; padding: 16px 24px; border-bottom: 2px solid #f8fafc; background: #ffffff;">
+    <!-- Banner Image -->
+    <img src="assets/doc_banner.png" alt="Document Banner" style="width: 100%; height: 160px; object-fit: cover; display: block; border-radius: 0;">
+
+    <div class="modal-header-fs" style="display: flex; align-items: center; padding: 24px 32px; border-bottom: 2px solid #f8fafc; background: #ffffff;">
       <i class="bi bi-file-earmark-text-fill me-2" style="color: #6366f1; font-size: 1.4rem;"></i>
-      <h5 style="margin: 0; font-weight: 700; color: #4f46e5; font-size: 1.1rem;">Documents</h5>
+      <h5 style="margin: 0; font-weight: 700; color: #4f46e5; font-size: 1.4rem;">Documents</h5>
       <button class="ms-auto" (click)="closeUploadDocumentModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
     </div>
     
-    <div class="modal-body p-4" style="background-color: #fcfcfc;">
+    <div class="modal-body-scroll p-4" style="background-color: #fcfcfc;">
       
       <!-- Document Row -->
       <div class="mb-3">
@@ -1336,53 +1417,37 @@
   <div class="card shadow-sm border-0 mb-4 rounded-3">
     <div class="card-body p-4 p-md-5">
       <h4 class="mb-4 text-secondary pb-2" style="font-weight: 500;">FollowUp Details</h4>
-      
-      <div class="row g-4 mb-2">
-        <div class="col-md-6">
-          <div class="d-flex align-items-center">
-            <label class="form-label mb-0 me-3" style="width: 120px; color: #64748b;">Branch<span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="globalImportSettings.branch_id">
-              <option value="">Select Branch</option>
-              <option *ngFor="let b of branches" [value]="b.id">{{ b.name }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="d-flex align-items-center">
-            <label class="form-label mb-0 me-3" style="width: 120px; color: #64748b;">Department<span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="globalImportSettings.department_id">
-              <option value="">Select Department</option>
-              <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="d-flex align-items-center">
-            <label class="form-label mb-0 me-3" style="width: 120px; color: #64748b;">Status<span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="globalImportSettings.status_id">
-              <option value="">Select Status</option>
-              <option *ngFor="let s of leadStatuses" [value]="s.id">{{ s.name }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="d-flex align-items-center">
-            <label class="form-label mb-0 me-3" style="width: 120px; color: #64748b;">Enquiry Source <span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="globalImportSettings.enquiry_source_id">
-              <option value="">Select Source</option>
-              <option *ngFor="let src of enquiryFors" [value]="src.id">{{ src.name }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="d-flex align-items-center">
-            <label class="form-label mb-0 me-3" style="width: 120px; color: #64748b;">Assigned To</label>
-            <select class="form-select" [(ngModel)]="globalImportSettings.assigned_to">
-              <option value="">Auto Assign or Select Staff</option>
-              <option *ngFor="let u of bulkImportUsers" [value]="u.id">{{ u.name }}</option>
-            </select>
-          </div>
-        </div>
+
+      <div class="followup-form-grid">
+        <label class="followup-label">Branch<span class="text-danger">*</span></label>
+        <select class="form-select followup-select" [(ngModel)]="globalImportSettings.branch_id">
+          <option value="">Select Branch</option>
+          <option *ngFor="let b of branches" [value]="b.id">{{ b.name }}</option>
+        </select>
+
+        <label class="followup-label">Department<span class="text-danger">*</span></label>
+        <select class="form-select followup-select" [(ngModel)]="globalImportSettings.department_id">
+          <option value="">Select Department</option>
+          <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
+        </select>
+
+        <label class="followup-label">Status<span class="text-danger">*</span></label>
+        <select class="form-select followup-select" [(ngModel)]="globalImportSettings.status_id">
+          <option value="">Select Status</option>
+          <option *ngFor="let s of leadStatuses" [value]="s.id">{{ s.name }}</option>
+        </select>
+
+        <label class="followup-label">Enquiry Source<span class="text-danger">*</span></label>
+        <select class="form-select followup-select" [(ngModel)]="globalImportSettings.enquiry_source_id">
+          <option value="">Select Source</option>
+          <option *ngFor="let src of enquiryFors" [value]="src.id">{{ src.name }}</option>
+        </select>
+
+        <label class="followup-label">Assigned To</label>
+        <select class="form-select followup-select" [(ngModel)]="globalImportSettings.assigned_to">
+          <option value="">Auto Assign or Select Staff</option>
+          <option *ngFor="let u of bulkImportUsers" [value]="u.id">{{ u.name }}</option>
+        </select>
       </div>
     </div>
   </div>
@@ -1519,7 +1584,45 @@
         </button>
       </div>
       
+</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ DAILY LEADS MODAL ═══════════════════ -->
+<div class="custom-modal center-modal" *ngIf="showDailyLeadsModal">
+  <div class="modal-backdrop" (click)="closeDailyLeadsModal()"></div>
+  <div class="modal-card popup-card" style="padding: 24px; border-radius: 16px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="mb-0 fw-bold" style="color: #1e293b;">Leads on {{ selectedDailyDate | date:'MMMM d, yyyy' }}</h4>
+      <button class="btn btn-sm btn-light rounded-circle" (click)="closeDailyLeadsModal()" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <div class="daily-leads-list" style="max-height: 400px; overflow-y: auto;">
+      <div *ngIf="selectedDailyLeads.length === 0" class="text-center text-muted py-4">
+        No leads for this day.
+      </div>
+      
+      <div class="d-flex justify-content-between align-items-center p-3 mb-2 bg-light rounded" *ngFor="let lead of selectedDailyLeads" style="border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease;" (click)="openDetailPanel(lead); closeDailyLeadsModal()">
+        <div>
+          <div class="fw-bold" style="color: #4f46e5;">{{ lead.name }}</div>
+          <div class="small text-muted">{{ lead.phone || lead.email }}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge" 
+                [style.backgroundColor]="lead.status_name ? getStatusColor(lead.status_name) + '20' : '#f1f5f9'"
+                [style.color]="lead.status_name ? getStatusColor(lead.status_name) : '#64748b'"
+                style="padding: 4px 8px; font-weight: 600; font-size: 0.7rem; border-radius: 4px;">
+            {{ lead.status_name || 'New' }}
+          </span>
+          <a *ngIf="lead.phone" [href]="'https://wa.me/' + lead.phone" target="_blank" (click)="$event.stopPropagation()" class="btn btn-sm text-success" title="WhatsApp" style="padding: 2px 6px;">
+            <i class="bi bi-whatsapp"></i>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
 </div> <!-- end contacts-page-wrapper -->

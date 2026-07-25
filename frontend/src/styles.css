@@ -981,3 +981,167 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .card:nth-child(6)  { animation-delay: 300ms; }
 .card:nth-child(7)  { animation-delay: 360ms; }
 .card:nth-child(8)  { animation-delay: 420ms; }
+
+/* ============ PREMIUM SAVE BUTTON ANIMATIONS ============ */
+.btn-save-animated {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.btn-saving {
+  pointer-events: none !important;
+  opacity: 0.85 !important;
+  color: transparent !important;
+}
+.btn-saving::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  margin-left: -10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: saveSpinner 0.6s linear infinite;
+  z-index: 2;
+}
+
+@keyframes saveSpinner {
+  to { transform: rotate(360deg); }
+}
+
+.btn-saved {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: transparent !important;
+  pointer-events: none !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+  animation: saveSuccessPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+.btn-saved::before {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 900;
+  z-index: 2;
+  animation: checkmarkPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+}
+
+@keyframes saveSuccessPop {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes checkmarkPop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ============ GLOBAL CENTER PAGE SAVE ANIMATION ============ */
+.global-save-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* Let clicks pass through if needed */
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: overlayEnter 0.3s ease-out forwards;
+}
+
+.global-save-overlay.fade-out {
+  animation: overlayExit 0.4s ease-in forwards;
+}
+
+.global-save-popup {
+  width: 140px;
+  height: 140px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20px 50px rgba(16, 185, 129, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  animation: popEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.global-save-overlay.fade-out .global-save-popup {
+  animation: popExit 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.global-save-popup::before {
+  content: "✓";
+  color: white;
+  font-size: 5.5rem;
+  font-weight: 900;
+  opacity: 0;
+  transform: scale(0);
+  animation: checkEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards;
+}
+
+@keyframes overlayEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes overlayExit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes popEnter {
+  0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+  60% { transform: scale(1.1) translateY(0); opacity: 1; }
+  80% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 35px rgba(16, 185, 129, 0); }
+}
+
+@keyframes popExit {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0.5) translateY(-20px); opacity: 0; }
+}
+
+@keyframes checkEnter {
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Button Animations */
+.btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.btn:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* =========================================
+   Animated Buttons
+   ========================================= */
+button, .btn {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+button:active, .btn:active {
+  transform: scale(0.95);
+}
+
+button:hover, .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}

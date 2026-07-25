@@ -104,6 +104,7 @@ export const routes: Routes = [
       { path: 'affiliates', component: AffiliatesComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'templates', component: TemplatesComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'ivr', component: IvrComponent, data: { roles: ['admin', 'superadmin'] } },
+      { path: 'reports/time-track', loadComponent: () => import('./features/lead-report/time-track-report/time-track-report.component').then(m => m.TimeTrackReportComponent) },
       { path: 'reports/work', loadComponent: () => import('./features/lead-report/work-report/work-report.component').then(m => m.WorkReportComponent) },
       { path: 'reports/conversation', loadComponent: () => import('./features/lead-report/conversation-report/conversation-report.component').then(m => m.ConversationReportComponent) },
       { path: 'reports/employee', loadComponent: () => import('./features/lead-report/employee-report/employee-report.component').then(m => m.EmployeeReportComponent) },

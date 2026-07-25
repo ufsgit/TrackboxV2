@@ -8,35 +8,123 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="notification-backdrop" *ngIf="notification" (click)="onBackdropClick($event)">
-      <div class="notification-dialog" [ngClass]="notification.type" (click)="$event.stopPropagation()">
-        
-        <div class="notification-icon" [ngClass]="notification.type">
+    <!-- Top Right Toasts Container -->
+    <div class="toast-container">
+      <div *ngFor="let toast of toasts" class="toast-card" [ngClass]="toast.type" (click)="dismissToast(toast.id)">
+        <div class="toast-icon" [ngClass]="toast.type">
           <i class="bi" 
              [ngClass]="{
-               'bi-check-circle-fill text-success': notification.type === 'success', 
-               'bi-exclamation-circle-fill text-danger': notification.type === 'error',
-               'bi-question-circle-fill text-primary': notification.type === 'confirm'
+               'bi-check-circle-fill text-success': toast.type === 'success', 
+               'bi-exclamation-circle-fill text-danger': toast.type === 'error',
+               'bi-info-circle-fill text-info': toast.type === 'info'
              }"></i>
         </div>
-
-        <div class="notification-content">
-          <h5 class="notification-title" *ngIf="notification.title">{{ notification.title }}</h5>
-          <h5 class="notification-title" *ngIf="!notification.title">
-            {{ notification.type === 'success' ? 'Success' : (notification.type === 'error' ? 'Error' : 'Confirm') }}
+        <div class="toast-content">
+          <h5 class="toast-title" *ngIf="toast.title">{{ toast.title }}</h5>
+          <h5 class="toast-title" *ngIf="!toast.title">
+            {{ toast.type === 'success' ? 'Success' : (toast.type === 'error' ? 'Error' : 'Notification') }}
           </h5>
-          <p class="notification-message">{{ notification.message }}</p>
+          <p class="toast-message">{{ toast.message }}</p>
         </div>
+        <button class="toast-close" (click)="$event.stopPropagation(); dismissToast(toast.id)">&times;</button>
+      </div>
+    </div>
 
-        <div class="notification-actions">
-          <button *ngIf="notification.type === 'confirm'" class="btn-cancel" (click)="cancel()">Cancel</button>
-          <button #okBtn class="btn-ok" [ngClass]="notification.type" (click)="confirm()">OK</button>
+    <!-- Confirm Modal Backdrop -->
+    <div class="notification-backdrop" *ngIf="confirmModal" (click)="onBackdropClick($event)">
+      <div class="notification-dialog" [ngClass]="confirmModal.type" (click)="$event.stopPropagation()">
+        <div class="notification-icon" [ngClass]="confirmModal.type">
+          <i class="bi bi-question-circle-fill text-primary"></i>
         </div>
-        
+        <div class="notification-content">
+          <h5 class="notification-title" *ngIf="confirmModal.title">{{ confirmModal.title }}</h5>
+          <h5 class="notification-title" *ngIf="!confirmModal.title">Confirm</h5>
+          <p class="notification-message">{{ confirmModal.message }}</p>
+        </div>
+        <div class="notification-actions">
+          <button class="btn-cancel" (click)="cancelConfirm()">Cancel</button>
+          <button #okBtn class="btn-ok confirm" (click)="confirmAction()">OK</button>
+        </div>
       </div>
     </div>
   `,
   styles: [`
+    /* ── Toasts Container ── */
+    .toast-container {
+      position: fixed;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10500;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: none;
+      align-items: center;
+    }
+
+    .toast-card {
+      pointer-events: auto;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      width: 320px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      border-left: 4px solid #cbd5e1;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toast-card.success { border-left-color: #10b981; }
+    .toast-card.error { border-left-color: #ef4444; }
+    .toast-card.info { border-left-color: #3b82f6; }
+
+    .toast-icon i {
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-title {
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .toast-message {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .toast-close {
+      background: transparent;
+      border: none;
+      font-size: 1.25rem;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    
+    .toast-close:hover { color: #475569; }
+
+    @keyframes slideInDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ── Confirm Modal ── */
     .notification-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -104,10 +192,6 @@ import { Subscription } from 'rxjs';
     }
     .btn-cancel:hover { background: #e2e8f0; }
     
-    .btn-ok.success { background: #10b981; color: white; }
-    .btn-ok.success:hover { background: #059669; }
-    .btn-ok.error { background: #ef4444; color: white; }
-    .btn-ok.error:hover { background: #dc2626; }
     .btn-ok.confirm { background: #4f46e5; color: white; }
     .btn-ok.confirm:hover { background: #4338ca; }
 
@@ -122,7 +206,9 @@ import { Subscription } from 'rxjs';
   `]
 })
 export class NotificationComponent implements OnInit, OnDestroy, AfterViewChecked {
-  notification: Notification | null = null;
+  toasts: Notification[] = [];
+  confirmModal: Notification | null = null;
+  
   private sub!: Subscription;
   private needsFocus = false;
 
@@ -132,8 +218,16 @@ export class NotificationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   ngOnInit() {
     this.sub = this.notificationService.notification$.subscribe(notif => {
-      this.notification = notif;
-      this.needsFocus = true;
+      if (notif.type === 'confirm') {
+        this.confirmModal = notif;
+        this.needsFocus = true;
+      } else {
+        this.toasts.push(notif);
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+          this.dismissToast(notif.id);
+        }, 5000);
+      }
     });
   }
 
@@ -144,29 +238,30 @@ export class NotificationComponent implements OnInit, OnDestroy, AfterViewChecke
     }
   }
 
+  dismissToast(id: string) {
+    this.toasts = this.toasts.filter(t => t.id !== id);
+  }
+
   onBackdropClick(event: Event) {
-    if (this.notification?.type === 'success') {
-      this.cancel();
-    }
-    // For error and confirm, clicking backdrop does nothing.
+    // For confirm, clicking backdrop does nothing.
   }
 
-  confirm() {
-    if (this.notification?.onConfirm) {
-      this.notification.onConfirm();
+  confirmAction() {
+    if (this.confirmModal?.onConfirm) {
+      this.confirmModal.onConfirm();
     }
-    this.close();
+    this.closeConfirm();
   }
 
-  cancel() {
-    if (this.notification?.onCancel) {
-      this.notification.onCancel();
+  cancelConfirm() {
+    if (this.confirmModal?.onCancel) {
+      this.confirmModal.onCancel();
     }
-    this.close();
+    this.closeConfirm();
   }
 
-  close() {
-    this.notification = null;
+  closeConfirm() {
+    this.confirmModal = null;
   }
 
   ngOnDestroy() {

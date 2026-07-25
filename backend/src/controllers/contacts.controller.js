@@ -114,6 +114,36 @@ const createContact = async (req, res) => {
     let { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name } = req.body;
     const bizId = req.user.businessId;
 
+    if (phone) {
+      const numericPhone = phone.replace(/\D/g, '');
+      if (numericPhone.length !== 12) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ success: false, message: 'Phone number must be exactly 12 digits.', data: null });
+      }
+      phone = numericPhone; // Save the validated numeric phone
+
+      // Check for duplicate by last 10 digits
+      const last10 = phone.slice(-10);
+      const dupQuery = `
+        SELECT c.id, u.name as agent_name 
+        FROM contacts c 
+        LEFT JOIN users u ON c.assigned_to = u.id 
+        WHERE c.business_id = ? AND c.phone LIKE ? LIMIT 1
+      `;
+      const [dupRows] = await conn.query(dupQuery, [bizId, `%${last10}`]);
+      if (dupRows.length > 0) {
+        await conn.rollback();
+        conn.release();
+        const agentName = dupRows[0].agent_name || 'Unassigned';
+        return res.status(409).json({ 
+          success: false, 
+          message: `The contact already exists. Assigned to: ${agentName}`, 
+          data: null 
+        });
+      }
+    }
+
     if (!assigned_to || !branch_id || !department_id) {
       const query = `
         SELECT u.branch_id, b.name as branch_name, u.department_id, d.name as department_name 
@@ -223,6 +253,35 @@ const updateContact = async (req, res) => {
     }
     const oldContact = existingRows[0];
 
+    // Phone validation and duplicate check
+    if (updateFields.phone) {
+      const numericPhone = updateFields.phone.replace(/\D/g, '');
+      if (numericPhone.length !== 12) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ success: false, message: 'Phone number must be exactly 12 digits.', data: null });
+      }
+      updateFields.phone = numericPhone;
+
+      const last10 = updateFields.phone.slice(-10);
+      const dupQuery = `
+        SELECT c.id, u.name as agent_name 
+        FROM contacts c 
+        LEFT JOIN users u ON c.assigned_to = u.id 
+        WHERE c.business_id = ? AND c.phone LIKE ? AND c.id != ? LIMIT 1
+      `;
+      const [dupRows] = await conn.query(dupQuery, [bizId, `%${last10}`, contactId]);
+      if (dupRows.length > 0) {
+        await conn.rollback();
+        conn.release();
+        const agentName = dupRows[0].agent_name || 'Unassigned';
+        return res.status(409).json({ 
+          success: false, 
+          message: `The contact already exists. Assigned to: ${agentName}`, 
+          data: null 
+        });
+      }
+    }
     // Format follow_up_date if provided; convert empty string to null
     if (updateFields.follow_up_date !== undefined) {
       if (updateFields.follow_up_date && updateFields.follow_up_date !== '') {

@@ -35,20 +35,118 @@
   flex: 1.5; /* Take up more of the screen horizontally */
   height: 100vh;
   position: relative;
-  background-image: url('../../../../assets/images/sa1.jpeg');
-  background-size: cover; /* Cover the newly expanded width area */
-  background-position: center left; /* Keep left text anchored so it's not brutally cropped */
-  background-repeat: no-repeat;
-  padding: 0; /* Remove internal padding to avoid any size shifting */
+  overflow: hidden;
+  padding: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  perspective: 1000px;
 }
 
+.left-panel-bg {
+  position: absolute;
+  top: -5%;
+  left: -5%;
+  width: 110%;
+  height: 110%;
+  background-image: url('../../../../assets/images/sa1.jpeg');
+  background-size: cover;
+  background-position: center left;
+  background-repeat: no-repeat;
+  z-index: 1;
+  animation: smoothPanZoom 25s ease-in-out infinite alternate;
+}
 
+/* Subtle overlay to blend it slightly */
+.left-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(11, 34, 77, 0.4) 0%, rgba(13, 39, 82, 0.1) 100%);
+  z-index: 2;
+  pointer-events: none;
+}
 
+@keyframes smoothPanZoom {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0) rotate(0.1deg);
+  }
+  33% {
+    transform: scale(1.05) translate3d(-1%, -1%, 0) rotate(-0.5deg);
+  }
+  66% {
+    transform: scale(1.03) translate3d(1%, 2%, 0) rotate(0.2deg);
+  }
+  100% {
+    transform: scale(1.08) translate3d(2%, -2%, 0) rotate(-0.2deg);
+  }
+}
 
+/* =========================================
+   OVERLAY ANIMATIONS 
+   ========================================= */
 
+/* Clouds */
+.animated-cloud {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.4);
+  z-index: 3;
+  animation: floatCloud linear infinite;
+}
+.animated-cloud svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+}
+.cloud-1 {
+  width: 120px;
+  top: 15%;
+  left: -150px;
+  animation-duration: 40s;
+  animation-delay: 0s;
+}
+.cloud-2 {
+  width: 80px;
+  top: 25%;
+  left: -100px;
+  color: rgba(255, 255, 255, 0.25);
+  animation-duration: 55s;
+  animation-delay: 15s;
+}
+.cloud-3 {
+  width: 150px;
+  top: 8%;
+  left: -200px;
+  color: rgba(255, 255, 255, 0.5);
+  animation-duration: 35s;
+  animation-delay: 25s;
+}
+
+@keyframes floatCloud {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(120vw); }
+}
+
+/* Water Ripples */
+.water-ripples {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 25%;
+  z-index: 3;
+  background: linear-gradient(transparent, rgba(255,255,255,0.1));
+  mask-image: repeating-linear-gradient(0deg, transparent, transparent 10px, black 10px, black 20px);
+  -webkit-mask-image: repeating-linear-gradient(0deg, transparent, transparent 10px, black 10px, black 20px);
+  animation: rippleMove 4s linear infinite;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@keyframes rippleMove {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(20px); }
+}
 
 /* Right side panel */
 .right-panel {
@@ -95,6 +193,16 @@
 .brand-logo {
   text-align: center;
   margin-bottom: 45px;
+  opacity: 0;
+  transform: translateY(-20px);
+  animation: logoReveal 0.8s ease forwards;
+}
+
+@keyframes logoReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .logo-icon {
@@ -140,6 +248,19 @@
 }
 
 /* Form */
+form {
+  animation: formReveal 0.8s ease forwards 0.2s;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes formReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .form-group {
   margin-bottom: 22px;
 }
@@ -162,6 +283,7 @@
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
+  transition: color 0.3s ease;
 }
 
 .eye-icon {
@@ -171,6 +293,7 @@
   transform: translateY(-50%);
   color: #94a3b8;
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 .form-control {
@@ -178,10 +301,10 @@
   padding: 13px 40px 13px 42px;
   background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 12px;
   color: #1e293b;
   font-size: 0.95rem;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-control::placeholder {
@@ -191,8 +314,15 @@
 
 .form-control:focus {
   outline: none;
-  border-color: #0d2752;
-  box-shadow: 0 0 0 3px rgba(13, 39, 82, 0.1);
+  border-color: #3730a3;
+  box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.15);
+  transform: translateY(-1px);
+  background: #fff;
+}
+
+.form-control:focus + .input-icon,
+.input-wrapper:focus-within .input-icon {
+  color: #3730a3;
 }
 
 .forgot-password {
@@ -211,20 +341,28 @@
 .login-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #103264 0%, #1a4b91 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   color: white;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 6px 15px rgba(16, 50, 100, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
-.login-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(16, 50, 100, 0.35);
+.login-btn:hover:not([disabled]) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+}
+
+.login-btn:active:not([disabled]) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
 }
 
 .login-btn:disabled {

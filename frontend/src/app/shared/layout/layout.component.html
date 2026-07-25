@@ -90,31 +90,49 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
           </button>
-          <div class="horizontal-submenu" *ngIf="isReportsOpen">
-            <a routerLink="/reports/work" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Work report</span>
-            </a>
-            <a routerLink="/reports/conversation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Conversation report</span>
-            </a>
-            <a routerLink="/reports/employee" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Employee report</span>
-            </a>
-            <a routerLink="/reports/enquiry" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Enquiry Report</span>
-            </a>
-            <a routerLink="/reports/status" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Lead Status</span>
-            </a>
-            <a routerLink="/reports/source-conversion" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Source Conversion</span>
-            </a>
+          <div class="mega-menu" *ngIf="isReportsOpen">
+            <!-- Column 1 -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Activity</div>
+              <a routerLink="/reports/time-track" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Time Track</span>
+              </a>
+              <a routerLink="/reports/work" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Work report</span>
+              </a>
+              <a routerLink="/reports/employee" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Employee report</span>
+              </a>
+            </div>
+            
+            <!-- Column 2 -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Leads</div>
+              <a routerLink="/reports/enquiry" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Enquiry Report</span>
+              </a>
+              <a routerLink="/reports/status" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Lead Status</span>
+              </a>
+              <a routerLink="/reports/source-conversion" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Source Conversion</span>
+              </a>
+            </div>
+
+            <!-- Column 3 -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Communication</div>
+              <a routerLink="/reports/conversation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Conversation report</span>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -142,47 +160,65 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
           </button>
-          <div class="horizontal-submenu" *ngIf="isReportsOpen">
-            <a routerLink="/pending-followup" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Pending Followup</span>
-            </a>
-            <a routerLink="/todays-leads" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Today's Leads</span>
-            </a>
-            <a routerLink="/quotation-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Quotation Report</span>
-            </a>
-            <a routerLink="/purchase-order-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Purchase Order Report</span>
-            </a>
-            <a routerLink="/sales-funnel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Sales Funnel Report</span>
-            </a>
-            <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Lead Conversion Report</span>
-            </a>
-            <a routerLink="/agent-performance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Individuals Reports</span>
-            </a>
-            <a routerLink="/won-lost-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Won/Lost Report</span>
-            </a>
-            <a routerLink="/salesperson-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Salesperson Report</span>
-            </a>
-            <a routerLink="/crm/attendance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Attendance Report</span>
-            </a>
+          <div class="mega-menu" *ngIf="isReportsOpen">
+            <!-- Column 1: Lead Activity -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Lead Activity</div>
+              <a routerLink="/pending-followup" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Pending Followup</span>
+              </a>
+              <a routerLink="/todays-leads" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Today's Leads</span>
+              </a>
+              <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Lead Conversion Report</span>
+              </a>
+              <a routerLink="/sales-funnel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Sales Funnel Report</span>
+              </a>
+            </div>
+
+            <!-- Column 2: Sales & Financials -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Sales & Financials</div>
+              <a routerLink="/quotation-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Quotation Report</span>
+              </a>
+              <a routerLink="/purchase-order-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Purchase Order Report</span>
+              </a>
+              <a routerLink="/won-lost-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Won/Lost Report</span>
+              </a>
+            </div>
+
+            <!-- Column 3: Team Performance -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Team Performance</div>
+              <a routerLink="/reports/time-track" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Time Track</span>
+              </a>
+              <a routerLink="/agent-performance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Individuals Reports</span>
+              </a>
+              <a routerLink="/salesperson-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Salesperson Report</span>
+              </a>
+              <a routerLink="/crm/attendance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Attendance Report</span>
+              </a>
+            </div>
           </div>
         </div>
       </ng-container>
@@ -221,27 +257,36 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isOperationReportsOpen"></i>
           </button>
-          <div class="horizontal-submenu" *ngIf="isOperationReportsOpen">
-            <a routerLink="/installation-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Installation Report</span>
-            </a>
-            <a routerLink="/complaint-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Complaint Report</span>
-            </a>
-            <a routerLink="/warranty-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Warranty Report</span>
-            </a>
-            <a routerLink="/technician-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Technician Report</span>
-            </a>
-            <a routerLink="/customer-feedback-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
-              <i class="bi bi-circle-fill"></i>
-              <span>Customer Feedback Report</span>
-            </a>
+          <div class="mega-menu two-col" *ngIf="isOperationReportsOpen">
+            <!-- Column 1 -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Service & Support</div>
+              <a routerLink="/installation-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Installation Report</span>
+              </a>
+              <a routerLink="/warranty-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Warranty Report</span>
+              </a>
+              <a routerLink="/technician-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Technician Report</span>
+              </a>
+            </div>
+
+            <!-- Column 2 -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Customer Satisfaction</div>
+              <a routerLink="/complaint-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Complaint Report</span>
+              </a>
+              <a routerLink="/customer-feedback-report" routerLinkActive="active" class="submenu-item" (click)="isOperationReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Customer Feedback Report</span>
+              </a>
+            </div>
           </div>
         </div>
         
@@ -468,8 +513,8 @@
 
   <!-- Main Content Area -->
   <main class="main-content">
-    <div class="content-area">
-      <router-outlet></router-outlet>
+    <div class="content-area" [@triggerName]="getRouteAnimationData(outlet)">
+      <router-outlet #outlet="outlet"></router-outlet>
     </div>
   </main>
 

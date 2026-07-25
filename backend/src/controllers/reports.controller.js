@@ -452,7 +452,51 @@ const getSourceConversionReport = async (req, res) => {
   }
 };
 
+const getTimeTrackReport = async (req, res) => {
+  try {
+    const { date, agent } = req.query;
+    const bizId = req.user.businessId;
+
+    let query = `
+      SELECT HOUR(f.created_at) as hour, COUNT(*) as count 
+      FROM follow_ups f
+      JOIN contacts c ON f.contact_id = c.id
+      WHERE c.business_id = ? 
+    `;
+    const params = [bizId];
+
+    if (date) {
+      query += ` AND DATE(f.created_at) = ? `;
+      params.push(date);
+    }
+    
+    if (agent && agent !== 'all') {
+      query += ` AND f.by_user_id = ? `;
+      params.push(agent);
+    }
+
+    query += ` GROUP BY HOUR(f.created_at) ORDER BY hour ASC`;
+
+    const [rows] = await pool.query(query, params);
+
+    // Fill missing hours from 0 to 23
+    const fullDayData = [];
+    for (let i = 0; i < 24; i++) {
+      const found = rows.find(r => r.hour === i);
+      fullDayData.push({
+        hour: i,
+        count: found ? found.count : 0
+      });
+    }
+
+    res.json({ success: true, data: fullDayData });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
+  getTimeTrackReport,
   getEnquiriesReport,
   getStatusReport,
   getTodaysLeadsReport,
