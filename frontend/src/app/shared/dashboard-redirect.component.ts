@@ -10,15 +10,15 @@ export class DashboardRedirectComponent implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
-    const dept = localStorage.getItem('activeDepartment') || 'Leads';
-    if (dept === 'CRM') {
-      this.router.navigate(['/crm-dashboard']);
-    } else if (dept === 'Operation') {
+    const dept = localStorage.getItem('activeDepartment') || 'CRM';
+    if (dept === 'Operation') {
       this.router.navigate(['/operation-dashboard']);
     } else if (dept === 'HR') {
       this.router.navigate(['/hr-dashboard']);
-    } else {
+    } else if (dept === 'Leads') {
       this.router.navigate(['/lead-dashboard']);
+    } else {
+      this.router.navigate(['/crm-dashboard']);
     }
   }
 }
