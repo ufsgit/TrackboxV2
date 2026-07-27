@@ -119,6 +119,21 @@ const getCrmDashboardStats = async (req, res) => {
       [bizId]
     );
 
+    const [upcomingChartDataRows] = await pool.query(
+      `SELECT DATEDIFF(DATE(follow_up_date), CURDATE()) as days_from_now, COUNT(*) as count 
+       FROM contacts 
+       WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE() AND DATE(follow_up_date) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+       GROUP BY DATEDIFF(DATE(follow_up_date), CURDATE())`,
+      [bizId]
+    );
+    const upcomingChartData = [0, 0, 0, 0, 0, 0, 0];
+    upcomingChartDataRows.forEach(r => {
+      const idx = r.days_from_now - 1;
+      if (idx >= 0 && idx < 7) {
+        upcomingChartData[idx] = r.count;
+      }
+    });
+
     res.json({
       success: true,
       data: {
@@ -128,7 +143,8 @@ const getCrmDashboardStats = async (req, res) => {
         upcomingFollowUps: upcomingFollowUps || 0,
         wonDeals: wonDeals || 0,
         lostDeals: lostDeals || 0,
-        funnelData
+        funnelData,
+        upcomingChartData
       },
       message: 'OK'
     });

@@ -6,7 +6,7 @@
       <!-- Brand Column: Trackbox Logo on top, CRM Dropdown Underneath -->
       <div class="brand-column">
         <!-- Logo -->
-        <div class="logo-container" [routerLink]="dashboardRoute" title="Go to Dashboard">
+        <div class="logo-container" [routerLink]="dashboardRoute" title="Go to Dashboard" style="margin-top: -8px;">
           <div class="logo-icon">
             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width: 100%; height: 100%; display: block;">
               <path d="M25 32 L75 32 M50 32 L50 68" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
@@ -29,7 +29,6 @@
         <div class="department-switcher" *ngIf="!isSettingsRoute">
           <button class="dept-btn" (click)="toggleDepartmentDropdown($event)">
             <div class="dept-info">
-              <i class="bi" [ngClass]="{'bi-funnel': activeDepartment === 'Leads', 'bi-briefcase': activeDepartment === 'CRM', 'bi-tools': activeDepartment === 'Operation', 'bi-people': activeDepartment === 'HR'}"></i>
               <span>{{ activeDepartment }}</span>
             </div>
             <i class="bi bi-chevron-down dept-chevron" [class.rotated]="isDepartmentDropdownOpen"></i>
@@ -46,7 +45,7 @@
       <!-- Navigation & Title Section to the right of Trackbox Logo -->
       <div class="header-nav-section">
         <!-- Current Page Title -->
-        <div class="page-title">
+        <div class="page-title" *ngIf="false">
           {{ pageTitle }}
         </div>
 
@@ -170,7 +169,7 @@
               </a>
               <a routerLink="/todays-leads" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
-                <span>Today's Leads</span>
+                <span>Today's Followups</span>
               </a>
               <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
@@ -376,7 +375,7 @@
     </button>
 
     <!-- Notification Bell & Dropdown Wrapper -->
-    <div class="notification-wrapper">
+    <div class="notification-wrapper" *ngIf="false">
       <button class="notification-trigger" (click)="toggleNotificationDropdown($event)" title="Notifications">
         <i class="bi bi-bell"></i>
         <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
@@ -419,19 +418,93 @@
       </div>
     </div>
 
-    <!-- User Profile Chip -->
-    <div class="user-chip-clickable" routerLink="/settings" title="Account Settings">
-      <div class="user-avatar">
-        {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
+    <!-- User Profile Chip with Dropdown -->
+    <div class="user-profile-wrapper" style="position: relative;">
+      <div class="user-chip-clickable" (click)="showUserProfileDropdown = !showUserProfileDropdown; $event.stopPropagation()" title="Account Options">
+        <div class="user-avatar">
+          {{ user?.name ? (user.name[0] | uppercase) : 'U' }}
+        </div>
+        <div class="user-info">
+          <span class="user-name">{{ (user?.name | titlecase) || 'User' }}</span>
+          <span class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</span>
+        </div>
       </div>
-      <div class="user-info">
-        <span class="user-name">{{ (user?.name | titlecase) || 'User' }}</span>
-        <span class="user-role">{{ (user?.role | titlecase) || 'Agent' }}</span>
+      
+      <!-- User Profile Dropdown -->
+      <div class="user-profile-dropdown system-settings-popup" *ngIf="showUserProfileDropdown" (click)="$event.stopPropagation()" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: #ffffff; border: 1px solid rgba(226, 232, 240, 0.9); border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12); width: 260px; max-height: 85vh; overflow-y: auto; z-index: 500; display: flex; flex-direction: column; padding: 6px; animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div class="popup-section-header">System Settings</div>
+        <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-people"></i> Teams & Users
+        </a>
+        <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-building"></i> Branch
+        </a>
+        <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-diagram-3"></i> Department
+        </a>
+        <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-activity"></i> Status
+        </a>
+        <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-person-badge"></i> Designation
+        </a>
+        <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
+          <i class="bi bi-gear-fill"></i> Application Settings
+          <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
+        </a>
+        <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
+          <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+            <i class="bi bi-calendar3"></i> Intake
+          </a>
+          <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+            <i class="bi bi-calendar-event"></i> Year
+          </a>
+          <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+            <i class="bi bi-tags"></i> Application Status
+          </a>
+        </div>
+        <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-question-circle"></i> Enquiry For
+        </a>
+        <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-file-earmark-text"></i> Document Type
+        </a>
+
+        <div class="popup-section-header">General & Lead Settings</div>
+        <a routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-cpu"></i> Channels Manager
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'team'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-person-lines-fill"></i> Users / Agents
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'lead-fields'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-list-columns"></i> Lead Fields
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-folder"></i> Field Categories
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-tag"></i> Source Categories
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-code-slash"></i> API & Webhooks
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-plug"></i> Integrations
+        </a>
+        <a routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-journal-bookmark"></i> Courses
+        </a>
+
+        <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
+        <a (click)="logout(); showUserProfileDropdown = false" class="popup-item" style="color: #ef4444; cursor: pointer;">
+          <i class="bi bi-box-arrow-right" style="color: #ef4444;"></i> Logout
+        </a>
       </div>
     </div>
 
-    <!-- System Settings & Logout -->
-    <div style="display: flex; gap: 4px; position: relative;" class="system-settings-wrapper">
+    <!-- System Settings & Logout (Moved to User Profile Dropdown) -->
+    <div style="display: none; gap: 4px; position: relative;" class="system-settings-wrapper" *ngIf="false">
       <button class="logout-btn" (click)="toggleSystemSettingsMenu($event)" [class.gear-rotating]="showSystemSettingsMenu" title="System Settings">
         <i class="bi bi-gear"></i>
       </button>

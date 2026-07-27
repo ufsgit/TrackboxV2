@@ -47,7 +47,7 @@
     </div>
     
     <div class="header-actions" style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important;">
-      <div class="dropdown">
+      <div class="dropdown" *ngIf="false">
         <button class="btn btn-export shadow-sm dropdown-toggle" type="button" (click)="toggleImportExportDropdown($event)" aria-expanded="false" style="border-radius: 12px;">
           <i class="bi bi-cloud-arrow-down me-1"></i> Import/Export
         </button>
@@ -61,7 +61,7 @@
         </ul>
       </div>
       <div class="d-flex align-items-center gap-2 ms-1">
-        <button class="btn btn-outline-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" (click)="toggleViewMode()" style="border-radius: 12px; font-weight: 600;" title="Toggle Calendar View">
+        <button class="btn btn-outline-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" *ngIf="false" (click)="toggleViewMode()" style="border-radius: 12px; font-weight: 600;" title="Toggle Calendar View">
           <i class="bi" [ngClass]="viewMode === 'list' ? 'bi-calendar3' : 'bi-list-ul'"></i>
           <span>{{ viewMode === 'list' ? 'Calendar View' : 'List View' }}</span>
         </button>
@@ -79,23 +79,24 @@
     <table class="contacts-table">
       <thead>
         <tr>
+          <th style="width: 40px; text-align: center;">#</th>
           <th>Name</th>
           <th>Employee</th>
           <th>Phone</th>
           <th>Status</th>
-          <th>Remark</th>
           <th>Follow Up </th>
           <th></th>
+          <th>Remark</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngIf="loading">
-          <td colspan="7" class="text-center py-5">
+          <td colspan="8" class="text-center py-5">
             <div class="spinner-border text-success"></div>
           </td>
         </tr>
         <tr *ngIf="!loading && contacts.length === 0">
-          <td colspan="7" class="text-center py-5">
+          <td colspan="8" class="text-center py-5">
             <div class="empty-state-wrapper">
               <div class="empty-state-illustration">
                 <!-- Abstract document/CRM SVG -->
@@ -118,10 +119,13 @@
           </td>
         </tr>
         
-        <tr *ngFor="let contact of contacts" 
+        <tr *ngFor="let contact of contacts; let i = index" 
             class="lead-row"
             (click)="openQuickStatusModal(contact)"
             title="Click to update follow-up">
+          <td (click)="$event.stopPropagation()" class="text-center">
+            <span class="text-muted fw-bold" style="font-size: 0.85rem;">{{ (currentPage - 1) * pageSize + i + 1 }}</span>
+          </td>
           <td (click)="$event.stopPropagation()">
             <div class="d-flex align-items-center contact-profile" (click)="openDetailPanel(contact)" title="Click to view details" style="cursor: pointer;">
               <div>
@@ -152,24 +156,6 @@
             </div>
           </td>
           
-          <td style="max-width: 250px;">
-            <div class="text-muted small mb-1" style="word-wrap: break-word; white-space: normal;">
-              <ng-container *ngIf="!contact.isRemarkExpanded && contact.latest_remark && contact.latest_remark.length > 35">
-                {{ contact.latest_remark | slice:0:35 }}...
-              </ng-container>
-              <ng-container *ngIf="contact.isRemarkExpanded || !contact.latest_remark || contact.latest_remark.length <= 35">
-                {{ contact.latest_remark || 'ΓÇö' }}
-              </ng-container>
-            </div>
-            <a href="javascript:void(0)" 
-               *ngIf="contact.latest_remark && contact.latest_remark.length > 35"
-               (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded; $event.stopPropagation()" 
-               class="small text-primary text-decoration-none fw-bold" 
-               style="font-size: 0.75rem;">
-              {{ contact.isRemarkExpanded ? 'Show Less' : 'Read More' }}
-            </a>
-          </td>
-          
           <td>
             <div class="d-flex align-items-center gap-2">
               <span *ngIf="contact.follow_up_date" class="follow-up-badge">
@@ -186,13 +172,31 @@
               <a *ngIf="contact.phone" [href]="'https://wa.me/' + contact.phone" target="_blank" class="btn btn-sm text-success quick-action-btn wa-btn" title="WhatsApp">
                 <i class="bi bi-whatsapp" style="font-size: 1.1rem;"></i>
               </a>
-              <a *ngIf="contact.phone" [href]="'tel:' + contact.phone" class="btn btn-sm text-primary quick-action-btn call-btn" title="Call">
+              <a *ngIf="false" [href]="'tel:' + contact.phone" class="btn btn-sm text-primary quick-action-btn call-btn" title="Call">
                 <i class="bi bi-telephone-fill" style="font-size: 1.1rem;"></i>
               </a>
-              <button class="btn btn-sm text-primary default-action-btn" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
+              <button *ngIf="false" class="btn btn-sm text-primary default-action-btn" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
                 <i class="bi bi-calendar-plus" style="font-size: 1.1rem;"></i>
               </button>
             </div>
+          </td>
+
+          <td style="max-width: 250px;">
+            <div class="text-muted small mb-1" style="word-wrap: break-word; white-space: normal;">
+              <ng-container *ngIf="!contact.isRemarkExpanded && contact.latest_remark && contact.latest_remark.length > 35">
+                {{ contact.latest_remark | slice:0:35 }}...
+              </ng-container>
+              <ng-container *ngIf="contact.isRemarkExpanded || !contact.latest_remark || contact.latest_remark.length <= 35">
+                {{ contact.latest_remark || 'ΓÇö' }}
+              </ng-container>
+            </div>
+            <a href="javascript:void(0)" 
+               *ngIf="contact.latest_remark && contact.latest_remark.length > 35"
+               (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded; $event.stopPropagation()" 
+               class="small text-primary text-decoration-none fw-bold" 
+               style="font-size: 0.75rem;">
+              {{ contact.isRemarkExpanded ? 'Show Less' : 'Read More' }}
+            </a>
           </td>
           
         </tr>
@@ -253,8 +257,14 @@
 
   <!-- Pagination -->
   <div class="pagination-bar" *ngIf="viewMode === 'list' && totalContacts > 0">
-    <div class="pagination-info">
-      Showing <strong>{{ paginationStart }}</strong>ΓÇô<strong>{{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads
+    <div class="pagination-info d-flex align-items-center gap-3">
+      <span>Showing <strong>{{ paginationStart }}</strong> - <strong>{{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads</span>
+      <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="form-select form-select-sm" style="width: auto; border-radius: 8px; font-weight: 500;">
+        <option [ngValue]="10">10 per page</option>
+        <option [ngValue]="20">20 per page</option>
+        <option [ngValue]="50">50 per page</option>
+        <option [ngValue]="100">100 per page</option>
+      </select>
     </div>
     <div class="pagination-controls">
       <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First page">

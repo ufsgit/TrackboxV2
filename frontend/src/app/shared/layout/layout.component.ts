@@ -61,6 +61,7 @@ export class LayoutComponent implements OnInit {
 
   // Notification States
   showNotificationDropdown = false;
+  showUserProfileDropdown = false;
 
   notifications: any[] = [];
 
@@ -165,6 +166,9 @@ export class LayoutComponent implements OnInit {
     const target = event.target as HTMLElement;
     if (!target.closest('.notification-wrapper')) {
       this.showNotificationDropdown = false;
+    }
+    if (!target.closest('.user-profile-wrapper')) {
+      this.showUserProfileDropdown = false;
     }
     if (!target.closest('.department-switcher')) {
       this.isDepartmentDropdownOpen = false;

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
 
 @Component({
@@ -17,10 +18,18 @@ export class PendingFollowupComponent implements OnInit {
   followups: any[] = [];
   stats = { overdue: 0, dueToday: 0, upcoming: 0 };
   displayStats = { overdue: 0, dueToday: 0, upcoming: 0 };
+  filterParam: string | null = null;
 
-  constructor(private apiService: ApiService, private datePipe: DatePipe) {}
+  constructor(
+    private apiService: ApiService, 
+    private datePipe: DatePipe,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      this.filterParam = params['filter'] || null;
+    });
     this.fetchData();
   }
 
@@ -73,9 +82,22 @@ export class PendingFollowupComponent implements OnInit {
     requestAnimationFrame(step);
   }
 
+  get pageTitle() {
+    return this.filterParam === 'upcoming' ? 'Upcoming Follow-ups' : 'Pending Follow-ups';
+  }
+  
+  get pageSubtitle() {
+    return this.filterParam === 'upcoming' ? 'Track and manage leads scheduled for the future' : 'Track and manage leads that need attention';
+  }
+
   get filteredFollowups() {
-    if (!this.searchTerm) return this.followups;
-    return this.followups.filter(f => 
+    let filtered = this.followups;
+    if (this.filterParam === 'upcoming') {
+      filtered = filtered.filter(f => f.status === 'Upcoming');
+    }
+    
+    if (!this.searchTerm) return filtered;
+    return filtered.filter(f => 
       f.leadName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
       f.assignee?.toLowerCase().includes(this.searchTerm.toLowerCase())
     );

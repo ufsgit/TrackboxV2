@@ -16,7 +16,7 @@ Chart.register(...registerables);
       
       <!-- Header -->
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
-        <div>
+        <div *ngIf="false">
           <h2 class="fw-black mb-1" style="font-size: 2.2rem; letter-spacing: -0.04em; background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.15));">CRM Dashboard</h2>
           <p class="text-muted mb-0" style="font-size: 1rem; font-weight: 500; letter-spacing: -0.01em;">Overview of leads, deals, and pipeline health</p>
         </div>
@@ -24,6 +24,7 @@ Chart.register(...registerables);
         <div class="flex items-center" style="gap: 16px; flex-wrap: wrap;">
           <div style="position: relative;">
             <select class="form-select" style="appearance: none; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 40px 10px 16px; font-weight: 600; color: #475569; font-size: 0.95rem; cursor: pointer; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" onmouseover="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#f1f5f9';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#f8fafc';" [(ngModel)]="dateRange" (change)="onFilterChange()">
+              <option value="all_time">All Time</option>
               <option value="today">Today</option>
               <option value="this_week">This Week</option>
               <option value="this_month">This Month</option>
@@ -62,7 +63,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card clickable" routerLink="/pending-followup" style="cursor: pointer;" title="View Upcoming Followups">
+        <div class="stat-card clickable" [routerLink]="['/pending-followup']" [queryParams]="{filter: 'upcoming'}" style="cursor: pointer;" title="View Upcoming Followups">
           <div class="stat-icon icon-green"><i class="bi bi-calendar-week-fill"></i></div>
           <div class="stat-info">
             <label>Upcoming Followups</label>
@@ -70,7 +71,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Won Deals">
+        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Won Deals" *ngIf="false">
           <div class="stat-icon icon-green2"><i class="bi bi-trophy-fill"></i></div>
           <div class="stat-info">
             <label>Won Deals</label>
@@ -78,7 +79,7 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Lost Deals">
+        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Lost Deals" *ngIf="false">
           <div class="stat-icon icon-slate"><i class="bi bi-x-circle-fill"></i></div>
           <div class="stat-info">
             <label>Lost Deals</label>
@@ -146,7 +147,7 @@ Chart.register(...registerables);
       </div>
 
       <!-- Gamification / Achievements Row -->
-      <div class="gamification-container mt-2">
+      <div *ngIf="false" class="gamification-container mt-2">
         <h4 class="fw-bold mb-3" style="font-size: 1.25rem; color: #1e293b;">Your Achievements</h4>
         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
           
@@ -517,7 +518,7 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   
   hideMarkedItems = true; // Added variable to hide marked items
   // hideMarkedItems = false; 
-  dateRange: string = 'this_month';
+  dateRange: string = 'all_time';
   isLoading = true;
 
   // KPI Data
@@ -530,17 +531,17 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   quotations = 25;
   purchaseOrders = 12;
 
+  upcomingChartData: number[] = [0, 0, 0, 0, 0, 0, 0];
+  followUpChart: any;
   // Funnel Data with premium gradients
   funnelStages: any[] = [
-    { name: 'Contacted', count: 120, displayCount: 0, gradient: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' },
+    { name: 'Total Leads', count: 0, gradient: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' },
     { name: 'Interested', count: 85, displayCount: 0, gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)' },
     { name: 'Not Interested', count: 68, displayCount: 0, gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' },
     { name: 'Converted', count: 25, displayCount: 0, gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' },
     { name: 'Assign to Branch', count: 18, displayCount: 0, gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
     { name: 'Sales Loss', count: 10, displayCount: 0, gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)' }
   ];
-
-  followUpChart: any;
 
   constructor(private api: ApiService) {}
 
@@ -655,6 +656,7 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
             window.requestAnimationFrame(step);
           });
 
+          this.upcomingChartData = res.data.upcomingChartData || [0, 0, 0, 0, 0, 0, 0];
           setTimeout(() => this.initFollowUpChart(), 50);
         } else {
           this.isLoading = false;
@@ -682,7 +684,7 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
         labels: ['Tomorrow', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
         datasets: [{
           label: 'Scheduled Follow-ups',
-          data: Array.from({length: 7}, () => Math.floor(Math.random() * 60) + 15),
+          data: this.upcomingChartData,
           borderColor: '#6366f1',
           backgroundColor: gradient,
           borderWidth: 3,

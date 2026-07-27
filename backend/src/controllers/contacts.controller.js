@@ -53,7 +53,7 @@ const getContacts = async (req, res) => {
       FROM contacts c 
       LEFT JOIN users u ON c.assigned_to = u.id
       ${where} 
-      ORDER BY c.created_at DESC 
+      ORDER BY c.created_at DESC, c.id DESC 
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 

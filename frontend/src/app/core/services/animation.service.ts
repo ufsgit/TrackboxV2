@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const confetti = require('canvas-confetti') as (opts?: any) => void;
+import confetti from 'canvas-confetti';
 
 
 @Injectable({
