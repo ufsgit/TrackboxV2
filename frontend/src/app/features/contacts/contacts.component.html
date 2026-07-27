@@ -202,7 +202,7 @@
 
   <!-- Calendar View Section -->
   <div class="calendar-container" *ngIf="viewMode === 'calendar'">
-    <img src="assets/app_banner.png" alt="Calendar Banner" style="width: 100%; height: 120px; object-fit: cover; border-radius: 12px; margin-bottom: 24px; display: block;">
+
     <!-- Calendar Header (Month / Year Controls) -->
     <div class="calendar-header d-flex justify-content-between align-items-center mb-4">
       <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
@@ -785,8 +785,6 @@
   <div class="modal-backdrop" (click)="showModal = false"></div>
   <div class="modal-card">
 
-    <!-- Banner Image -->
-    <img src="assets/lead_banner.png" alt="Lead Banner" style="width: 100%; height: 160px; object-fit: cover; border-radius: 0; display: block;">
 
     <!-- Header -->
     <div class="modal-header-fs" style="padding-top: 16px;">
@@ -1229,8 +1227,6 @@
   <div class="modal-backdrop" (click)="showAddApplicationModal = false"></div>
   <div class="modal-card">
     
-    <!-- Banner Image -->
-    <img src="assets/app_banner.png" alt="Application Banner" style="width: 100%; height: 160px; object-fit: cover; border-radius: 0; display: block;">
 
     <div class="modal-header-fs" style="padding: 24px 32px 16px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
       <div style="display:flex; align-items:center; gap:16px;">
