@@ -2077,3 +2077,17 @@
   background: #cbd5e1;
   border-radius: 4px;
 }
+
+
+/* --- CRM Micro-interactions Hover --- */
+.lead-row {
+  transition: transform var(--duration-fast) var(--ease-premium), box-shadow var(--duration-fast) var(--ease-premium), background-color var(--duration-fast) var(--ease-premium);
+}
+
+.lead-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+  background-color: #f8fafc;
+  z-index: 10;
+  position: relative;
+}

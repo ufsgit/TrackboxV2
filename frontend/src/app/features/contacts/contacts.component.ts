@@ -9,6 +9,7 @@ import { SystemSettingsService } from '../../core/services/system-settings.servi
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 import { AnimationService } from '../../core/services/animation.service';
+import { ConfettiService } from '../../core/services/confetti.service';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
@@ -402,6 +403,11 @@ export class ContactsComponent implements OnInit {
       overlay.style.animation = '__sovOut 0.45s ease forwards';
       setTimeout(() => overlay.remove(), 450);
     }, 1800);
+    
+    // Fire confetti when checkmark animates in (around 400ms delay)
+    setTimeout(() => {
+      this.confettiService.fireSuccessBurst();
+    }, 400);
   }
 
   get today(): string {
@@ -416,6 +422,7 @@ export class ContactsComponent implements OnInit {
     private appsService: ApplicationsService,
     private settingsService: SystemSettingsService,
     private animationService: AnimationService,
+    private confettiService: ConfettiService,
     @Inject(DOCUMENT) private document: Document
   ) {}
 

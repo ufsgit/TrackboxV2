@@ -1145,3 +1145,32 @@ button:hover, .btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 15px rgba(0,0,0,0.1);
 }
+
+
+/* --- CRM Animation Tokens --- */
+:root {
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-hover-effect {
+  transition: transform var(--duration-fast) var(--ease-premium), box-shadow var(--duration-fast) var(--ease-premium);
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+
+.quick-action-btn {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity var(--duration-fast) var(--ease-premium), transform var(--duration-fast) var(--ease-premium);
+}
+
+.card-hover-effect:hover .quick-action-btn {
+  opacity: 1;
+  transform: scale(1);
+}
