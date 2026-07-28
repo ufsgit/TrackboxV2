@@ -65,6 +65,7 @@ export class LayoutComponent implements OnInit {
 
   notifications: any[] = [];
 
+
   // Check-In State
   isCheckedIn = false;
   currentEmployeeName = 'Current User';
@@ -81,8 +82,58 @@ export class LayoutComponent implements OnInit {
       if (user?.name) {
         this.currentEmployeeName = user.name;
         this.updateCheckInStatus();
+        this.loadNotifications();
       }
     });
+  }
+
+  loadNotifications() {
+    this.apiService.get('/notifications').subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          // Format notifications for the UI
+          const formatted = res.data.map((n: any) => ({
+            id: n.id,
+            type: 'assigned',
+            icon: 'bi-person-plus-fill',
+            title: n.title,
+            time: this.formatTimeAgo(n.created_at),
+            message: n.message,
+            unread: !n.is_read,
+            referenceId: n.reference_id
+          }));
+          
+          // Merge with any existing socket notifications
+          const existingIds = new Set(this.notifications.filter(ex => ex.id).map(ex => ex.id));
+          let newUnreadCount = 0;
+          formatted.forEach((n: any) => {
+            if (!existingIds.has(n.id)) {
+              this.notifications.push(n);
+              if (n.unread) newUnreadCount++;
+            }
+          });
+          
+          if (newUnreadCount > 0) {
+            // We just silently add them to the bell so we don't annoy the user on page refresh.
+          }
+          
+          // Sort by time (newest first is usually default from DB, but we'll sort anyway if needed)
+          this.notifications.sort((a, b) => b.id - a.id);
+        }
+      },
+      error: (err) => console.error('Failed to load notifications', err)
+    });
+  }
+
+  formatTimeAgo(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
   }
 
   updateCheckInStatus() {
@@ -247,10 +298,7 @@ export class LayoutComponent implements OnInit {
     }
   }
 
-  toggleNotificationDropdown(event: MouseEvent) {
-    event.stopPropagation();
-    this.showNotificationDropdown = !this.showNotificationDropdown;
-  }
+
 
   get dashboardRoute(): string {
     if (this.activeDepartment === 'CRM') return '/crm-dashboard';
@@ -265,10 +313,18 @@ export class LayoutComponent implements OnInit {
 
   markAllAsRead() {
     this.notifications.forEach(n => n.unread = false);
+    this.apiService.put('/notifications/mark-all-read').subscribe({
+      error: (err) => console.error('Error marking all as read', err)
+    });
   }
 
   readNotification(n: any) {
     n.unread = false;
+    if (n.id) {
+      this.apiService.put('/notifications/mark-read', { notificationIds: [n.id] }).subscribe({
+        error: (err) => console.error('Error marking as read', err)
+      });
+    }
     if (n.convoId) {
       this.router.navigate(['/inbox'], { queryParams: { convoId: n.convoId } });
       this.showNotificationDropdown = false;
@@ -277,6 +333,9 @@ export class LayoutComponent implements OnInit {
 
   clearAllNotifications() {
     this.notifications = [];
+    this.apiService.delete('/notifications/clear-all').subscribe({
+      error: (err) => console.error('Error clearing notifications', err)
+    });
   }
 
   showSupportModal = false;
@@ -313,8 +372,9 @@ export class LayoutComponent implements OnInit {
 
     this.user$.subscribe(user => {
       this.currentUser = user;
-      if (user?.businessId) {
-        this.socket.joinBusiness(user.businessId);
+      const bId = user?.businessId || user?.business_id;
+      if (bId) {
+        this.socket.joinBusiness(bId);
       }
     });
 
@@ -357,8 +417,10 @@ export class LayoutComponent implements OnInit {
     });
 
     this.socket.on('contact_assigned').subscribe((data: any) => {
+      console.log('Socket event received: contact_assigned', data);
       if (data && data.assigned_to && this.currentUser) {
         const currentId = Number(this.currentUser.id || this.currentUser.userId);
+        console.log('Checking assignment:', data.assigned_to, 'against currentId:', currentId);
         if (Number(data.assigned_to) === currentId) {
           const contactName = data.contact?.name || 'A contact';
         
@@ -434,7 +496,8 @@ export class LayoutComponent implements OnInit {
     private router: Router, 
     private socket: SocketService,
     private cdr: ChangeDetectorRef,
-    private attendanceService: AttendanceService
+    private attendanceService: AttendanceService,
+    private apiService: ApiService
   ) {
     this.user$ = this.authService.currentUser$;
     

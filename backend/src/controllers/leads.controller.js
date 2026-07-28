@@ -12,6 +12,24 @@ const createLead = async (req, res) => {
       [businessId, contactId, enquiry_for_id || null, status || 'New', loss_reason || null, assigned_to || null, follow_up_date || null, remark || null]
     );
 
+    if (assigned_to) {
+      const io = req.app.get('io');
+      const [contactRows] = await pool.query('SELECT * FROM contacts WHERE id = ? AND business_id = ?', [contactId, businessId]);
+      if (contactRows.length > 0) {
+        const contact = contactRows[0];
+        // Insert persistent notification
+        await pool.query(
+          `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [businessId, assigned_to, 'assignment', 'New Lead Assigned', `You have been assigned a new lead: ${contact.name || contact.phone || 'Unknown'}`, result.insertId]
+        );
+          if (io) {
+            io.to(`biz_${businessId}`).emit('contact_assigned', { contact: contact, assigned_to: assigned_to });
+            io.emit('contact_assigned', { contact: contact, assigned_to: assigned_to });
+          }
+      }
+    }
+
     res.json({ success: true, message: 'Lead created successfully', leadId: result.insertId });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -49,8 +67,29 @@ const updateLead = async (req, res) => {
       `UPDATE leads 
        SET enquiry_for_id = ?, status = ?, loss_reason = ?, assigned_to = ?, follow_up_date = ?, remark = ?
        WHERE id = ? AND business_id = ?`,
-      [enquiry_for_id || null, status, loss_reason || null, assigned_to || null, follow_up_date || null, remark || null, id, businessId]
+      [enquiry_for_id || null, status || 'New', loss_reason || null, assigned_to || null, follow_up_date || null, remark || null, id, businessId]
     );
+
+    if (assigned_to) {
+      const io = req.app.get('io');
+      const [leadRows] = await pool.query('SELECT contact_id FROM leads WHERE id = ? AND business_id = ?', [id, businessId]);
+      if (leadRows.length > 0) {
+        const [contactRows] = await pool.query('SELECT * FROM contacts WHERE id = ? AND business_id = ?', [leadRows[0].contact_id, businessId]);
+        if (contactRows.length > 0) {
+          const contact = contactRows[0];
+          // Insert persistent notification
+          await pool.query(
+            `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [businessId, assigned_to, 'assignment', 'Lead Reassigned', `A lead has been assigned to you: ${contact.name || contact.phone || 'Unknown'}`, id]
+          );
+          if (io) {
+            console.log('Broadcasting contact_assigned globally');
+            io.emit('contact_assigned', { contact: contact, assigned_to: assigned_to });
+          }
+        }
+      }
+    }
 
     res.json({ success: true, message: 'Lead updated successfully' });
   } catch (err) {

@@ -338,8 +338,8 @@
     </button>
 
     <!-- Notification Bell & Dropdown Wrapper -->
-    <div class="notification-wrapper" *ngIf="false">
-      <button class="notification-trigger" (click)="toggleNotificationDropdown($event)" title="Notifications">
+    <div class="notification-wrapper">
+      <button class="notification-trigger" (click)="showNotificationDropdown = !showNotificationDropdown; $event.stopPropagation()" title="Notifications">
         <i class="bi bi-bell"></i>
         <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
           {{ unreadNotificationsCount }}

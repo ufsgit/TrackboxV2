@@ -102,6 +102,7 @@ app.use('/api/attendance', require('./src/routes/attendance.routes'));
 app.use('/api/applications', require('./src/routes/applications.routes'));
 app.use('/api/reports', require('./src/routes/reports.routes'));
 app.use('/api/timeline', require('./src/routes/timeline.routes'));
+app.use('/api/notifications', require('./src/routes/notifications.routes'));
 
 // Socket.IO
 io.on('connection', (socket) => {

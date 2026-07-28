@@ -8,12 +8,19 @@ export class SocketService {
   private socket: Socket | null = null;
 
   connect(): void {
-    if (this.socket?.connected) return;
+    if (this.socket) return;
     this.socket = io(environment.socketUrl, { transports: ['websocket', 'polling'] });
   }
 
   joinBusiness(businessId: number): void {
-    this.socket?.emit('join_business', businessId);
+    if (this.socket) {
+      console.log('Emitting join_business for biz_', businessId);
+      this.socket.emit('join_business', businessId);
+      this.socket.on('connect', () => {
+        console.log('Reconnected, emitting join_business for biz_', businessId);
+        this.socket?.emit('join_business', businessId);
+      });
+    }
   }
 
   on(event: string): Observable<any> {

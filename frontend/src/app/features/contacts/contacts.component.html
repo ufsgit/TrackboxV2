@@ -61,7 +61,7 @@
         </ul>
       </div>
       <div class="d-flex align-items-center gap-2 ms-1">
-        <button class="btn btn-outline-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" *ngIf="false" (click)="toggleViewMode()" style="border-radius: 12px; font-weight: 600;" title="Toggle Calendar View">
+        <button class="btn btn-outline-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" (click)="toggleViewMode()" style="border-radius: 12px; font-weight: 600;" title="Toggle Calendar View">
           <i class="bi" [ngClass]="viewMode === 'list' ? 'bi-calendar3' : 'bi-list-ul'"></i>
           <span>{{ viewMode === 'list' ? 'Calendar View' : 'List View' }}</span>
         </button>
@@ -209,7 +209,10 @@
 
     <!-- Calendar Header (Month / Year Controls) -->
     <div class="calendar-header d-flex justify-content-between align-items-center mb-4">
-      <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
+      <div class="d-flex align-items-center gap-3">
+        <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
+        <button class="btn btn-sm btn-light fw-bold px-3" style="border-radius: 8px; color: #4f46e5; border: 1px solid #c7d2fe; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" (click)="goToToday()">Today</button>
+      </div>
       <div>
         <button class="btn btn-outline-secondary me-2 shadow-sm rounded-circle" (click)="prevCalendarMonth()">
           <i class="bi bi-chevron-left"></i>
@@ -245,8 +248,9 @@
              *ngFor="let day of week" 
              [class.inactive-month]="!day.isCurrentMonth"
              [class.has-leads]="day.count > 0"
+             [ngStyle]="day.isToday ? {'background': '#f5f3ff', 'border': '2px solid #6366f1'} : {}"
              (click)="openDailyLeadsModal(day)">
-          <div class="day-number">{{ day.date | date:'d' }}</div>
+          <div class="day-number" [ngStyle]="day.isToday ? {'background': '#4f46e5', 'color': 'white', 'border-radius': '50%', 'width': '28px', 'height': '28px', 'display': 'flex', 'align-items': 'center', 'justify-content': 'center', 'font-weight': 'bold', 'margin-bottom': '6px'} : {}">{{ day.date | date:'d' }}</div>
           <div class="day-content" *ngIf="day.count > 0">
             <span class="lead-count-badge">{{ day.count }} Lead{{ day.count > 1 ? 's' : '' }}</span>
           </div>
@@ -1633,36 +1637,81 @@
 </div>
 
 <!-- ═══════════════════ DAILY LEADS MODAL ═══════════════════ -->
-<div class="custom-modal center-modal" *ngIf="showDailyLeadsModal">
-  <div class="modal-backdrop" (click)="closeDailyLeadsModal()"></div>
-  <div class="modal-card popup-card" style="padding: 24px; border-radius: 16px;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="mb-0 fw-bold" style="color: #1e293b;">Leads on {{ selectedDailyDate | date:'MMMM d, yyyy' }}</h4>
-      <button class="btn btn-sm btn-light rounded-circle" (click)="closeDailyLeadsModal()" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-        <i class="bi bi-x-lg"></i>
+<div class="custom-modal center-modal" *ngIf="showDailyLeadsModal" style="position: fixed; inset: 0; z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 20px;">
+  <div class="modal-backdrop" (click)="closeDailyLeadsModal()" style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);"></div>
+  <div class="modal-card popup-card" style="position: relative; background: #ffffff; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); max-width: 550px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; z-index: 1051; border: 1px solid rgba(226, 232, 240, 0.8);">
+    
+    <!-- Modal Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px 24px 20px 24px; border-bottom: 1px solid #f1f5f9; background: #ffffff;">
+      <h4 style="margin: 0; font-weight: 800; color: #1e293b; font-size: 1.35rem; display: flex; align-items: center; gap: 10px;">
+        <div style="background: #eef2ff; color: #4f46e5; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+          <i class="bi bi-calendar-event-fill"></i>
+        </div>
+        Leads on {{ selectedDailyDate | date:'MMMM d, yyyy' }}
+      </h4>
+      <button (click)="closeDailyLeadsModal()" style="width: 32px; height: 32px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 50%; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#e2e8f0'; this.style.color='#0f172a'" onmouseout="this.style.background='#f8fafc'; this.style.color='#64748b'">
+        <i class="bi bi-x-lg" style="font-size: 0.85rem; font-weight: bold;"></i>
       </button>
     </div>
     
-    <div class="daily-leads-list" style="max-height: 400px; overflow-y: auto;">
-      <div *ngIf="selectedDailyLeads.length === 0" class="text-center text-muted py-4">
-        No leads for this day.
+    <!-- Leads List -->
+    <div class="daily-leads-list" style="flex: 1; overflow-y: auto; padding: 24px; background: #f8fafc;">
+      
+      <!-- Empty State -->
+      <div *ngIf="selectedDailyLeads.length === 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+        <div style="width: 64px; height: 64px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+          <i class="bi bi-inbox fs-2" style="color: #94a3b8;"></i>
+        </div>
+        <h5 style="margin: 0 0 8px 0; font-weight: 700; color: #334155; font-size: 1.15rem;">No Leads Scheduled</h5>
+        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">There are no leads to follow up with on this date.</p>
       </div>
       
-      <div class="d-flex justify-content-between align-items-center p-3 mb-2 bg-light rounded" *ngFor="let lead of selectedDailyLeads" style="border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s ease;" (click)="openDetailPanel(lead); closeDailyLeadsModal()">
-        <div>
-          <div class="fw-bold" style="color: #4f46e5;">{{ lead.name }}</div>
-          <div class="small text-muted">{{ lead.phone || lead.email }}</div>
+      <!-- Lead Cards -->
+      <div *ngFor="let lead of selectedDailyLeads" style="display: flex; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 16px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease;" onmouseover="this.style.boxShadow='0 8px 16px -4px rgba(0,0,0,0.08)'; this.style.borderColor='#cbd5e1'; this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)'; this.style.borderColor='#e2e8f0'; this.style.transform='translateY(0)'" (click)="openDetailPanel(lead); closeDailyLeadsModal()">
+        
+        <!-- Left: Avatar -->
+        <div style="margin-right: 16px;">
+          <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);">
+            {{ (lead.name?.charAt(0) || 'U') | uppercase }}
+          </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge" 
-                [style.backgroundColor]="lead.status_name ? getStatusColor(lead.status_name) + '20' : '#f1f5f9'"
-                [style.color]="lead.status_name ? getStatusColor(lead.status_name) : '#64748b'"
-                style="padding: 4px 8px; font-weight: 600; font-size: 0.7rem; border-radius: 4px;">
-            {{ lead.status_name || 'New' }}
-          </span>
-          <a *ngIf="lead.phone" [href]="'https://wa.me/' + lead.phone" target="_blank" (click)="$event.stopPropagation()" class="btn btn-sm text-success" title="WhatsApp" style="padding: 2px 6px;">
-            <i class="bi bi-whatsapp"></i>
-          </a>
+      
+        <!-- Middle: Details -->
+        <div style="flex: 1; min-width: 0;">
+          
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <h5 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; line-height: 1.3;">
+              {{ lead.name || 'Unknown Lead' }}
+            </h5>
+            <span style="background: #f1f5f9; color: #64748b; padding: 4px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: 700; border: 1px solid #e2e8f0; white-space: nowrap;">
+              {{ lead.status_name || 'New' }}
+            </span>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 500; color: #64748b;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <i class="bi bi-telephone-fill" style="color: #94a3b8;"></i> {{ lead.phone || 'N/A' }}
+            </span>
+            <span *ngIf="lead.email" style="display: inline-flex; align-items: center; gap: 6px;">
+              <i class="bi bi-envelope-fill" style="color: #94a3b8;"></i> {{ lead.email }}
+            </span>
+          </div>
+      
+          <!-- Action Row -->
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid #f1f5f9;">
+            <div>
+              <span *ngIf="lead.follow_up_date" style="display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; color: #15803d; border-radius: 8px; padding: 5px 12px; font-size: 0.78rem; font-weight: 700; border: 1px solid #bbf7d0;">
+                <i class="bi bi-calendar-check"></i> Follow-up: {{ lead.follow_up_date | date:'MMM d' }}
+              </span>
+              <span *ngIf="!lead.follow_up_date" style="display: inline-flex; align-items: center; gap: 6px; background: #ffffff; color: #94a3b8; border-radius: 8px; padding: 5px 12px; font-size: 0.78rem; font-weight: 600; border: 1px dashed #cbd5e1;">
+                <i class="bi bi-calendar-plus"></i> No Follow-up
+              </span>
+            </div>
+            
+            <a *ngIf="lead.phone" [href]="'https://wa.me/' + lead.phone" target="_blank" (click)="$event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 6px; background: #25D366; color: white; border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; border: none; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.25); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 12px rgba(37, 211, 102, 0.35)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 10px rgba(37, 211, 102, 0.25)'">
+              <i class="bi bi-whatsapp"></i> Chat
+            </a>
+          </div>
         </div>
       </div>
     </div>

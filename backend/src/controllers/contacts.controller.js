@@ -231,8 +231,14 @@ const createContact = async (req, res) => {
     
     if (assignTo) {
       const io = req.app.get('io');
+      await pool.query(
+        `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [bizId, assignTo, 'assignment', 'New Contact Assigned', `You have been assigned a new contact: ${rows[0].name || rows[0].phone || 'Unknown'}`, contactId]
+      );
       if (io) {
         io.to(`biz_${bizId}`).emit('contact_assigned', { contact: rows[0], assigned_to: assignTo });
+        io.emit('contact_assigned', { contact: rows[0], assigned_to: assignTo });
       }
     }
 
@@ -417,9 +423,17 @@ const updateContact = async (req, res) => {
     await conn.commit();
 
     const [rows] = await pool.query('SELECT * FROM contacts WHERE id = ?', [contactId]);
-    if (req.user.role !== 'agent' && updateFields.assigned_to !== undefined) {
+    if (req.user.role !== 'agent' && updateFields.assigned_to !== undefined && updateFields.assigned_to !== null) {
       const io = req.app.get('io');
-      if (io) io.to(`biz_${bizId}`).emit('contact_assigned', { contact: rows[0], assigned_to: updateFields.assigned_to });
+      await pool.query(
+        `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [bizId, updateFields.assigned_to, 'assignment', 'Contact Reassigned', `A contact has been assigned to you: ${rows[0].name || rows[0].phone || 'Unknown'}`, contactId]
+      );
+      if (io) {
+        io.to(`biz_${bizId}`).emit('contact_assigned', { contact: rows[0], assigned_to: updateFields.assigned_to });
+        io.emit('contact_assigned', { contact: rows[0], assigned_to: updateFields.assigned_to });
+      }
     }
 
     res.json({ success: true, data: rows[0], message: 'Updated' });

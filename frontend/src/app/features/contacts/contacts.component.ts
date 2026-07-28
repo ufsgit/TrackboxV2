@@ -1553,21 +1553,22 @@ export class ContactsComponent implements OnInit {
   toggleViewMode() {
     this.viewMode = this.viewMode === 'list' ? 'calendar' : 'list';
     if (this.viewMode === 'calendar') {
-      this.loadCalendarData();
+      this.calendarCurrentDate = new Date();
+      this.loadCalendarData(true);
     }
   }
 
   prevCalendarMonth() {
     this.calendarCurrentDate = new Date(this.calendarCurrentDate.getFullYear(), this.calendarCurrentDate.getMonth() - 1, 1);
-    this.loadCalendarData();
+    this.loadCalendarData(false);
   }
 
   nextCalendarMonth() {
     this.calendarCurrentDate = new Date(this.calendarCurrentDate.getFullYear(), this.calendarCurrentDate.getMonth() + 1, 1);
-    this.loadCalendarData();
+    this.loadCalendarData(false);
   }
 
-  loadCalendarData() {
+  loadCalendarData(autoOpenToday: boolean = false) {
     this.calendarLoading = true;
     // We fetch a larger limit to ensure we get most leads for the calendar view. 
     // In a production scenario with millions of leads, we'd want a dedicated endpoint.
@@ -1600,20 +1601,34 @@ export class ContactsComponent implements OnInit {
     let currentDay = new Date(year, month, 1 - firstDay.getDay());
     this.calendarWeeks = [];
     
+    const today = new Date();
+    const todayY = today.getFullYear();
+    const todayM = today.getMonth();
+    const todayD = today.getDate();
+    
     while (currentDay <= lastDay || currentDay.getDay() !== 0) {
       if (currentDay.getDay() === 0) {
         this.calendarWeeks.push([]);
       }
       
-      const dateStr = currentDay.toISOString().split('T')[0];
+      const y = currentDay.getFullYear();
+      const m = String(currentDay.getMonth() + 1).padStart(2, '0');
+      const d = String(currentDay.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
       const leadsOnDay = this.calendarAllLeads.filter(l => {
-        if (!l.created_at) return false;
-        return l.created_at.startsWith(dateStr);
+        if (l.follow_up_date) {
+          return l.follow_up_date.startsWith(dateStr);
+        }
+        if (l.created_at) {
+          return l.created_at.startsWith(dateStr);
+        }
+        return false;
       });
       
       this.calendarWeeks[this.calendarWeeks.length - 1].push({
         date: new Date(currentDay),
         isCurrentMonth: currentDay.getMonth() === month,
+        isToday: (y === todayY && currentDay.getMonth() === todayM && currentDay.getDate() === todayD),
         leads: leadsOnDay,
         count: leadsOnDay.length
       });
@@ -1622,10 +1637,15 @@ export class ContactsComponent implements OnInit {
     }
   }
 
+  goToToday() {
+    this.calendarCurrentDate = new Date();
+    this.loadCalendarData(false);
+  }
+
   openDailyLeadsModal(day: any) {
-    if (!day || day.count === 0) return;
+    if (!day) return;
     this.selectedDailyDate = day.date;
-    this.selectedDailyLeads = day.leads;
+    this.selectedDailyLeads = day.leads || [];
     this.showDailyLeadsModal = true;
   }
 
