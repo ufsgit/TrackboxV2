@@ -136,34 +136,61 @@ const getStatusReport = async (req, res) => {
 const getTodaysLeadsReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
-    
+
+    // Get all contacts whose follow-up date is today, joined with the latest follow_up entry
     const [leads] = await pool.query(
-      `SELECT c.id, c.name, c.phone, c.email, c.opt_in_source, c.created_at as time, u.name as agent, e.name as product, c.follow_up
-       FROM contacts c 
-       LEFT JOIN users u ON c.assigned_to = u.id
-       LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
-       WHERE c.business_id = ? AND DATE(c.created_at) = CURDATE()
-       ORDER BY c.created_at DESC`,
+      `SELECT
+        c.id          AS id,
+        c.id          AS lead_id,
+        c.name,
+        c.phone,
+        c.status_name,
+        COALESCE(c.follow_up_date, fu.follow_up_date) AS follow_up_date,
+        COALESCE(u2.name, u.name) AS agent,
+        e.name AS product,
+        fu.remarks,
+        fu.status_name AS fu_status_name
+      FROM contacts c
+      LEFT JOIN users u  ON c.assigned_to = u.id
+      LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
+      LEFT JOIN (
+        SELECT
+          fu1.follow_up_id,
+          fu1.contact_id,
+          fu1.follow_up_date,
+          fu1.to_user_id,
+          fu1.remarks,
+          fu1.status_name
+        FROM follow_ups fu1
+        INNER JOIN (
+          SELECT contact_id, MAX(follow_up_id) AS max_id
+          FROM follow_ups
+          GROUP BY contact_id
+        ) latest ON fu1.contact_id = latest.contact_id AND fu1.follow_up_id = latest.max_id
+      ) fu ON fu.contact_id = c.id
+      LEFT JOIN users u2 ON fu.to_user_id = u2.id
+      WHERE c.business_id = ?
+        AND DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) = CURDATE()
+      ORDER BY COALESCE(c.follow_up_date, fu.follow_up_date) ASC`,
       [businessId]
     );
 
-    const actionedCount = leads.filter(l => l.follow_up === 1).length;
-    const unassignedCount = leads.filter(l => !l.agent).length;
+    const unassignedCount = leads.filter(l => !l.agent || l.agent === 'Unassigned').length;
 
     res.json({
       success: true,
       data: {
         totalToday: leads.length,
-        actioned: actionedCount,
         unassignedLeads: unassignedCount,
         leads: leads.map(l => ({
-          name: l.name,
-          phone: l.phone,
-          source: l.opt_in_source,
-          time: l.time,
-          agent: l.agent || 'Unassigned',
-          interest: l.product || 'Unknown',
-          status: 'New'
+          id:         l.id || l.lead_id,
+          lead_id:    l.id || l.lead_id,
+          name:       l.name,
+          phone:      l.phone || '—',
+          interest:   l.product || '—',
+          statusName: l.fu_status_name || l.status_name || '—',
+          remarks:    l.remarks || '',
+          agent:      l.agent || 'Unassigned'
         }))
       }
     });
@@ -177,47 +204,70 @@ const getPendingFollowupsReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
 
+    // Pull the latest follow-up entry per contact from the follow_ups table,
+    // joined with the contact so we have name, phone and assigned agent.
     const [followups] = await pool.query(
-      `SELECT 
-        c.id as lead_id,
-        c.name as leadName,
-        c.phone as phone,
-        c.name as contact,
-        c.follow_up_date as dueDate,
-        u.name as assignee,
+      `SELECT
+        c.id          AS lead_id,
+        c.name        AS leadName,
+        c.phone       AS phone,
+        c.status_name,
+        COALESCE(u2.name, u.name) AS assignee,
+        COALESCE(c.follow_up_date, fu.follow_up_date) AS dueDate,
+        fu.remarks,
         CASE
-          WHEN DATE(c.follow_up_date) < CURDATE() THEN 'Overdue'
-          WHEN DATE(c.follow_up_date) = CURDATE() THEN 'Due Today'
-          WHEN DATE(c.follow_up_date) > CURDATE() AND DATE(c.follow_up_date) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 'Upcoming'
+          WHEN DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) < CURDATE()  THEN 'Overdue'
+          WHEN DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) = CURDATE()  THEN 'Due Today'
+          WHEN DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) > CURDATE()
+            AND DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                                                                              THEN 'Upcoming'
           ELSE 'Other'
-        END as status
-       FROM contacts c
-       LEFT JOIN users u ON c.assigned_to = u.id
-       WHERE c.business_id = ? AND c.follow_up = 1 AND c.follow_up_date IS NOT NULL
-       ORDER BY c.follow_up_date ASC`,
+        END AS status
+      FROM contacts c
+      LEFT JOIN users u  ON c.assigned_to = u.id
+      LEFT JOIN (
+        SELECT
+          fu1.follow_up_id,
+          fu1.contact_id,
+          fu1.follow_up_date,
+          fu1.to_user_id,
+          fu1.remarks
+        FROM follow_ups fu1
+        INNER JOIN (
+          SELECT contact_id, MAX(follow_up_id) AS max_id
+          FROM follow_ups
+          GROUP BY contact_id
+        ) latest ON fu1.contact_id = latest.contact_id AND fu1.follow_up_id = latest.max_id
+      ) fu ON fu.contact_id = c.id
+      LEFT JOIN users u2 ON fu.to_user_id = u2.id
+      WHERE c.business_id = ?
+        AND COALESCE(c.follow_up_date, fu.follow_up_date) IS NOT NULL
+      ORDER BY COALESCE(c.follow_up_date, fu.follow_up_date) ASC`,
       [businessId]
     );
 
     const filteredFollowups = followups.filter(f => ['Overdue', 'Due Today', 'Upcoming'].includes(f.status));
 
-    const overdueCount = filteredFollowups.filter(f => f.status === 'Overdue').length;
+    const overdueCount  = filteredFollowups.filter(f => f.status === 'Overdue').length;
     const dueTodayCount = filteredFollowups.filter(f => f.status === 'Due Today').length;
     const upcomingCount = filteredFollowups.filter(f => f.status === 'Upcoming').length;
 
     res.json({
       success: true,
       data: {
-        overdue: overdueCount,
+        overdue:  overdueCount,
         dueToday: dueTodayCount,
         upcoming: upcomingCount,
         list: filteredFollowups.map(f => ({
-          id: f.lead_id,
-          leadName: f.leadName,
-          contact: f.contact,
-          phone: f.phone,
-          dueDate: f.dueDate,
-          status: f.status,
-          assignee: f.assignee || 'Unassigned'
+          id:         f.lead_id,
+          leadName:   f.leadName,
+          contact:    f.contact,
+          phone:      f.phone,
+          dueDate:    f.dueDate,
+          remarks:    f.remarks || '',
+          status:     f.status,
+          statusName: f.status_name || '',
+          assignee:   f.assignee || 'Unassigned'
         }))
       }
     });

@@ -1,7 +1,7 @@
 import { Component, OnInit, HostListener, Inject } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApplicationsService } from '../../core/services/applications.service';
@@ -410,7 +410,8 @@ export class ContactsComponent implements OnInit {
 
   constructor(
     private api: ApiService, 
-    private router: Router, 
+    private router: Router,
+    private route: ActivatedRoute,
     private auth: AuthService,
     private appsService: ApplicationsService,
     private settingsService: SystemSettingsService,
@@ -429,6 +430,45 @@ export class ContactsComponent implements OnInit {
     this.loadDepartments();
     this.loadLeadStatuses();
     this.loadDocumentTypes();
+
+    // Handle deep-link from report pages: ?contactId=X&action=profile|followup
+    this.route.queryParams.subscribe(params => {
+      const contactId = params['contactId'];
+      const action = params['action'];
+      if (contactId) {
+        // Wait for contacts to load, then open
+        const tryOpen = () => {
+          const contact = this.contacts.find((c: any) => String(c.id) === String(contactId));
+          if (contact) {
+            if (action === 'followup') {
+              this.openQuickStatusModal(contact);
+            } else {
+              this.openDetailPanel(contact);
+            }
+            // Clear query params so it doesn't re-trigger on re-navigation
+            this.router.navigate([], { queryParams: {}, replaceUrl: true });
+          } else if (this.loading) {
+            setTimeout(tryOpen, 300);
+          } else {
+            // Contact not in current page — fetch directly
+            this.api.get(`/contacts/${contactId}`).subscribe({
+              next: (res: any) => {
+                if (res.success && res.data) {
+                  const c = { ...res.data, tags: Array.isArray(res.data.tags) ? res.data.tags : JSON.parse(res.data.tags || '[]') };
+                  if (action === 'followup') {
+                    this.openQuickStatusModal(c);
+                  } else {
+                    this.openDetailPanel(c);
+                  }
+                  this.router.navigate([], { queryParams: {}, replaceUrl: true });
+                }
+              }
+            });
+          }
+        };
+        setTimeout(tryOpen, 400);
+      }
+    });
   }
 
   loadDocumentTypes() {

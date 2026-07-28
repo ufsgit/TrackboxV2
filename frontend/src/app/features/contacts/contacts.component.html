@@ -187,7 +187,7 @@
                 {{ contact.latest_remark | slice:0:35 }}...
               </ng-container>
               <ng-container *ngIf="contact.isRemarkExpanded || !contact.latest_remark || contact.latest_remark.length <= 35">
-                {{ contact.latest_remark || 'ΓÇö' }}
+                {{ contact.latest_remark || '' }}
               </ng-container>
             </div>
             <a href="javascript:void(0)" 

@@ -1,4 +1,16 @@
 const pool = require('../db/pool');
+
+// Strip garbled encoding artifacts (e.g. em-dash stored in latin1 column comes back as ΓÇö)
+// Heuristic: if >50% of chars are non-ASCII and string is ≤10 chars → treat as garbage
+const sanitizeRemark = (text) => {
+  if (!text) return null;
+  const t = text.trim();
+  if (!t) return null;
+  const nonAscii = (t.match(/[^\x00-\x7F]/g) || []).length;
+  if (nonAscii > 0 && (nonAscii / t.length) > 0.5 && t.length <= 10) return null;
+  return t;
+};
+
 const { parseFile, buildCSV } = require('../utils/csvParser');
 const { v4: uuidv4 } = require('crypto');
 const crypto = require('crypto');
@@ -57,7 +69,7 @@ const getContacts = async (req, res) => {
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 
-    res.json({ success: true, data: rows, total, page: p, limit: lim, message: 'OK' });
+    res.json({ success: true, data: rows.map(r => ({ ...r, latest_remark: sanitizeRemark(r.latest_remark) })), total, page: p, limit: lim, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
   }
