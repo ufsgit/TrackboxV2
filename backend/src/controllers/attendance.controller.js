@@ -146,6 +146,17 @@ exports.getReport = async (req, res) => {
     let query = 'SELECT * FROM attendance_logs WHERE business_id = ?';
     const params = [business_id];
 
+    if (req.user.role === 'agent') {
+      query += ` AND (
+        user_id = ? OR 
+        user_id IN (
+          SELECT user_id FROM team_members 
+          WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+        )
+      )`;
+      params.push(req.user.userId || req.user.id, req.user.userId || req.user.id, business_id);
+    }
+
     if (start_date) {
       query += ' AND DATE(check_in_time) >= ?';
       params.push(start_date);

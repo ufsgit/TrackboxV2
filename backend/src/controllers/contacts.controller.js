@@ -32,18 +32,9 @@ const getContacts = async (req, res) => {
     let where = 'WHERE c.business_id = ?';
     const params = [bizId];
     if (req.user.role === 'agent') {
-      // Get all user IDs who share a team with this agent (including themselves)
-      const [teamRows] = await pool.query(
-        `SELECT DISTINCT tm2.user_id
-         FROM team_members tm1
-         JOIN team_members tm2 ON tm1.team_id = tm2.team_id
-         WHERE tm1.user_id = ?`,
-        [req.user.userId]
-      );
-      const teamMemberIds = teamRows.map(r => r.user_id);
-      if (!teamMemberIds.includes(req.user.userId)) teamMemberIds.push(req.user.userId);
-      where += ` AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
-      params.push(...teamMemberIds);
+      // Agents only see leads directly assigned to themselves
+      where += ' AND c.assigned_to = ?';
+      params.push(req.user.userId);
     } else if (agent) {
       where += ' AND c.assigned_to = ?';
       params.push(agent);
@@ -319,7 +310,7 @@ const updateContact = async (req, res) => {
     }
 
     // Step 1: Log to follow_ups BEFORE updating contacts
-    if (updateFields.remarks !== undefined || updateFields.status_id !== undefined || updateFields.assigned_to !== undefined) {
+    if (updateFields.remarks !== undefined || updateFields.remark !== undefined || updateFields.status_id !== undefined || updateFields.status_name !== undefined || updateFields.assigned_to !== undefined) {
       let byUserName = null;
       let toUserName = null;
       const toUserId = updateFields.assigned_to !== undefined ? (updateFields.assigned_to || null) : oldContact.assigned_to;
@@ -384,7 +375,7 @@ const updateContact = async (req, res) => {
     }
 
     if (updates.length > 0) {
-      if (updateFields.remarks !== undefined || updateFields.status_id !== undefined || updateFields.assigned_to !== undefined) {
+      if (updateFields.remarks !== undefined || updateFields.remark !== undefined || updateFields.status_id !== undefined || updateFields.status_name !== undefined || updateFields.assigned_to !== undefined) {
           updates.push('follow_up_count = follow_up_count + 1');
       }
 

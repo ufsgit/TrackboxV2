@@ -1,17 +1,17 @@
 <div class="custom-modal quick-status-modal-wrapper" *ngIf="isOpen" style="position: fixed; inset: 0; z-index: 1080; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); animation: fadeIn 0.2s ease-out;">
   <div class="modal-backdrop" (click)="closeModal()" style="position: absolute; inset: 0;"></div>
 
-  <div class="modal-card popup-card shadow-lg" style="position: relative; display: flex; flex-direction: column; max-height: 90vh; z-index: 1081; max-width: 540px; width: 90%; background: white; border-radius: 20px; overflow: hidden; animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+  <div class="modal-card popup-card shadow-lg" style="position: relative; display: flex; flex-direction: column; max-height: 90vh; z-index: 1081; max-width: 750px; width: 90%; background: white; border-radius: 20px; overflow: hidden; animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
     
     <!-- Header -->
     <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; flex-shrink: 0; border-bottom: 1px solid #f1f5f9; background: #f8fafc;">
       <div style="display: flex; align-items: center; gap: 16px;">
         <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(99, 102, 241, 0.12); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-          <i class="bi bi-pencil-square"></i>
+          <i class="bi bi-person-lines-fill"></i>
         </div>
-        <div>
-          <h4 style="margin: 0; font-weight: 800; font-size: 1.15rem; color: #0f172a;">Update Lead Status</h4>
-          <p style="margin: 0; font-size: 0.85rem; color: #64748b; font-weight: 600;">{{ contactName }}</p>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h4 style="margin: 0; font-weight: 800; font-size: 1.25rem; color: #0f172a;">{{ contactName }}</h4>
+          <span style="background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Update Lead Status</span>
         </div>
       </div>
       <button class="close-btn" (click)="closeModal()" style="font-size: 1.6rem; background: #f1f5f9; border: none; border-radius: 10px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569;">&times;</button>
@@ -19,66 +19,67 @@
 
     <!-- Body -->
     <div class="modal-body-scroll" style="padding: 24px; flex: 1; overflow-y: auto; min-height: 0;">
+      
       <!-- Status -->
-      <div style="margin-bottom: 16px;">
-        <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; display: block; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">STATUS</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.status" style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem;">
+      <div style="display: flex; align-items: center; margin-bottom: 16px;">
+        <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">STATUS</label>
+        <select class="form-select premium-input" [(ngModel)]="quickStatusData.status" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
           <option value="">Select Status</option>
           <option *ngFor="let status of leadStatuses" [value]="status.name">{{ status.name }}</option>
         </select>
       </div>
 
       <!-- Follow Up Date -->
-      <div style="margin-bottom: 16px;" *ngIf="isFollowupStatus(quickStatusData.status)">
-        <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; display: block; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">FOLLOW UP DATE</label>
-        <input type="date" class="form-control premium-input" [(ngModel)]="quickStatusData.follow_up_date" [min]="today" style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem;">
+      <div style="display: flex; align-items: center; margin-bottom: 16px;" *ngIf="isFollowupStatus(quickStatusData.status)">
+        <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">FOLLOW UP</label>
+        <input type="date" class="form-control premium-input" [(ngModel)]="quickStatusData.follow_up_date" [min]="today" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
       </div>
 
       <!-- Transfer fields (Branch, Department, Employee) -->
       <ng-container *ngIf="isTransferStatus(quickStatusData.status)">
-        <div style="margin-bottom: 16px;">
-          <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; display: block; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">BRANCH</label>
-          <select class="form-select premium-input" [(ngModel)]="quickStatusData.branch" style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem;">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+          <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">BRANCH</label>
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.branch" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
             <option value="">Select Branch</option>
             <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
           </select>
         </div>
 
-        <div style="margin-bottom: 16px;" *ngIf="quickStatusData.branch">
-          <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; display: block; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">DEPARTMENT</label>
-          <select class="form-select premium-input" [(ngModel)]="quickStatusData.department" style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem;">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;" *ngIf="quickStatusData.branch">
+          <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">DEPARTMENT</label>
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.department" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
             <option value="">Select Department</option>
             <option *ngFor="let d of getFilteredDepartments(quickStatusData.branch)" [value]="d.name">{{ d.name }}</option>
           </select>
         </div>
 
-        <div style="margin-bottom: 16px;" *ngIf="quickStatusData.department">
-          <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; display: block; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">EMPLOYEE</label>
-          <select class="form-select premium-input" [(ngModel)]="quickStatusData.assigned_employee" style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem;">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;" *ngIf="quickStatusData.department">
+          <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">EMPLOYEE</label>
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.assigned_employee" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
             <option value="">Select Employee</option>
             <option *ngFor="let e of getFilteredEmployees(quickStatusData.branch, quickStatusData.department)" [value]="e.id">{{ e.name }}</option>
           </select>
         </div>
       </ng-container>
 
-      <!-- Remark / Note -->
-      <div style="margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 0; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">REMARK / NOTE</label>
-          <button class="btn btn-sm text-danger" (click)="quickStatusData.remark = ''" style="background: transparent; border: none; font-size: 0.85rem; padding: 0; display: flex; align-items: center;" title="Clear remark" *ngIf="quickStatusData.remark">
-            <i class="bi bi-x-circle" style="margin-right: 4px;"></i> Clear
-          </button>
-        </div>
-        <textarea class="form-control premium-input" rows="3" [(ngModel)]="quickStatusData.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem; resize: none;"></textarea>
-      </div>
-
       <!-- Sales Loss reason -->
-      <div style="margin-bottom: 16px;" *ngIf="quickStatusData.status === 'Sales Loss'">
-        <label style="font-weight: 700; font-size: 0.75rem; margin-bottom: 6px; display: block; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">LOSS REASON</label>
-        <select class="form-select premium-input" [(ngModel)]="quickStatusData.loss_reason" style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem;">
+      <div style="display: flex; align-items: center; margin-bottom: 16px;" *ngIf="quickStatusData.status === 'Sales Loss'">
+        <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">LOSS REASON</label>
+        <select class="form-select premium-input" [(ngModel)]="quickStatusData.loss_reason" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
           <option value="">-- Select Reason --</option>
           <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
         </select>
+      </div>
+
+      <!-- Remark / Note -->
+      <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+        <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 0 0; flex-shrink: 0;">REMARK</label>
+        <div style="flex: 1;">
+          <textarea class="form-control premium-input" rows="3" [(ngModel)]="quickStatusData.remark" placeholder="Enter notes or remarks for this lead..." style="width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px 14px; font-size: 0.95rem; resize: none;"></textarea>
+          <button class="btn btn-sm text-danger" (click)="quickStatusData.remark = ''" style="background: transparent; border: none; font-size: 0.8rem; padding: 4px 0 0 0; display: flex; align-items: center; float: right;" title="Clear remark" *ngIf="quickStatusData.remark">
+            <i class="bi bi-x-circle" style="margin-right: 4px;"></i> Clear
+          </button>
+        </div>
       </div>
     </div>
     

@@ -136,6 +136,23 @@ const getStatusReport = async (req, res) => {
 const getTodaysLeadsReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+
+    let teamFilter = '';
+    const filterParams = [businessId];
+
+    if (req.user.role === 'agent') {
+      teamFilter = `
+        AND (
+          c.assigned_to = ? OR 
+          c.assigned_to IN (
+            SELECT user_id FROM team_members 
+            WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+          )
+        )
+      `;
+      filterParams.push(userId, userId, businessId);
+    }
 
     // Get all contacts whose follow-up date is today, joined with the latest follow_up entry
     const [leads] = await pool.query(
@@ -172,10 +189,10 @@ const getTodaysLeadsReport = async (req, res) => {
         ) latest ON fu1.contact_id = latest.contact_id AND fu1.follow_up_id = latest.max_id
       ) fu ON fu.contact_id = c.id
       LEFT JOIN users u2 ON fu.to_user_id = u2.id
-      WHERE c.business_id = ?
+      WHERE c.business_id = ? ${teamFilter}
         AND DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) = CURDATE()
       ORDER BY COALESCE(c.follow_up_date, fu.follow_up_date) ASC`,
-      [businessId]
+      filterParams
     );
 
     const unassignedCount = leads.filter(l => !l.agent || l.agent === 'Unassigned').length;
@@ -206,6 +223,23 @@ const getTodaysLeadsReport = async (req, res) => {
 const getPendingFollowupsReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+
+    let teamFilter = '';
+    const filterParams = [businessId];
+
+    if (req.user.role === 'agent') {
+      teamFilter = `
+        AND (
+          c.assigned_to = ? OR 
+          c.assigned_to IN (
+            SELECT user_id FROM team_members 
+            WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+          )
+        )
+      `;
+      filterParams.push(userId, userId, businessId);
+    }
 
     // Pull the latest follow-up entry per contact from the follow_ups table,
     // joined with the contact so we have name, phone and assigned agent.
@@ -246,10 +280,10 @@ const getPendingFollowupsReport = async (req, res) => {
         ) latest ON fu1.contact_id = latest.contact_id AND fu1.follow_up_id = latest.max_id
       ) fu ON fu.contact_id = c.id
       LEFT JOIN users u2 ON fu.to_user_id = u2.id
-      WHERE c.business_id = ?
+      WHERE c.business_id = ? ${teamFilter}
         AND COALESCE(c.follow_up_date, fu.follow_up_date) IS NOT NULL
       ORDER BY COALESCE(c.follow_up_date, fu.follow_up_date) ASC`,
-      [businessId]
+      filterParams
     );
 
     const filteredFollowups = followups.filter(f => ['Overdue', 'Due Today', 'Upcoming'].includes(f.status));
@@ -302,17 +336,21 @@ const getWorkReport = async (req, res) => {
       dateFilter = 'AND MONTH(c.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(c.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
     }
 
-    // Visibility Logic: user sees themselves OR anyone in their auto-team
-    const teamFilter = `
-      AND (
-        c.assigned_to = ? OR 
-        c.assigned_to IN (
-          SELECT user_id FROM team_members 
-          WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+    let teamFilter = '';
+    let filterParams = [];
+
+    if (req.user.role === 'agent') {
+      teamFilter = `
+        AND (
+          c.assigned_to = ? OR 
+          c.assigned_to IN (
+            SELECT user_id FROM team_members 
+            WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+          )
         )
-      )
-    `;
-    const filterParams = [userId, userId, businessId];
+      `;
+      filterParams = [userId, userId, businessId];
+    }
     
     // Total Leads Handled
     const [[{ totalLeads }]] = await pool.query(
@@ -401,16 +439,21 @@ const getEmployeeReport = async (req, res) => {
       dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
     }
 
-    const teamFilter = `
-      AND (
-        c.assigned_to = ? OR 
-        c.assigned_to IN (
-          SELECT user_id FROM team_members 
-          WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+    let teamFilter = '';
+    let filterParams = [];
+
+    if (req.user.role === 'agent') {
+      teamFilter = `
+        AND (
+          c.assigned_to = ? OR 
+          c.assigned_to IN (
+            SELECT user_id FROM team_members 
+            WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+          )
         )
-      )
-    `;
-    const filterParams = [userId, userId, businessId];
+      `;
+      filterParams = [userId, userId, businessId];
+    }
 
     // Total active agents in scope (those who handled leads)
     const [[{ activeAgents }]] = await pool.query(

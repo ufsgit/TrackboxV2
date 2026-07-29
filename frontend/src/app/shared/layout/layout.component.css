@@ -50,16 +50,16 @@
 }
 
 .logo-icon {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, #4F46E5, #1E1B4B);
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 3px 8px rgba(79, 70, 229, 0.25);
-  padding: 4px;
+  padding: 6px;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -68,7 +68,7 @@
 }
 
 .logo-text {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #111827;
@@ -85,7 +85,7 @@
   position: relative;
   z-index: 500;
   margin-top: 6px;
-  margin-left: 36px;
+  margin-left: 0; /* Aligns left edge with the Trackbox icon */
 }
 
 .dept-btn {
