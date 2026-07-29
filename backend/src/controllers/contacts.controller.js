@@ -25,7 +25,7 @@ const paginate = (page, limit) => {
 
 const getContacts = async (req, res) => {
   try {
-    const { page, limit, tags, channel, search, status, agent } = req.query;
+    const { page, limit, tags, channel, search, status, agent, has_followup } = req.query;
     const { offset, limit: lim, page: p } = paginate(page, limit);
     const bizId = req.user.businessId;
 
@@ -49,8 +49,11 @@ const getContacts = async (req, res) => {
       params.push(agent);
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
+    if (has_followup === '1' || has_followup === 'true') {
+      where += ' AND c.follow_up_date IS NOT NULL';
+    }
     if (status === 'No Follow Up' || status === 'no_followup') {
-      where += ' AND (c.follow_up_date IS NULL OR c.follow_up_date = "")';
+      where += ' AND c.follow_up_date IS NULL';
     } else if (status) {
       where += ' AND (c.status_name = ? OR c.status = ?)';
       params.push(status, status);
@@ -58,7 +61,13 @@ const getContacts = async (req, res) => {
     if (search) { where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
     if (tags) { where += ' AND JSON_CONTAINS(c.tags, ?)'; params.push(JSON.stringify(tags)); }
 
-    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM contacts c ${where}`, params);
+    const [[{ total, with_followup, without_followup }]] = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN c.follow_up_date IS NOT NULL THEN 1 END) as with_followup,
+        COUNT(CASE WHEN c.follow_up_date IS NULL THEN 1 END) as without_followup
+      FROM contacts c ${where}
+    `, params);
     const [rows] = await pool.query(`
       SELECT c.*, u.name as assigned_employee_name,
         (SELECT remarks FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_remark
@@ -69,7 +78,7 @@ const getContacts = async (req, res) => {
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 
-    res.json({ success: true, data: rows.map(r => ({ ...r, latest_remark: sanitizeRemark(r.latest_remark) })), total, page: p, limit: lim, message: 'OK' });
+    res.json({ success: true, data: rows.map(r => ({ ...r, latest_remark: sanitizeRemark(r.latest_remark) })), total, with_followup, without_followup, page: p, limit: lim, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
   }

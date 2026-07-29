@@ -1,0 +1,174 @@
+<div class="custom-modal detail-modal-wrapper" *ngIf="isOpen" style="position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); animation: fadeIn 0.2s ease-out;">
+  <div class="modal-backdrop" (click)="closeModal()" style="position: absolute; inset: 0;"></div>
+  
+  <div class="modal-card detail-modal-card" style="position: relative; z-index: 2001; width: 100vw; max-width: none; height: 100vh; border-radius: 0; background: #f8fafc; overflow: hidden; display: flex; flex-direction: column; box-shadow: none; animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+
+    <!-- Loading State -->
+    <div class="detail-loading" *ngIf="detailLoading" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #64748b;">
+      <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem;"></div>
+      <p style="font-weight: 600;">Loading lead profile...</p>
+    </div>
+
+    <ng-container *ngIf="!detailLoading && selectedContact">
+      
+      <!-- Modal Header with Summary (Image 2 style) -->
+      <div class="detail-modal-header" style="padding: 24px 32px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div class="header-main-info" style="display: flex; align-items: center; gap: 20px;">
+          <div class="detail-avatar" style="width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);">
+            {{ selectedContact.name?.charAt(0) | uppercase }}
+          </div>
+          <div class="header-text">
+            <h3 style="margin: 0 0 6px 0; font-size: 1.4rem; font-weight: 800; color: #0f172a;">{{ selectedContact.name }}</h3>
+            <div class="header-badges" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span class="tag-pill" *ngFor="let tag of selectedContact.tags" style="background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">{{ tag }}</span>
+              <span *ngIf="!selectedContact.tags || selectedContact.tags.length === 0" style="background: #f1f5f9; color: #64748b; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">lead</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
+          <button class="btn btn-danger btn-sm ms-2" (click)="deleteContact()" style="padding: 8px 16px; border-radius: 10px; font-weight: 600;">
+            <i class="bi bi-trash me-1"></i> Delete
+          </button>
+          <button class="close-btn ms-3" (click)="closeModal()" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="detail-tabs" style="display: flex; background: white; padding: 0 32px; border-bottom: 1px solid #e2e8f0; gap: 28px;">
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="detail-modal-body" style="flex: 1; overflow-y: auto; padding: 32px;">
+        
+        <!-- PROFILE TAB -->
+        <div *ngIf="detailActiveTab === 'Profile'" class="tab-pane">
+          <div class="row">
+            <div class="col-12 mb-4">
+              <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
+                <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                  <i class="bi bi-person-lines-fill" style="color: #6366f1;"></i> Core Information
+                </h5>
+                <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px;">
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">PHONE</label>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.phone || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">EMAIL</label>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.email || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">LEAD SOURCE</label>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.leadSource || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">ASSIGNED TO</label>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.assigned_employee_name || selectedContact.assigned_to || 'Unassigned' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">INTERESTED PRODUCTS</label>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.interestedProducts || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Fields Section -->
+            <div class="col-12" *ngIf="selectedContact.custom_fields && selectedContact.custom_fields.length > 0">
+              <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
+                <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                  <i class="bi bi-sliders" style="color: #6366f1;"></i> Custom Fields
+                </h5>
+                <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px;">
+                  <div class="detail-item" *ngFor="let field of selectedContact.custom_fields">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">{{ field.label || field.name }}</label>
+                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ formatFieldValue(field) || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIMELINE TAB -->
+        <div *ngIf="detailActiveTab === 'Timeline'" class="tab-pane">
+          <app-timeline [contactId]="selectedContact.id"></app-timeline>
+        </div>
+
+        <!-- APPLICATION TAB -->
+        <div *ngIf="detailActiveTab === 'Application'" class="tab-pane">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h5 class="mb-0 text-dark fw-bold">Applications</h5>
+          </div>
+
+          <div *ngIf="loadingApplications" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Loading applications...</p>
+          </div>
+
+          <div *ngIf="!loadingApplications && selectedContactApplications.length === 0" class="text-center py-5 bg-white rounded-4 border p-4">
+            <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+            <h6 class="text-dark fw-bold mt-2">No applications found</h6>
+            <p class="text-muted small mb-0">No application records found for this lead.</p>
+          </div>
+
+          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="timeline-container mt-2">
+            <div class="timeline-item" *ngFor="let app of selectedContactApplications" style="margin-bottom: 20px;">
+              <div class="p-4 rounded-4 border bg-white shadow-sm">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h5 class="fw-bold text-dark mb-1">{{ app.university }}</h5>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ app.course }}</span>
+                  </div>
+                  <span class="badge px-3 py-2 rounded-pill" [style.background-color]="(app.status_color || '#6366f1') + '20'" [style.color]="app.status_color || '#6366f1'" [style.border]="'1px solid ' + (app.status_color || '#6366f1') + '40'">
+                    {{ app.status_name || 'Pending' }}
+                  </span>
+                </div>
+                <div class="d-flex gap-4 mt-3 pt-3 border-top text-muted small">
+                  <div><i class="bi bi-geo-alt me-1"></i>{{ app.country }}</div>
+                  <div><i class="bi bi-calendar me-1"></i>{{ app.intake_name || 'N/A' }} {{ app.year_name || '' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DOCUMENTS TAB -->
+        <div *ngIf="detailActiveTab === 'Documents'" class="tab-pane">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h5 class="mb-0 text-dark fw-bold">Documents</h5>
+          </div>
+
+          <div *ngIf="loadingDocuments" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Loading documents...</p>
+          </div>
+
+          <div *ngIf="!loadingDocuments && contactDocuments.length === 0" class="text-center p-5 text-muted bg-white rounded-4 border">
+            <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
+            <p class="mt-2 mb-0">No documents uploaded yet.</p>
+          </div>
+
+          <div *ngIf="!loadingDocuments && contactDocuments.length > 0" class="row g-3">
+            <div class="col-md-6" *ngFor="let doc of contactDocuments">
+              <a [href]="baseUrl + doc.file_url" target="_blank" class="d-flex align-items-center gap-3 p-3 bg-white rounded-3 border text-decoration-none text-dark shadow-sm">
+                <i class="bi bi-file-earmark-pdf text-danger fs-2"></i>
+                <div>
+                  <h6 class="mb-0 fw-bold">{{ doc.file_name }}</h6>
+                  <span class="text-muted small">{{ doc.file_size }} &bull; {{ doc.document_type }}</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </ng-container>
+
+  </div>
+</div>

@@ -906,6 +906,24 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+/* Full-page mode when profile is opened from report pages */
+.detail-fullpage-wrapper {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - 64px);
+}
+
+.detail-fullpage-card {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  overflow: hidden;
+  animation: modalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .detail-modal-header {
   padding: 24px 32px;
   background: var(--bg-card) ; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border) ;
@@ -1016,6 +1034,16 @@
 
 .tab-pane {
   animation: fadeIn 0.3s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes fadeIn {

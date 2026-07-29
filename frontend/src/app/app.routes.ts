@@ -42,6 +42,7 @@ export const routes: Routes = [
       { path: 'underperformers', loadComponent: () => import('./features/crm/sales-performance/underperformers/underperformers.component').then(m => m.UnderperformersComponent) },
       { path: 'pending-followup', loadComponent: () => import('./features/crm/reports/pending-followup/pending-followup.component').then(m => m.PendingFollowupComponent) },
       { path: 'todays-leads', loadComponent: () => import('./features/crm/reports/todays-leads/todays-leads.component').then(m => m.TodaysLeadsComponent) },
+      { path: 'all-leads', loadComponent: () => import('./features/crm/reports/all-leads/all-leads.component').then(m => m.AllLeadsComponent) },
       { path: 'quotation-report', loadComponent: () => import('./features/crm/reports/quotation-report/quotation-report.component').then(m => m.QuotationReportComponent) },
       { path: 'purchase-order-report', loadComponent: () => import('./features/crm/reports/purchase-order-report/purchase-order-report.component').then(m => m.PurchaseOrderReportComponent) },
       { path: 'sales-funnel-report', loadComponent: () => import('./features/crm/reports/sales-funnel-report/sales-funnel-report.component').then(m => m.SalesFunnelReportComponent) },

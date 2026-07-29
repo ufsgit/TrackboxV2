@@ -1,0 +1,278 @@
+<div class="all-leads-container">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">All Leads</h1>
+      <p class="page-subtitle">Complete list of all leads in your pipeline</p>
+    </div>
+  </div>
+
+  <!-- ── Stats Row ── -->
+  <div class="stats-row">
+    <div class="stat-chip">
+      <div class="stat-chip-icon icon-blue"><i class="bi bi-people-fill"></i></div>
+      <div>
+        <span class="stat-chip-label">Total Leads</span>
+        <span class="stat-chip-value">{{ totalLeads | number }}</span>
+      </div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-chip-icon icon-green"><i class="bi bi-calendar-check-fill"></i></div>
+      <div>
+        <span class="stat-chip-label">With Follow-up</span>
+        <span class="stat-chip-value">{{ withFollowupCount | number }}</span>
+      </div>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-chip-icon icon-orange"><i class="bi bi-calendar-x-fill"></i></div>
+      <div>
+        <span class="stat-chip-label">No Follow-up</span>
+        <span class="stat-chip-value">{{ noFollowupCount | number }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Filters ── -->
+  <div class="filters-card">
+    <div class="search-wrap">
+      <i class="bi bi-search"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search by name, phone..."
+        [(ngModel)]="searchTerm"
+        (keyup.enter)="onSearch()"
+      />
+    </div>
+    <select class="filter-select" [(ngModel)]="activeStatus" (change)="onFilterChange()">
+      <option value="">All Statuses</option>
+      <option *ngFor="let s of statuses" [value]="s.name">{{ s.name }}</option>
+    </select>
+    <select class="filter-select" [(ngModel)]="activeAgent" (change)="onFilterChange()">
+      <option value="">All Agents</option>
+      <option *ngFor="let a of agents" [value]="a.id">{{ a.name }}</option>
+    </select>
+    <button class="action-btn" title="Search" (click)="onSearch()" style="width: auto; padding: 0 18px; gap: 8px; font-weight: 600; font-size: 0.88rem; color: #4f46e5; border-color: #c7d2fe; background: #eef2ff;">
+      <i class="bi bi-search"></i> Search
+    </button>
+  </div>
+
+  <!-- ── Table ── -->
+  <div class="table-card">
+    <div class="table-header">
+      <div>
+        <span class="table-title">Lead Directory</span>
+      </div>
+      <span class="table-count">Showing {{ (currentPage - 1) * pageSize + 1 }}–{{ currentPage * pageSize > totalLeads ? totalLeads : currentPage * pageSize }} of {{ totalLeads }} leads</span>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Assigned To</th>
+            <th>Follow-up</th>
+            <th>Latest Remark</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading -->
+          <tr *ngIf="loading" class="loading-row">
+            <td colspan="8">
+              <div class="spinner-border text-primary" style="width: 2rem; height: 2rem;"></div>
+              <div style="margin-top: 12px; font-size: 0.9rem;">Loading leads...</div>
+            </td>
+          </tr>
+
+          <!-- Empty -->
+          <tr *ngIf="!loading && leads.length === 0">
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-people"></i>
+                <div class="empty-state-title">No leads found</div>
+                <div class="empty-state-desc">Try adjusting your filters or search query</div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Data Rows -->
+          <tr *ngFor="let lead of leads; let i = index">
+            <td style="color: #94a3b8; font-weight: 600; font-size: 0.82rem;">{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+
+            <td>
+              <span class="lead-name" (click)="openProfile(lead)">{{ lead.name }}</span>
+            </td>
+
+            <td style="font-family: monospace; font-size: 0.88rem;">{{ lead.phone || '—' }}</td>
+
+            <td>
+              <span *ngIf="lead.status_name" class="status-badge"
+                [style.background]="getStatusColor(lead.status_name) + '18'"
+                [style.color]="getStatusColor(lead.status_name)"
+                [style.border]="'1px solid ' + getStatusColor(lead.status_name) + '40'"
+              >{{ lead.status_name }}</span>
+              <span *ngIf="!lead.status_name" style="color: #cbd5e1;">—</span>
+            </td>
+
+            <td style="font-weight: 500; color: #334155;">
+              {{ lead.assigned_employee_name || 'Unassigned' }}
+            </td>
+
+            <td>
+              <span *ngIf="lead.follow_up_date" class="follow-up-date">
+                <i class="bi bi-calendar-check"></i>
+                {{ lead.follow_up_date | date:'dd MMM yyyy' }}
+              </span>
+              <span *ngIf="!lead.follow_up_date" class="no-followup" (click)="openFollowup(lead)" title="Click to set follow-up">
+                <i class="bi bi-calendar-plus"></i> Set Follow-up
+              </span>
+            </td>
+
+            <td style="max-width: 200px;">
+              <span *ngIf="lead.latest_remark" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.85rem;" [title]="lead.latest_remark">
+                {{ lead.latest_remark }}
+              </span>
+              <span *ngIf="!lead.latest_remark" style="color: #cbd5e1;">—</span>
+            </td>
+
+            <td>
+              <div style="display: flex; gap: 6px;">
+                <button class="action-btn" title="View Profile" (click)="openProfile(lead)">
+                  <i class="bi bi-person-lines-fill"></i>
+                </button>
+                <button class="action-btn" title="Set Follow-up" (click)="openFollowup(lead)">
+                  <i class="bi bi-calendar-plus"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pagination ── -->
+    <div class="pagination-row" *ngIf="!loading && totalLeads > pageSize">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <select class="filter-select" style="min-width: unset; padding: 6px 12px; font-size: 0.82rem;" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option [value]="10">10 / page</option>
+          <option [value]="20">20 / page</option>
+          <option [value]="50">50 / page</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="pag-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First">
+          <i class="bi bi-chevron-double-left"></i>
+        </button>
+        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button *ngFor="let p of pages" class="pag-btn" [class.active]="p === currentPage" (click)="goToPage(p)">
+          {{ p }}
+        </button>
+        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <button class="pag-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last">
+          <i class="bi bi-chevron-double-right"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ═══════════════ LEAD PROFILE SIDE PANEL ═══════════════ -->
+<div *ngIf="showLeadPanel" style="position: fixed; inset: 0; z-index: 1050; display: flex;">
+  <div (click)="closeLeadPanel()" style="flex: 1; background: rgba(15,23,42,0.45); backdrop-filter: blur(2px);"></div>
+  <div style="width: 440px; background: white; height: 100%; overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,0.15); display: flex; flex-direction: column;">
+    <div style="padding: 24px 28px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+      <div>
+        <div style="font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Lead Profile</div>
+        <h5 style="color: white; font-weight: 800; margin: 0; font-size: 1.1rem;">{{ leadPanelData?.name || '...' }}</h5>
+      </div>
+      <button (click)="closeLeadPanel()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div *ngIf="leadPanelLoading" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
+      <div style="text-align: center;">
+        <div class="spinner-border text-primary" style="width: 2rem; height: 2rem;"></div>
+        <div style="margin-top: 12px; font-size: 0.9rem;">Loading...</div>
+      </div>
+    </div>
+
+    <div *ngIf="!leadPanelLoading && leadPanelData" style="padding: 24px 28px; display: flex; flex-direction: column; gap: 20px;">
+      <div style="background: #f8fafc; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 12px;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #4f46e5); display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 1.1rem;">{{ leadPanelData.name?.charAt(0)?.toUpperCase() }}</div>
+        <div>
+          <div style="font-weight: 700; color: #1e293b; font-size: 1rem;">{{ leadPanelData.name }}</div>
+          <div style="font-size: 0.85rem; color: #64748b;">{{ leadPanelData.phone || 'No phone' }}</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">Status</div>
+          <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">{{ leadPanelData.status_name || '—' }}</div>
+        </div>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">Assigned To</div>
+          <div style="font-weight: 700; color: #3b82f6; font-size: 0.9rem;">{{ leadPanelData.assigned_to_name || '—' }}</div>
+        </div>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">Follow-up Date</div>
+          <div style="font-weight: 700; color: #f59e0b; font-size: 0.9rem;">{{ leadPanelData.follow_up_date | date:'mediumDate' }}</div>
+        </div>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">Email</div>
+          <div style="font-weight: 600; color: #1e293b; font-size: 0.85rem; word-break: break-all;">{{ leadPanelData.email || '—' }}</div>
+        </div>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">Branch</div>
+          <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">{{ leadPanelData.branch_name || '—' }}</div>
+        </div>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 14px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">Department</div>
+          <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">{{ leadPanelData.department_name || '—' }}</div>
+        </div>
+      </div>
+
+      <div *ngIf="leadFollowupHistory.length > 0">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;">Recent Follow-ups</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div *ngFor="let h of leadFollowupHistory" style="background: #f8fafc; border-left: 3px solid #6366f1; border-radius: 0 12px 12px 0; padding: 12px 14px;">
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.88rem;">{{ h.description }}</div>
+            <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">{{ h.date | date:'medium' }} · {{ h.author || 'Unknown' }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<app-update-lead-status-modal
+  [contactId]="followupContactId"
+  [contactName]="followupContactName"
+  [isOpen]="showFollowupModal"
+  [initialData]="followupInitialData"
+  (close)="closeFollowupModal()"
+  (saved)="loadLeads()"
+  (openProfile)="profileContactId = $event; showProfileModal = true">
+</app-update-lead-status-modal>
+
+<app-lead-profile-modal
+  [contactId]="profileContactId"
+  [isOpen]="showProfileModal"
+  (close)="showProfileModal = false"
+  (contactUpdated)="loadLeads()">
+</app-lead-profile-modal>

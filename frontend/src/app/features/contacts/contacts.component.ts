@@ -13,12 +13,13 @@ import { ConfettiService } from '../../core/services/confetti.service';
 
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
+import { UpdateLeadStatusModalComponent } from '../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
 import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-contacts',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatModalComponent, TimelineComponent],
+  imports: [CommonModule, FormsModule, ChatModalComponent, TimelineComponent, UpdateLeadStatusModalComponent],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
 })
@@ -38,6 +39,7 @@ export class ContactsComponent implements OnInit {
   isAdmin = false;
   openDropdownId: number | null = null;
   showImportExportDropdown = false;
+  returnUrl: string | null = null;
 
   // Quick Status Modal
   showQuickStatusModal = false;
@@ -442,6 +444,9 @@ export class ContactsComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       const contactId = params['contactId'];
       const action = params['action'];
+      if (params['returnUrl']) {
+        this.returnUrl = params['returnUrl'];
+      }
       if (contactId) {
         // Wait for contacts to load, then open
         const tryOpen = () => {
@@ -575,7 +580,8 @@ export class ContactsComponent implements OnInit {
     this.loading = true;
     const params: any = {
       page: this.currentPage,
-      limit: this.pageSize
+      limit: this.pageSize,
+      has_followup: 1
     };
     if (this.searchQuery) params.search = this.searchQuery;
     if (this.activeTag) params.tags = this.activeTag;
@@ -585,10 +591,11 @@ export class ContactsComponent implements OnInit {
     
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {
-        this.contacts = res.data.map((c: any) => ({
-          ...c,
-          tags: Array.isArray(c.tags) ? c.tags : JSON.parse(c.tags || '[]')
-        }));
+        this.contacts = res.data
+          .map((c: any) => ({
+            ...c,
+            tags: Array.isArray(c.tags) ? c.tags : JSON.parse(c.tags || '[]')
+          }));
         this.totalContacts = res.total || 0;
         this.totalPages = Math.max(1, Math.ceil(this.totalContacts / this.pageSize));
         this.loading = false;
@@ -596,6 +603,7 @@ export class ContactsComponent implements OnInit {
       error: () => this.loading = false
     });
   }
+
 
   loadTags() {
     this.api.get('/contacts/tags').subscribe({
@@ -689,6 +697,11 @@ export class ContactsComponent implements OnInit {
     this.showDetailPanel = false;
     this.selectedContact = null;
     this.selectedContactApplications = [];
+    if (this.returnUrl) {
+      const target = this.returnUrl;
+      this.returnUrl = null;
+      this.router.navigateByUrl(target);
+    }
   }
 
   // --- APPLICATIONS LOGIC ---
@@ -1412,6 +1425,11 @@ export class ContactsComponent implements OnInit {
   closeQuickStatusModal() {
     this.showQuickStatusModal = false;
     this.quickStatusContactId = null;
+    if (this.returnUrl && !this.showDetailPanel) {
+      const target = this.returnUrl;
+      this.returnUrl = null;
+      this.router.navigateByUrl(target);
+    }
   }
 
   openContactDetailFromQuickStatus() {

@@ -1,13 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
+
+import { LeadProfileModalComponent } from '../../../../shared/components/lead-profile-modal/lead-profile-modal.component';
+import { UpdateLeadStatusModalComponent } from '../../../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
 
 @Component({
   selector: 'app-pending-followup',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LeadProfileModalComponent, UpdateLeadStatusModalComponent],
   providers: [DatePipe],
   templateUrl: './pending-followup.component.html',
   styleUrl: './pending-followup.component.css'
@@ -20,7 +23,9 @@ export class PendingFollowupComponent implements OnInit {
   displayStats = { overdue: 0, dueToday: 0, upcoming: 0 };
   filterParam: string | null = null;
 
-  // ── Lead Profile Panel ──────────────────────────────────
+  // ── Lead Profile Modal ──────────────────────────────────
+  showProfileModal = false;
+  profileContactId: number | null = null;
   showLeadPanel = false;
   leadPanelLoading = false;
   leadPanelData: any = null;
@@ -28,22 +33,15 @@ export class PendingFollowupComponent implements OnInit {
 
   // ── Quick Followup Modal ────────────────────────────────
   showFollowupModal = false;
-  followupLoading = false;
   followupContactId: number | null = null;
   followupContactName = '';
-  statuses: any[] = [];
-  agents: any[] = [];
-  followupForm = {
-    status_id: null as number | null,
-    status_name: '',
-    remark: '',
-    follow_up_date: ''
-  };
+  followupInitialData: any = null;
 
   constructor(
     private apiService: ApiService,
     private datePipe: DatePipe,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -51,8 +49,6 @@ export class PendingFollowupComponent implements OnInit {
       this.filterParam = params['filter'] || null;
     });
     this.fetchData();
-    this.loadStatuses();
-    this.loadAgents();
   }
 
   fetchData() {
@@ -78,43 +74,13 @@ export class PendingFollowupComponent implements OnInit {
     });
   }
 
-  loadStatuses() {
-    this.apiService.get('/system-settings/statuses').subscribe({
-      next: (res: any) => { if (res.success) this.statuses = res.data; }
-    });
-  }
 
-  loadAgents() {
-    this.apiService.get('/settings/team').subscribe({
-      next: (res: any) => {
-        if (res.success) this.agents = res.data.filter((u: any) => u.role === 'agent' || u.role === 'admin');
-      }
-    });
-  }
-
-  // ── Lead Profile Panel ──────────────────────────────────
+  // ── Lead Profile Page Navigation ─────────────────────────
   openLeadProfile(row: any) {
     const contactId = row?.id || row?.lead_id || row?.contact_id;
     if (!contactId) return;
-
-    this.showLeadPanel = true;
-    this.leadPanelLoading = true;
-    this.leadPanelData = null;
-    this.leadFollowupHistory = [];
-
-    this.apiService.get(`/contacts/${contactId}`).subscribe({
-      next: (res: any) => {
-        if (res.success) this.leadPanelData = res.data;
-        this.leadPanelLoading = false;
-      },
-      error: () => this.leadPanelLoading = false
-    });
-
-    this.apiService.get(`/contacts/${contactId}/timeline`).subscribe({
-      next: (res: any) => {
-        if (res.success) this.leadFollowupHistory = res.data.filter((e: any) => e.type === 'follow_up').slice(0, 5);
-      }
-    });
+    this.profileContactId = contactId;
+    this.showProfileModal = true;
   }
 
   closeLeadPanel() {
@@ -122,47 +88,20 @@ export class PendingFollowupComponent implements OnInit {
     this.leadPanelData = null;
   }
 
-  // ── Quick Followup Modal ────────────────────────────────
+
   openFollowup(row: any) {
     const contactId = row?.id || row?.lead_id || row?.contact_id;
     if (!contactId) return;
-
     this.followupContactId = contactId;
     this.followupContactName = row.leadName || row.name || '';
-    this.followupForm = {
-      status_id: row.status_id || null,
-      status_name: row.statusName || '',
-      remark: '',
-      follow_up_date: row.dueDate || ''
-    };
+    this.followupInitialData = row;
     this.showFollowupModal = true;
   }
 
   closeFollowupModal() {
     this.showFollowupModal = false;
     this.followupContactId = null;
-  }
-
-  saveFollowup() {
-    if (!this.followupContactId) return;
-    this.followupLoading = true;
-
-    const selStatus = this.statuses.find(s => s.name === this.followupForm.status_name);
-    if (selStatus) this.followupForm.status_id = selStatus.id;
-
-    this.apiService.put(`/contacts/${this.followupContactId}`, {
-      status_id: this.followupForm.status_id,
-      status_name: this.followupForm.status_name,
-      remarks: this.followupForm.remark,
-      follow_up_date: this.followupForm.follow_up_date || null
-    }).subscribe({
-      next: () => {
-        this.followupLoading = false;
-        this.closeFollowupModal();
-        this.fetchData();
-      },
-      error: () => this.followupLoading = false
-    });
+    this.followupInitialData = null;
   }
 
   // ── Helpers ─────────────────────────────────────────────

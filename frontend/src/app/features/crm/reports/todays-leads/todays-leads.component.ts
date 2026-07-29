@@ -1,12 +1,15 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
+import { LeadProfileModalComponent } from '../../../../shared/components/lead-profile-modal/lead-profile-modal.component';
+import { UpdateLeadStatusModalComponent } from '../../../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
 
 @Component({
   selector: 'app-todays-leads',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LeadProfileModalComponent, UpdateLeadStatusModalComponent],
   templateUrl: './todays-leads.component.html',
   styleUrl: './todays-leads.component.css'
 })
@@ -16,28 +19,18 @@ export class TodaysLeadsComponent {
   leads: any[] = [];
   stats: any = { totalToday: 0, unassignedLeads: 0 };
 
-  // ── Lead Profile Panel ──────────────────────────────────
-  showLeadPanel = false;
-  leadPanelLoading = false;
-  leadPanelData: any = null;
-  leadFollowupHistory: any[] = [];
+  // ── Lead Profile Modal ──────────────────────────────────
+  showProfileModal = false;
+  profileContactId: number | null = null;
 
-  // ── Quick Followup Modal ────────────────────────────────
+  // ── Update Lead Status Modal ────────────────────────────
   showFollowupModal = false;
-  followupLoading = false;
   followupContactId: number | null = null;
   followupContactName = '';
-  statuses: any[] = [];
-  followupForm = {
-    status_id: null as number | null,
-    status_name: '',
-    remark: '',
-    follow_up_date: ''
-  };
+  followupInitialData: any = null;
 
-  constructor(private api: ApiService) {
+  constructor(private api: ApiService, private router: Router) {
     this.fetchData();
-    this.loadStatuses();
   }
 
   fetchData() {
@@ -52,83 +45,28 @@ export class TodaysLeadsComponent {
     });
   }
 
-  loadStatuses() {
-    this.api.get('/system-settings/statuses').subscribe({
-      next: (res: any) => { if (res.success) this.statuses = res.data; }
-    });
-  }
-
-  // ── Lead Profile Panel ──────────────────────────────────
+  // ── Lead Profile Modal Navigation ─────────────────────────
   openLeadProfile(row: any) {
     const contactId = row?.id || row?.lead_id || row?.contact_id;
     if (!contactId) return;
-
-    this.showLeadPanel = true;
-    this.leadPanelLoading = true;
-    this.leadPanelData = null;
-    this.leadFollowupHistory = [];
-
-    this.api.get(`/contacts/${contactId}`).subscribe({
-      next: (res: any) => {
-        if (res.success) this.leadPanelData = res.data;
-        this.leadPanelLoading = false;
-      },
-      error: () => this.leadPanelLoading = false
-    });
-
-    this.api.get(`/contacts/${contactId}/timeline`).subscribe({
-      next: (res: any) => {
-        if (res.success) this.leadFollowupHistory = res.data.filter((e: any) => e.type === 'follow_up').slice(0, 5);
-      }
-    });
+    this.profileContactId = contactId;
+    this.showProfileModal = true;
   }
 
-  closeLeadPanel() {
-    this.showLeadPanel = false;
-    this.leadPanelData = null;
-  }
-
-  // ── Quick Followup Modal ────────────────────────────────
+  // ── Update Lead Status Modal ──────────────────────────────
   openFollowup(row: any) {
     const contactId = row?.id || row?.lead_id || row?.contact_id;
     if (!contactId) return;
-
     this.followupContactId = contactId;
-    this.followupContactName = row.name || '';
-    this.followupForm = {
-      status_id: null,
-      status_name: row.statusName || '',
-      remark: '',
-      follow_up_date: ''
-    };
+    this.followupContactName = row.name || row.leadName || '';
+    this.followupInitialData = row;
     this.showFollowupModal = true;
   }
 
   closeFollowupModal() {
     this.showFollowupModal = false;
     this.followupContactId = null;
-  }
-
-  saveFollowup() {
-    if (!this.followupContactId) return;
-    this.followupLoading = true;
-
-    const selStatus = this.statuses.find(s => s.name === this.followupForm.status_name);
-    if (selStatus) this.followupForm.status_id = selStatus.id;
-
-    this.api.put(`/contacts/${this.followupContactId}`, {
-      status_id: this.followupForm.status_id,
-      status_name: this.followupForm.status_name,
-      remarks: this.followupForm.remark,
-      follow_up_date: this.followupForm.follow_up_date || null
-    }).subscribe({
-      next: () => {
-        this.followupLoading = false;
-        this.closeFollowupModal();
-        this.fetchData();
-      },
-      error: () => this.followupLoading = false
-    });
+    this.followupInitialData = null;
   }
 
   // ── Helpers ─────────────────────────────────────────────

@@ -39,7 +39,7 @@ Chart.register(...registerables);
 
       <!-- KPI Cards (8 Cards) -->
       <div class="stats-grid">
-        <div class="stat-card clickable" routerLink="/contacts" style="cursor: pointer;" title="View Leads">
+        <div class="stat-card clickable" routerLink="/all-leads" style="cursor: pointer;" title="View All Leads">
           <div class="stat-icon icon-blue"><i class="bi bi-people-fill"></i></div>
           <div class="stat-info">
             <label>Total Leads</label>
