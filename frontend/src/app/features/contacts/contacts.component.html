@@ -38,6 +38,14 @@
           <option value="">All Tags</option>
           <option *ngFor="let tag of allTags" [value]="tag">{{ tag }}</option>
         </select>
+
+        <button class="btn shadow-sm d-flex align-items-center gap-2" 
+                [ngClass]="transferredOnly ? 'btn-primary' : 'btn-outline-primary'"
+                (click)="toggleTransferredOnly()"
+                style="border-radius: 12px; font-weight: 600; white-space: nowrap;">
+          <i class="bi bi-arrow-left-right"></i>
+          Transferred Leads
+        </button>
       </div>
     </div>
     

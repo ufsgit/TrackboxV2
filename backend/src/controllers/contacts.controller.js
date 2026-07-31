@@ -31,21 +31,35 @@ const getContacts = async (req, res) => {
 
     let where = 'WHERE c.business_id = ?';
     const params = [bizId];
+
     if (req.user.role === 'agent') {
-      // Agents see leads assigned to themselves OR any teammate sharing a team with them
       const selfId = Number(req.user.userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, bizId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      where += ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
-      params.push(...teamMemberIds);
-    } else if (agent) {
-      where += ' AND c.assigned_to = ?';
-      params.push(agent);
+      if (req.query.transferred_only === 'true') {
+        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+        params.push(selfId.toString(), selfId, selfId);
+      } else {
+        const [teamRows] = await pool.query(
+          `SELECT user_id FROM team_members 
+           WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
+          [selfId, bizId]
+        );
+        const teamMemberIds = teamRows.map(r => Number(r.user_id));
+        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+        where += ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
+        params.push(...teamMemberIds);
+      }
+    } else {
+      if (req.query.transferred_only === 'true') {
+        if (agent) {
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+          params.push(agent.toString(), agent, agent);
+        } else {
+          where += ` AND JSON_LENGTH(c.user_list) > 1`;
+        }
+      } else if (agent) {
+        where += ' AND c.assigned_to = ?';
+        params.push(agent);
+      }
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
     if (has_followup === '1' || has_followup === 'true') {
@@ -365,13 +379,15 @@ const updateContact = async (req, res) => {
       }
     }
 
-    if (req.user.role !== 'agent' && updateFields.assigned_to !== undefined) {
+    if (updateFields.assigned_to !== undefined) {
       updates.push('assigned_to = ?');
       params.push(updateFields.assigned_to || null);
 
       if (updateFields.assigned_to) {
         let currentList = oldContact.user_list ? (typeof oldContact.user_list === 'string' ? JSON.parse(oldContact.user_list) : oldContact.user_list) : [];
-        currentList.push(updateFields.assigned_to);
+        if (!currentList.includes(updateFields.assigned_to) && !currentList.includes(String(updateFields.assigned_to)) && !currentList.includes(Number(updateFields.assigned_to))) {
+          currentList.push(updateFields.assigned_to);
+        }
         updates.push('user_list = ?');
         params.push(JSON.stringify(currentList));
       }
@@ -431,7 +447,7 @@ const updateContact = async (req, res) => {
     await conn.commit();
 
     const [rows] = await pool.query('SELECT * FROM contacts WHERE id = ?', [contactId]);
-    if (req.user.role !== 'agent' && updateFields.assigned_to !== undefined && updateFields.assigned_to !== null) {
+    if (updateFields.assigned_to !== undefined && updateFields.assigned_to !== null) {
       const io = req.app.get('io');
       await pool.query(
         `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)

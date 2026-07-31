@@ -34,6 +34,8 @@ export class ContactsComponent implements OnInit {
   activeStatus = '';
   activeAgent = '';
   allTags: string[] = [];
+  transferredOnly: boolean = false;
+  statuses: any[] = [];
   editingContactId: number | null = null;
   agents: any[] = [];
   isAdmin = false;
@@ -600,6 +602,7 @@ export class ContactsComponent implements OnInit {
     if (this.activeChannel) params.channel = this.activeChannel;
     if (this.activeStatus) params.status = this.activeStatus;
     if (this.activeAgent) params.agent = this.activeAgent;
+    if (this.transferredOnly) params.transferred_only = true;
     
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {
@@ -630,6 +633,11 @@ export class ContactsComponent implements OnInit {
     } else {
       this.loadContacts();
     }
+  }
+
+  toggleTransferredOnly() {
+    this.transferredOnly = !this.transferredOnly;
+    this.applyFilters();
   }
 
   onSearch() {
@@ -1659,6 +1667,7 @@ export class ContactsComponent implements OnInit {
     if (this.activeChannel) params.channel = this.activeChannel;
     if (this.activeStatus) params.status = this.activeStatus;
     if (this.activeAgent) params.agent = this.activeAgent;
+    if (this.transferredOnly) params.transferred_only = true;
 
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {
