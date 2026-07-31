@@ -48,8 +48,8 @@ import Swal from 'sweetalert2';
               </span>
             </td>
             <td>
-              <span *ngIf="status.type" class="badge" [ngStyle]="{'background': status.type === 'sale won' ? '#10B981' : '#EF4444'}">
-                {{ status.type === 'sale won' ? 'Sale won' : 'Sale Lost' }}
+              <span *ngIf="status.type" class="badge" [ngStyle]="{'background': status.type === 'sale' ? '#10B981' : '#EF4444'}">
+                {{ status.type === 'sale' ? 'Sale won' : 'Sale Lost' }}
               </span>
               <span *ngIf="!status.type" style="color:#94a3b8;">—</span>
             </td>

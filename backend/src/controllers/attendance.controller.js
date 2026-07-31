@@ -63,6 +63,10 @@ exports.checkIn = async (req, res) => {
       [business_id, user_id, user_name, dbMenu, is_late, late_reason || null]
     );
 
+    if (req.app.get('io')) {
+      req.app.get('io').to(`biz_${business_id}`).emit('attendance_updated', { user_id, action: 'check_in', menu: menu });
+    }
+
     res.json({ success: true, message: `Checked in to ${menu} successfully.` });
   } catch (error) {
     console.error('Check In Error:', error);
@@ -74,6 +78,7 @@ exports.checkIn = async (req, res) => {
 exports.checkOut = async (req, res) => {
   try {
     const user_id = req.user.id || req.user.userId;
+    const business_id = req.user.business_id || req.user.businessId;
     const dbMenu = normalizeMenu(req.body.menu);
 
     if (!dbMenu) {
@@ -102,6 +107,10 @@ exports.checkOut = async (req, res) => {
       `UPDATE attendance_logs SET check_out_time = ?, total_minutes = ?, status = 'Completed' WHERE id = ?`,
       [checkOutTime, totalMinutes, log.id]
     );
+
+    if (req.app.get('io')) {
+      req.app.get('io').to(`biz_${business_id}`).emit('attendance_updated', { user_id, action: 'check_out', menu: dbMenu });
+    }
 
     res.json({ success: true, message: 'Checked out successfully', data: { totalMinutes } });
   } catch (error) {

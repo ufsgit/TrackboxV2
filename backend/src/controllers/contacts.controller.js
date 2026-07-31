@@ -211,9 +211,32 @@ const createContact = async (req, res) => {
       formattedFollowUpDate = new Date(follow_up_date).toISOString().split('T')[0];
     }
 
+    let current_sale_status = 0;
+    let sale_won = 0, sale_lost = 0;
+    let sale_won_date = null, sale_lost_date = null;
+    let sale_won_by = null, sale_lost_by = null;
+
+    if (status_id) {
+      const [statusRows] = await conn.query('SELECT type FROM statuses WHERE id = ?', [status_id]);
+      if (statusRows.length > 0) {
+        if (statusRows[0].type === 'sale') {
+          current_sale_status = 1;
+          sale_won = 1;
+          sale_won_date = new Date();
+          sale_won_by = assignTo;
+        }
+        else if (statusRows[0].type === 'sale_lost') {
+          current_sale_status = 2;
+          sale_lost = 1;
+          sale_lost_date = new Date();
+          sale_lost_by = assignTo;
+        }
+      }
+    }
+
     const [result] = await conn.query(
-      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, created_by_user, follow_up, user_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, formattedFollowUpDate, enquiry_for_id || null, branch_id || null, branch_name || null, department_id || null, department_name || null, status_id || null, status_name || null, req.user.userId, formattedFollowUpDate ? 1 : 0, JSON.stringify(userList)]
+      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, follow_up, user_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, formattedFollowUpDate, enquiry_for_id || null, branch_id || null, branch_name || null, department_id || null, department_name || null, status_id || null, status_name || null, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, req.user.userId, formattedFollowUpDate ? 1 : 0, JSON.stringify(userList)]
     );
     const contactId = result.insertId;
 
@@ -376,6 +399,28 @@ const updateContact = async (req, res) => {
       if (updateFields[key] !== undefined) {
         updates.push(`${key} = ?`);
         params.push(key === 'tags' ? JSON.stringify(updateFields[key] || []) : (updateFields[key] || null));
+      }
+    }
+
+    if (updateFields.status_id !== undefined) {
+      let saleStatus = 0;
+      if (updateFields.status_id) {
+        const [statusRows] = await conn.query('SELECT type FROM statuses WHERE id = ?', [updateFields.status_id]);
+        if (statusRows.length > 0) {
+          if (statusRows[0].type === 'sale') saleStatus = 1;
+          else if (statusRows[0].type === 'sale_lost') saleStatus = 2;
+        }
+      }
+      updates.push('current_sale_status = ?');
+      params.push(saleStatus);
+
+      let finalAssignedTo = updateFields.assigned_to !== undefined ? updateFields.assigned_to : oldContact.assigned_to;
+      if (saleStatus === 1) {
+        updates.push('sale_won = 1, sale_won_date = ?, sale_won_by = ?');
+        params.push(new Date(), finalAssignedTo);
+      } else if (saleStatus === 2) {
+        updates.push('sale_lost = 1, sale_lost_date = ?, sale_lost_by = ?');
+        params.push(new Date(), finalAssignedTo);
       }
     }
 

@@ -192,13 +192,19 @@
             <!-- Column 3: Analytics -->
             <div class="mega-menu-column">
               <div class="mega-menu-header">Analytics</div>
-              <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+              <!-- <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
                 <span>Conversion Report</span>
-              </a>
+              </a> -->
               <a routerLink="/channel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
                 <span>Channel Report</span>
+              </a>
+              <a routerLink="/won-lost-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle"></i> Sale Won / Lost Report
+              </a>
+              <a routerLink="/channel-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle"></i> Channel Conversion Report
               </a>
             </div>
           </div>

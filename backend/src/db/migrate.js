@@ -56,6 +56,7 @@ async function runMigrations() {
       opt_out_date TIMESTAMP NULL,
       opt_in_source ENUM('manual','link','whatsapp','import') DEFAULT 'manual',
       channel_preference ENUM('whatsapp','sms','rcs') DEFAULT 'whatsapp',
+      current_sale_status INT DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (business_id) REFERENCES businesses(id)
     )`,

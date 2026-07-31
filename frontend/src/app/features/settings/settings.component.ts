@@ -291,6 +291,13 @@ export class SettingsComponent implements OnInit {
   }
 
   showPlatformDropdown = false;
+  platformSearchTerm = '';
+
+  get filteredCustomChannels() {
+    if (!this.platformSearchTerm) return this.customChannels;
+    const term = this.platformSearchTerm.toLowerCase();
+    return this.customChannels.filter((ch: any) => ch.name.toLowerCase().includes(term));
+  }
 
   getPlatformIcon(name: string): string {
     const n = name.toLowerCase();
@@ -303,7 +310,7 @@ export class SettingsComponent implements OnInit {
     if (n === 'website') return 'bi-globe';
     if (n === 'referral') return 'bi-share';
     if (n === 'other') return 'bi-grid';
-    return 'bi-box'; // default icon for newly added platforms
+    return 'bi-link-45deg'; // default icon for newly added platforms
   }
 
   getPlatformColor(name: string): string {

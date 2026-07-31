@@ -646,6 +646,119 @@ const getChannelsReport = async (req, res) => {
   }
 };
 
+const getWonLostReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { startDate, endDate, agent } = req.query;
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    }
+
+    if (agent) {
+      dateFilter += ' AND c.assigned_to = ?';
+      queryParams.push(agent);
+    }
+
+    if (req.user.role === 'agent') {
+      dateFilter += ' AND c.assigned_to = ?';
+      queryParams.push(req.user.userId);
+    }
+
+    const query = `
+      SELECT 
+        c.id, c.name as client, c.status_name as status, 
+        c.current_sale_status,
+        (SELECT name FROM users WHERE id = c.assigned_to) as rep,
+        c.created_at as date 
+      FROM contacts c
+      WHERE c.business_id = ? AND c.current_sale_status IN (1, 2) ${dateFilter} 
+      ORDER BY c.created_at DESC
+    `;
+
+    const [rows] = await pool.query(query, queryParams);
+
+    const deals = rows.map(r => ({
+      id: r.id,
+      client: r.client,
+      amount: 'N/A',
+      status: r.current_sale_status === 1 ? 'Won' : 'Lost',
+      reason: r.reason || 'N/A',
+      rep: r.rep || 'Unassigned',
+      date: r.date
+    }));
+
+    res.json({ success: true, data: deals });
+  } catch (err) {
+    console.error('Won/Lost Report Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate report' });
+  }
+};
+
+const getChannelConversionReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { startDate, endDate, agent } = req.query;
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (startDate && endDate) {
+      dateFilter = 'AND DATE(created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    }
+
+    if (agent) {
+      dateFilter += ' AND assigned_to = ?';
+      queryParams.push(agent);
+    }
+
+    if (req.user.role === 'agent') {
+      dateFilter += ' AND assigned_to = ?';
+      queryParams.push(req.user.userId);
+    }
+
+    const query = `
+      SELECT 
+        COALESCE(channel_preference, 'Unknown') as channel,
+        COUNT(id) as total_leads,
+        SUM(IF(current_sale_status = 1, 1, 0)) as sale_won,
+        SUM(IF(current_sale_status = 2, 1, 0)) as sale_lost
+      FROM contacts
+      WHERE business_id = ? ${dateFilter}
+      GROUP BY channel_preference
+      ORDER BY total_leads DESC
+    `;
+
+    const [rows] = await pool.query(query, queryParams);
+
+    const data = rows.map(r => {
+      const total = Number(r.total_leads) || 0;
+      const won = Number(r.sale_won) || 0;
+      const lost = Number(r.sale_lost) || 0;
+      
+      const conversionRate = total > 0 ? ((won / total) * 100).toFixed(1) : '0.0';
+      const lossRate = total > 0 ? ((lost / total) * 100).toFixed(1) : '0.0';
+      
+      return {
+        channel: r.channel,
+        total_leads: total,
+        sale_won: won,
+        sale_lost: lost,
+        conversion_rate: conversionRate,
+        loss_rate: lossRate
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('getChannelConversionReport Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate report' });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -655,5 +768,7 @@ module.exports = {
   getWorkReport,
   getEmployeeReport,
   getSourceConversionReport,
-  getChannelsReport
+  getChannelsReport,
+  getWonLostReport,
+  getChannelConversionReport
 };

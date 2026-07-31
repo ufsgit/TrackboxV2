@@ -1,6 +1,7 @@
-import { Component, AfterViewInit, ChangeDetectorRef, NgZone } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectorRef, NgZone, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ApiService } from '../../../../core/services/api.service';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 
@@ -11,21 +12,19 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
   templateUrl: './won-lost-report.component.html',
   styleUrl: './won-lost-report.component.css'
 })
-export class WonLostReportComponent implements AfterViewInit {
+export class WonLostReportComponent implements OnInit {
   searchTerm: string = '';
-
+  loading: boolean = false;
+  dateRange: string = 'ytd';
+  customStartDate: string = '';
+  customEndDate: string = '';
+  
   // Animated KPI values
   kpi_won      = 0;
   kpi_lost     = 0;
   kpi_winRate  = 0;
 
-  deals = [
-    { id: 'DL-001', client: 'Acme Corp',         amount: '₹45,000', status: 'Won',  reason: 'Best Price & Value',    rep: 'Jane Doe',        date: '2023-10-25' },
-    { id: 'DL-002', client: 'TechFlow Inc',       amount: '₹25,000', status: 'Lost', reason: 'Competitor Feature',    rep: 'Robert Johnson',  date: '2023-10-22' },
-    { id: 'DL-003', client: 'Global Industries',  amount: '₹12,500', status: 'Won',  reason: 'Relationship',          rep: 'Michael Wilson',  date: '2023-10-20' },
-    { id: 'DL-004', client: 'StartupHub',         amount: '₹18,000', status: 'Lost', reason: 'Budget Constraints',    rep: 'Jane Doe',        date: '2023-10-18' },
-    { id: 'DL-005', client: 'Alpha Innovations',  amount: '₹35,000', status: 'Won',  reason: 'Fast Implementation',   rep: 'Sarah Jenkins',   date: '2023-10-15' }
-  ];
+  deals: any[] = [];
 
   public chartOptions: ChartConfiguration['options'] = {
     responsive: true,
@@ -40,7 +39,7 @@ export class WonLostReportComponent implements AfterViewInit {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { padding: 24, usePointStyle: true, pointStyleWidth: 12, font: { size: 14, weight: 'bold' } }
+        labels: { padding: 24, usePointStyle: true, pointStyleWidth: 12, font: { size: 14, weight: 'bold' as any } }
       },
       tooltip: {
         backgroundColor: 'rgba(15,23,42,0.92)',
@@ -58,7 +57,7 @@ export class WonLostReportComponent implements AfterViewInit {
   public chartData: ChartData<'pie'> = {
     labels: this.chartLabels,
     datasets: [{
-      data: [],
+      data: [0, 0],
       backgroundColor: ['#22c55e', '#ef4444'],
       hoverBackgroundColor: ['#16a34a', '#dc2626'],
       borderWidth: 3,
@@ -68,26 +67,68 @@ export class WonLostReportComponent implements AfterViewInit {
   };
   public chartType: ChartType = 'pie';
 
-  constructor(private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
+  constructor(
+    private cdr: ChangeDetectorRef, 
+    private ngZone: NgZone,
+    private api: ApiService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
-  ngAfterViewInit() {
-    this.ngZone.runOutsideAngular(() => {
-      this.countUp(0, 24, 1200, 0, v => { this.kpi_won     = v; this.cdr.detectChanges(); });
-      this.countUp(0, 16, 1200, 0, v => { this.kpi_lost    = v; this.cdr.detectChanges(); });
-      this.countUp(0, 60, 1200, 0, v => { this.kpi_winRate = v; this.cdr.detectChanges(); });
+  ngOnInit() {
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.loading = true;
+    let endpoint = `/reports/leads/won-lost?dateRange=${this.dateRange}`;
+    if (this.dateRange === 'custom') {
+      if (!this.customStartDate || !this.customEndDate) {
+        this.loading = false;
+        return;
+      }
+      endpoint += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
+    }
+
+    this.api.get(endpoint).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.deals = res.data;
+          this.updateDashboard();
+        }
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Failed to load won/lost report', err);
+        this.loading = false;
+      }
     });
+  }
 
-    setTimeout(() => {
-      this.chartData.datasets[0].data = [
-        this.deals.filter(d => d.status === 'Won').length,
-        this.deals.filter(d => d.status === 'Lost').length
-      ];
-      this.chartData = { ...this.chartData };
-      this.cdr.detectChanges();
-    }, 850);
+  updateDashboard() {
+    const wonCount = this.deals.filter(d => d.status === 'Won').length;
+    const lostCount = this.deals.filter(d => d.status === 'Lost').length;
+    const total = wonCount + lostCount;
+    const winRate = total > 0 ? (wonCount / total) * 100 : 0;
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.ngZone.runOutsideAngular(() => {
+        this.countUp(0, wonCount, 1200, 0, v => { this.kpi_won = v; this.cdr.detectChanges(); });
+        this.countUp(0, lostCount, 1200, 0, v => { this.kpi_lost = v; this.cdr.detectChanges(); });
+        this.countUp(0, winRate, 1200, 1, v => { this.kpi_winRate = v; this.cdr.detectChanges(); });
+      });
+    } else {
+      this.kpi_won = wonCount;
+      this.kpi_lost = lostCount;
+      this.kpi_winRate = winRate;
+    }
+
+    this.chartData.datasets[0].data = [wonCount, lostCount];
+    this.chartData = { ...this.chartData };
   }
 
   countUp(from: number, to: number, ms: number, decimals: number, cb: (v: number) => void) {
+    if (!isPlatformBrowser(this.platformId)) return;
     const startTime = performance.now();
     const tick = (now: number) => {
       const p = Math.min((now - startTime) / ms, 1);
@@ -101,9 +142,9 @@ export class WonLostReportComponent implements AfterViewInit {
   get filteredDeals() {
     if (!this.searchTerm) return this.deals;
     return this.deals.filter(d =>
-      d.client.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-      d.reason.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-      d.rep.toLowerCase().includes(this.searchTerm.toLowerCase())
+      d.client?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      d.reason?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      d.rep?.toLowerCase().includes(this.searchTerm.toLowerCase())
     );
   }
 

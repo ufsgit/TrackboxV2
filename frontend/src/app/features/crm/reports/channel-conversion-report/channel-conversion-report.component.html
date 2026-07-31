@@ -1,0 +1,206 @@
+<div class="report-page">
+
+  <!-- Header -->
+  <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="page-title">Channel Sales Conversion Report</h2>
+      <p class="page-sub text-muted">Analyze lead generation and conversion performance across all channels</p>
+    </div>
+    
+    <div class="header-filters d-flex align-items-center gap-2">
+      <select class="form-select shadow-sm border-0 bg-white" [(ngModel)]="dateRange" (change)="fetchData()" style="width: auto; border-radius: 8px;">
+        <option value="today">Today</option>
+        <option value="this_month">This Month</option>
+        <option value="last_month">Last Month</option>
+        <option value="ytd">Year to Date</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      
+      <div *ngIf="dateRange === 'custom'" class="d-flex align-items-center gap-2 bg-white px-2 py-1 shadow-sm" style="border-radius: 8px;">
+        <input type="date" class="form-control border-0 bg-transparent px-1" [(ngModel)]="customStartDate" (change)="fetchData()">
+        <span class="text-muted">-</span>
+        <input type="date" class="form-control border-0 bg-transparent px-1" [(ngModel)]="customEndDate" (change)="fetchData()">
+      </div>
+
+      <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm ms-2" (click)="fetchData(true)" style="border-radius: 8px;">
+        <i class="bi bi-arrow-clockwise" [class.spin-anim]="refreshing"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Skeletons & Content -->
+  <div class="content-wrapper" [class.is-loading]="loading || refreshing">
+    
+    <!-- KPI Cards Grid -->
+    <div class="kpi-grid mb-4">
+      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 0ms;">
+        <div class="kpi-deco" style="background: rgba(13, 110, 253, 0.05);"></div>
+        <div class="kpi-icon bg-primary-light text-primary">
+          <i class="bi bi-funnel"></i>
+        </div>
+        <span class="kpi-label">Total Leads</span>
+        <h3 class="kpi-value text-dark">{{ animatedTotals.leads }}</h3>
+      </div>
+      
+      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 60ms;">
+        <div class="kpi-deco" style="background: rgba(25, 135, 84, 0.05);"></div>
+        <div class="kpi-icon bg-success-light text-success">
+          <i class="bi bi-check-circle"></i>
+        </div>
+        <span class="kpi-label">Total Won</span>
+        <h3 class="kpi-value text-success">{{ animatedTotals.won }}</h3>
+      </div>
+      
+      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 120ms;">
+        <div class="kpi-deco" style="background: rgba(220, 53, 69, 0.05);"></div>
+        <div class="kpi-icon bg-danger-light text-danger">
+          <i class="bi bi-x-circle"></i>
+        </div>
+        <span class="kpi-label">Total Lost</span>
+        <h3 class="kpi-value text-danger">{{ animatedTotals.lost }}</h3>
+      </div>
+      
+      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 180ms;">
+        <div class="kpi-deco" style="background: rgba(13, 202, 240, 0.05);"></div>
+        <div class="kpi-icon bg-info-light text-info">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <span class="kpi-label">Avg Conversion</span>
+        <h3 class="kpi-value text-info">{{ animatedTotals.conversion }}%</h3>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4 charts-row">
+      <!-- Pie Chart -->
+      <div class="col-lg-5 mb-4 mb-lg-0 staggered-enter" style="animation-delay: 240ms;">
+        <div class="card border-0 premium-card h-100">
+          <div class="card-body p-4 d-flex flex-column">
+            <h5 class="card-title fw-bold mb-4 chart-title">Leads by Channel</h5>
+            <div class="chart-container flex-grow-1" style="position: relative; height: 300px; width: 100%;">
+              <canvas *ngIf="isBrowser && !loading && !refreshing" baseChart 
+                [data]="pieChartData" 
+                [options]="pieChartOptions" 
+                type="doughnut">
+              </canvas>
+              <!-- Skeleton fallback -->
+              <div class="skeleton-chart pie-skeleton" *ngIf="loading || refreshing"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bar Chart -->
+      <div class="col-lg-7 staggered-enter" style="animation-delay: 300ms;">
+        <div class="card border-0 premium-card h-100">
+          <div class="card-body p-4 d-flex flex-column">
+            <h5 class="card-title fw-bold mb-4 chart-title">Channel Performance</h5>
+            <div class="chart-container flex-grow-1" style="position: relative; height: 300px; width: 100%;">
+              <canvas *ngIf="isBrowser && !loading && !refreshing" baseChart 
+                [data]="barChartData" 
+                [options]="barChartOptions" 
+                type="bar">
+              </canvas>
+              <!-- Skeleton fallback -->
+              <div class="skeleton-chart bar-skeleton" *ngIf="loading || refreshing">
+                <div class="skeleton-bar" *ngFor="let i of [1,2,3,4,5]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card border-0 premium-card staggered-enter" style="animation-delay: 360ms;">
+      <div class="card-body p-0">
+        <div class="p-4 border-bottom header-divider">
+          <h5 class="card-title fw-bold mb-0 chart-title">Channel Breakdown</h5>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle custom-table">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4 py-3 border-0 text-muted">Channel Name</th>
+                <th class="py-3 border-0 text-muted text-center">Total Leads</th>
+                <th class="py-3 border-0 text-muted">Share of Total</th>
+                <th class="py-3 border-0 text-muted text-center">Sale Won</th>
+                <th class="py-3 border-0 text-muted text-center">Sale Lost</th>
+                <th class="py-3 border-0 text-muted">Conversion Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+              <!-- Skeleton Rows -->
+              <ng-container *ngIf="loading || refreshing">
+                <tr *ngFor="let i of [1,2,3,4]">
+                  <td class="ps-4 py-3"><div class="skeleton-line" style="width: 120px; height: 20px;"></div></td>
+                  <td class="py-3 text-center"><div class="skeleton-line mx-auto" style="width: 40px; height: 20px;"></div></td>
+                  <td class="py-3"><div class="skeleton-line" style="width: 100px; height: 8px; border-radius: 4px;"></div></td>
+                  <td class="py-3 text-center"><div class="skeleton-line mx-auto" style="width: 40px; height: 20px;"></div></td>
+                  <td class="py-3 text-center"><div class="skeleton-line mx-auto" style="width: 40px; height: 20px;"></div></td>
+                  <td class="py-3"><div class="skeleton-line" style="width: 60px; height: 20px;"></div></td>
+                </tr>
+              </ng-container>
+
+              <!-- Real Rows -->
+              <ng-container *ngIf="!loading && !refreshing">
+                <tr *ngFor="let row of data">
+                  <td class="ps-4 py-3">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="icon-wrapper" [style.color]="getChannelColor(row.channel)">
+                        <i class="bi fs-5" [ngClass]="getChannelIcon(row.channel)"></i>
+                      </div>
+                      <span class="fw-bold text-dark text-capitalize">{{ row.channel }}</span>
+                    </div>
+                  </td>
+                  <td class="py-3 fw-semibold text-secondary fs-6 text-center">{{ row.total_leads }}</td>
+                  <td class="py-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="text-muted small" style="width: 35px;">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
+                      <div class="progress flex-grow-1 share-progress">
+                        <div class="progress-bar" role="progressbar" 
+                             [style.width]="(totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0) + '%'"
+                             [style.backgroundColor]="getChannelColor(row.channel)"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 fw-bold text-success fs-6 text-center">{{ row.sale_won }}</td>
+                  <td class="py-3 fw-bold text-danger fs-6 text-center">{{ row.sale_lost }}</td>
+                  <td class="py-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="fw-bold" style="width: 45px;" [ngClass]="{'text-success': row.conversion_rate >= 10, 'text-warning': row.conversion_rate > 0 && row.conversion_rate < 10, 'text-muted': row.conversion_rate == 0}">{{ row.conversion_rate }}%</span>
+                      <div class="progress flex-grow-1 share-progress">
+                        <div class="progress-bar bg-success" role="progressbar" [style.width]="row.conversion_rate + '%'"></div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Totals Footer -->
+                <tr class="table-light border-top border-2">
+                  <td class="ps-4 py-3 fw-bold text-dark text-uppercase fs-6">Total / Average</td>
+                  <td class="py-3 fw-bold text-dark fs-5 text-center">{{ totals.leads }}</td>
+                  <td class="py-3"></td>
+                  <td class="py-3 fw-bold text-success fs-5 text-center">{{ totals.won }}</td>
+                  <td class="py-3 fw-bold text-danger fs-5 text-center">{{ totals.lost }}</td>
+                  <td class="py-3 fw-bold text-primary fs-5">{{ totals.conversion }}%</td>
+                </tr>
+
+                <!-- Empty State -->
+                <tr *ngIf="data.length === 0">
+                  <td colspan="6" class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                    No channel conversion data found for this period.
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

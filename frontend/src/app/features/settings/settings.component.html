@@ -240,42 +240,42 @@
             <div class="form-group mb-4">
               <label class="form-label">Platform Selection</label>
               <!-- Premium Dynamic Platform Dropdown -->
-              <div class="platform-dropdown-container" *ngIf="!editingAccount">
-                <div class="platform-dropdown-toggle" 
-                     [class.open]="showPlatformDropdown"
-                     (click)="showPlatformDropdown = !showPlatformDropdown">
-                  <div class="d-flex align-items-center">
-                    <ng-container *ngIf="newChannel.platform">
-                      <div class="platform-icon-wrapper">
-                        <i class="bi" [ngClass]="getPlatformIcon(getSelectedChannelName(newChannel.platform))"
-                           [style.color]="getPlatformColor(getSelectedChannelName(newChannel.platform))"></i>
-                      </div>
-                      <span class="platform-name">{{ getSelectedChannelName(newChannel.platform) }}</span>
-                    </ng-container>
-                    <ng-container *ngIf="!newChannel.platform">
-                      <span class="text-muted">Select a platform...</span>
-                    </ng-container>
-                  </div>
-                  <i class="bi bi-chevron-down text-muted dropdown-arrow"></i>
+              <div class="platform-select-container" *ngIf="!editingAccount">
+                <div class="platform-input-wrapper" (click)="showPlatformDropdown = true">
+                  <ng-container *ngIf="newChannel.platform">
+                    <div class="platform-icon-wrapper-input">
+                      <i class="bi" [ngClass]="getPlatformIcon(getSelectedChannelName(newChannel.platform))"
+                         [style.color]="getPlatformColor(getSelectedChannelName(newChannel.platform))"></i>
+                    </div>
+                  </ng-container>
+                  <input type="text" class="platform-search-input" 
+                         [placeholder]="newChannel.platform ? getSelectedChannelName(newChannel.platform) : 'Select or search platform...'"
+                         [(ngModel)]="platformSearchTerm"
+                         (focus)="showPlatformDropdown = true">
+                  <i class="bi bi-chevron-down platform-chevron" [class.rotated]="showPlatformDropdown"></i>
                 </div>
 
                 <div class="platform-dropdown-menu" *ngIf="showPlatformDropdown">
-                  <div class="platform-dropdown-item" *ngFor="let ch of customChannels"
-                    (click)="newChannel.platform = ch.id.toString(); showPlatformDropdown = false"
-                    [class.active]="newChannel.platform === ch.id.toString()">
-                    <div class="platform-icon-wrapper">
-                      <i class="bi" [ngClass]="getPlatformIcon(ch.name)"
-                         [style.color]="getPlatformColor(ch.name)"></i>
+                  <div class="platform-dropdown-list">
+                    <div class="platform-item" *ngFor="let ch of filteredCustomChannels"
+                         (click)="newChannel.platform = ch.id.toString(); platformSearchTerm = ''; showPlatformDropdown = false"
+                         [class.selected]="newChannel.platform === ch.id.toString()">
+                      <div class="platform-icon-wrapper-list">
+                        <i class="bi" [ngClass]="getPlatformIcon(ch.name)" [style.color]="getPlatformColor(ch.name)"></i>
+                      </div>
+                      <span class="platform-item-name">{{ ch.name }}</span>
+                      <i class="bi bi-check-lg ms-auto check-icon" *ngIf="newChannel.platform === ch.id.toString()"></i>
                     </div>
-                    <span class="platform-name">{{ ch.name }}</span>
-                    <i class="bi bi-check-circle-fill ms-auto text-primary" *ngIf="newChannel.platform === ch.id.toString()"></i>
+                    <div class="platform-item text-muted" *ngIf="filteredCustomChannels.length === 0">
+                      No platforms found.
+                    </div>
                   </div>
                 </div>
               </div>
               
               <!-- Transparent overlay to close dropdown when clicking outside -->
               <div class="dropdown-backdrop" *ngIf="showPlatformDropdown && !editingAccount" 
-                   (click)="showPlatformDropdown = false" style="position: fixed; inset: 0; z-index: 9;"></div>
+                   (click)="showPlatformDropdown = false; platformSearchTerm = ''" style="position: fixed; inset: 0; z-index: 9;"></div>
 
               <div class="selected-platform-locked" *ngIf="editingAccount">
                 <div class="platform-icon-wrapper">

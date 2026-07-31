@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
 import { AttendanceService } from '../../../../core/services/attendance.service';
+import { SocketService } from '../../../../core/services/socket.service';
 import { Subscription } from 'rxjs';
 
 interface AttendanceLog {
@@ -34,6 +35,7 @@ export class CrmAttendanceReportComponent implements OnInit, OnDestroy {
   toastMessage: string | null = null;
   toastTimeout: any;
   sub?: Subscription;
+  socketSub?: Subscription;
 
   // Filters
   filters = {
@@ -103,14 +105,21 @@ export class CrmAttendanceReportComponent implements OnInit, OnDestroy {
     ]
   };
 
-  constructor(private attendanceService: AttendanceService) {}
+  constructor(
+    private attendanceService: AttendanceService,
+    private socketService: SocketService
+  ) {}
 
   ngOnInit() {
     this.fetchData();
+    this.socketSub = this.socketService.on('attendance_updated').subscribe(() => {
+      this.fetchData();
+    });
   }
 
   ngOnDestroy() {
     if (this.sub) this.sub.unsubscribe();
+    if (this.socketSub) this.socketSub.unsubscribe();
   }
 
   fetchData() {

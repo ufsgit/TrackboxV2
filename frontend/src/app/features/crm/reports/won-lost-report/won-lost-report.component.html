@@ -1,14 +1,36 @@
 <div class="report-page">
 
   <!-- Header -->
-  <div class="page-header">
+  <div class="page-header d-flex justify-content-between align-items-center">
     <div>
-      <h2 class="page-title">Won / Lost Report</h2>
+      <h2 class="page-title">Sale Won / Lost Report</h2>
       <p class="page-sub">Track deal outcomes and reasons for success or failure</p>
     </div>
-    <button class="export-btn">
-      <i class="bi bi-cloud-download"></i> Export Report
-    </button>
+    
+    <div class="header-filters d-flex align-items-center gap-3">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Search report..." class="form-control">
+      </div>
+      
+      <select class="form-select" [(ngModel)]="dateRange" (change)="fetchData()" style="width: auto;">
+        <option value="today">Today</option>
+        <option value="this_month">This Month</option>
+        <option value="last_month">Last Month</option>
+        <option value="ytd">Year to Date</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      
+      <div *ngIf="dateRange === 'custom'" class="d-flex align-items-center gap-2">
+        <input type="date" class="form-control" [(ngModel)]="customStartDate" (change)="fetchData()">
+        <span>-</span>
+        <input type="date" class="form-control" [(ngModel)]="customEndDate" (change)="fetchData()">
+      </div>
+
+      <button class="export-btn" (click)="fetchData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+    </div>
   </div>
 
   <!-- KPI Cards -->
