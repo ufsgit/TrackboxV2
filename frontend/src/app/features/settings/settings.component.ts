@@ -50,10 +50,11 @@ export class SettingsComponent implements OnInit {
 
   // Channels Manager (Multi-account)
   socialAccounts: any[] = [];
+  customChannels: any[] = [];
   showAddChannelModal = false;
   editingAccount: any = null;
   newChannel: any = {
-    platform: 'whatsapp',
+    platform: '',
     account_name: '',
     phone_number: '',
     phone_id: '',
@@ -239,6 +240,7 @@ export class SettingsComponent implements OnInit {
     this.loadSocialAccounts();
     this.loadSourceCategories();
     this.loadFieldCategories();
+    this.loadCustomChannels();
     const base = window.location.origin.replace('4200', '3000') + '/api/webhooks';
     this.webhookUrl = `${base}/whatsapp`;
     this.fbWebhookUrl = `${base}/facebook`;
@@ -268,6 +270,54 @@ export class SettingsComponent implements OnInit {
         this.saveError = err.error?.message || 'Failed to load social accounts.';
       }
     });
+  }
+
+  loadCustomChannels() {
+    this.api.get('/system-settings/channels').subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.customChannels = res.data;
+        }
+      }
+    });
+  }
+
+  getSelectedChannelName(platformId: string): string {
+    const ch = this.customChannels.find(c => c.id.toString() === String(platformId));
+    if (ch) return ch.name;
+    // Fallback for old records with string identifiers like 'whatsapp'
+    if (['whatsapp', 'instagram', 'facebook'].includes(platformId)) return platformId;
+    return platformId || '';
+  }
+
+  showPlatformDropdown = false;
+
+  getPlatformIcon(name: string): string {
+    const n = name.toLowerCase();
+    if (n === 'whatsapp') return 'bi-whatsapp';
+    if (n === 'instagram') return 'bi-instagram';
+    if (n === 'facebook' || n === 'messenger') return 'bi-messenger';
+    if (n === 'linkedin') return 'bi-linkedin';
+    if (n === 'telegram') return 'bi-telegram';
+    if (n === 'twitter' || n === 'x') return 'bi-twitter-x';
+    if (n === 'website') return 'bi-globe';
+    if (n === 'referral') return 'bi-share';
+    if (n === 'other') return 'bi-grid';
+    return 'bi-box'; // default icon for newly added platforms
+  }
+
+  getPlatformColor(name: string): string {
+    const n = name.toLowerCase();
+    if (n === 'whatsapp') return '#25D366';
+    if (n === 'instagram') return '#E1306C';
+    if (n === 'facebook' || n === 'messenger') return '#0084FF';
+    if (n === 'linkedin') return '#0A66C2';
+    if (n === 'telegram') return '#229ED9';
+    if (n === 'twitter' || n === 'x') return '#000000';
+    if (n === 'website') return '#0ea5e9'; // sky blue
+    if (n === 'referral') return '#f59e0b'; // amber
+    if (n === 'other') return '#8b5cf6'; // purple
+    return '#64748b'; // default slate color
   }
 
   updateChannelSourceCategory(account: any, event: any) {
@@ -312,7 +362,7 @@ export class SettingsComponent implements OnInit {
   openAddChannel() {
     this.editingAccount = null;
     this.newChannel = {
-      platform: 'whatsapp',
+      platform: this.customChannels.length > 0 ? this.customChannels[0].id.toString() : '',
       account_name: '',
       phone_number: '',
       phone_id: '',

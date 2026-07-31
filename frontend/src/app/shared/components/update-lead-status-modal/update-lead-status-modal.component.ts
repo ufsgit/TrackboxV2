@@ -215,7 +215,10 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
     if (this.contactId) {
       const id = this.contactId;
       this.closeModal();
-      this.openProfile.emit(id);
+      // Add a slight delay so the current modal fully closes before the new one is triggered.
+      setTimeout(() => {
+        this.openProfile.emit(id);
+      }, 100);
     }
   }
 

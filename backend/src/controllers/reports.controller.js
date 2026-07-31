@@ -598,6 +598,54 @@ const getTimeTrackReport = async (req, res) => {
   }
 };
 
+const getChannelsReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { dateRange, startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'prev_year') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE()) - 1';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(c.created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    } else if (dateRange === 'today') {
+      dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    }
+
+    const [channels] = await pool.query(
+      `SELECT IFNULL(NULLIF(c.channel_preference, ''), 'Unknown') as channel, COUNT(c.id) as count 
+       FROM contacts c 
+       WHERE c.business_id = ? ${dateFilter} 
+       GROUP BY channel ORDER BY count DESC`,
+      queryParams
+    );
+
+    const totalLeads = channels.reduce((sum, ch) => sum + ch.count, 0);
+    const topChannel = channels.length > 0 ? channels[0].channel : 'N/A';
+
+    res.json({
+      success: true,
+      data: {
+        totalLeads,
+        topChannel,
+        channels: channels.map(c => ({ label: c.channel || 'Unknown', value: c.count }))
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -606,5 +654,6 @@ module.exports = {
   getPendingFollowupsReport,
   getWorkReport,
   getEmployeeReport,
-  getSourceConversionReport
+  getSourceConversionReport,
+  getChannelsReport
 };

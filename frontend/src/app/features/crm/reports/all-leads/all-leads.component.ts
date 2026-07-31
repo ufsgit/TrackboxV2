@@ -172,6 +172,10 @@ export class AllLeadsComponent implements OnInit {
   openProfile(lead: any) {
     const contactId = lead?.id || lead?.lead_id || lead?.contact_id;
     if (!contactId) return;
+    this.openProfileById(contactId);
+  }
+
+  openProfileById(contactId: number) {
     this.profileContactId = contactId;
     this.showProfileModal = true;
   }
@@ -179,6 +183,11 @@ export class AllLeadsComponent implements OnInit {
   closeLeadPanel() {
     this.showLeadPanel = false;
     this.leadPanelData = null;
+  }
+
+  closeProfileModal() {
+    this.showProfileModal = false;
+    this.profileContactId = null;
   }
 
   getStatusColor(statusName: string): string {

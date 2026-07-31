@@ -48,8 +48,8 @@ import Swal from 'sweetalert2';
               </span>
             </td>
             <td>
-              <span *ngIf="status.type" class="badge" [ngStyle]="{'background': status.type === 'sale' ? '#10B981' : '#EF4444'}">
-                {{ status.type === 'sale' ? 'Sale' : 'Sale Lost' }}
+              <span *ngIf="status.type" class="badge" [ngStyle]="{'background': status.type === 'sale won' ? '#10B981' : '#EF4444'}">
+                {{ status.type === 'sale won' ? 'Sale won' : 'Sale Lost' }}
               </span>
               <span *ngIf="!status.type" style="color:#94a3b8;">—</span>
             </td>
@@ -83,7 +83,7 @@ import Swal from 'sweetalert2';
           <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Type</label>
           <select class="form-control" [(ngModel)]="currentStatus.type" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
             <option value="">-- Select Type --</option>
-            <option value="sale">Sale</option>
+            <option value="sale">Sale won</option>
             <option value="sale_lost">Sale Lost</option>
           </select>
         </div>

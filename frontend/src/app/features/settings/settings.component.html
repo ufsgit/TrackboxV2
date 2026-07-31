@@ -32,8 +32,9 @@
       <div class="channels-grid-layout mt-4">
         <!-- Loop over socialAccounts -->
         <div class="channel-card-premium" *ngFor="let account of socialAccounts"
-          [class.whatsapp]="account.platform === 'whatsapp'" [class.instagram]="account.platform === 'instagram'"
-          [class.facebook]="account.platform === 'facebook'">
+          [class.whatsapp]="getSelectedChannelName(account.platform).toLowerCase() === 'whatsapp'"
+          [class.instagram]="getSelectedChannelName(account.platform).toLowerCase() === 'instagram'"
+          [class.facebook]="getSelectedChannelName(account.platform).toLowerCase() === 'facebook' || getSelectedChannelName(account.platform).toLowerCase() === 'messenger'">
           <!-- Card Glowing Border effect -->
           <div class="card-glow"></div>
 
@@ -42,15 +43,16 @@
             <div class="channel-header-row">
               <div class="platform-meta">
                 <div class="platform-badge-icon"
-                  [style.color]="account.platform === 'whatsapp' ? '#25D366' : (account.platform === 'instagram' ? '#E1306C' : '#0084FF')">
-                  <i class="bi" [class.bi-whatsapp]="account.platform === 'whatsapp'"
-                    [class.bi-instagram]="account.platform === 'instagram'"
-                    [class.bi-messenger]="account.platform === 'facebook'"></i>
+                  [style.color]="getSelectedChannelName(account.platform).toLowerCase() === 'whatsapp' ? '#25D366' : (getSelectedChannelName(account.platform).toLowerCase() === 'instagram' ? '#E1306C' : (getSelectedChannelName(account.platform).toLowerCase() === 'facebook' || getSelectedChannelName(account.platform).toLowerCase() === 'messenger' ? '#0084FF' : '#64748b'))">
+                  <i class="bi"
+                    [class.bi-whatsapp]="getSelectedChannelName(account.platform).toLowerCase() === 'whatsapp'"
+                    [class.bi-instagram]="getSelectedChannelName(account.platform).toLowerCase() === 'instagram'"
+                    [class.bi-messenger]="getSelectedChannelName(account.platform).toLowerCase() === 'facebook' || getSelectedChannelName(account.platform).toLowerCase() === 'messenger'"
+                    [class.bi-hash]="getSelectedChannelName(account.platform).toLowerCase() !== 'whatsapp' && getSelectedChannelName(account.platform).toLowerCase() !== 'instagram' && getSelectedChannelName(account.platform).toLowerCase() !== 'facebook' && getSelectedChannelName(account.platform).toLowerCase() !== 'messenger'"></i>
                 </div>
                 <div>
                   <h4 class="channel-title">{{ account.account_name || 'Unnamed Channel' }}</h4>
-                  <span class="platform-text-tag">{{ account.platform === 'facebook' ? 'MESSENGER' : (account.platform |
-                    uppercase) }}</span>
+                  <span class="platform-text-tag">{{ getSelectedChannelName(account.platform) | uppercase }}</span>
                 </div>
               </div>
 
@@ -68,33 +70,35 @@
             <!-- Details List -->
             <div class="channel-details-box mt-3">
               <!-- WhatsApp details -->
-              <div class="detail-row" *ngIf="account.platform === 'whatsapp'">
+              <div class="detail-row" *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'whatsapp'">
                 <span class="detail-label">Phone Number</span>
                 <span class="detail-val">{{ account.phone_number || '—' }}</span>
               </div>
-              <div class="detail-row" *ngIf="account.platform === 'whatsapp'">
+              <div class="detail-row" *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'whatsapp'">
                 <span class="detail-label">Phone ID</span>
                 <span class="detail-val font-mono">{{ account.phone_id || '—' }}</span>
               </div>
-              <div class="detail-row" *ngIf="account.platform === 'whatsapp'">
+              <div class="detail-row" *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'whatsapp'">
                 <span class="detail-label">WABA ID</span>
                 <span class="detail-val font-mono">{{ account.waba_id || '—' }}</span>
               </div>
               <!-- Instagram details -->
-              <div class="detail-row" *ngIf="account.platform === 'instagram'">
+              <div class="detail-row" *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'instagram'">
                 <span class="detail-label">IG Account ID</span>
                 <span class="detail-val font-mono">{{ account.account_id || '—' }}</span>
               </div>
-              <div class="detail-row" *ngIf="account.platform === 'instagram'">
+              <div class="detail-row" *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'instagram'">
                 <span class="detail-label">Facebook Page ID</span>
                 <span class="detail-val font-mono">{{ account.app_id || '—' }}</span>
               </div>
               <!-- Facebook Messenger details -->
-              <div class="detail-row" *ngIf="account.platform === 'facebook'">
+              <div class="detail-row"
+                *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'facebook' || getSelectedChannelName(account.platform).toLowerCase() === 'messenger'">
                 <span class="detail-label">Facebook Page ID</span>
                 <span class="detail-val font-mono">{{ account.app_id || account.account_id || '—' }}</span>
               </div>
-              <div class="detail-row" *ngIf="account.platform === 'facebook'">
+              <div class="detail-row"
+                *ngIf="getSelectedChannelName(account.platform).toLowerCase() === 'facebook' || getSelectedChannelName(account.platform).toLowerCase() === 'messenger'">
                 <span class="detail-label">Token Status</span>
                 <span class="detail-val" style="color: #0084FF;">{{ account.token ? '● Configured' : '○ Missing'
                   }}</span>
@@ -235,28 +239,51 @@
             <!-- Platform Selection Segment (Only editable on create) -->
             <div class="form-group mb-4">
               <label class="form-label">Platform Selection</label>
-              <div class="platform-segment" *ngIf="!editingAccount">
-                <label class="segment-option" [class.selected]="newChannel.platform === 'whatsapp'">
-                  <input type="radio" name="platform" value="whatsapp" [(ngModel)]="newChannel.platform">
-                  <i class="bi bi-whatsapp"></i> WhatsApp
-                </label>
-                <label class="segment-option" [class.selected]="newChannel.platform === 'instagram'">
-                  <input type="radio" name="platform" value="instagram" [(ngModel)]="newChannel.platform">
-                  <i class="bi bi-instagram"></i> Instagram
-                </label>
-                <label class="segment-option" [class.selected]="newChannel.platform === 'facebook'">
-                  <input type="radio" name="platform" value="facebook" [(ngModel)]="newChannel.platform">
-                  <i class="bi bi-messenger"></i> Messenger
-                </label>
+              <!-- Premium Dynamic Platform Dropdown -->
+              <div class="platform-dropdown-container" *ngIf="!editingAccount">
+                <div class="platform-dropdown-toggle" 
+                     [class.open]="showPlatformDropdown"
+                     (click)="showPlatformDropdown = !showPlatformDropdown">
+                  <div class="d-flex align-items-center">
+                    <ng-container *ngIf="newChannel.platform">
+                      <div class="platform-icon-wrapper">
+                        <i class="bi" [ngClass]="getPlatformIcon(getSelectedChannelName(newChannel.platform))"
+                           [style.color]="getPlatformColor(getSelectedChannelName(newChannel.platform))"></i>
+                      </div>
+                      <span class="platform-name">{{ getSelectedChannelName(newChannel.platform) }}</span>
+                    </ng-container>
+                    <ng-container *ngIf="!newChannel.platform">
+                      <span class="text-muted">Select a platform...</span>
+                    </ng-container>
+                  </div>
+                  <i class="bi bi-chevron-down text-muted dropdown-arrow"></i>
+                </div>
+
+                <div class="platform-dropdown-menu" *ngIf="showPlatformDropdown">
+                  <div class="platform-dropdown-item" *ngFor="let ch of customChannels"
+                    (click)="newChannel.platform = ch.id.toString(); showPlatformDropdown = false"
+                    [class.active]="newChannel.platform === ch.id.toString()">
+                    <div class="platform-icon-wrapper">
+                      <i class="bi" [ngClass]="getPlatformIcon(ch.name)"
+                         [style.color]="getPlatformColor(ch.name)"></i>
+                    </div>
+                    <span class="platform-name">{{ ch.name }}</span>
+                    <i class="bi bi-check-circle-fill ms-auto text-primary" *ngIf="newChannel.platform === ch.id.toString()"></i>
+                  </div>
+                </div>
               </div>
+              
+              <!-- Transparent overlay to close dropdown when clicking outside -->
+              <div class="dropdown-backdrop" *ngIf="showPlatformDropdown && !editingAccount" 
+                   (click)="showPlatformDropdown = false" style="position: fixed; inset: 0; z-index: 9;"></div>
+
               <div class="selected-platform-locked" *ngIf="editingAccount">
-                <i class="bi" [class.bi-whatsapp]="editingAccount.platform === 'whatsapp'"
-                  [class.bi-instagram]="editingAccount.platform === 'instagram'"
-                  [class.bi-messenger]="editingAccount.platform === 'facebook'"></i>
-                <span>{{ editingAccount.platform === 'facebook' ? 'MESSENGER' : (editingAccount.platform | uppercase) }}
-                  (Locked)</span>
-              </div>
-            </div>
+                <div class="platform-icon-wrapper">
+                  <i class="bi" [ngClass]="getPlatformIcon(getSelectedChannelName(editingAccount.platform))"
+                    [style.color]="getPlatformColor(getSelectedChannelName(editingAccount.platform))"></i>
+                </div>
+                <span>{{ getSelectedChannelName(editingAccount.platform) | uppercase }} (Locked)</span>
+              </div>          </div>
 
             <!-- Shared Fields -->
             <div class="form-group mb-3">
@@ -276,7 +303,7 @@
             </div>
 
             <!-- Platform Specific Form Fields: WHATSAPP -->
-            <div *ngIf="newChannel.platform === 'whatsapp'">
+            <div *ngIf="getSelectedChannelName(newChannel.platform).toLowerCase() === 'whatsapp'">
               <div class="form-group mb-3">
                 <label class="form-label">WhatsApp Phone Number</label>
                 <input type="text" class="form-control" [(ngModel)]="newChannel.phone_number"
@@ -313,7 +340,7 @@
             </div>
 
             <!-- Platform Specific Form Fields: INSTAGRAM -->
-            <div *ngIf="newChannel.platform === 'instagram'">
+            <div *ngIf="getSelectedChannelName(newChannel.platform).toLowerCase() === 'instagram'">
               <div class="form-group mb-3">
                 <label class="form-label">Instagram Business Account ID</label>
                 <input type="text" class="form-control" [(ngModel)]="newChannel.account_id" placeholder="IG Account ID"
@@ -360,7 +387,8 @@
             </div>
 
             <!-- Platform Specific Form Fields: FACEBOOK MESSENGER -->
-            <div *ngIf="newChannel.platform === 'facebook'">
+            <div
+              *ngIf="getSelectedChannelName(newChannel.platform).toLowerCase() === 'facebook' || getSelectedChannelName(newChannel.platform).toLowerCase() === 'messenger'">
               <div class="form-group mb-3">
                 <label class="form-label">Facebook Page ID</label>
                 <input type="text" class="form-control" [(ngModel)]="newChannel.app_id"
@@ -387,7 +415,8 @@
                   <strong>Webhook Setup Reminder</strong>
                   <p>After saving, go to your Meta Developer Dashboard → Messenger → Webhooks and subscribe to
                     <code>messages</code> and <code>messaging_postbacks</code> events using the webhook URL from the API
-                    &amp; Webhooks tab.</p>
+                    &amp; Webhooks tab.
+                  </p>
                 </div>
               </div>
             </div>
@@ -611,7 +640,8 @@
           </div>
           <div>
             <h3 class="lf-hero-title">Lead Field Manager</h3>
-            <p class="lf-hero-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns, dates, text fields and more.</p>
+            <p class="lf-hero-desc">Define custom fields that appear on every contact's lead detail view. Add dropdowns,
+              dates, text fields and more.</p>
           </div>
         </div>
         <button class="btn btn-primary lf-add-btn" (click)="openAddFieldModal()">
@@ -639,7 +669,8 @@
         <div *ngIf="leadFields.length === 0" class="lf-empty-state">
           <div class="lf-empty-icon"><i class="bi bi-layout-text-sidebar-reverse"></i></div>
           <h4 class="lf-empty-title">No Custom Fields Yet</h4>
-          <p class="lf-empty-desc">Add fields like "Course Selected", "Date of Birth", "City", etc. to enrich your lead profiles.</p>
+          <p class="lf-empty-desc">Add fields like "Course Selected", "Date of Birth", "City", etc. to enrich your lead
+            profiles.</p>
           <button class="btn btn-primary mt-3" (click)="openAddFieldModal()">
             <i class="bi bi-plus-lg me-2"></i> Add Your First Field
           </button>
@@ -1001,4 +1032,3 @@ Commerce"></textarea>
 
   </div>
 </div>
-

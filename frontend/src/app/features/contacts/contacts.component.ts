@@ -1488,8 +1488,8 @@ export class ContactsComponent implements OnInit {
     }
   }
 
-  openContactDetailFromQuickStatus() {
-    const contactId = this.quickStatusContactId;
+  openContactDetailFromQuickStatus(id?: number) {
+    const contactId = id || this.quickStatusContactId;
     this.closeQuickStatusModal();
     if (contactId) {
       const contact = this.contacts.find((c: any) => c.id === contactId);

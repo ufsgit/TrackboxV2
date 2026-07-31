@@ -3,7 +3,7 @@
   <header class="top-header">
     <!-- Row 1: Brand Logo, Department Switcher, Page Title & Utility Actions -->
     <div class="top-bar-main">
-      <!-- Brand Column: Trackbox Logo on top, CRM Dropdown Underneath -->
+      <!-- Brand Column: Trackbox Logo and CRM Dropdown in a row -->
       <div class="brand-column">
         <!-- Logo Icon -->
         <div class="logo-icon-wrapper" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer;">
@@ -186,6 +186,19 @@
               <a routerLink="/crm/attendance-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
                 <span>Attendance Report</span>
+              </a>
+            </div>
+
+            <!-- Column 3: Analytics -->
+            <div class="mega-menu-column">
+              <div class="mega-menu-header">Analytics</div>
+              <a routerLink="/lead-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Conversion Report</span>
+              </a>
+              <a routerLink="/channel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-circle-fill"></i>
+                <span>Channel Report</span>
               </a>
             </div>
           </div>

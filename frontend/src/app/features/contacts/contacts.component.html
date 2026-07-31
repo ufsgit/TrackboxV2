@@ -8,6 +8,9 @@
         <i class="bi bi-search"></i>
         <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name, phone or email..." class="premium-input">
       </div>
+      <button class="btn" (click)="onSearch()" style="background: #6366f1; color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2); transition: all 0.2s;">
+        Search
+      </button>
       <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
         <select class="form-select premium-select shadow-sm" [(ngModel)]="activeChannel" (change)="applyFilters()">
           <option value="">All Channels</option>
@@ -801,7 +804,14 @@
           <div class="field-row">
             <label>Channel</label>
             <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
-              <option *ngFor="let ch of channels" [value]="ch.name.toLowerCase()">{{ ch.name }}</option>
+              <option value="">-- Select Channel --</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="website">Website</option>
+              <option value="referral">Referral</option>
+              <option value="other">Other</option>
             </select>
           </div>
 
@@ -1002,7 +1012,7 @@
   [initialData]="quickStatusData"
   (close)="closeQuickStatusModal()"
   (saved)="loadContacts(); closeQuickStatusModal()"
-  (openProfile)="openContactDetailFromQuickStatus()">
+  (openProfile)="openContactDetailFromQuickStatus($event)">
 </app-update-lead-status-modal>
 
 <!-- Toast Notification -->

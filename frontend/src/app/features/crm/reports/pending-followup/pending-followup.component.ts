@@ -88,6 +88,11 @@ export class PendingFollowupComponent implements OnInit {
     this.leadPanelData = null;
   }
 
+  closeProfileModal() {
+    this.showProfileModal = false;
+    this.profileContactId = null;
+  }
+
 
   openFollowup(row: any) {
     const contactId = row?.id || row?.lead_id || row?.contact_id;
