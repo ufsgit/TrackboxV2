@@ -98,7 +98,12 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
         if (this.quickStatusData.follow_up_date && this.quickStatusData.follow_up_date.length > 10) {
           try {
             const dt = new Date(this.quickStatusData.follow_up_date);
-            this.quickStatusData.follow_up_date = dt.toISOString().split('T')[0];
+            if (!isNaN(dt.getTime())) {
+              const yyyy = dt.getFullYear();
+              const mm = String(dt.getMonth() + 1).padStart(2, '0');
+              const dd = String(dt.getDate()).padStart(2, '0');
+              this.quickStatusData.follow_up_date = `${yyyy}-${mm}-${dd}`;
+            }
           } catch (e) { /* ignore */ }
         }
       }
@@ -125,7 +130,12 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
           if (rawDate && rawDate.length > 10) {
             try {
               const dt = new Date(rawDate);
-              this.quickStatusData.follow_up_date = dt.toISOString().split('T')[0];
+              if (!isNaN(dt.getTime())) {
+                const yyyy = dt.getFullYear();
+                const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                const dd = String(dt.getDate()).padStart(2, '0');
+                this.quickStatusData.follow_up_date = `${yyyy}-${mm}-${dd}`;
+              }
             } catch (e) { this.quickStatusData.follow_up_date = rawDate; }
           } else {
             this.quickStatusData.follow_up_date = rawDate;

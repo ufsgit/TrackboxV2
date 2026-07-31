@@ -65,4 +65,10 @@ router.post('/teams', requireRole('admin', 'superadmin'), c.createTeam);
 router.put('/teams/:id', requireRole('admin', 'superadmin'), c.updateTeam);
 router.delete('/teams/:id', requireRole('admin', 'superadmin'), c.deleteTeam);
 
+// Channels
+router.get('/channels', c.getChannels);
+router.post('/channels', c.createChannel);
+router.put('/channels/:id', c.updateChannel);
+router.delete('/channels/:id', c.deleteChannel);
+
 module.exports = router;

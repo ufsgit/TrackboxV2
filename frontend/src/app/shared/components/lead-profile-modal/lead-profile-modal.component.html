@@ -37,6 +37,7 @@
       <!-- Tabs Navigation -->
       <div class="detail-tabs" style="display: flex; background: white; padding: 0 32px; border-bottom: 1px solid #e2e8f0; gap: 28px;">
         <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
+
         <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
@@ -166,6 +167,7 @@
             </div>
           </div>
         </div>
+
 
       </div>
     </ng-container>

@@ -460,6 +460,44 @@ const deleteTeam = async (req, res) => {
   }
 };
 
+// CHANNELS
+const getChannels = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM channels WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const createChannel = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const [result] = await pool.query('INSERT INTO channels (name, business_id) VALUES (?, ?)', [name, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM channels WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Channel created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const updateChannel = async (req, res) => {
+  try {
+    const { name } = req.body;
+    await pool.query('UPDATE channels SET name=? WHERE id=? AND business_id=?', [name, req.params.id, req.user.businessId]);
+    const [rows] = await pool.query('SELECT * FROM channels WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Channel updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+const deleteChannel = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM channels WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Channel deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
@@ -470,5 +508,6 @@ module.exports = {
   getAppStatuses, createAppStatus, updateAppStatus, deleteAppStatus,
   getEnquiryFors, createEnquiryFor, updateEnquiryFor, deleteEnquiryFor,
   getDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType,
-  getTeams, createTeam, updateTeam, deleteTeam
+  getTeams, createTeam, updateTeam, deleteTeam,
+  getChannels, createChannel, updateChannel, deleteChannel
 };

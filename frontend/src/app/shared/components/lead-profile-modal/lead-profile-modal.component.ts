@@ -35,6 +35,9 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   contactDocuments: any[] = [];
   loadingDocuments = false;
 
+  // Leads
+  selectedContactLeads: any[] = [];
+
   constructor(
     private api: ApiService,
     private appsService: ApplicationsService,
@@ -51,6 +54,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       this.loadContactDetails();
       this.loadApplications();
       this.loadDocuments();
+      this.loadLeads(this.contactId);
     }
   }
 
@@ -106,6 +110,48 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
         this.loadingDocuments = false;
       },
       error: () => { this.loadingDocuments = false; }
+    });
+  }
+
+  loadLeads(contactId: number) {
+    this.api.get(`/contacts/${contactId}/leads`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.selectedContactLeads = res.data;
+        }
+      }
+    });
+  }
+
+  openAddLeadModal() {
+    // Optional: implement add modal integration
+  }
+
+  openEditLeadModal(lead: any) {
+    // Optional: implement edit modal integration
+  }
+
+  deleteLead(leadId: number) {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will not be able to recover this lead!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`/leads/${leadId}`).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              Swal.fire('Deleted!', 'Lead has been deleted.', 'success');
+              if (this.contactId) {
+                this.loadLeads(this.contactId);
+              }
+            }
+          },
+          error: (err) => Swal.fire('Error', err.error?.message || 'Failed to delete lead', 'error')
+        });
+      }
     });
   }
 

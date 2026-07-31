@@ -121,24 +121,39 @@ export class PendingFollowupComponent implements OnInit {
   }
 
   get pageTitle() {
-    return this.filterParam === 'upcoming' ? 'Upcoming Follow-ups' : 'Pending Follow-ups';
+    if (this.filterParam === 'upcoming') return 'Upcoming Follow-ups';
+    if (this.filterParam === 'dueToday') return 'Today\'s Follow-ups';
+    return 'Pending Follow-ups';
   }
 
   get pageSubtitle() {
-    return this.filterParam === 'upcoming' ? 'Track and manage leads scheduled for the future' : 'Track and manage leads that need attention';
+    if (this.filterParam === 'upcoming') return 'Track and manage leads scheduled for the future';
+    if (this.filterParam === 'dueToday') return 'Track and manage leads that need attention today';
+    return 'Track and manage leads that need attention';
   }
 
   get filteredFollowups() {
     let filtered = this.followups;
-    if (this.filterParam === 'upcoming') filtered = filtered.filter(f => f.status === 'Upcoming');
-    else if (this.filterParam === 'overdue') filtered = filtered.filter(f => f.status === 'Overdue');
-    else if (this.filterParam === 'dueToday') filtered = filtered.filter(f => f.status === 'Due Today');
+    
+    // By default (null) or when explicitly 'overdue', show ONLY Overdue
+    if (this.filterParam === 'upcoming') {
+      filtered = filtered.filter(f => f.status === 'Upcoming');
+    } else if (this.filterParam === 'dueToday') {
+      filtered = filtered.filter(f => f.status === 'Due Today');
+    } else {
+      // If null or 'overdue' or anything else, show Overdue (till yesterday)
+      filtered = filtered.filter(f => f.status === 'Overdue');
+    }
 
     if (!this.searchTerm) return filtered;
     return filtered.filter(f =>
       f.leadName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
       f.assignee?.toLowerCase().includes(this.searchTerm.toLowerCase())
     );
+  }
+
+  get unassignedUpcomingCount() {
+    return this.followups.filter(f => f.status === 'Upcoming' && f.assignee === 'Unassigned').length;
   }
 
   setFilter(status: string | null) {

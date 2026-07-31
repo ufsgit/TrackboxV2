@@ -32,9 +32,17 @@ const getContacts = async (req, res) => {
     let where = 'WHERE c.business_id = ?';
     const params = [bizId];
     if (req.user.role === 'agent') {
-      // Agents only see leads directly assigned to themselves
-      where += ' AND c.assigned_to = ?';
-      params.push(req.user.userId);
+      // Agents see leads assigned to themselves OR any teammate sharing a team with them
+      const selfId = Number(req.user.userId);
+      const [teamRows] = await pool.query(
+        `SELECT user_id FROM team_members 
+         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
+        [selfId, bizId]
+      );
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+      where += ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
+      params.push(...teamMemberIds);
     } else if (agent) {
       where += ' AND c.assigned_to = ?';
       params.push(agent);
@@ -46,8 +54,8 @@ const getContacts = async (req, res) => {
     if (status === 'No Follow Up' || status === 'no_followup') {
       where += ' AND c.follow_up_date IS NULL';
     } else if (status) {
-      where += ' AND (c.status_name = ? OR c.status = ?)';
-      params.push(status, status);
+      where += ' AND c.status_name = ?';
+      params.push(status);
     }
     if (search) { where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
     if (tags) { where += ' AND JSON_CONTAINS(c.tags, ?)'; params.push(JSON.stringify(tags)); }

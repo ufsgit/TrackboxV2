@@ -42,6 +42,7 @@ export const routes: Routes = [
       { path: 'underperformers', loadComponent: () => import('./features/crm/sales-performance/underperformers/underperformers.component').then(m => m.UnderperformersComponent) },
       { path: 'pending-followup', loadComponent: () => import('./features/crm/reports/pending-followup/pending-followup.component').then(m => m.PendingFollowupComponent) },
       { path: 'todays-leads', loadComponent: () => import('./features/crm/reports/todays-leads/todays-leads.component').then(m => m.TodaysLeadsComponent) },
+      { path: 'upcoming-followups', loadComponent: () => import('./features/crm/reports/upcoming-followups/upcoming-followups.component').then(m => m.UpcomingFollowupsComponent) },
       { path: 'all-leads', loadComponent: () => import('./features/crm/reports/all-leads/all-leads.component').then(m => m.AllLeadsComponent) },
       { path: 'quotation-report', loadComponent: () => import('./features/crm/reports/quotation-report/quotation-report.component').then(m => m.QuotationReportComponent) },
       { path: 'purchase-order-report', loadComponent: () => import('./features/crm/reports/purchase-order-report/purchase-order-report.component').then(m => m.PurchaseOrderReportComponent) },
@@ -101,6 +102,7 @@ export const routes: Routes = [
       { path: 'system-settings/app-statuses', loadComponent: () => import('./features/system-settings/components/app-status-management/app-status-management.component').then(m => m.AppStatusManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/enquiry-fors', loadComponent: () => import('./features/system-settings/components/enquiry-for-management/enquiry-for-management.component').then(m => m.EnquiryForManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/document-type', loadComponent: () => import('./features/system-settings/components/document-type-management/document-type-management.component').then(m => m.DocumentTypeManagementComponent), data: { roles: ['admin', 'superadmin'] } }, // Trigger rebuild
+      { path: 'system-settings/channels', loadComponent: () => import('./features/system-settings/components/channel-management/channel-management.component').then(m => m.ChannelManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'analytics', component: AnalyticsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'affiliates', component: AffiliatesComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'templates', component: TemplatesComponent, data: { roles: ['admin', 'superadmin'] } },

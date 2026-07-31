@@ -71,6 +71,7 @@ const getContactGrowth = async (req, res) => {
 const getCrmDashboardStats = async (req, res) => {
   try {
     const bizId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
     const range = req.query.range || 'today';
 
     // Build date filter clause
@@ -83,48 +84,67 @@ const getCrmDashboardStats = async (req, res) => {
       dateClause = 'AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
     }
 
+    // Build role filter clause — agents see their own leads + their team members' leads
+    let agentClause = '';
+    const queryParams = [bizId];
+
+    if (req.user.role === 'agent') {
+      // Fetch all user IDs sharing a team with this agent (same pattern as contacts.controller.js)
+      const selfId = Number(userId);
+      const [teamRows] = await pool.query(
+        `SELECT user_id FROM team_members 
+         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
+        [selfId, bizId]
+      );
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+
+      agentClause = `AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
+      queryParams.push(...teamMemberIds);
+    }
+
     const [[{ totalLeads }]] = await pool.query(
-      `SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ? ${dateClause}`,
-      [bizId]
+      `SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ? ${agentClause} ${dateClause}`,
+      queryParams
     );
     
     // Follow-up counts are scheduling-state based, not date-filtered
     const [[{ pendingFollowUps }]] = await pool.query(
-      'SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) <= CURDATE()',
-      [bizId]
+      `SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) < CURDATE()`,
+      queryParams
     );
     const [[{ todaysFollowUps }]] = await pool.query(
-      'SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()',
-      [bizId]
+      `SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()`,
+      queryParams
     );
     const [[{ upcomingFollowUps }]] = await pool.query(
-      'SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()',
-      [bizId]
+      `SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()`,
+      queryParams
     );
     
     const [[{ wonDeals }]] = await pool.query(
-      `SELECT COUNT(*) as wonDeals FROM contacts WHERE business_id = ? AND status_name = 'Converted' ${dateClause}`,
-      [bizId]
+      `SELECT COUNT(*) as wonDeals FROM contacts WHERE business_id = ? ${agentClause} AND status_name = 'Converted' ${dateClause}`,
+      queryParams
     );
     const [[{ lostDeals }]] = await pool.query(
-      `SELECT COUNT(*) as lostDeals FROM contacts WHERE business_id = ? AND status_name = 'Sales Loss' ${dateClause}`,
-      [bizId]
+      `SELECT COUNT(*) as lostDeals FROM contacts WHERE business_id = ? ${agentClause} AND status_name = 'Sales Loss' ${dateClause}`,
+      queryParams
     );
 
     const [funnelData] = await pool.query(
       `SELECT status_name as name, COUNT(*) as count 
        FROM contacts 
-       WHERE business_id = ? AND status_name IS NOT NULL ${dateClause}
+       WHERE business_id = ? ${agentClause} AND status_name IS NOT NULL ${dateClause}
        GROUP BY status_name`,
-      [bizId]
+      queryParams
     );
 
     const [upcomingChartDataRows] = await pool.query(
       `SELECT DATEDIFF(DATE(follow_up_date), CURDATE()) as days_from_now, COUNT(*) as count 
        FROM contacts 
-       WHERE business_id = ? AND follow_up = 1 AND DATE(follow_up_date) > CURDATE() AND DATE(follow_up_date) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+       WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) > CURDATE() AND DATE(follow_up_date) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
        GROUP BY DATEDIFF(DATE(follow_up_date), CURDATE())`,
-      [bizId]
+      queryParams
     );
     const upcomingChartData = [0, 0, 0, 0, 0, 0, 0];
     upcomingChartDataRows.forEach(r => {

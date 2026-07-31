@@ -7,6 +7,7 @@ import { StatusManagementComponent } from './components/status-management/status
 import { IntakeManagementComponent } from './components/intake-management/intake-management.component';
 import { YearManagementComponent } from './components/year-management/year-management.component';
 import { AppStatusManagementComponent } from './components/app-status-management/app-status-management.component';
+import { ChannelManagementComponent } from './components/channel-management/channel-management.component';
 
 @Component({
   selector: 'app-system-settings',
@@ -19,8 +20,10 @@ import { AppStatusManagementComponent } from './components/app-status-management
     StatusManagementComponent,
     IntakeManagementComponent,
     YearManagementComponent,
-    AppStatusManagementComponent
+    AppStatusManagementComponent,
+    ChannelManagementComponent
   ],
+
   templateUrl: './system-settings.component.html',
   styleUrls: ['./system-settings.component.css']
 })

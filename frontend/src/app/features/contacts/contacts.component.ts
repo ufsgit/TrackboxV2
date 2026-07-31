@@ -218,6 +218,7 @@ export class ContactsComponent implements OnInit {
   years: any[] = [];
   appStatuses: any[] = [];
   enquiryFors: any[] = [];
+  channels: any[] = [];
   countries: string[] = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Ireland', 'New Zealand', 'Singapore', 'India', 'China'];
 
   // Dynamic Filtering Helpers
@@ -439,6 +440,7 @@ export class ContactsComponent implements OnInit {
     this.loadDepartments();
     this.loadLeadStatuses();
     this.loadDocumentTypes();
+    this.loadChannels();
 
     // Handle deep-link from report pages: ?contactId=X&action=profile|followup
     this.route.queryParams.subscribe(params => {
@@ -500,6 +502,16 @@ export class ContactsComponent implements OnInit {
   isTransferStatus(statusName: string): boolean {
     const found = this.leadStatuses.find(s => s.name === statusName);
     return found ? !!found.transfer : false;
+  }
+
+  loadChannels() {
+    this.settingsService.getChannels().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.channels = res.data;
+        }
+      }
+    });
   }
 
   /** Returns true if the given status name has follow_needed='Yes' in DB */
@@ -611,9 +623,17 @@ export class ContactsComponent implements OnInit {
     });
   }
 
-  onSearch() {
+  applyFilters() {
     this.currentPage = 1;
-    this.loadContacts();
+    if (this.viewMode === 'calendar') {
+      this.loadCalendarData(false);
+    } else {
+      this.loadContacts();
+    }
+  }
+
+  onSearch() {
+    this.applyFilters();
   }
 
   // Pagination methods
@@ -743,6 +763,7 @@ export class ContactsComponent implements OnInit {
     this.currentApplication = { contact_id: this.selectedContact.id, country: '', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
     this.showAddApplicationModal = true;
   }
+
 
   // --- BULK IMPORT & EXPORT LOGIC ---
   
@@ -1004,7 +1025,13 @@ export class ContactsComponent implements OnInit {
   openEditLeadModal(lead: any) {
     this.currentLead = { ...lead };
     if (this.currentLead.follow_up_date) {
-      this.currentLead.follow_up_date = new Date(this.currentLead.follow_up_date).toISOString().split('T')[0];
+      const dt = new Date(this.currentLead.follow_up_date);
+      if (!isNaN(dt.getTime())) {
+        const yyyy = dt.getFullYear();
+        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+        const dd = String(dt.getDate()).padStart(2, '0');
+        this.currentLead.follow_up_date = `${yyyy}-${mm}-${dd}`;
+      }
     }
     
     // Resolve branch & department from assigned_to employee if it exists
@@ -1027,6 +1054,13 @@ export class ContactsComponent implements OnInit {
     if (!this.currentLead.status) {
       Swal.fire('Error', 'Status is required.', 'error');
       return;
+    }
+
+    if (this.isTransferStatus(this.currentLead.status)) {
+      if (!this.currentLead.branch || !this.currentLead.department || !this.currentLead.assigned_to) {
+        Swal.fire('Error', 'Branch, Department, and Employee are required for this status.', 'error');
+        return;
+      }
     }
 
     const payload = { ...this.currentLead };
@@ -1216,6 +1250,28 @@ export class ContactsComponent implements OnInit {
         confirmButtonColor: '#10B981'
       });
       return;
+    }
+
+    if (!this.newContact.status) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Missing Fields',
+        text: 'Status is required',
+        confirmButtonColor: '#10B981'
+      });
+      return;
+    }
+
+    if (this.isTransferStatus(this.newContact.status)) {
+      if (!this.newContact.branch || !this.newContact.department || !this.newContact.assigned_employee) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Missing Fields',
+          text: 'Branch, Department, and Employee are required for this status.',
+          confirmButtonColor: '#10B981'
+        });
+        return;
+      }
     }
 
     // Phone validation for exactly 12 digits
@@ -1598,6 +1654,7 @@ export class ContactsComponent implements OnInit {
     // We fetch a larger limit to ensure we get most leads for the calendar view. 
     // In a production scenario with millions of leads, we'd want a dedicated endpoint.
     const params: any = { limit: 5000 };
+    if (this.searchQuery) params.search = this.searchQuery;
     if (this.activeTag) params.tags = this.activeTag;
     if (this.activeChannel) params.channel = this.activeChannel;
     if (this.activeStatus) params.status = this.activeStatus;

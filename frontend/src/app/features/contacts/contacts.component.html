@@ -9,17 +9,12 @@
         <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name, phone or email..." class="premium-input">
       </div>
       <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeChannel" (change)="currentPage = 1; loadContacts()">
+        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeChannel" (change)="applyFilters()">
           <option value="">All Channels</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="sms">SMS</option>
-          <option value="rcs">RCS</option>
-          <option value="instagram">Instagram</option>
-          <option value="facebook">Facebook</option>
-          <option value="website">Website</option>
+          <option *ngFor="let ch of channels" [value]="ch.name.toLowerCase()">{{ ch.name }}</option>
         </select>
         
-        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeStatus" (change)="currentPage = 1; loadContacts()">
+        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeStatus" (change)="applyFilters()">
           <option value="">All Statuses</option>
           <ng-container *ngIf="leadStatuses && leadStatuses.length > 0; else defaultStatusList">
             <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
@@ -34,12 +29,12 @@
           <option value="No Follow Up">No Follow Up</option>
         </select>
 
-        <select *ngIf="isAdmin" class="form-select premium-select shadow-sm" [(ngModel)]="activeAgent" (change)="currentPage = 1; loadContacts()">
+        <select *ngIf="isAdmin" class="form-select premium-select shadow-sm" [(ngModel)]="activeAgent" (change)="applyFilters()">
           <option value="">All Agents</option>
           <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
         </select>
         
-        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeTag" (change)="currentPage = 1; loadContacts()">
+        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeTag" (change)="applyFilters()">
           <option value="">All Tags</option>
           <option *ngFor="let tag of allTags" [value]="tag">{{ tag }}</option>
         </select>
@@ -208,12 +203,10 @@
   <div class="calendar-container" *ngIf="viewMode === 'calendar'">
 
     <!-- Calendar Header (Month / Year Controls) -->
-    <div class="calendar-header d-flex justify-content-between align-items-center mb-4">
-      <div class="d-flex align-items-center gap-3">
-        <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
-        <button class="btn btn-sm btn-light fw-bold px-3" style="border-radius: 8px; color: #4f46e5; border: 1px solid #c7d2fe; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" (click)="goToToday()">Today</button>
-      </div>
-      <div>
+    <div class="calendar-header d-flex align-items-center mb-4 gap-3" style="display: flex !important; flex-direction: row !important; align-items: center !important; width: 100% !important;">
+      <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
+      <button class="btn btn-sm btn-light fw-bold px-3" style="border-radius: 8px; color: #4f46e5; border: 1px solid #c7d2fe; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" (click)="goToToday()">Today</button>
+      <div style="display: flex !important; flex-direction: row !important; align-items: center !important;">
         <button class="btn btn-outline-secondary me-2 shadow-sm rounded-circle" (click)="prevCalendarMonth()">
           <i class="bi bi-chevron-left"></i>
         </button>
@@ -334,6 +327,7 @@
       <!-- Tabs Navigation -->
       <div class="detail-tabs">
         <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
+
         <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
         <!-- <button class="tab-btn" [class.active]="detailActiveTab === 'Quotation'" (click)="detailActiveTab = 'Quotation'">Quotation</button> -->
         <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
@@ -684,52 +678,6 @@
           </div>
         </div>
 
-        <!-- LEADS TAB -->
-        <div *ngIf="detailActiveTab === 'Leads'" class="tab-pane">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 style="margin:0;"><i class="bi bi-funnel"></i> Leads</h5>
-            <button class="btn btn-primary btn-sm" (click)="openAddLeadModal()"><i class="bi bi-plus"></i> Add Lead</button>
-          </div>
-          
-          <div class="table-responsive">
-            <table class="table table-hover align-middle custom-table">
-              <thead>
-                <tr>
-                  <th>Product/Service</th>
-                  <th>Status</th>
-                  <th>Assigned To</th>
-                  <th>Follow-up</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <ng-container *ngFor="let lead of selectedContactLeads">
-                  <tr *ngIf="lead.follow_up_date">
-                   <td>
-                     <div style="font-weight: 600;">{{ lead.enquiry_for_name || 'N/A' }}</div>
-                   </td>
-                   <td>
-                     <span class="badge bg-secondary">{{ lead.status }}</span>
-                   </td>
-                   <td>
-                     {{ lead.assigned_to_name || 'Unassigned' }}
-                   </td>
-                   <td>
-                     <span *ngIf="lead.follow_up_date">{{ lead.follow_up_date | date }}</span>
-                   </td>
-                   <td>
-                     <button class="btn btn-sm btn-icon text-primary me-1" title="Edit" (click)="openEditLeadModal(lead)"><i class="bi bi-pencil"></i></button>
-                     <button class="btn btn-sm btn-icon text-danger" title="Delete" (click)="deleteLead(lead.id)"><i class="bi bi-trash"></i></button>
-                   </td>
-                 </tr>
-                </ng-container>
-                <tr *ngIf="selectedContactLeads.length === 0">
-                  <td colspan="5" class="text-center text-muted py-4">No leads found.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
 
         <!-- APPLICATIONS TAB -->
         <div *ngIf="detailActiveTab === 'Applications'" class="tab-pane">
@@ -853,12 +801,7 @@
           <div class="field-row">
             <label>Channel</label>
             <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
-              <option value="whatsapp">WhatsApp</option>
-              <option value="sms">SMS</option>
-              <option value="rcs">RCS</option>
-              <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
-              <option value="website">Website</option>
+              <option *ngFor="let ch of channels" [value]="ch.name.toLowerCase()">{{ ch.name }}</option>
             </select>
           </div>
 
@@ -920,7 +863,7 @@
 
           <!-- Status Dropdown (dynamic from DB) -->
           <div class="field-row">
-            <label>Status</label>
+            <label>Status <span class="required">*</span></label>
             <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
               <option value="">-- Select --</option>
               <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
@@ -930,21 +873,21 @@
           <!-- Transfer For Department fields -->
           <ng-container *ngIf="isTransferStatus(newContact.status)">
             <div class="field-row">
-              <label>Branch</label>
+              <label>Branch <span class="required">*</span></label>
               <select class="form-select premium-input" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''" style="display:block;">
                 <option value="">-- Select Branch --</option>
                 <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
               </select>
             </div>
             <div class="field-row">
-              <label>Department</label>
+              <label>Department <span class="required">*</span></label>
               <select class="form-select premium-input" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''" style="display:block;">
                 <option value="">-- Select Department --</option>
                 <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
               </select>
             </div>
             <div class="field-row" *ngIf="newContact.department">
-              <label>Employee</label>
+              <label>Employee <span class="required">*</span></label>
               <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
                 <option value="">-- Select Employee --</option>
                 <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
@@ -1094,7 +1037,7 @@
       </div>
 
       <div class="field-row mb-3">
-        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Status</label>
+        <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Status <span class="text-danger">*</span></label>
         <select class="form-select premium-input" [(ngModel)]="currentLead.status" style="width: 100%;">
           <option *ngFor="let status of leadStatuses" [value]="status.name">{{ status.name }}</option>
         </select>
@@ -1109,7 +1052,7 @@
       <!-- Transfer logic: shown when status has transfer = true -->
       <ng-container *ngIf="isTransferStatus(currentLead.status)">
         <div class="field-row mb-3">
-          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Branch</label>
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Branch <span class="text-danger">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="currentLead.branch" style="width: 100%;">
             <option value="">Select Branch</option>
             <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
@@ -1117,7 +1060,7 @@
         </div>
 
         <div class="field-row mb-3" *ngIf="currentLead.branch">
-          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Department</label>
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Department <span class="text-danger">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="currentLead.department" style="width: 100%;">
             <option value="">Select Department</option>
             <option *ngFor="let d of getFilteredDepartments(currentLead.branch)" [value]="d.name">{{ d.name }}</option>
@@ -1125,7 +1068,7 @@
         </div>
 
         <div class="field-row mb-3" *ngIf="currentLead.department">
-          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee</label>
+          <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Employee <span class="text-danger">*</span></label>
           <select class="form-select premium-input" [(ngModel)]="currentLead.assigned_to" style="width: 100%;">
             <option value="">Select Employee</option>
             <option *ngFor="let e of getFilteredEmployees(currentLead.branch, currentLead.department)" [value]="e.id">{{ e.name }}</option>
@@ -1640,9 +1583,14 @@
               </span>
             </div>
             
-            <a *ngIf="lead.phone" [href]="'https://wa.me/' + lead.phone" target="_blank" (click)="$event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 6px; background: #25D366; color: white; border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; border: none; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.25); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 12px rgba(37, 211, 102, 0.35)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 10px rgba(37, 211, 102, 0.25)'">
-              <i class="bi bi-whatsapp"></i> Chat
-            </a>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button (click)="openQuickStatusModal(lead); $event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 6px; background: #4f46e5; color: white; border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; border: none; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25); transition: all 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 12px rgba(79, 70, 229, 0.35)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 10px rgba(79, 70, 229, 0.25)'">
+                <i class="bi bi-calendar-event"></i> Follow-up
+              </button>
+              <a *ngIf="lead.phone" [href]="'https://wa.me/' + lead.phone" target="_blank" (click)="$event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 6px; background: #25D366; color: white; border-radius: 8px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; border: none; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.25); text-decoration: none; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 12px rgba(37, 211, 102, 0.35)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 10px rgba(37, 211, 102, 0.25)'">
+                <i class="bi bi-whatsapp"></i> Chat
+              </a>
+            </div>
           </div>
         </div>
       </div>

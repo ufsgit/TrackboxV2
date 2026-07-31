@@ -129,4 +129,10 @@ export class SystemSettingsService {
   deleteTeamGroup(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/teams/${id}`);
   }
+
+  // --- CHANNELS ---
+  getChannels(): Observable<any> { return this.http.get(`${this.apiUrl}/channels`); }
+  createChannel(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/channels`, data); }
+  updateChannel(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/channels/${id}`, data); }
+  deleteChannel(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/channels/${id}`); }
 }
