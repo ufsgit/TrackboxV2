@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-department-management',
@@ -141,7 +143,7 @@ export class DepartmentManagementComponent implements OnInit {
       this.settingsService.updateDepartment(this.currentDept.id, this.currentDept).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Department updated' });
+            showImpressiveSuccess('Department updated');
             this.loadDepartments();
             this.closeDeptModal();
           }
@@ -151,7 +153,7 @@ export class DepartmentManagementComponent implements OnInit {
       this.settingsService.createDepartment(this.currentDept).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Department added' });
+            showImpressiveSuccess('Department added');
             this.loadDepartments();
             this.closeDeptModal();
           }
@@ -167,7 +169,7 @@ export class DepartmentManagementComponent implements OnInit {
         this.settingsService.deleteDepartment(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Department deleted' });
+              showImpressiveSuccess('Department deleted');
               this.loadDepartments();
             }
           }

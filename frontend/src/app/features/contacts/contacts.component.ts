@@ -1,3 +1,4 @@
+import { showImpressiveSuccess } from '../../core/utils/impressive-alert';
 import { Component, OnInit, HostListener, Inject } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -906,6 +907,7 @@ export class ContactsComponent implements OnInit {
       error: (err) => {
         this.bulkImportLoading = false;
         Swal.fire('Error', err.error?.message || 'Failed to import contacts.', 'error');
+
       }
     });
   }
@@ -925,7 +927,7 @@ export class ContactsComponent implements OnInit {
       this.appsService.updateApplication(this.currentApplication.id, this.currentApplication).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Application updated' });
+            showImpressiveSuccess('Application updated');
             this.loadApplications(this.selectedContact.id);
             this.showAddApplicationModal = false;
           }
@@ -936,7 +938,7 @@ export class ContactsComponent implements OnInit {
       this.appsService.createApplication(this.currentApplication).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Application created' });
+            showImpressiveSuccess('Application created');
             this.loadApplications(this.selectedContact.id);
             this.showAddApplicationModal = false;
           }
@@ -953,7 +955,7 @@ export class ContactsComponent implements OnInit {
         this.appsService.deleteApplication(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Application deleted' });
+              showImpressiveSuccess('Application deleted');
               this.loadApplications(this.selectedContact.id);
             }
           }
@@ -968,7 +970,7 @@ export class ContactsComponent implements OnInit {
     this.appsService.updateApplication(app.id, updatedApp).subscribe({
       next: (res: any) => {
         if (res.success) {
-          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Status updated' });
+          showImpressiveSuccess('Status updated');
           this.loadApplications(this.selectedContact.id);
         }
       }
@@ -1095,7 +1097,7 @@ export class ContactsComponent implements OnInit {
       this.api.put(`/leads/${payload.id}`, payload).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead updated' });
+            showImpressiveSuccess('Lead updated');
             this.loadLeads(this.selectedContact.id);
             this.showAddLeadModal = false;
           }
@@ -1106,7 +1108,7 @@ export class ContactsComponent implements OnInit {
       this.api.post(`/contacts/${this.selectedContact.id}/leads`, payload).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead created' });
+            showImpressiveSuccess('Lead created');
             this.loadLeads(this.selectedContact.id);
             this.showAddLeadModal = false;
           }
@@ -1123,7 +1125,7 @@ export class ContactsComponent implements OnInit {
         this.api.delete(`/leads/${id}`).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Lead deleted' });
+              showImpressiveSuccess('Lead deleted');
               this.loadLeads(this.selectedContact.id);
             }
           }
@@ -1393,14 +1395,7 @@ export class ContactsComponent implements OnInit {
               this.closeDetailPanel();
             }
 
-            Swal.fire({
-              toast: true,
-              position: 'top-end',
-              showConfirmButton: false,
-              timer: 3000,
-              icon: 'success',
-              title: 'Lead deleted successfully.'
-            });
+            showImpressiveSuccess('Lead deleted successfully.');
             
             // Optionally reload tags or pagination if needed, but the list is updated.
           },

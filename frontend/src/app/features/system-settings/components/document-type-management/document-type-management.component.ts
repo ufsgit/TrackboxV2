@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-document-type-management',
@@ -120,7 +122,7 @@ export class DocumentTypeManagementComponent implements OnInit {
       this.settingsService.updateDocumentType(this.currentDocumentType.id, this.currentDocumentType).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Document type updated' });
+            showImpressiveSuccess('Document type updated');
             this.loadDocumentTypes();
             this.closeModal();
           } else {
@@ -133,7 +135,7 @@ export class DocumentTypeManagementComponent implements OnInit {
       this.settingsService.createDocumentType(this.currentDocumentType).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Document type added' });
+            showImpressiveSuccess('Document type added');
             this.loadDocumentTypes();
             this.closeModal();
           } else {
@@ -152,7 +154,7 @@ export class DocumentTypeManagementComponent implements OnInit {
         this.settingsService.deleteDocumentType(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Document type deleted' });
+              showImpressiveSuccess('Document type deleted');
               this.loadDocumentTypes();
             }
           }

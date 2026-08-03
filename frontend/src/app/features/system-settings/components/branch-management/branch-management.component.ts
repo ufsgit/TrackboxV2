@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-branch-management',
@@ -136,7 +138,7 @@ export class BranchManagementComponent implements OnInit {
       this.settingsService.updateBranch(this.currentBranch.id, this.currentBranch).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Branch updated' });
+            showImpressiveSuccess('Branch updated');
             this.loadBranches();
             this.closeBranchModal();
           }
@@ -146,7 +148,7 @@ export class BranchManagementComponent implements OnInit {
       this.settingsService.createBranch(this.currentBranch).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Branch added' });
+            showImpressiveSuccess('Branch added');
             this.loadBranches();
             this.closeBranchModal();
           }
@@ -162,7 +164,7 @@ export class BranchManagementComponent implements OnInit {
         this.settingsService.deleteBranch(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Branch deleted' });
+              showImpressiveSuccess('Branch deleted');
               this.loadBranches();
             }
           }

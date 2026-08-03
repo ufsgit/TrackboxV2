@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-designation-management',
@@ -118,7 +120,7 @@ export class DesignationManagementComponent implements OnInit {
       this.settingsService.updateDesignation(this.currentItem.id, this.currentItem).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Designation updated' });
+            showImpressiveSuccess('Designation updated');
             this.loadItems();
             this.closeModal();
           }
@@ -128,7 +130,7 @@ export class DesignationManagementComponent implements OnInit {
       this.settingsService.createDesignation(this.currentItem).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Designation added' });
+            showImpressiveSuccess('Designation added');
             this.loadItems();
             this.closeModal();
           }
@@ -144,7 +146,7 @@ export class DesignationManagementComponent implements OnInit {
         this.settingsService.deleteDesignation(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Designation deleted' });
+              showImpressiveSuccess('Designation deleted');
               this.loadItems();
             }
           }

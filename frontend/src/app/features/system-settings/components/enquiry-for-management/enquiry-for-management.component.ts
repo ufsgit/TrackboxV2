@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-enquiry-for-management',
@@ -112,7 +114,7 @@ export class EnquiryForManagementComponent implements OnInit {
       this.settingsService.updateEnquiryFor(this.currentItem.id, this.currentItem).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Option updated' });
+            showImpressiveSuccess('Option updated');
             this.loadItems();
             this.closeModal();
           }
@@ -122,7 +124,7 @@ export class EnquiryForManagementComponent implements OnInit {
       this.settingsService.createEnquiryFor(this.currentItem).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Option added' });
+            showImpressiveSuccess('Option added');
             this.loadItems();
             this.closeModal();
           }
@@ -138,7 +140,7 @@ export class EnquiryForManagementComponent implements OnInit {
         this.settingsService.deleteEnquiryFor(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Option deleted' });
+              showImpressiveSuccess('Option deleted');
               this.loadItems();
             }
           }

@@ -279,6 +279,7 @@ export class CrmAttendanceReportComponent implements OnInit, OnDestroy {
       case 'Leave': return 'badge bg-secondary-subtle text-secondary';
       case 'Remote': return 'badge bg-info-subtle text-info';
       case 'Half Day': return 'badge bg-purple-subtle text-purple';
+      case 'Checked Out': return 'badge bg-secondary-subtle text-secondary';
       default: return 'badge bg-light text-dark';
     }
   }

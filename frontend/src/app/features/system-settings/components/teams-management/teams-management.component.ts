@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-teams-management',
@@ -454,7 +456,7 @@ export class TeamsManagementComponent implements OnInit {
     this.settingsService.updateTeamPermissions(this.currentTeam.id, this.permissionsList).subscribe({
       next: (res: any) => {
         if (res.success) {
-          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Permissions updated' });
+          showImpressiveSuccess('Permissions updated');
           this.loadTeams(); // reload to get updated permissions string
           this.closePermissionsModal();
         }
@@ -479,7 +481,7 @@ export class TeamsManagementComponent implements OnInit {
       this.settingsService.updateTeamMember(this.currentTeam.id, this.currentTeam).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Employee updated' });
+            showImpressiveSuccess('Employee updated');
             this.loadTeams();
             this.closeTeamModal();
           }
@@ -490,7 +492,7 @@ export class TeamsManagementComponent implements OnInit {
       this.settingsService.createTeamMember(this.currentTeam).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Employee added' });
+            showImpressiveSuccess('Employee added');
             this.loadTeams();
             this.closeTeamModal();
           }
@@ -512,7 +514,7 @@ export class TeamsManagementComponent implements OnInit {
         this.settingsService.deleteTeamMember(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Employee deleted' });
+              showImpressiveSuccess('Employee deleted');
               this.loadTeams();
             }
           }

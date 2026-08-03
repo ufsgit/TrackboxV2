@@ -241,7 +241,7 @@
                 <div class="text-muted small" *ngIf="log.overtime > 0"><span class="text-success">+{{ log.overtime }}h OT</span></div>
                 <div class="text-muted small" *ngIf="log.overtime === 0">-</div>
               </td>
-              <td><span class="badge rounded-pill px-3 py-2" [ngClass]="getStatusClass(log.status)">{{ log.status }}</span></td>
+              <td><span class="badge rounded-pill px-3 py-2" [ngClass]="getStatusClass(log.checkOut !== '-' ? 'Checked Out' : log.status)">{{ log.checkOut !== '-' ? 'Checked Out' : log.status }}</span></td>
               <td class="text-end">
                 <button class="btn btn-sm btn-light btn-icon shadow-sm" title="View Detail Profile"><i class="bi bi-chevron-right text-primary"></i></button>
               </td>

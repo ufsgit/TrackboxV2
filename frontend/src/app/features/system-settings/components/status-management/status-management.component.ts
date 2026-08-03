@@ -1,8 +1,10 @@
+import { showImpressiveSuccess } from '../../../../core/utils/impressive-alert';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SystemSettingsService } from '../../../../core/services/system-settings.service';
 import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-status-management',
@@ -177,7 +179,7 @@ export class StatusManagementComponent implements OnInit {
       this.settingsService.updateStatus(this.currentStatus.id, this.currentStatus).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Status updated' });
+            showImpressiveSuccess('Status updated');
             this.loadStatuses();
             this.closeStatusModal();
           }
@@ -187,7 +189,7 @@ export class StatusManagementComponent implements OnInit {
       this.settingsService.createStatus(this.currentStatus).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Status added' });
+            showImpressiveSuccess('Status added');
             this.loadStatuses();
             this.closeStatusModal();
           }
@@ -203,7 +205,7 @@ export class StatusManagementComponent implements OnInit {
         this.settingsService.deleteStatus(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Status deleted' });
+              showImpressiveSuccess('Status deleted');
               this.loadStatuses();
             }
           }
