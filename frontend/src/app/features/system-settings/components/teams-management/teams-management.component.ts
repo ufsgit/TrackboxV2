@@ -228,10 +228,30 @@ import Swal from 'sweetalert2';
               <thead>
                 <tr>
                   <th>Menu / Feature</th>
-                  <th class="text-center">View</th>
-                  <th class="text-center">Save</th>
-                  <th class="text-center">Edit</th>
-                  <th class="text-center">Delete</th>
+                  <th class="text-center">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                      <span>View</span>
+                      <input type="checkbox" [checked]="isAllSelected('view')" (change)="toggleAllColumn('view', $event)" style="width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer;" title="Select All View">
+                    </div>
+                  </th>
+                  <th class="text-center">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                      <span>Save</span>
+                      <input type="checkbox" [checked]="isAllSelected('save')" (change)="toggleAllColumn('save', $event)" style="width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer;" title="Select All Save">
+                    </div>
+                  </th>
+                  <th class="text-center">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                      <span>Edit</span>
+                      <input type="checkbox" [checked]="isAllSelected('edit')" (change)="toggleAllColumn('edit', $event)" style="width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer;" title="Select All Edit">
+                    </div>
+                  </th>
+                  <th class="text-center">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                      <span>Delete</span>
+                      <input type="checkbox" [checked]="isAllSelected('delete')" (change)="toggleAllColumn('delete', $event)" style="width: 16px; height: 16px; accent-color: #4f46e5; cursor: pointer;" title="Select All Delete">
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -325,6 +345,25 @@ export class TeamsManagementComponent implements OnInit {
     'Templates',
     'Reports',
     'Settings',
+    'Teams',
+    'Branch',
+    'Department',
+    'Lead Status',
+    'Designation',
+    'Intake',
+    'Year',
+    'Application Status',
+    'Enquiry For',
+    'Document Type',
+    'Channel',
+    'Channels Manager',
+    'Users / Agents',
+    'Lead Fields',
+    'Field Categories',
+    'Source Categories',
+    'API & Webhooks',
+    'Integrations',
+    'Courses',
     'CRM',
     'Operation',
     'HR',
@@ -472,6 +511,16 @@ export class TeamsManagementComponent implements OnInit {
       p.edit = true;
       p.delete = true;
     });
+  }
+
+  isAllSelected(col: 'view' | 'save' | 'edit' | 'delete'): boolean {
+    if (!this.permissionsList || this.permissionsList.length === 0) return false;
+    return this.permissionsList.every(m => m[col]);
+  }
+
+  toggleAllColumn(col: 'view' | 'save' | 'edit' | 'delete', event: any) {
+    const checked = event.target.checked;
+    this.permissionsList.forEach(m => m[col] = checked);
   }
 
   closeTeamModal() { this.showTeamModal = false; }

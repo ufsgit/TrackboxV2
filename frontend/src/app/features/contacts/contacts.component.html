@@ -88,11 +88,11 @@
           <th style="width: 40px; text-align: center;">#</th>
           <th>Name</th>
           <th>Employee</th>
-          <th>Phone</th>
+          <th style="width: 120px;">Phone</th>
           <th>Status</th>
-          <th>Follow Up </th>
+          <th style="width: 140px;">Follow Up</th>
           <th></th>
-          <th>Remark</th>
+          <th style="width: 350px;">Remark</th>
         </tr>
       </thead>
       <tbody>
@@ -187,7 +187,7 @@
             </div>
           </td>
 
-          <td style="max-width: 250px;">
+          <td style="max-width: 400px; width: 400px;">
             <div class="text-muted small mb-1" style="word-wrap: break-word; white-space: normal;">
               <ng-container *ngIf="!contact.isRemarkExpanded && contact.latest_remark && contact.latest_remark.length > 35">
                 {{ contact.latest_remark | slice:0:35 }}...

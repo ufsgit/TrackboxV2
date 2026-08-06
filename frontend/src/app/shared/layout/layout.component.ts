@@ -591,6 +591,31 @@ export class LayoutComponent implements OnInit {
     return last.charAt(0).toUpperCase() + last.slice(1).replace(/-/g, ' ');
   }
 
+  hasAnySystemSetting(): boolean {
+    return this.authService.hasPermission('Teams', 'view') || 
+           this.authService.hasPermission('Branch', 'view') || 
+           this.authService.hasPermission('Department', 'view') || 
+           this.authService.hasPermission('Lead Status', 'view') || 
+           this.authService.hasPermission('Designation', 'view') || 
+           this.authService.hasPermission('Application Status', 'view') || 
+           this.authService.hasPermission('Intake', 'view') || 
+           this.authService.hasPermission('Year', 'view') || 
+           this.authService.hasPermission('Enquiry For', 'view') || 
+           this.authService.hasPermission('Document Type', 'view') || 
+           this.authService.hasPermission('Channel', 'view');
+  }
+
+  hasAnyGeneralSetting(): boolean {
+    return this.authService.hasPermission('Channels Manager', 'view') || 
+           this.authService.hasPermission('Users / Agents', 'view') || 
+           this.authService.hasPermission('Lead Fields', 'view') || 
+           this.authService.hasPermission('Field Categories', 'view') || 
+           this.authService.hasPermission('Source Categories', 'view') || 
+           this.authService.hasPermission('API & Webhooks', 'view') || 
+           this.authService.hasPermission('Integrations', 'view') || 
+           this.authService.hasPermission('Courses', 'view');
+  }
+
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);

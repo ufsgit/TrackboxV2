@@ -56,37 +56,37 @@
         <nav class="horizontal-nav-bar" *ngIf="!isSettingsRoute">
           <ng-container *ngIf="user$ | async as user">
       <ng-container *ngIf="activeDepartment === 'Leads'">
-        <a routerLink="/lead-dashboard" routerLinkActive="active" class="nav-item">
+        <a routerLink="/lead-dashboard" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
           <i class="bi bi-speedometer2"></i>
           <span>Lead Dashboard</span>
         </a>
-        <a routerLink="/contacts" routerLinkActive="active" class="nav-item">
+        <a routerLink="/contacts" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
           <i class="bi bi-people"></i>
           <span>Leads</span>
         </a>
-        <a routerLink="/inbox" routerLinkActive="active" class="nav-item">
+        <a routerLink="/inbox" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Inbox', 'view')">
           <i class="bi bi-chat-dots"></i>
           <span>Shared Inbox</span>
         </a>
-        <a routerLink="/broadcasts" routerLinkActive="active" class="nav-item" *ngIf="user.role === 'admin' || user.role === 'superadmin'">
+        <a routerLink="/broadcasts" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Broadcasts', 'view')">
           <i class="bi bi-megaphone"></i>
           <span>Broadcasts</span>
         </a>
-        <a routerLink="/chatbots" routerLinkActive="active" class="nav-item" *ngIf="user.role === 'admin' || user.role === 'superadmin'">
+        <a routerLink="/chatbots" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Chatbots', 'view')">
           <i class="bi bi-robot"></i>
           <span>Chatbots</span>
         </a>
-        <a routerLink="/templates" routerLinkActive="active" class="nav-item" *ngIf="user.role === 'admin' || user.role === 'superadmin'">
+        <a routerLink="/templates" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Templates', 'view')">
           <i class="bi bi-file-earmark-text"></i>
           <span>Templates</span>
         </a>
-        <a routerLink="/lead/leave-request" routerLinkActive="active" class="nav-item">
+        <a routerLink="/lead/leave-request" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Leave Request', 'view')">
           <i class="bi bi-calendar2-check"></i>
           <span>Leave Request</span>
         </a>
         
         <!-- Reports Dropdown Popover Container -->
-        <div class="reports-dropdown-wrapper">
+        <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
           <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen" (click)="toggleReports($event)">
             <i class="bi bi-bar-chart-line"></i>
             <span>Reports</span>
@@ -146,17 +146,17 @@
 
       <!-- CRM MENU -->
       <ng-container *ngIf="activeDepartment === 'CRM'">
-        <a routerLink="/crm-dashboard" routerLinkActive="active" class="nav-item">
+        <a routerLink="/crm-dashboard" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
           <i class="bi bi-speedometer2"></i>
           <span>Dashboard</span>
         </a>
-        <a routerLink="/contacts" routerLinkActive="active" class="nav-item">
+        <a routerLink="/contacts" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('CRM', 'view')">
           <i class="bi bi-person-lines-fill"></i>
           <span>Leads</span>
         </a>
 
         <!-- Reports Popover -->
-        <div class="reports-dropdown-wrapper">
+        <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
           <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen" (click)="toggleReports($event)">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
@@ -213,33 +213,33 @@
 
       <!-- OPERATION MENU -->
       <ng-container *ngIf="activeDepartment === 'Operation'">
-        <a routerLink="/operation-dashboard" routerLinkActive="active" class="nav-item">
+        <a routerLink="/operation-dashboard" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
           <i class="bi bi-speedometer2"></i>
           <span>Dashboard</span>
         </a>
-        <a routerLink="/installation" routerLinkActive="active" class="nav-item">
+        <a routerLink="/installation" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Operation', 'view')">
           <i class="bi bi-tools"></i>
           <span>Installation</span>
         </a>
-        <a routerLink="/customer-feedback" routerLinkActive="active" class="nav-item">
+        <a routerLink="/customer-feedback" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Operation', 'view')">
           <i class="bi bi-star"></i>
           <span>Customer Feedback</span>
         </a>
-        <a routerLink="/warranty-service" routerLinkActive="active" class="nav-item">
+        <a routerLink="/warranty-service" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Operation', 'view')">
           <i class="bi bi-shield-check"></i>
           <span>Warranty & Service</span>
         </a>
-        <a routerLink="/complaints" routerLinkActive="active" class="nav-item">
+        <a routerLink="/complaints" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Operation', 'view')">
           <i class="bi bi-exclamation-triangle"></i>
           <span>Complaints</span>
         </a>
-        <a routerLink="/operation/leave-request" routerLinkActive="active" class="nav-item">
+        <a routerLink="/operation/leave-request" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Leave Request', 'view')">
           <i class="bi bi-calendar2-check"></i>
           <span>Leave Request</span>
         </a>
 
         <!-- Operation Reports Popover -->
-        <div class="reports-dropdown-wrapper">
+        <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
           <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isOperationReportsOpen" (click)="toggleOperationReports($event)">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
@@ -286,33 +286,33 @@
 
       <!-- HR MENU -->
       <ng-container *ngIf="activeDepartment === 'HR'">
-        <a routerLink="/hr-dashboard" class="nav-item">
+        <a routerLink="/hr-dashboard" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
           <i class="bi bi-speedometer2"></i>
           <span>Dashboard</span>
         </a>
-        <a routerLink="/attendance" routerLinkActive="active" class="nav-item">
+        <a routerLink="/attendance" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('HR', 'view')">
           <i class="bi bi-clock"></i>
           <span>Attendance</span>
         </a>
-        <a routerLink="/employee-location" routerLinkActive="active" class="nav-item">
+        <a routerLink="/employee-location" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('HR', 'view')">
           <i class="bi bi-geo-alt"></i>
           <span>Employee Location</span>
         </a>
-        <a routerLink="/employees" routerLinkActive="active" class="nav-item">
+        <a routerLink="/employees" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('HR', 'view')">
           <i class="bi bi-people"></i>
           <span>Employees</span>
         </a>
-        <a routerLink="/pending-approvals" routerLinkActive="active" class="nav-item">
+        <a routerLink="/pending-approvals" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('HR', 'view')">
           <i class="bi bi-check2-square"></i>
           <span>Pending Approvals</span>
         </a>
-        <a routerLink="/hr/leave-request" routerLinkActive="active" class="nav-item">
+        <a routerLink="/hr/leave-request" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Leave Request', 'view')">
           <i class="bi bi-calendar2-check"></i>
           <span>Leave Request</span>
         </a>
 
         <!-- HR Reports Popover -->
-        <div class="reports-dropdown-wrapper">
+        <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
           <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isHrReportsOpen" (click)="toggleHrReports($event)">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
@@ -421,72 +421,76 @@
       
       <!-- User Profile Dropdown -->
       <div class="user-profile-dropdown system-settings-popup" *ngIf="showUserProfileDropdown" (click)="$event.stopPropagation()" style="position: absolute; top: 100%; right: 0; margin-top: 8px; background: #ffffff; border: 1px solid rgba(226, 232, 240, 0.9); border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12); width: 260px; max-height: 85vh; overflow-y: auto; z-index: 500; display: flex; flex-direction: column; padding: 6px; animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        <ng-container *ngIf="hasAnySystemSetting()">
         <div class="popup-section-header">System Settings</div>
-        <a routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Teams', 'view')" routerLink="/system-settings/teams" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-people"></i> Teams & Users
         </a>
-        <a routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Branch', 'view')" routerLink="/system-settings/branch" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-building"></i> Branch
         </a>
-        <a routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Department', 'view')" routerLink="/system-settings/department" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-diagram-3"></i> Department
         </a>
-        <a routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Lead Status', 'view')" routerLink="/system-settings/status" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-activity"></i> Status
         </a>
-        <a routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Designation', 'view')" routerLink="/system-settings/designation" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-person-badge"></i> Designation
         </a>
-        <a class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
+        <a *ngIf="authService.hasPermission('Application Status', 'view') || authService.hasPermission('Intake', 'view') || authService.hasPermission('Year', 'view')" class="popup-item" style="cursor: pointer;" (click)="showApplicationSettingsSubmenu = !showApplicationSettingsSubmenu; $event.stopPropagation()">
           <i class="bi bi-gear-fill"></i> Application Settings
           <i class="bi" [ngClass]="showApplicationSettingsSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'" style="margin-left: auto; margin-right: 0;"></i>
         </a>
         <div *ngIf="showApplicationSettingsSubmenu" class="submenu-container">
-          <a routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <a *ngIf="authService.hasPermission('Intake', 'view')" routerLink="/system-settings/intakes" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
             <i class="bi bi-calendar3"></i> Intake
           </a>
-          <a routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <a *ngIf="authService.hasPermission('Year', 'view')" routerLink="/system-settings/years" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
             <i class="bi bi-calendar-event"></i> Year
           </a>
-          <a routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <a *ngIf="authService.hasPermission('Application Status', 'view')" routerLink="/system-settings/app-statuses" class="popup-item sub-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
             <i class="bi bi-tags"></i> Application Status
           </a>
         </div>
-        <a routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Enquiry For', 'view')" routerLink="/system-settings/enquiry-fors" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-question-circle"></i> Enquiry For
         </a>
-        <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Document Type', 'view')" routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-file-earmark-text"></i> Document Type
         </a>
-        <a routerLink="/system-settings/channels" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Channel', 'view')" routerLink="/system-settings/channels" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-chat-left-dots"></i> Channels
         </a>
+        </ng-container>
 
+        <ng-container *ngIf="hasAnyGeneralSetting()">
         <div class="popup-section-header">General & Lead Settings</div>
-        <a routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Channels Manager', 'view')" routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-cpu"></i> Channels Manager
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'team'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Users / Agents', 'view')" routerLink="/settings" [queryParams]="{tab: 'team'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-person-lines-fill"></i> Users / Agents
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'lead-fields'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Lead Fields', 'view')" routerLink="/settings" [queryParams]="{tab: 'lead-fields'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-list-columns"></i> Lead Fields
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Field Categories', 'view')" routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-folder"></i> Field Categories
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Source Categories', 'view')" routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-tag"></i> Source Categories
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('API & Webhooks', 'view')" routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-code-slash"></i> API & Webhooks
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Integrations', 'view')" routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-plug"></i> Integrations
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showUserProfileDropdown = false">
+        <a *ngIf="authService.hasPermission('Courses', 'view')" routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-journal-bookmark"></i> Courses
         </a>
+        </ng-container>
 
         <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
         <a (click)="logout(); showUserProfileDropdown = false" class="popup-item" style="color: #ef4444; cursor: pointer;">
