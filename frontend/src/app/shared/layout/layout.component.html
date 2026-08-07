@@ -43,10 +43,14 @@
             </div>
           </div>
         </div>
+        <!-- Mobile Menu Toggle Button -->
+        <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" title="Toggle Menu">
+          <i class="bi" [ngClass]="isMobileMenuOpen ? 'bi-x' : 'bi-list'"></i>
+        </button>
       </div>
 
       <!-- Navigation & Title Section to the right of Trackbox Logo -->
-      <div class="header-nav-section">
+      <div class="header-nav-section" [class.mobile-open]="isMobileMenuOpen">
         <!-- Current Page Title -->
         <div class="page-title" *ngIf="false">
           {{ pageTitle }}

@@ -288,3 +288,28 @@
 .bold-cell   { font-weight: 700; color: #0f172a; }
 .muted-cell  { color: #64748b; }
 .rep-cell    { font-weight: 600; color: #3b82f6; }
+
+
+/* Auto-injected Mobile Optimization */
+@media (max-width: 768px) {
+  /* Force custom grid layouts to stack */
+  [class*="-grid"], [class*="grid-layout"], .grid-container, .channels-grid-layout, .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Make generic rows stack vertically */
+  .row, .d-flex {
+    flex-direction: column !important;
+  }
+
+  /* Ensure cards take full width */
+  .card, .panel, .box {
+    width: 100% !important;
+    min-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}

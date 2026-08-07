@@ -44,3 +44,28 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+
+
+/* Auto-injected Mobile Optimization */
+@media (max-width: 768px) {
+  /* Force custom grid layouts to stack */
+  [class*="-grid"], [class*="grid-layout"], .grid-container, .channels-grid-layout, .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Make generic rows stack vertically */
+  .row, .d-flex {
+    flex-direction: column !important;
+  }
+
+  /* Ensure cards take full width */
+  .card, .panel, .box {
+    width: 100% !important;
+    min-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}

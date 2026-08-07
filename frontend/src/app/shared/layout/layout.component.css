@@ -994,3 +994,82 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* =========================================
+   Mobile Layout Adjustments
+   ========================================= */
+
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #1e293b;
+  cursor: pointer;
+  padding: 4px;
+}
+
+@media (max-width: 768px) {
+  /* Make top bar stack or adjust */
+  .top-bar-main {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+  
+  .mobile-menu-toggle {
+    display: block;
+  }
+
+  /* Hide the horizontal nav bar and make it a mobile drawer */
+  .header-nav-section {
+    display: none; /* We will toggle this via class */
+    flex-direction: column;
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+    background: white;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+  
+  .header-nav-section.mobile-open {
+    display: flex;
+  }
+
+  .horizontal-nav-bar {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .horizontal-nav-bar .nav-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    justify-content: flex-start;
+  }
+
+  .brand-column {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .top-bar-secondary {
+    display: none; /* Hide secondary sub-nav on mobile unless active */
+  }
+
+  .top-bar-secondary.mobile-open {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  .right-actions {
+    margin-top: 10px;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

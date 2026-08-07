@@ -52,6 +52,7 @@ export class LayoutComponent implements OnInit {
   isCollapsed = false;
   isReportsOpen = false;
   isSalesPerformanceOpen = false;
+  isMobileMenuOpen = false;
 
   // Department State
   activeDepartment = localStorage.getItem('activeDepartment') || 'Leads';
@@ -85,6 +86,10 @@ export class LayoutComponent implements OnInit {
         this.loadNotifications();
       }
     });
+  }
+
+  toggleMobileMenu() {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
   }
 
   loadNotifications() {

@@ -1174,3 +1174,59 @@ button:hover, .btn:hover {
   opacity: 1;
   transform: scale(1);
 }
+
+/* =========================================
+   Mobile Optimization Global Styles
+   ========================================= */
+@media (max-width: 768px) {
+  html {
+    font-size: 13px; /* Slightly smaller base font for mobile */
+  }
+  
+  .page-heading {
+    font-size: 1.8rem;
+  }
+  
+  .report-container h2.fw-bold,
+  .report-container h2.fw-black,
+  .report-container h2 {
+    font-size: 1.8rem !important;
+  }
+  
+  /* Make cards take full width */
+  .card {
+    width: 100% !important;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-md);
+  }
+  
+  /* Tables wrapper for horizontal scroll */
+  .table-responsive, table.table, .table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  
+  /* Modals take full width */
+  .modal-dialog {
+    width: 95% !important;
+    margin: 10px auto;
+  }
+  
+  .modal-content {
+    border-radius: var(--radius-lg);
+  }
+  
+  /* Base flex stacking */
+  .stack-mobile {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  /* Increase padding for touch targets */
+  .btn, button, input, select {
+    min-height: 44px;
+  }
+}
