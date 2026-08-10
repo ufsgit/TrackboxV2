@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CourseService, Course } from '../../../core/services/course.service';
+import * as XLSX from 'xlsx';
 import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
@@ -136,6 +137,7 @@ export class CourseManagementComponent implements OnInit {
   showAddModal = false;
   isEditMode = false;
   saving = false;
+  importing = false;
 
   newCourse: Course = {
     name: '',
@@ -247,6 +249,69 @@ export class CourseManagementComponent implements OnInit {
         });
       }
     });
+  }
+
+  triggerImport() {
+    const fileInput = document.getElementById('courseImportInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  onFileChange(event: any) {
+    const target: DataTransfer = <DataTransfer>(event.target);
+    if (target.files.length !== 1) {
+      this.notificationService.showError('Cannot use multiple files');
+      return;
+    }
+
+    this.importing = true;
+    const reader: FileReader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const bstr: string = e.target.result;
+        const wb: XLSX.WorkBook = XLSX.read(bstr, { type: 'binary' });
+        const wsname: string = wb.SheetNames[0];
+        const ws: XLSX.WorkSheet = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        const newCourses: Course[] = data.map((row: any) => ({
+          name: row['Name'] || row['name'] || row['Course Name'] || '',
+          amount: parseFloat(row['Amount'] || row['amount'] || row['Price'] || '0'),
+          duration: row['Duration'] || row['duration'] || row['Duration (Months)'] || '',
+          description: row['Description'] || row['description'] || ''
+        })).filter(c => c.name && !isNaN(c.amount));
+
+        if (newCourses.length === 0) {
+          this.notificationService.showError('No valid courses found in the file. Ensure columns Name and Amount exist.');
+          this.importing = false;
+          return;
+        }
+
+        this.courseService.bulkCreateCourses(newCourses).subscribe({
+          next: (res: any) => {
+            this.importing = false;
+            if (res.success) {
+              this.notificationService.showSuccess(`${newCourses.length} courses imported successfully!`);
+              this.loadCourses();
+            }
+          },
+          error: (err: any) => {
+            this.importing = false;
+            this.notificationService.showError(err.error?.message || 'Failed to import courses.');
+          }
+        });
+      } catch (error) {
+        console.error('Error parsing file:', error);
+        this.notificationService.showError('Failed to parse file. Ensure it is a valid Excel/CSV.');
+        this.importing = false;
+      }
+      
+      // Reset input
+      const fileInput = document.getElementById('courseImportInput') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    };
+    reader.readAsBinaryString(target.files[0]);
   }
 }
 

@@ -182,13 +182,19 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
   }
 
   isTransferStatus(statusName: string): boolean {
+    if (!statusName) return false;
     const found = this.leadStatuses.find(s => s.name === statusName);
-    return found ? !!found.transfer : false;
+    if (!found) return false;
+    const tr = found.transfer;
+    return tr === true || tr === 1 || String(tr).toLowerCase() === 'true' || String(tr) === '1' || String(tr).toLowerCase() === 'yes';
   }
 
   isFollowupStatus(statusName: string): boolean {
+    if (!statusName) return false;
     const found = this.leadStatuses.find(s => s.name === statusName);
-    return found ? (found.follow_needed === 'Yes' || found.follow_needed === true || found.follow_needed === 1) : true;
+    if (!found) return false;
+    const fn = found.follow_needed;
+    return fn === 'Yes' || fn === true || fn === 1 || String(fn).toLowerCase() === 'yes' || String(fn).toLowerCase() === 'true' || String(fn) === '1';
   }
 
   getFilteredDepartments(branchName: string): any[] {

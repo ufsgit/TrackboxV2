@@ -884,7 +884,9 @@
             <label>Status <span class="required">*</span></label>
             <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
               <option value="">-- Select --</option>
-              <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
+              <ng-container *ngFor="let s of leadStatuses">
+                <option *ngIf="s.name.trim() !== 'NO DATE'" [value]="s.name">{{ s.name }}</option>
+              </ng-container>
             </select>
           </div>
 
@@ -1057,7 +1059,9 @@
       <div class="field-row mb-3">
         <label style="font-weight: 600; margin-bottom: 5px; display: block; color: #334155;">Status <span class="text-danger">*</span></label>
         <select class="form-select premium-input" [(ngModel)]="currentLead.status" style="width: 100%;">
-          <option *ngFor="let status of leadStatuses" [value]="status.name">{{ status.name }}</option>
+          <ng-container *ngFor="let status of leadStatuses">
+            <option *ngIf="status.name.trim() !== 'NO DATE'" [value]="status.name">{{ status.name }}</option>
+          </ng-container>
         </select>
       </div>
 
@@ -1336,8 +1340,10 @@
 
         <label class="followup-label">Status<span class="text-danger">*</span></label>
         <select class="form-select followup-select" [(ngModel)]="globalImportSettings.status_id">
-          <option value="">Select Status</option>
-          <option *ngFor="let s of leadStatuses" [value]="s.id">{{ s.name }}</option>
+          <option value="">Status</option>
+          <ng-container *ngFor="let s of leadStatuses">
+            <option *ngIf="s.name.trim() !== 'NO DATE'" [value]="s.id">{{ s.name }}</option>
+          </ng-container>
         </select>
 
         <label class="followup-label">Enquiry Source<span class="text-danger">*</span></label>

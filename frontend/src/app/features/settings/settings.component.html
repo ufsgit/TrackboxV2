@@ -927,29 +927,25 @@ Commerce"></textarea>
     </div>
 
     <!-- FIELD CATEGORY MODAL -->
-    <div class="modal fade show custom-modal" *ngIf="showFieldCategoryModal"
-      style="display: block; background: rgba(0,0,0,0.5);">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold">{{ editingFieldCategory ? 'Edit Category' : 'New Category' }}</h5>
-            <button type="button" class="btn-close" (click)="closeFieldCategoryModal()"></button>
+    <div class="custom-modal" *ngIf="showFieldCategoryModal">
+      <div class="modal-backdrop" (click)="closeFieldCategoryModal()"></div>
+      <div class="lf-modal-card shadow-lg" style="max-width: 450px !important;">
+        <div class="lf-modal-header">
+          <div>
+            <h4 class="mb-0">{{ editingFieldCategory ? 'Edit Category' : 'New Category' }}</h4>
+            <p class="text-muted small mb-0">{{ editingFieldCategory ? 'Update this category name' : 'Organize custom fields into categories' }}</p>
           </div>
-          <div class="modal-body py-4">
-            <div class="mb-3">
-              <label class="form-label text-muted small fw-semibold text-uppercase">Name</label>
-              <input type="text" class="form-control form-control-lg bg-light border-0"
-                [(ngModel)]="newFieldCategory.name">
-            </div>
+          <button class="close-btn" (click)="closeFieldCategoryModal()">&times;</button>
+        </div>
+        <div class="lf-modal-body">
+          <div class="form-group mb-0">
+            <label class="lf-form-label text-uppercase">NAME <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="newFieldCategory.name" placeholder="e.g. Personal Info, Education">
           </div>
-          <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light rounded-pill px-4"
-              (click)="closeFieldCategoryModal()">Cancel</button>
-            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveFieldCategory()"
-              [disabled]="saving || !newFieldCategory.name">
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </div>
+        </div>
+        <div class="lf-modal-footer">
+          <button type="button" class="btn btn-light" (click)="closeFieldCategoryModal()">Cancel</button>
+          <button type="button" class="btn btn-primary btn-save-animated" [class.btn-saving]="saving" (click)="saveFieldCategory()" [disabled]="saving || !newFieldCategory.name">Save</button>
         </div>
       </div>
     </div>
@@ -1002,30 +998,25 @@ Commerce"></textarea>
     </div>
 
     <!-- SOURCE CATEGORY MODAL -->
-    <div class="modal fade show custom-modal" *ngIf="showSourceCategoryModal"
-      style="display: block; background: rgba(0,0,0,0.5);">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold">{{ editingSourceCategory ? 'Edit Source Category' : 'New Source Category' }}
-            </h5>
-            <button type="button" class="btn-close" (click)="closeSourceCategoryModal()"></button>
+    <div class="custom-modal" *ngIf="showSourceCategoryModal">
+      <div class="modal-backdrop" (click)="closeSourceCategoryModal()"></div>
+      <div class="lf-modal-card shadow-lg" style="max-width: 450px !important;">
+        <div class="lf-modal-header">
+          <div>
+            <h4 class="mb-0">{{ editingSourceCategory ? 'Edit Source Category' : 'New Source Category' }}</h4>
+            <p class="text-muted small mb-0">{{ editingSourceCategory ? 'Update this source category' : 'Organize lead sources and channels' }}</p>
           </div>
-          <div class="modal-body py-4">
-            <div class="mb-3">
-              <label class="form-label text-muted small fw-semibold text-uppercase">Name</label>
-              <input type="text" class="form-control form-control-lg bg-light border-0"
-                [(ngModel)]="newSourceCategory.name">
-            </div>
+          <button class="close-btn" (click)="closeSourceCategoryModal()">&times;</button>
+        </div>
+        <div class="lf-modal-body">
+          <div class="form-group mb-0">
+            <label class="lf-form-label text-uppercase">NAME <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="newSourceCategory.name" placeholder="e.g. Social Media, Organic Search">
           </div>
-          <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light rounded-pill px-4"
-              (click)="closeSourceCategoryModal()">Cancel</button>
-            <button type="button" class="btn btn-primary rounded-pill px-4" (click)="saveSourceCategory()"
-              [disabled]="saving || !newSourceCategory.name">
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-          </div>
+        </div>
+        <div class="lf-modal-footer">
+          <button type="button" class="btn btn-light" (click)="closeSourceCategoryModal()">Cancel</button>
+          <button type="button" class="btn btn-primary btn-save-animated" [class.btn-saving]="saving" (click)="saveSourceCategory()" [disabled]="saving || !newSourceCategory.name">Save</button>
         </div>
       </div>
     </div>

@@ -681,7 +681,7 @@ export class SettingsComponent implements OnInit {
 
   loadLeadFields() {
     this.leadFieldsLoading = true;
-    this.api.get('/settings/lead-fields').subscribe({
+    this.api.get('/settings/lead-fields', { t: Date.now() }).subscribe({
       next: (res: any) => {
         if (res.success) this.leadFields = res.data;
         this.leadFieldsLoading = false;
@@ -692,7 +692,7 @@ export class SettingsComponent implements OnInit {
 
   openAddFieldModal() {
     this.editingField = null;
-    this.newField = { label: '', field_type: 'text', options: '', is_required: false, display_order: this.leadFields.length };
+    this.newField = { label: '', field_type: 'text', options: '', is_required: false, display_order: this.leadFields.length, category_id: '' };
     this.showAddFieldModal = true;
   }
 
@@ -732,7 +732,8 @@ export class SettingsComponent implements OnInit {
         ? this.newField.options.split('\n').map((o: string) => o.trim()).filter((o: string) => o)
         : [],
       is_required: this.newField.is_required,
-      display_order: parseInt(this.newField.display_order) || 0
+      display_order: parseInt(this.newField.display_order) || 0,
+      category_id: this.newField.category_id || null
     };
 
     const req = this.editingField

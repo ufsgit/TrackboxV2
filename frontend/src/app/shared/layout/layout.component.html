@@ -491,9 +491,7 @@
         <a *ngIf="authService.hasPermission('Integrations', 'view')" routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-plug"></i> Integrations
         </a>
-        <a *ngIf="authService.hasPermission('Courses', 'view')" routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showUserProfileDropdown = false">
-          <i class="bi bi-journal-bookmark"></i> Courses
-        </a>
+
         </ng-container>
 
         <div style="height: 1px; background: #f1f5f9; margin: 4px 0;"></div>
@@ -571,9 +569,7 @@
         <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-plug"></i> Integrations
         </a>
-        <a routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showSystemSettingsMenu = false">
-          <i class="bi bi-journal-bookmark"></i> Courses
-        </a>
+
       </div>
 
       <button class="logout-btn" (click)="logout()" title="Logout">

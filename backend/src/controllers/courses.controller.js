@@ -32,6 +32,29 @@ exports.createCourse = async (req, res) => {
   }
 };
 
+exports.createBulkCourses = async (req, res) => {
+  try {
+    const { courses } = req.body;
+    
+    if (!courses || !Array.isArray(courses) || courses.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or empty courses array' });
+    }
+
+    const values = courses.map(c => [c.name, c.amount || 0, c.duration || null, c.description || null]);
+    
+    await db.query(
+      'INSERT INTO courses (name, amount, duration, description) VALUES ?',
+      [values]
+    );
+
+    res.status(201).json({ success: true, message: `${courses.length} courses imported successfully` });
+  } catch (error) {
+    console.error('Error bulk importing courses:', error);
+    res.status(500).json({ success: false, message: 'Failed to bulk import courses' });
+  }
+};
+
+
 exports.deleteCourse = async (req, res) => {
   try {
     const { id } = req.params;

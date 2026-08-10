@@ -50,43 +50,70 @@ import { Subscription } from 'rxjs';
   `,
   styles: [`
     /* ── Toasts Container ── */
+    @keyframes v2ToastIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes v2IconDraw {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
     .toast-container {
       position: fixed;
-      top: 40px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 24px;
+      right: 24px;
       z-index: 10500;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
       pointer-events: none;
-      align-items: center;
+      align-items: flex-end;
     }
 
     .toast-card {
       pointer-events: auto;
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      width: 320px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+      background: #17161B;
+      padding: 12px 18px;
+      border-radius: 999px;
+      box-shadow: 0 20px 40px -18px rgba(0,0,0,0.6);
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
-      animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      border-left: 4px solid #cbd5e1;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-left: 1px solid rgba(16, 185, 129, 0.35);
+      animation: v2ToastIn 0.5s cubic-bezier(.2,.8,.2,1) forwards;
       cursor: pointer;
       position: relative;
-      overflow: hidden;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      opacity: 0;
+      transform: translateY(10px);
     }
 
-    .toast-card.success { border-left-color: #10b981; }
-    .toast-card.error { border-left-color: #ef4444; }
-    .toast-card.info { border-left-color: #3b82f6; }
+    .toast-card.success { border-color: rgba(16, 185, 129, 0.4); }
+    .toast-card.error { border-color: rgba(239, 68, 68, 0.4); }
+    .toast-card.info { border-color: rgba(59, 130, 246, 0.4); }
+
+    .toast-icon {
+      margin: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toast-card.success .toast-icon { background: #10b981; }
+    .toast-card.error .toast-icon { background: #ef4444; }
+    .toast-card.info .toast-icon { background: #3b82f6; }
 
     .toast-icon i {
-      font-size: 1.5rem;
-      line-height: 1;
+      font-size: 13px;
+      color: #17161B;
+      animation: v2IconDraw .4s ease forwards .2s;
+      opacity: 0;
     }
 
     .toast-content {
@@ -94,35 +121,37 @@ import { Subscription } from 'rxjs';
     }
 
     .toast-title {
-      margin: 0 0 4px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #0f172a;
+      margin: 0;
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 15px;
+      font-weight: 500;
+      color: #F3EFE7;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
     }
 
     .toast-message {
-      margin: 0;
-      font-size: 0.85rem;
-      color: #475569;
-      line-height: 1.4;
+      margin: 1px 0 0;
+      font-size: 10.5px;
+      color: #9C968E;
+      letter-spacing: 0.02em;
     }
 
     .toast-close {
       background: transparent;
       border: none;
-      font-size: 1.25rem;
-      color: #94a3b8;
+      font-size: 1rem;
+      color: #9C968E;
       cursor: pointer;
       padding: 0;
       line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
-    .toast-close:hover { color: #475569; }
-
-    @keyframes slideInDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+    .toast-close:hover { color: #F3EFE7; }
 
     /* ── Confirm Modal ── */
     .notification-backdrop {

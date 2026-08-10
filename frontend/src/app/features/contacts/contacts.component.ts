@@ -11,7 +11,7 @@ import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 import { AnimationService } from '../../core/services/animation.service';
 import { ConfettiService } from '../../core/services/confetti.service';
-
+import { CourseService, Course } from '../../core/services/course.service';
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { UpdateLeadStatusModalComponent } from '../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
@@ -43,7 +43,8 @@ export class ContactsComponent implements OnInit {
   openDropdownId: number | null = null;
   showImportExportDropdown = false;
   returnUrl: string | null = null;
-
+  courses: Course[] = [];
+  selectedCourseDetails: Course | null = null;
   // Quick Status Modal
   showQuickStatusModal = false;
   quickStatusLoading = false;
@@ -342,79 +343,127 @@ export class ContactsComponent implements OnInit {
   triggerSaveAnimation() {
     const doc = this.document;
 
-    // Keyframes injected once
-    if (!doc.getElementById('__save-anim-styles')) {
+    if (!doc.getElementById('__save-anim-styles-v4')) {
       const styleEl = doc.createElement('style');
-      styleEl.id = '__save-anim-styles';
+      styleEl.id = '__save-anim-styles-v4';
       styleEl.textContent = `
-        @keyframes __sovIn{from{opacity:0}to{opacity:1}}
-        @keyframes __sovOut{from{opacity:1}to{opacity:0}}
-        @keyframes __scardIn{0%{transform:scale(.5) translateY(40px);opacity:0}65%{transform:scale(1.08) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
-        @keyframes __sGlow{0%{box-shadow:0 0 0 0 rgba(16,185,129,.8),0 20px 50px rgba(16,185,129,.45)}60%{box-shadow:0 0 0 28px rgba(16,185,129,0),0 20px 50px rgba(16,185,129,.45)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0),0 20px 50px rgba(16,185,129,.45)}}
-        @keyframes __sTick{to{stroke-dashoffset:0}}
-        @keyframes __sLabel{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes __sRipple{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}}
+        .crm-overlay {
+          position: fixed; inset: 0;
+          background: rgba(10,9,11,0.82);
+          backdrop-filter: blur(10px) saturate(1.05);
+          -webkit-backdrop-filter: blur(10px) saturate(1.05);
+          display: flex; align-items: center; justify-content: center;
+          opacity: 0; z-index: 999999; visibility: hidden;
+        }
+        .crm-overlay.show { visibility: visible; animation: overlay-in .7s cubic-bezier(.22,.8,.3,1) forwards; }
+        .crm-overlay.hide { animation: overlay-out .6s ease forwards; }
+        @keyframes overlay-in { 0%{opacity:0} 100%{opacity:1} }
+        @keyframes overlay-out { 0%{opacity:1} 100%{opacity:0;visibility:hidden} }
+
+        .crm-dust {
+          position: absolute; width: 3px; height: 3px; border-radius: 50%;
+          background: #10b981; opacity: 0;
+        }
+        .crm-overlay.show .crm-dust { animation: drift 4.5s ease-in-out infinite; }
+        .crm-dust:nth-child(1) { top:32%; left:30%; animation-delay:.2s; }
+        .crm-dust:nth-child(2) { top:64%; left:68%; animation-delay:1.1s; }
+        .crm-dust:nth-child(3) { top:70%; left:34%; animation-delay:2s; }
+        .crm-dust:nth-child(4) { top:28%; left:66%; animation-delay:.7s; }
+        @keyframes drift {
+          0%{opacity:0;transform:translateY(0)} 30%{opacity:.55} 100%{opacity:0;transform:translateY(-26px)}
+        }
+
+        .crm-confirm {
+          position: relative; display: flex; flex-direction: column; align-items: center;
+          text-align: center; transform: translateY(10px) scale(0.97); opacity: 0;
+        }
+        .crm-overlay.show .crm-confirm { animation: confirm-in .8s cubic-bezier(.19,.83,.28,1) forwards .1s; }
+        @keyframes confirm-in { to{transform:translateY(0) scale(1);opacity:1;} }
+
+        .crm-ring-wrap { position: relative; width: 104px; height: 104px; margin-bottom: 26px; }
+        .crm-ring-glow {
+          position: absolute; inset: -30px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(16,185,129,0.25), transparent 65%);
+          opacity: 0;
+        }
+        .crm-overlay.show .crm-ring-glow { animation: glow-pulse 2.4s ease .5s forwards; }
+        @keyframes glow-pulse { 0%{opacity:0} 35%{opacity:1} 100%{opacity:0.35} }
+
+        .crm-ring-wrap svg { width: 100%; height: 100%; }
+        .crm-ring { stroke-dasharray: 289; stroke-dashoffset: 289; }
+        .crm-overlay.show .crm-ring { animation: ring-draw 1s cubic-bezier(.4,.0,.2,1) forwards .05s; }
+        @keyframes ring-draw { to{stroke-dashoffset:0} }
+
+        .crm-check { stroke-dasharray: 40; stroke-dashoffset: 40; }
+        .crm-overlay.show .crm-check { animation: check-draw .55s ease forwards 1.0s; }
+        @keyframes check-draw { to{stroke-dashoffset:0} }
+
+        .crm-confirm h2 {
+          font-family: 'Fraunces', serif; font-style: italic; font-weight: 500; font-size: 34px;
+          margin: 0 0 10px; letter-spacing: -0.01em; opacity: 0; transform: translateY(8px);
+          color: #ffffff;
+        }
+        .crm-overlay.show .crm-confirm h2 { animation: text-up .6s ease forwards 1.35s; }
+        @keyframes text-up { to{opacity:1;transform:translateY(0)} }
+
+        .crm-confirm .crm-meta {
+          font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #9C968E;
+          opacity: 0; transform: translateY(6px);
+        }
+        .crm-overlay.show .crm-confirm .crm-meta { animation: text-up .6s ease forwards 1.55s; }
+        .crm-confirm .crm-meta .crm-gold { color: #10b981; }
+
+        .crm-confirm .crm-rule {
+          width: 34px; height: 1px; background: #10b981; margin: 16px 0 14px;
+          opacity: 0; transform: scaleX(0); transform-origin: center;
+        }
+        .crm-overlay.show .crm-confirm .crm-rule { animation: rule-in .5s ease forwards 1.45s; }
+        @keyframes rule-in { to{opacity:0.6;transform:scaleX(1)} }
       `;
       doc.head.appendChild(styleEl);
     }
 
-    // Overlay
     const overlay = doc.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:__sovIn .3s ease forwards';
+    overlay.className = 'crm-overlay';
 
-    // Card
-    const card = doc.createElement('div');
-    card.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;animation:__scardIn .65s cubic-bezier(.34,1.56,.64,1) forwards';
+    const contactName = this.selectedContact ? this.selectedContact.name : 'System Record';
+    const timestamp = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 
-    // Ripple wrapper
-    const rippleWrap = doc.createElement('div');
-    rippleWrap.style.cssText = 'position:relative;width:128px;height:128px';
+    overlay.innerHTML = `
+      <span class="crm-dust"></span><span class="crm-dust"></span><span class="crm-dust"></span><span class="crm-dust"></span>
+      <div class="crm-confirm">
+        <div class="crm-ring-wrap">
+          <div class="crm-ring-glow"></div>
+          <svg viewBox="0 0 104 104" fill="none">
+            <circle class="crm-ring" cx="52" cy="52" r="46" stroke="#10b981" stroke-width="1.4"/>
+            <path class="crm-check" d="M35 54l12 12 24-26" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Saved</h2>
+        <div class="crm-rule"></div>
+        <div class="crm-meta">${contactName} <span class="crm-gold">·</span> ${timestamp}</div>
+      </div>
+    `;
 
-    // Three ripple rings
-    ['.45s', '.7s', '.95s'].forEach(delay => {
-      const r = doc.createElement('div');
-      r.style.cssText = `position:absolute;top:50%;left:50%;width:128px;height:128px;border-radius:50%;border:3px solid rgba(16,185,129,.55);animation:__sRipple 1.6s ease-out ${delay} infinite`;
-      rippleWrap.appendChild(r);
-    });
-
-    // Green circle
-    const circle = doc.createElement('div');
-    circle.style.cssText = 'position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;animation:__sGlow 1.6s ease-out .3s forwards';
-
-    // SVG checkmark
-    const ns = 'http://www.w3.org/2000/svg';
-    const svg = doc.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 52 52');
-    svg.setAttribute('width', '68');
-    svg.setAttribute('height', '68');
-    const path = doc.createElementNS(ns, 'path');
-    path.setAttribute('fill', 'none');
-    path.setAttribute('d', 'M14.1 27.2l7.1 7.2 16.7-16.8');
-    path.style.cssText = 'stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:52;stroke-dashoffset:52;animation:__sTick .5s cubic-bezier(.4,0,.2,1) .4s forwards';
-    svg.appendChild(path);
-    circle.appendChild(svg);
-    rippleWrap.appendChild(circle);
-
-    // Label
-    const label = doc.createElement('div');
-    label.textContent = 'Saved Successfully!';
-    label.style.cssText = 'font-family:\'Plus Jakarta Sans\',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:-.02em;text-shadow:0 2px 12px rgba(0,0,0,.25);opacity:0;animation:__sLabel .4s ease .65s forwards';
-
-    card.appendChild(rippleWrap);
-    card.appendChild(label);
-    overlay.appendChild(card);
     doc.body.appendChild(overlay);
 
-    setTimeout(() => {
-      overlay.style.animation = '__sovOut 0.45s ease forwards';
-      setTimeout(() => overlay.remove(), 450);
-    }, 1800);
-    
-    // Fire confetti when checkmark animates in (around 400ms delay)
+    // Trigger animation cleanly
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+    });
+
+    // Fire confetti when checkmark animates in (around 1000ms delay)
     setTimeout(() => {
       this.confettiService.fireSuccessBurst();
-    }, 400);
+    }, 1000);
+
+    setTimeout(() => {
+      overlay.classList.remove('show');
+      overlay.classList.add('hide');
+      setTimeout(() => overlay.remove(), 600);
+    }, 2800);
   }
+
 
   get today(): string {
     return new Date().toISOString().split('T')[0];
@@ -429,6 +478,7 @@ export class ContactsComponent implements OnInit {
     private settingsService: SystemSettingsService,
     private animationService: AnimationService,
     private confettiService: ConfettiService,
+    private courseService: CourseService,
     @Inject(DOCUMENT) private document: Document
   ) {}
 
@@ -444,6 +494,7 @@ export class ContactsComponent implements OnInit {
     this.loadLeadStatuses();
     this.loadDocumentTypes();
     this.loadChannels();
+    this.loadCourses();
 
     // Handle deep-link from report pages: ?contactId=X&action=profile|followup
     this.route.queryParams.subscribe(params => {
@@ -503,8 +554,11 @@ export class ContactsComponent implements OnInit {
 
   /** Returns true if the given status name has transfer=true in DB */
   isTransferStatus(statusName: string): boolean {
+    if (!statusName) return false;
     const found = this.leadStatuses.find(s => s.name === statusName);
-    return found ? !!found.transfer : false;
+    if (!found) return false;
+    const tr = found.transfer;
+    return tr === true || tr === 1 || String(tr).toLowerCase() === 'true' || String(tr) === '1' || String(tr).toLowerCase() === 'yes';
   }
 
   loadChannels() {
@@ -517,10 +571,12 @@ export class ContactsComponent implements OnInit {
     });
   }
 
-  /** Returns true if the given status name has follow_needed='Yes' in DB */
   isFollowupStatus(statusName: string): boolean {
+    if (!statusName) return false;
     const found = this.leadStatuses.find(s => s.name === statusName);
-    return found ? (found.follow_needed === 'Yes' || found.follow_needed === true || found.follow_needed === 1) : false;
+    if (!found) return false;
+    const fn = found.follow_needed;
+    return fn === 'Yes' || fn === true || fn === 1 || String(fn).toLowerCase() === 'yes' || String(fn).toLowerCase() === 'true' || String(fn) === '1';
   }
 
   loadApplicationSettings() {
@@ -595,9 +651,11 @@ export class ContactsComponent implements OnInit {
     this.loading = true;
     const params: any = {
       page: this.currentPage,
-      limit: this.pageSize,
-      has_followup: 1
+      limit: this.pageSize
     };
+    if (this.activeStatus?.trim() !== 'NO DATE' && this.activeStatus?.trim() !== 'No Follow Up') {
+      params.has_followup = 1;
+    }
     if (this.searchQuery) params.search = this.searchQuery;
     if (this.activeTag) params.tags = this.activeTag;
     if (this.activeChannel) params.channel = this.activeChannel;
@@ -770,7 +828,24 @@ export class ContactsComponent implements OnInit {
 
   openAddApplicationModal() {
     this.currentApplication = { contact_id: this.selectedContact.id, country: '', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
+    this.selectedCourseDetails = null;
     this.showAddApplicationModal = true;
+  }
+
+  loadCourses() {
+    this.courseService.getCourses().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.courses = res.data;
+        }
+      },
+      error: (err) => console.error('Failed to load courses', err)
+    });
+  }
+
+  onCourseSelect() {
+    const course = this.courses.find(c => c.name === this.currentApplication.course);
+    this.selectedCourseDetails = course || null;
   }
 
 

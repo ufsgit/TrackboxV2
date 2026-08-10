@@ -65,7 +65,7 @@ const getContacts = async (req, res) => {
     if (has_followup === '1' || has_followup === 'true') {
       where += ' AND c.follow_up_date IS NOT NULL';
     }
-    if (status === 'No Follow Up' || status === 'no_followup') {
+    if (status === 'No Follow Up' || status === 'no_followup' || (status && status.trim() === 'NO DATE')) {
       where += ' AND c.follow_up_date IS NULL';
     } else if (status) {
       where += ' AND c.status_name = ?';

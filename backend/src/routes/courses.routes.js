@@ -3,6 +3,7 @@ const router = express.Router();
 const coursesController = require('../controllers/courses.controller');
 
 router.get('/', coursesController.getAllCourses);
+router.post('/bulk', coursesController.createBulkCourses);
 router.post('/', coursesController.createCourse);
 router.put('/:id', coursesController.updateCourse);
 router.delete('/:id', coursesController.deleteCourse);

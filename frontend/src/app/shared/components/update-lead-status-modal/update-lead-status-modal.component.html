@@ -25,7 +25,9 @@
         <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">STATUS</label>
         <select class="form-select premium-input" [(ngModel)]="quickStatusData.status" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
           <option value="">Select Status</option>
-          <option *ngFor="let status of leadStatuses" [value]="status.name">{{ status.name }}</option>
+          <ng-container *ngFor="let status of leadStatuses">
+            <option *ngIf="status.name.trim() !== 'NO DATE'" [value]="status.name">{{ status.name }}</option>
+          </ng-container>
         </select>
       </div>
 

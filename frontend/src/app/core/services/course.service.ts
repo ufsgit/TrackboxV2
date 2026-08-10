@@ -25,6 +25,10 @@ export class CourseService {
     return this.api.post('/courses', course);
   }
 
+  bulkCreateCourses(courses: Course[]): Observable<any> {
+    return this.api.post('/courses/bulk', { courses });
+  }
+
   updateCourse(id: number, course: Course): Observable<any> {
     return this.api.put(`/courses/${id}`, course);
   }

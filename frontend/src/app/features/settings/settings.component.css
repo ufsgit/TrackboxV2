@@ -1,12 +1,11 @@
 .settings-page {
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
   border: 1px solid rgba(229, 231, 235, 0.8);
   border-radius: 28px;
-  overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(17, 24, 39, 0.05), 0 8px 10px -6px rgba(17, 24, 39, 0.01);
   display: block;
   min-height: calc(100vh - 120px);
+  position: relative;
 }
 
 .settings-content {
@@ -486,32 +485,92 @@
 }
 
 /* ====== ALERTS ====== */
-.alert-info-box {
-  padding: 14px 20px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+@keyframes toastSlideIn {
+  0% { transform: translateX(120%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toastProgress {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
+@keyframes iconPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.alert-info-box, .alert-error-box {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  background: #ffffff;
+  padding: 16px 24px;
   border-radius: 12px;
-  color: #065f46;
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-bottom: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
+  z-index: 10000;
+  min-width: 320px;
+  border-left: 4px solid;
+  animation: toastSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.alert-info-box {
+  border-left-color: #10b981;
 }
 
 .alert-error-box {
-  padding: 14px 20px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 12px;
-  color: #991b1b;
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-bottom: 24px;
+  border-left-color: #ef4444;
+}
+
+/* Animated Progress Bar */
+.alert-info-box::after, .alert-error-box::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  animation: toastProgress 4s linear forwards;
+}
+
+.alert-info-box::after {
+  background: #10b981;
+}
+
+.alert-error-box::after {
+  background: #ef4444;
+}
+
+/* Icon Styling */
+.alert-info-box i, .alert-error-box i {
+  font-size: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  animation: iconPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+}
+
+.alert-info-box i {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.alert-error-box i {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
 }
 
 /* ====== FEATURE GRID ====== */
