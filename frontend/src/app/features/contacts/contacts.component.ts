@@ -1337,25 +1337,27 @@ export class ContactsComponent implements OnInit {
       return;
     }
 
-    if (!this.newContact.status) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Missing Fields',
-        text: 'Status is required',
-        confirmButtonColor: '#10B981'
-      });
-      return;
-    }
-
-    if (this.isTransferStatus(this.newContact.status)) {
-      if (!this.newContact.branch || !this.newContact.department || !this.newContact.assigned_employee) {
+    if (!this.editingContactId) {
+      if (!this.newContact.status) {
         Swal.fire({
           icon: 'error',
           title: 'Missing Fields',
-          text: 'Branch, Department, and Employee are required for this status.',
+          text: 'Status is required',
           confirmButtonColor: '#10B981'
         });
         return;
+      }
+
+      if (this.isTransferStatus(this.newContact.status)) {
+        if (!this.newContact.branch || !this.newContact.department || !this.newContact.assigned_employee) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Missing Fields',
+            text: 'Branch, Department, and Employee are required for this status.',
+            confirmButtonColor: '#10B981'
+          });
+          return;
+        }
       }
     }
 
@@ -1373,16 +1375,7 @@ export class ContactsComponent implements OnInit {
     // Optionally update the phone to be the numeric one, or keep user formatting
     this.newContact.phone = numericPhone;
 
-    if (this.newContact.status === 'Branch' || this.newContact.status === 'Sales Loss') {
-      Swal.fire({
-        icon: 'success',
-        title: 'Status Updated',
-        text: 'The status has been updated successfully.',
-        confirmButtonColor: '#10B981'
-      });
-      this.showModal = false;
-      return;
-    }
+
 
     const selStatus = this.leadStatuses?.find((s: any) => s.name === this.newContact.status);
     if (selStatus) {
@@ -1633,16 +1626,7 @@ export class ContactsComponent implements OnInit {
       assigned_to: mappedAssignedTo
     };
 
-    if (this.quickStatusData.status === 'Branch' || this.quickStatusData.status === 'Sales Loss') {
-      Swal.fire({
-        icon: 'success',
-        title: 'Status Updated',
-        text: 'The status has been updated successfully.',
-        confirmButtonColor: '#3b82f6'
-      });
-      this.closeQuickStatusModal();
-      return;
-    }
+
 
     this.quickStatusLoading = true;
 
