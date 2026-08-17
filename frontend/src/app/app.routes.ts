@@ -52,6 +52,9 @@ export const routes: Routes = [
       { path: 'won-lost-report', loadComponent: () => import('./features/crm/reports/won-lost-report/won-lost-report.component').then(m => m.WonLostReportComponent) },
       { path: 'channel-conversion-report', loadComponent: () => import('./features/crm/reports/channel-conversion-report/channel-conversion-report.component').then(m => m.ChannelConversionReportComponent) },
       { path: 'employee-conversion-report', loadComponent: () => import('./features/crm/reports/employee-conversion-report/employee-conversion-report.component').then(m => m.EmployeeConversionReportComponent) },
+      { path: 'reports/employee-productivity', loadComponent: () => import('./features/crm/reports/employee-productivity-report/employee-productivity-report.component').then(m => m.EmployeeProductivityReportComponent) },
+      { path: 'reports/student-pipeline', loadComponent: () => import('./features/crm/reports/student-pipeline-report/student-pipeline-report.component').then(m => m.StudentPipelineReportComponent) },
+      { path: 'reports/follow-up-report', loadComponent: () => import('./features/crm/reports/follow-up-report/follow-up-report.component').then(m => m.FollowUpReportComponent) },
       { path: 'salesperson-report', loadComponent: () => import('./features/crm/reports/salesperson-report/salesperson-report.component').then(m => m.SalespersonReportComponent) },
       { path: 'channel-report', loadComponent: () => import('./features/lead-report/channel-report/channel-report.component').then(m => m.ChannelReportComponent) },
       { path: 'crm/attendance-report', loadComponent: () => import('./features/crm/reports/attendance-report/attendance-report.component').then(m => m.CrmAttendanceReportComponent) },
@@ -72,6 +75,10 @@ export const routes: Routes = [
       { path: 'pending-approvals', loadComponent: () => import('./features/hr/pending-approvals/pending-approvals.component').then(m => m.PendingApprovalsComponent) },
       { path: 'attendance-report', loadComponent: () => import('./features/hr/reports/attendance-report/attendance-report.component').then(m => m.AttendanceReportComponent) },
       { path: 'leave-report', loadComponent: () => import('./features/hr/reports/leave-report/leave-report.component').then(m => m.LeaveReportComponent) },
+      {
+        path: 'reports/team-productivity',
+        loadComponent: () => import('./features/crm/reports/team-productivity-report/team-productivity-report.component').then(m => m.TeamProductivityReportComponent)
+      },
       { path: 'expense-report', loadComponent: () => import('./features/hr/reports/expense-report/expense-report.component').then(m => m.ExpenseReportComponent) },
       { path: 'gps-report', loadComponent: () => import('./features/hr/reports/gps-report/gps-report.component').then(m => m.GpsReportComponent) },
       { path: 'performance-report', loadComponent: () => import('./features/hr/reports/performance-report/performance-report.component').then(m => m.PerformanceReportComponent) },

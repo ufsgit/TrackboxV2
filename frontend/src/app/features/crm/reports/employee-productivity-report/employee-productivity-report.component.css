@@ -1,0 +1,19 @@
+.report-container {
+  background-color: #f8f9fc;
+  min-height: 100vh;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.chart-inner-container {
+  min-width: 600px;
+  /* Height will be set dynamically via Angular */
+}

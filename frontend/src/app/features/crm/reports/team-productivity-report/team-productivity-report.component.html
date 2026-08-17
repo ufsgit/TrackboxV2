@@ -1,0 +1,147 @@
+<div class="report-container">
+  <!-- Header Section -->
+  <div class="report-header">
+    <div class="header-content">
+      <div>
+        <h2 class="report-title">Team Productivity Dashboard</h2>
+        <p class="report-subtitle">Real-time overview of team performance and activity metrics</p>
+      </div>
+      <div class="header-actions">
+        <div class="filter-group">
+          <div class="filter-item">
+            <i class="bi bi-calendar3 filter-icon"></i>
+            <input type="date" class="premium-input" [(ngModel)]="selectedDate" (change)="fetchData()">
+          </div>
+          <div class="filter-item">
+            <i class="bi bi-person filter-icon"></i>
+            <select class="premium-input" [(ngModel)]="selectedEmployee" (change)="fetchData()">
+              <option value="All">All Employees</option>
+              <option *ngFor="let u of users" [value]="u.id">{{ u.name }}</option>
+            </select>
+          </div>
+          <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loader-container">
+    <div class="modern-spinner"></div>
+    <p>Loading productivity data...</p>
+  </div>
+
+  <div *ngIf="!loading" class="report-body">
+    <!-- Top Row: Timeline and Today's Activity -->
+    <div class="dashboard-grid">
+      
+      <!-- Activity Timeline Graph -->
+      <div class="grid-card timeline-card">
+        <div class="card-header-premium">
+          <div class="header-title">
+            <div class="icon-box purple"><i class="bi bi-activity"></i></div>
+            <h3>Activity Timeline</h3>
+          </div>
+        </div>
+        <div class="card-body-premium">
+          <div class="chart-wrapper">
+            <canvas baseChart
+              [data]="lineChartData"
+              [options]="lineChartOptions"
+              [type]="'line'">
+            </canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Activity Summary -->
+      <div class="grid-card activity-card">
+        <div class="card-header-premium">
+          <div class="header-title">
+            <div class="icon-box orange"><i class="bi bi-lightning-charge"></i></div>
+            <h3>Today's Activity</h3>
+          </div>
+          <div class="total-badge">{{ totalActivityCount }} Total</div>
+        </div>
+        <div class="card-body-premium">
+          <div class="activity-list" *ngIf="todaysActivity.length > 0">
+            <div class="activity-item" *ngFor="let stat of todaysActivity; let i = index">
+              <div class="activity-info">
+                <div class="status-indicator" [style.backgroundColor]="getStatusColor(i)"></div>
+                <span class="status-name">{{ stat.status_name }}</span>
+              </div>
+              <div class="activity-count" [style.color]="getStatusColor(i)">{{ stat.count }}</div>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="todaysActivity.length === 0">
+            <img src="/assets/images/empty-activity.svg" alt="No Activity" onerror="this.style.display='none'">
+            <i class="bi bi-inbox empty-icon" *ngIf="true"></i>
+            <p>No activities recorded today</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Team Productivity Table -->
+    <div class="grid-card table-card mt-4">
+      <div class="card-header-premium">
+        <div class="header-title">
+          <div class="icon-box blue"><i class="bi bi-people"></i></div>
+          <h3>Team Performance Board</h3>
+        </div>
+      </div>
+      <div class="card-body-premium p-0">
+        <div class="modern-table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th class="text-center">Assigned</th>
+                <th class="text-center">Follow-ups</th>
+                <th class="text-center">Pending</th>
+                <th class="text-center">Converted</th>
+                <th class="text-center">Lost</th>
+                <th class="text-right">Win Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of teamProductivity">
+                <td>
+                  <div class="employee-cell">
+                    <div class="avatar">{{ getInitials(row.employee_name) }}</div>
+                    <div class="emp-details">
+                      <span class="emp-name">{{ row.employee_name }}</span>
+                      <span class="emp-code">{{ row.employee_code }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center"><span class="metric-pill neutral">{{ row.assigned }}</span></td>
+                <td class="text-center"><span class="metric-pill purple">{{ row.follow_ups }}</span></td>
+                <td class="text-center"><span class="metric-pill warning">{{ row.pending }}</span></td>
+                <td class="text-center"><span class="metric-pill success">{{ row.converted }}</span></td>
+                <td class="text-center"><span class="metric-pill danger">{{ row.lost }}</span></td>
+                <td class="text-right">
+                  <div class="progress-cell">
+                    <span class="rate-text">{{ row.conversion_percentage }}%</span>
+                    <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" [style.width]="row.conversion_percentage + '%'"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="teamProductivity.length === 0" class="empty-row">
+                <td colspan="7">
+                  <div class="empty-state py-5">
+                    <i class="bi bi-folder-x empty-icon"></i>
+                    <p>No productivity data found for this selection.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

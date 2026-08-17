@@ -1,0 +1,189 @@
+<div class="report-page">
+  <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="page-title fw-bold">Custom Dashboard Reports</h2>
+      <p class="page-sub text-muted">Advanced custom analytics</p>
+    </div>
+  </div>
+
+  <div class="card premium-card border-0 mb-4">
+    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+      <ul class="nav nav-tabs custom-tabs border-bottom">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'employee'" (click)="setTab('employee')" style="cursor:pointer">Employee Productivity</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'student'" (click)="setTab('student')" style="cursor:pointer">Student Pipeline</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'followup'" (click)="setTab('followup')" style="cursor:pointer">Follow-up</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'team'" (click)="setTab('team')" style="cursor:pointer">Team Productivity</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'today'" (click)="setTab('today')" style="cursor:pointer">Today's Activity</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'raw'" (click)="setTab('raw')" style="cursor:pointer">Raw Data</a>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body p-4" [class.is-loading]="loading">
+      
+      <!-- Employee Productivity -->
+      <div *ngIf="activeTab === 'employee'">
+        <div class="d-flex align-items-center gap-2 mb-4">
+          <input type="date" class="form-control" [(ngModel)]="startDate" style="max-width:200px">
+          <span>to</span>
+          <input type="date" class="form-control" [(ngModel)]="endDate" style="max-width:200px">
+          <button class="btn btn-primary" (click)="loadData()">Filter</button>
+        </div>
+        <div style="height: 400px; width: 100%;">
+          <canvas baseChart 
+            [data]="barChartData" 
+            [options]="barChartOptions" 
+            type="bar">
+          </canvas>
+        </div>
+      </div>
+
+      <!-- Student Pipeline -->
+      <div *ngIf="activeTab === 'student'">
+        <div class="d-flex align-items-center gap-2 mb-4">
+          <select class="form-select" [(ngModel)]="studentStatus" style="max-width:200px">
+            <option value="Converted">Converted</option>
+            <option value="Follow Up">Follow Up</option>
+            <option value="Pending">Pending</option>
+            <option value="Sales Loss">Sales Loss</option>
+          </select>
+          <button class="btn btn-primary" (click)="loadData()">Filter</button>
+        </div>
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Employee Name</th>
+              <th>Lead Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of studentData">
+              <td>{{ row.employeeName || 'Unassigned' }}</td>
+              <td>{{ row.leadCount }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Follow-up Report -->
+      <div *ngIf="activeTab === 'followup'">
+        <div class="d-flex align-items-center gap-2 mb-4">
+          <input type="date" class="form-control" [(ngModel)]="startDate" style="max-width:200px">
+          <span>to</span>
+          <input type="date" class="form-control" [(ngModel)]="endDate" style="max-width:200px">
+          <button class="btn btn-primary" (click)="loadData()">Filter</button>
+        </div>
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Employee Name</th>
+              <th>Follow-up Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of followUpData">
+              <td>{{ row.employeeName || 'Unassigned' }}</td>
+              <td>{{ row.followUpCount }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Team Productivity -->
+      <div *ngIf="activeTab === 'team'">
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Employee Name</th>
+              <th>Assigned</th>
+              <th>Follow-ups</th>
+              <th>Lost</th>
+              <th>Pending</th>
+              <th>Converted</th>
+              <th>Conversion %</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of teamData">
+              <td>{{ row.employeeName || 'Unassigned' }}</td>
+              <td>{{ row.assigned }}</td>
+              <td>{{ row.followUps }}</td>
+              <td>{{ row.lost }}</td>
+              <td>{{ row.pending }}</td>
+              <td>{{ row.converted }}</td>
+              <td>{{ row.conversionPercent }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Today's Activity -->
+      <div *ngIf="activeTab === 'today'">
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>Employee Name</th>
+              <th>Follow-ups</th>
+              <th>Converted</th>
+              <th>Status 1</th>
+              <th>Status 2</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of todaysData">
+              <td>{{ row.employeeName || 'Unassigned' }}</td>
+              <td>{{ row.followUps }}</td>
+              <td>{{ row.converted }}</td>
+              <td>{{ row.status1 }}</td>
+              <td>{{ row.status2 }}</td>
+              <td class="fw-bold">{{ row.total }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Raw Data -->
+      <div *ngIf="activeTab === 'raw'">
+        <div class="mb-3">
+          <button class="btn btn-success d-flex align-items-center gap-2" (click)="exportRawData()">
+            <i class="bi bi-file-earmark-excel"></i> Export CSV
+          </button>
+        </div>
+        <table class="table custom-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Employee Name</th>
+              <th>Contact Name</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rawData">
+              <td>{{ row.id }}</td>
+              <td>{{ row.employeeName || 'Unassigned' }}</td>
+              <td>{{ row.contactName }}</td>
+              <td>
+                <span class="badge bg-secondary">{{ row.status }}</span>
+              </td>
+              <td>{{ row.date | date:'medium' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>

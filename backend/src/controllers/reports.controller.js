@@ -831,13 +831,14 @@ const getEmployeeConversionReport = async (req, res) => {
     const query = `
       SELECT 
         COALESCE(u.name, 'Unassigned') as employee,
+        COALESCE(u.employee_code, 'N/A') as employee_code,
         COUNT(c.id) as total_leads,
         SUM(IF(c.current_sale_status = 1, 1, 0)) as sale_won,
         SUM(IF(c.current_sale_status = 2, 1, 0)) as sale_lost
       FROM contacts c
       LEFT JOIN users u ON c.assigned_to = u.id
       WHERE c.business_id = ? ${dateFilter} ${teamFilter}
-      GROUP BY c.assigned_to, u.name
+      GROUP BY c.assigned_to, u.name, u.employee_code
       ORDER BY total_leads DESC
     `;
     console.log("EXEC QUERY:", query, queryParams);
@@ -854,6 +855,7 @@ const getEmployeeConversionReport = async (req, res) => {
       
       return {
         employee: r.employee,
+        employee_code: r.employee_code,
         total_leads: total,
         sale_won: won,
         sale_lost: lost,
@@ -869,6 +871,305 @@ const getEmployeeConversionReport = async (req, res) => {
   }
 };
 
+const getStudentPipelineReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+    const { dateRange, startDate, endDate, status } = req.query;
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'prev_year') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE()) - 1';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(c.created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    } else if (dateRange === 'today') {
+      dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    } else if (startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    }
+
+    let statusFilter = '';
+    if (status && status !== 'All') {
+      statusFilter = 'AND c.status_name = ?';
+      queryParams.push(status);
+    }
+
+    let teamFilter = '';
+    const selfId = Number(userId);
+
+    const [myTeams] = await pool.query(
+      `SELECT team_id FROM team_members WHERE user_id = ?`,
+      [selfId]
+    );
+
+    if (myTeams.length > 0) {
+      const teamIds = myTeams.map(t => t.team_id);
+      
+      const [teamRows] = await pool.query(
+        `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
+        [teamIds]
+      );
+      
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+      
+      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      queryParams.push(...teamMemberIds);
+    } else if (req.user.role === 'agent') {
+      teamFilter = ` AND c.assigned_to = ? `;
+      queryParams.push(selfId);
+    }
+
+    const query = `
+      SELECT 
+        COALESCE(u.name, 'Unassigned') as employee,
+        COALESCE(u.employee_code, 'N/A') as employee_code,
+        COUNT(c.id) as assigned_leads
+      FROM contacts c
+      LEFT JOIN users u ON c.assigned_to = u.id
+      WHERE c.business_id = ? ${dateFilter} ${statusFilter} ${teamFilter}
+      GROUP BY c.assigned_to, u.name, u.employee_code
+      ORDER BY assigned_leads DESC
+    `;
+
+    const [rows] = await pool.query(query, queryParams);
+
+    const data = rows.map(r => ({
+      employee: r.employee,
+      employee_code: r.employee_code,
+      assigned_leads: Number(r.assigned_leads) || 0
+    }));
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('getStudentPipelineReport Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate report' });
+  }
+};
+
+const getFollowUpReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+    const { dateRange, startDate, endDate, status, employee } = req.query;
+    
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(f.entry_date_time) = YEAR(CURDATE())';
+    } else if (dateRange === 'prev_year') {
+      dateFilter = 'AND YEAR(f.entry_date_time) = YEAR(CURDATE()) - 1';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND YEAR(f.entry_date_time) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(f.entry_date_time) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(f.entry_date_time) = MONTH(CURDATE()) AND YEAR(f.entry_date_time) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(f.entry_date_time) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    } else if (dateRange === 'today') {
+      dateFilter = 'AND DATE(f.entry_date_time) = CURDATE()';
+    } else if (startDate && endDate) {
+      dateFilter = 'AND DATE(f.entry_date_time) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    }
+
+    let statusFilter = '';
+    if (status && status !== 'All') {
+      statusFilter = 'AND f.status_name = ?';
+      queryParams.push(status);
+    }
+
+    let employeeFilter = '';
+    if (employee && employee !== 'All') {
+      employeeFilter = 'AND f.by_user_id = ?';
+      queryParams.push(employee);
+    }
+
+    let teamFilter = '';
+    const selfId = Number(userId);
+
+    const [myTeams] = await pool.query(
+      `SELECT team_id FROM team_members WHERE user_id = ?`,
+      [selfId]
+    );
+
+    if (myTeams.length > 0) {
+      const teamIds = myTeams.map(t => t.team_id);
+      
+      const [teamRows] = await pool.query(
+        `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
+        [teamIds]
+      );
+      
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+      
+      teamFilter = ` AND f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      queryParams.push(...teamMemberIds);
+    } else if (req.user.role === 'agent') {
+      teamFilter = ` AND f.by_user_id = ? `;
+      queryParams.push(selfId);
+    }
+
+    const query = `
+      SELECT 
+        COALESCE(u.name, 'Unassigned') as employee_name,
+        COALESCE(u.employee_code, 'N/A') as employee_code,
+        COUNT(f.follow_up_id) as follow_up_count
+      FROM follow_ups f
+      JOIN contacts c ON f.contact_id = c.id
+      LEFT JOIN users u ON f.by_user_id = u.id
+      WHERE c.business_id = ? ${dateFilter} ${statusFilter} ${employeeFilter} ${teamFilter}
+      GROUP BY f.by_user_id, u.name, u.employee_code
+      ORDER BY follow_up_count DESC
+    `;
+
+    const [rows] = await pool.query(query, queryParams);
+
+    const data = rows.map(r => ({
+      employee: r.employee_name,
+      employee_code: r.employee_code,
+      follow_up_count: Number(r.follow_up_count) || 0
+    }));
+
+    // Calculate Summary Metrics
+    let totalFollowUps = 0;
+    let highestFollowUps = 0;
+    let lowestFollowUps = data.length > 0 ? data[0].follow_up_count : 0;
+    let totalEmployees = data.length;
+
+    data.forEach(r => {
+      totalFollowUps += r.follow_up_count;
+      if (r.follow_up_count > highestFollowUps) highestFollowUps = r.follow_up_count;
+      if (r.follow_up_count < lowestFollowUps) lowestFollowUps = r.follow_up_count;
+    });
+
+    let averageFollowUps = totalEmployees > 0 ? Math.round((totalFollowUps / totalEmployees) * 10) / 10 : 0;
+    if (data.length === 0) {
+      lowestFollowUps = 0;
+    }
+
+    res.json({ 
+      success: true, 
+      data,
+      summary: {
+        totalFollowUps,
+        averageFollowUps,
+        highestFollowUps,
+        lowestFollowUps,
+        totalEmployees
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to generate report' });
+  }
+};
+
+const getTeamProductivityReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    let { date, employee } = req.query;
+    
+    // Default to today if date not provided
+    if (!date || date === 'null' || date === 'undefined') {
+      const today = new Date();
+      date = today.toISOString().split('T')[0];
+    }
+    
+    let employeeFilterUsers = '';
+    let employeeFilterFollowUps = '';
+    let queryParamsUsers = [businessId, businessId, businessId, businessId, businessId, businessId];
+    let queryParamsFollowUps = [businessId, date];
+
+    if (employee && employee !== 'All') {
+      employeeFilterUsers = 'AND u.id = ?';
+      queryParamsUsers.push(employee);
+      
+      employeeFilterFollowUps = 'AND f.by_user_id = ?';
+      queryParamsFollowUps.push(employee);
+    }
+
+    // 1. Team Productivity Table Data
+    const usersQuery = `
+      SELECT 
+        u.id as employee_id,
+        COALESCE(u.name, 'Unassigned') as employee_name,
+        COALESCE(u.employee_code, 'N/A') as employee_code,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ?) as assigned,
+        (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE f.by_user_id = u.id AND fc.business_id = ?) as follow_ups,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_lost = 1) as lost,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 1) as converted,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 0 AND c.sale_lost = 0) as pending
+      FROM users u
+      WHERE u.business_id = ? AND u.role = 'agent' ${employeeFilterUsers}
+    `;
+    const [teamProductivityRows] = await pool.query(usersQuery, queryParamsUsers);
+
+    const teamProductivity = teamProductivityRows.map(row => {
+      const converted = Number(row.converted) || 0;
+      const assigned = Number(row.assigned) || 0;
+      const conversion_percentage = assigned > 0 ? ((converted / assigned) * 100).toFixed(1) : '0.0';
+      return {
+        ...row,
+        assigned: Number(row.assigned),
+        follow_ups: Number(row.follow_ups),
+        lost: Number(row.lost),
+        converted,
+        pending: Number(row.pending),
+        conversion_percentage: Number(conversion_percentage)
+      };
+    });
+
+    // 2. Today's Activity Summary
+    const activityQuery = `
+      SELECT 
+        COALESCE(f.status_name, 'Unspecified') as status_name,
+        COUNT(f.follow_up_id) as count
+      FROM follow_ups f
+      JOIN contacts c ON f.contact_id = c.id
+      WHERE c.business_id = ? AND DATE(f.entry_date_time) = ? ${employeeFilterFollowUps}
+      GROUP BY f.status_name
+    `;
+    const [todaysActivityRows] = await pool.query(activityQuery, queryParamsFollowUps);
+
+    // 3. Activity Timeline (Hour by Hour)
+    const timelineQuery = `
+      SELECT 
+        HOUR(f.entry_date_time) as hour,
+        COUNT(f.follow_up_id) as count
+      FROM follow_ups f
+      JOIN contacts c ON f.contact_id = c.id
+      WHERE c.business_id = ? AND DATE(f.entry_date_time) = ? ${employeeFilterFollowUps}
+      GROUP BY HOUR(f.entry_date_time)
+      ORDER BY hour ASC
+    `;
+    const [timelineRows] = await pool.query(timelineQuery, queryParamsFollowUps);
+
+    res.json({
+      success: true,
+      data: {
+        teamProductivity,
+        todaysActivity: todaysActivityRows,
+        activityTimeline: timelineRows
+      }
+    });
+
+  } catch (error) {
+    console.error('getTeamProductivityReport Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate team productivity report' });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -881,5 +1182,8 @@ module.exports = {
   getChannelsReport,
   getWonLostReport,
   getChannelConversionReport,
-  getEmployeeConversionReport
+  getEmployeeConversionReport,
+  getStudentPipelineReport,
+  getFollowUpReport,
+  getTeamProductivityReport
 };

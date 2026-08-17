@@ -1,0 +1,27 @@
+.report-container {
+  background-color: #f8f9fc;
+  min-height: 100vh;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.chart-container-dark {
+  background-color: #000000;
+  border-radius: 8px;
+}
+
+.text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.chart-inner-container {
+  min-width: 600px;
+}

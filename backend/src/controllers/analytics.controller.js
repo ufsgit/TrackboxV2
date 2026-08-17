@@ -194,4 +194,154 @@ const getCrmDashboardStats = async (req, res) => {
   }
 };
 
-module.exports = { getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, getChatbotAnalytics, getContactGrowth, getCrmDashboardStats };
+// --- CUSTOM REPORTS ENDPOINTS ---
+
+const getEmployeeProductivity = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { startDate, endDate } = req.query;
+    let dateClause = '';
+    const params = [bizId];
+    if (startDate && endDate) {
+      dateClause = 'AND DATE(c.created_at) >= ? AND DATE(c.created_at) <= ?';
+      params.push(startDate, endDate);
+    }
+    const [rows] = await pool.query(
+      `SELECT u.name as employeeName, u.id as employeeCode, COUNT(*) as conversionCount
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       WHERE c.business_id = ? AND c.status_name = 'Converted' ${dateClause}
+       GROUP BY u.id
+       ORDER BY conversionCount DESC`,
+      params
+    );
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+const getStudentPipeline = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { status } = req.query;
+    let statusClause = '';
+    const params = [bizId];
+    if (status) {
+      statusClause = 'AND c.status_name = ?';
+      params.push(status);
+    }
+    const [rows] = await pool.query(
+      `SELECT u.name as employeeName, COUNT(*) as leadCount
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       WHERE c.business_id = ? ${statusClause}
+       GROUP BY u.id
+       ORDER BY leadCount DESC`,
+      params
+    );
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+const getFollowUpReport = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { startDate, endDate } = req.query;
+    let dateClause = '';
+    const params = [bizId];
+    if (startDate && endDate) {
+      dateClause = 'AND DATE(f.created_at) >= ? AND DATE(f.created_at) <= ?';
+      params.push(startDate, endDate);
+    }
+    const [rows] = await pool.query(
+      `SELECT u.name as employeeName, COUNT(*) as followUpCount
+       FROM follow_ups f
+       LEFT JOIN users u ON f.by_user_id = u.id
+       WHERE f.contact_id IN (SELECT id FROM contacts WHERE business_id = ?) ${dateClause}
+       GROUP BY u.id
+       ORDER BY followUpCount DESC`,
+      params
+    );
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+const getTeamProductivity = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const [rows] = await pool.query(
+      `SELECT 
+         u.name as employeeName,
+         COUNT(*) as rawAssigned,
+         SUM(CASE WHEN c.status_name = 'Follow Up' THEN 1 ELSE 0 END) as followUps,
+         SUM(CASE WHEN c.status_name = 'Sales Loss' THEN 1 ELSE 0 END) as lost,
+         SUM(CASE WHEN c.status_name = 'Pending' OR c.status_name IS NULL THEN 1 ELSE 0 END) as pending,
+         SUM(CASE WHEN c.status_name = 'Converted' THEN 1 ELSE 0 END) as converted
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       WHERE c.business_id = ?
+       GROUP BY u.id`,
+      [bizId]
+    );
+    const formattedData = rows.map(r => {
+      const assigned = Number(r.followUps) + Number(r.lost) + Number(r.pending) + Number(r.converted);
+      return {
+        ...r,
+        assigned,
+        conversionPercent: assigned > 0 ? Math.round((Number(r.converted) / assigned) * 100) : 0
+      };
+    });
+    res.json({ success: true, data: formattedData, message: 'OK' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+const getTodaysActivity = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const [rows] = await pool.query(
+      `SELECT 
+         u.name as employeeName,
+         SUM(CASE WHEN c.status_name = 'Follow Up' THEN 1 ELSE 0 END) as followUps,
+         SUM(CASE WHEN c.status_name = 'Converted' THEN 1 ELSE 0 END) as converted,
+         SUM(CASE WHEN c.status_name = 'Status 1' THEN 1 ELSE 0 END) as status1,
+         SUM(CASE WHEN c.status_name = 'Status 2' THEN 1 ELSE 0 END) as status2
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       WHERE c.business_id = ? AND DATE(c.updated_at) = CURDATE()
+       GROUP BY u.id`,
+      [bizId]
+    );
+    const formattedData = rows.map(r => ({
+      ...r,
+      total: Number(r.followUps) + Number(r.converted) + Number(r.status1) + Number(r.status2)
+    }));
+    res.json({ success: true, data: formattedData, message: 'OK' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+const getRawData = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+    const [rows] = await pool.query(
+      `SELECT 
+         c.id, u.name as employeeName, c.created_at as date, 
+         c.status_name as status, c.name as contactName
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       WHERE c.business_id = ?
+       ORDER BY c.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [bizId, Number(limit), Number(offset)]
+    );
+    const [[{ total }]] = await pool.query('SELECT COUNT(*) as total FROM contacts WHERE business_id = ?', [bizId]);
+    res.json({ success: true, data: rows, total, message: 'OK' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
+};
+
+module.exports = { 
+  getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, 
+  getChatbotAnalytics, getContactGrowth, getCrmDashboardStats,
+  getEmployeeProductivity, getStudentPipeline, getFollowUpReport,
+  getTeamProductivity, getTodaysActivity, getRawData
+};
