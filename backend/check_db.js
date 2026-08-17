@@ -1,0 +1,1 @@
+const pool = require("./src/config/database"); (async function() { try { const [rows] = await pool.query("SELECT * FROM contacts"); console.log("Contacts count:", rows.length); } catch(e) { console.error(e); } process.exit(0); })();

@@ -534,14 +534,7 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
   upcomingChartData: number[] = [0, 0, 0, 0, 0, 0, 0];
   followUpChart: any;
   // Funnel Data with premium gradients
-  funnelStages: any[] = [
-    { name: 'Total Leads', count: 0, gradient: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' },
-    { name: 'Interested', count: 85, displayCount: 0, gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)' },
-    { name: 'Not Interested', count: 68, displayCount: 0, gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' },
-    { name: 'Converted', count: 25, displayCount: 0, gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' },
-    { name: 'Assign to Branch', count: 18, displayCount: 0, gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)' },
-    { name: 'Sales Loss', count: 10, displayCount: 0, gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)' }
-  ];
+  funnelStages: any[] = [];
 
   constructor(private api: ApiService) {}
 
@@ -602,28 +595,22 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
             this.animateValue('lostDeals', this.lostDeals, res.data.lostDeals, 1000);
           }
 
-          // Update funnel stages dynamically from API if data exists
           if (res.data.funnelData && res.data.funnelData.length > 0) {
-            // Mapping existing gradient to the dynamic data, or using default
-            this.funnelStages = res.data.funnelData.map((item: any, index: number) => {
-              const gradients = [
-                'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)',
-                'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
-                'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-                'linear-gradient(135deg, #f97316 0%, #c2410c 100%)',
-                'linear-gradient(135deg, #64748b 0%, #475569 100%)'
-              ];
+            // Mapping dynamic data from backend
+            this.funnelStages = res.data.funnelData.map((item: any) => {
+              // Convert hex color to gradient for premium look
+              const color = item.color || '#4f46e5';
+              const gradient = `linear-gradient(135deg, ${this.adjustColorBrightness(color, 20)} 0%, ${color} 100%)`;
               return {
                 name: item.name,
                 count: item.count,
                 displayCount: 0,
-                gradient: gradients[index % gradients.length]
+                gradient: gradient
               };
             });
           } else {
             // Initialize displayCount for dummy data if no API data
-            this.funnelStages = this.funnelStages.map(s => ({ ...s, displayCount: 0 }));
+            this.funnelStages = this.funnelStages.map(s => ({ ...s, count: 0, displayCount: 0 }));
           }
 
           // Animate funnel counts staggered
@@ -731,6 +718,26 @@ export class CrmDashboardComponent implements OnInit, AfterViewInit {
         }
       }
     });
+  }
+
+  // Utility to lighten/darken hex color
+  adjustColorBrightness(col: string, amt: number) {
+    let usePound = false;
+    if (col[0] == "#") {
+        col = col.slice(1);
+        usePound = true;
+    }
+    const num = parseInt(col, 16);
+    let r = (num >> 16) + amt;
+    if (r > 255) r = 255;
+    else if (r < 0) r = 0;
+    let b = ((num >> 8) & 0x00FF) + amt;
+    if (b > 255) b = 255;
+    else if (b < 0) b = 0;
+    let g = (num & 0x0000FF) + amt;
+    if (g > 255) g = 255;
+    else if (g < 0) g = 0;
+    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
   }
 }
 

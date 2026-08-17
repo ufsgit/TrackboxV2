@@ -13,6 +13,7 @@ router.get('/leads/source-conversion', c.getSourceConversionReport);
 router.get('/leads/channels', c.getChannelsReport);
 router.get('/leads/won-lost', c.getWonLostReport);
 router.get('/leads/channel-conversion', c.getChannelConversionReport);
+router.get('/leads/employee-conversion', c.getEmployeeConversionReport);
 
 // Work and Employee Reports
 router.get('/work', c.getWorkReport);

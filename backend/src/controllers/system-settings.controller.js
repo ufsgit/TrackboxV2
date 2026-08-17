@@ -133,10 +133,33 @@ const createStatus = async (req, res) => {
 const updateStatus = async (req, res) => {
   try {
     const { name, color, follow_needed, sequence, transfer, department_id, type } = req.body;
+
+    // Fetch the old status to see if the name is changing
+    const [oldStatus] = await pool.query('SELECT name FROM statuses WHERE id=?', [req.params.id]);
+    
+    if (oldStatus.length === 0) {
+      return res.status(404).json({ success: false, message: 'Status not found' });
+    }
+    
+    const oldName = oldStatus[0].name;
+
     await pool.query(
       'UPDATE statuses SET name=?, color=?, follow_needed=?, sequence=?, transfer=?, department_id=?, type=? WHERE id=?',
       [name, color || '#000000', follow_needed || 'Yes', sequence || 0, transfer ? 1 : 0, department_id || null, type || null, req.params.id]
     );
+
+    // If the status name was changed, update all leads, contacts, and follow_ups that had the old status
+    if (oldName && oldName !== name) {
+      await pool.query('UPDATE leads SET status=? WHERE status=?', [name, oldName]);
+      await pool.query('UPDATE contacts SET status_name=? WHERE status_name=?', [name, oldName]);
+      // follow_ups table also uses status_name
+      try {
+         await pool.query('UPDATE follow_ups SET status_name=? WHERE status_name=?', [name, oldName]);
+      } catch (e) {
+         console.log('follow_ups update failed/skipped', e.message);
+      }
+    }
+
     const [rows] = await pool.query('SELECT * FROM statuses WHERE id=?', [req.params.id]);
     res.json({ success: true, data: rows[0], message: 'Status updated' });
   } catch (err) {

@@ -131,13 +131,34 @@ const getCrmDashboardStats = async (req, res) => {
       queryParams
     );
 
-    const [funnelData] = await pool.query(
+    // Fetch all available statuses first so we can show them even if count is 0
+    const [allStatuses] = await pool.query('SELECT name, color FROM statuses ORDER BY sequence ASC');
+
+    const [groupedFunnelData] = await pool.query(
       `SELECT status_name as name, COUNT(*) as count 
        FROM contacts 
        WHERE business_id = ? ${agentClause} AND status_name IS NOT NULL ${dateClause}
        GROUP BY status_name`,
       queryParams
     );
+
+    // Merge actual counts with the complete list of statuses
+    const statusesMap = {};
+    allStatuses.forEach(s => statusesMap[s.name] = 0);
+    groupedFunnelData.forEach(f => {
+      if (statusesMap.hasOwnProperty(f.name)) {
+        statusesMap[f.name] = f.count;
+      }
+    });
+
+    const funnelData = [
+      { name: 'Total Leads', count: totalLeads || 0, color: '#4f46e5' },
+      ...allStatuses.map(s => ({
+        name: s.name,
+        count: statusesMap[s.name],
+        color: s.color || '#000000'
+      }))
+    ];
 
     const [upcomingChartDataRows] = await pool.query(
       `SELECT DATEDIFF(DATE(follow_up_date), CURDATE()) as days_from_now, COUNT(*) as count 

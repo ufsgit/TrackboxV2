@@ -701,11 +701,24 @@ const getWonLostReport = async (req, res) => {
 const getChannelConversionReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
-    const { startDate, endDate, agent } = req.query;
+    const { dateRange, startDate, endDate, agent } = req.query;
     let dateFilter = '';
     let queryParams = [businessId];
 
-    if (startDate && endDate) {
+    if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'prev_year') {
+      dateFilter = 'AND YEAR(created_at) = YEAR(CURDATE()) - 1';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND YEAR(created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    } else if (dateRange === 'today') {
+      dateFilter = 'AND DATE(created_at) = CURDATE()';
+    } else if (startDate && endDate) {
       dateFilter = 'AND DATE(created_at) BETWEEN ? AND ?';
       queryParams.push(startDate, endDate);
     }
@@ -759,6 +772,103 @@ const getChannelConversionReport = async (req, res) => {
   }
 };
 
+const getEmployeeConversionReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+    const { dateRange, startDate, endDate } = req.query;
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'prev_year') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE()) - 1';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(c.created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    } else if (dateRange === 'today') {
+      dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    } else if (startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    }
+
+    let teamFilter = '';
+    const selfId = Number(userId);
+
+    // Find the teams the current user belongs to
+    const [myTeams] = await pool.query(
+      `SELECT team_id FROM team_members WHERE user_id = ?`,
+      [selfId]
+    );
+
+    if (myTeams.length > 0) {
+      const teamIds = myTeams.map(t => t.team_id);
+      
+      // Get all members of those teams
+      const [teamRows] = await pool.query(
+        `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
+        [teamIds]
+      );
+      
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+      
+      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      queryParams.push(...teamMemberIds);
+    } else if (req.user.role === 'agent') {
+      // If agent has no team, they only see themselves
+      teamFilter = ` AND c.assigned_to = ? `;
+      queryParams.push(selfId);
+    }
+    // Admin without a team will see all (teamFilter remains empty)
+
+    const query = `
+      SELECT 
+        COALESCE(u.name, 'Unassigned') as employee,
+        COUNT(c.id) as total_leads,
+        SUM(IF(c.current_sale_status = 1, 1, 0)) as sale_won,
+        SUM(IF(c.current_sale_status = 2, 1, 0)) as sale_lost
+      FROM contacts c
+      LEFT JOIN users u ON c.assigned_to = u.id
+      WHERE c.business_id = ? ${dateFilter} ${teamFilter}
+      GROUP BY c.assigned_to, u.name
+      ORDER BY total_leads DESC
+    `;
+    console.log("EXEC QUERY:", query, queryParams);
+
+    const [rows] = await pool.query(query, queryParams);
+
+    const data = rows.map(r => {
+      const total = Number(r.total_leads) || 0;
+      const won = Number(r.sale_won) || 0;
+      const lost = Number(r.sale_lost) || 0;
+      
+      const conversionRate = total > 0 ? ((won / total) * 100).toFixed(1) : '0.0';
+      const lossRate = total > 0 ? ((lost / total) * 100).toFixed(1) : '0.0';
+      
+      return {
+        employee: r.employee,
+        total_leads: total,
+        sale_won: won,
+        sale_lost: lost,
+        conversion_rate: conversionRate,
+        loss_rate: lossRate
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('getEmployeeConversionReport Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate report' });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -770,5 +880,6 @@ module.exports = {
   getSourceConversionReport,
   getChannelsReport,
   getWonLostReport,
-  getChannelConversionReport
+  getChannelConversionReport,
+  getEmployeeConversionReport
 };

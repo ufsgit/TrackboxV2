@@ -1716,6 +1716,9 @@ export class ContactsComponent implements OnInit {
     // We fetch a larger limit to ensure we get most leads for the calendar view. 
     // In a production scenario with millions of leads, we'd want a dedicated endpoint.
     const params: any = { limit: 5000 };
+    if (this.activeStatus?.trim() !== 'NO DATE' && this.activeStatus?.trim() !== 'No Follow Up') {
+      params.has_followup = 1;
+    }
     if (this.searchQuery) params.search = this.searchQuery;
     if (this.activeTag) params.tags = this.activeTag;
     if (this.activeChannel) params.channel = this.activeChannel;
