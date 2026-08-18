@@ -142,10 +142,32 @@ table tr:hover td {
   background-color: #f1f5f9;
 }
 
-.share-progress {
+/* Progress Bar */
+.progress-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.rate-text {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.progress-bar-bg {
+  width: 60px;
   height: 6px;
+  background: #e2e8f0;
   border-radius: 3px;
-  background-color: #e2e8f0;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 3px;
+  transition: width 1s ease-out;
 }
 
 /* Animations */

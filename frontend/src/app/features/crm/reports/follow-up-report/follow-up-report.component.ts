@@ -49,12 +49,21 @@ export class FollowUpReportComponent implements OnInit {
       },
       y: { 
         grid: { display: false },
-        ticks: { color: '#9ca3af', font: { size: 12 } }
+        ticks: { color: '#6c757d', font: { size: 12, family: 'Inter, sans-serif' } }
       }
     },
     plugins: {
       legend: { display: false },
-      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 }
+      tooltip: { 
+        backgroundColor: '#ffffff', 
+        titleColor: '#212529',
+        bodyColor: '#212529',
+        borderColor: '#dee2e6',
+        borderWidth: 1,
+        padding: 12, 
+        cornerRadius: 8,
+        displayColors: false
+      }
     }
   };
 
@@ -159,10 +168,10 @@ export class FollowUpReportComponent implements OnInit {
         { 
           data: this.data.map(d => d.follow_up_count), 
           label: 'Follow-Up Count', 
-          backgroundColor: '#1d4ed8', // Darker blue to match image
+          backgroundColor: '#3b82f6', // Bright, modern blue
           hoverBackgroundColor: '#2563eb',
-          borderRadius: 0, 
-          barPercentage: 0.7,
+          borderRadius: 6, // Slightly rounded corners for modern look
+          barPercentage: 0.6,
           categoryPercentage: 0.8
         }
       ]

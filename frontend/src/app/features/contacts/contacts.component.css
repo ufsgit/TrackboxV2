@@ -361,6 +361,50 @@
   outline: none !important;
 }
 
+/* Custom Premium Dropdown Styles */
+.custom-filter-dropdown .dropdown-toggle::after {
+  margin-left: 8px;
+  border-top: 0.3em solid #64748b;
+  border-right: 0.3em solid transparent;
+  border-left: 0.3em solid transparent;
+}
+
+.custom-dropdown-menu {
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1) !important;
+  padding: 8px !important;
+  margin-top: 4px !important;
+  min-width: 100% !important;
+  background: #ffffff !important;
+}
+
+.custom-dropdown-menu .dropdown-item {
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #475569;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.custom-dropdown-menu .dropdown-item:last-child {
+  margin-bottom: 0;
+}
+
+.custom-dropdown-menu .dropdown-item:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.custom-dropdown-menu .dropdown-item.active {
+  background-color: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  font-weight: 600;
+}
+
 /* spacious borderless table card layout */
 .contacts-table-container {
   overflow-x: auto;

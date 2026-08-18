@@ -1,75 +1,128 @@
-<div class="report-container p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="h4 mb-1">Student Pipeline Report</h2>
-      <p class="text-muted small mb-0">Assigned leads performance by employee</p>
+<div class="report-container">
+  <!-- Header Section -->
+  <div class="report-header">
+    <div class="header-content">
+      <div>
+        <h2 class="report-title">Student Pipeline Report</h2>
+        <p class="report-subtitle">Assigned leads performance by employee</p>
+      </div>
+      <div class="header-actions">
+        <div class="filter-group">
+          <!-- Date Range -->
+          <div class="filter-item">
+            <i class="bi bi-calendar3 filter-icon"></i>
+            <select class="premium-input" [(ngModel)]="dateRange" (change)="fetchData()">
+              <option value="today">Today</option>
+              <option value="this_week">This Week</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="ytd">Year to Date</option>
+              <option value="prev_year">Previous Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          <!-- Custom Dates -->
+          <div class="filter-item" *ngIf="dateRange === 'custom'">
+            <i class="bi bi-calendar filter-icon"></i>
+            <input type="date" class="premium-input" [(ngModel)]="customStartDate">
+          </div>
+          <div class="filter-item" *ngIf="dateRange === 'custom'">
+            <i class="bi bi-calendar filter-icon"></i>
+            <input type="date" class="premium-input" [(ngModel)]="customEndDate">
+          </div>
+
+          <!-- Status -->
+          <div class="filter-item">
+            <i class="bi bi-tag filter-icon"></i>
+            <select class="premium-input" [(ngModel)]="selectedStatus" (change)="fetchData()">
+              <option value="All">All Statuses</option>
+              <option *ngFor="let s of statuses" [value]="s.name">{{ s.name }}</option>
+            </select>
+          </div>
+
+          <!-- Refresh -->
+          <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <!-- Date and Status Filter -->
-      <div class="row g-3 align-items-end mb-4">
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Date Range</label>
-          <select class="form-select form-select-sm" [(ngModel)]="dateRange" (change)="fetchData()">
-            <option value="today">Today</option>
-            <option value="this_week">This Week</option>
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="ytd">Year to Date</option>
-            <option value="prev_year">Previous Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div class="col-md-3" *ngIf="dateRange === 'custom'">
-          <label class="form-label small text-muted">From Date</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="customStartDate">
-        </div>
-        <div class="col-md-3" *ngIf="dateRange === 'custom'">
-          <label class="form-label small text-muted">To Date</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="customEndDate">
+  <div *ngIf="loading" class="loader-container">
+    <div class="modern-spinner"></div>
+    <p>Loading pipeline data...</p>
+  </div>
+
+  <div *ngIf="!loading">
+    <!-- Main Chart -->
+    <div class="chart-grid">
+      <div class="grid-card timeline-card">
+        <div class="card-header-premium">
+          <div class="header-title">
+            <div class="icon-box purple"><i class="bi bi-bar-chart-fill"></i></div>
+            <h3>Assigned Leads by Employee</h3>
+          </div>
+          <div class="total-badge" *ngIf="data.length > 0">Sorted highest to lowest</div>
         </div>
         
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Status</label>
-          <select class="form-select form-select-sm" [(ngModel)]="selectedStatus" (change)="fetchData()">
-            <option value="All">All Statuses</option>
-            <option *ngFor="let s of statuses" [value]="s.name">{{ s.name }}</option>
-          </select>
-        </div>
-        
-        <div class="col-md-2" *ngIf="dateRange === 'custom'">
-          <button class="btn btn-primary btn-sm w-100" (click)="fetchData()">Apply Filter</button>
-        </div>
-      </div>
-
-      <!-- Graph Section -->
-      <div class="report-card mt-4">
-        <h5 class="mb-1">Assigned Leads by Employee</h5>
-        <p class="text-muted small mb-4">Assigned lead count (Sorted highest to lowest) - Filter: {{ selectedStatus }}</p>
-
-        <div *ngIf="loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+        <div class="card-body-premium">
+          <div class="chart-wrapper" *ngIf="data.length > 0">
+            <div [style.height.px]="chartHeight">
+              <canvas baseChart
+                [data]="barChartData"
+                [options]="barChartOptions"
+                [type]="'bar'">
+              </canvas>
+            </div>
           </div>
-        </div>
-
-        <div *ngIf="!loading && data.length > 0" class="chart-wrapper">
-          <div class="chart-inner-container" [style.height.px]="chartHeight">
-            <canvas baseChart
-              [data]="barChartData"
-              [options]="barChartOptions"
-              [type]="'bar'">
-            </canvas>
+          
+          <div class="empty-state" *ngIf="data.length === 0">
+            <i class="bi bi-inbox empty-icon"></i>
+            <p>No data available for the selected filters.</p>
           </div>
-        </div>
-
-        <div *ngIf="!loading && data.length === 0" class="text-center py-5 text-muted">
-          <i class="bi bi-inbox fs-1 mb-2 d-block text-black-50"></i>
-          No data available for the selected filters.
         </div>
       </div>
     </div>
+
+    <!-- Data Table -->
+    <div class="grid-card table-card mt-4 mb-4">
+      <div class="card-header-premium">
+        <div class="header-title">
+          <div class="icon-box blue"><i class="bi bi-table"></i></div>
+          <h3>Pipeline Data Table</h3>
+        </div>
+      </div>
+      <div class="card-body-premium p-0">
+        <div class="modern-table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Employee Code</th>
+                <th>Employee Name</th>
+                <th class="text-center">Assigned Leads</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of data">
+                <td><span class="emp-code text-muted fw-medium">{{ row.employee_code || 'N/A' }}</span></td>
+                <td><span class="emp-name text-dark fw-bold">{{ row.employee || 'Unassigned' }}</span></td>
+                <td class="text-center"><span class="metric-pill purple">{{ row.assigned_leads }}</span></td>
+              </tr>
+              <tr *ngIf="data.length === 0" class="empty-row">
+                <td colspan="3">
+                  <div class="empty-state py-5">
+                    <i class="bi bi-folder-x empty-icon"></i>
+                    <p>No data found for this selection.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

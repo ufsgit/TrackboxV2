@@ -1,72 +1,138 @@
-<div class="report-container p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="h4 mb-1">Follow-Up Report</h2>
-      <p class="text-muted small mb-0">Shows follow-up activity count for each employee based on Follow-Up History.</p>
+<div class="report-container">
+  <!-- Header Section -->
+  <div class="report-header">
+    <div class="header-content">
+      <div>
+        <h2 class="report-title">Follow-Up Report</h2>
+        <p class="report-subtitle">Shows follow-up activity count for each employee based on Follow-Up History.</p>
+      </div>
+      <div class="header-actions">
+        <div class="filter-group">
+          <!-- Date Range -->
+          <div class="filter-item">
+            <i class="bi bi-calendar3 filter-icon"></i>
+            <select class="premium-input" [(ngModel)]="dateRange" (change)="fetchData()">
+              <option value="today">Today</option>
+              <option value="this_week">This Week</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="ytd">Year to Date</option>
+              <option value="prev_year">Previous Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          <!-- Custom Dates -->
+          <div class="filter-item" *ngIf="dateRange === 'custom'">
+            <i class="bi bi-calendar filter-icon"></i>
+            <input type="date" class="premium-input" [(ngModel)]="customStartDate">
+          </div>
+          <div class="filter-item" *ngIf="dateRange === 'custom'">
+            <i class="bi bi-calendar filter-icon"></i>
+            <input type="date" class="premium-input" [(ngModel)]="customEndDate">
+          </div>
+
+          <!-- Employee -->
+          <div class="filter-item">
+            <i class="bi bi-person filter-icon"></i>
+            <select class="premium-input" [(ngModel)]="selectedEmployee" (change)="fetchData()">
+              <option value="All">All Employees</option>
+              <option *ngFor="let u of users" [value]="u.id">{{ u.name }}</option>
+            </select>
+          </div>
+
+          <!-- Status -->
+          <div class="filter-item">
+            <i class="bi bi-tag filter-icon"></i>
+            <select class="premium-input" [(ngModel)]="selectedStatus" (change)="fetchData()">
+              <option value="All">All Statuses</option>
+              <option *ngFor="let s of statuses" [value]="s.name">{{ s.name }}</option>
+            </select>
+          </div>
+
+          <!-- Refresh -->
+          <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <!-- Date and Status Filter -->
-      <div class="row g-3 align-items-end mb-4">
-        <div class="col-md-3">
-          <label class="form-label small text-muted">Date Range</label>
-          <select class="form-select form-select-sm" [(ngModel)]="dateRange">
-            <option value="today">Today</option>
-            <option value="this_week">This Week</option>
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="ytd">Year to Date</option>
-            <option value="prev_year">Previous Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
-        <div class="col-md-2" *ngIf="dateRange === 'custom'">
-          <label class="form-label small text-muted">From Date</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="customStartDate">
-        </div>
-        <div class="col-md-2" *ngIf="dateRange === 'custom'">
-          <label class="form-label small text-muted">To Date</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="customEndDate">
-        </div>
-        
-        <div class="col-md-2">
-          <label class="form-label small text-muted">Employee</label>
-          <select class="form-select form-select-sm" [(ngModel)]="selectedEmployee">
-            <option value="All">All Employees</option>
-            <option *ngFor="let u of users" [value]="u.id">{{ u.name }}</option>
-          </select>
-        </div>
+  <div *ngIf="loading" class="loader-container">
+    <div class="modern-spinner"></div>
+    <p>Loading follow-up data...</p>
+  </div>
 
-        <div class="col-md-2">
-          <label class="form-label small text-muted">Status</label>
-          <select class="form-select form-select-sm" [(ngModel)]="selectedStatus">
-            <option value="All">All Statuses</option>
-            <option *ngFor="let s of statuses" [value]="s.name">{{ s.name }}</option>
-          </select>
+  <div *ngIf="!loading">
+    
+    <!-- Summary Cards Row -->
+    <div class="summary-grid" *ngIf="data.length > 0">
+      <div class="grid-card">
+        <div class="summary-stat-box">
+          <div class="stat-icon blue"><i class="bi bi-stack"></i></div>
+          <div class="stat-details">
+            <p>Total Follow-Ups</p>
+            <h4>{{ summary.totalFollowUps }}</h4>
+          </div>
         </div>
-        
-        <div class="col-md-auto ms-auto d-flex gap-2">
-          <button class="btn btn-outline-secondary btn-sm px-3" (click)="resetFilter()">Reset</button>
-          <button class="btn btn-primary btn-sm px-4" (click)="fetchData()">Apply Filter</button>
+      </div>
+      
+      <div class="grid-card">
+        <div class="summary-stat-box">
+          <div class="stat-icon purple"><i class="bi bi-calculator"></i></div>
+          <div class="stat-details">
+            <p>Avg / Employee</p>
+            <h4>{{ summary.averageFollowUps }}</h4>
+          </div>
         </div>
       </div>
 
-      <!-- Graph Section -->
-      <div class="report-card mt-4 border-top pt-4">
-        <div class="chart-container-dark p-4 rounded shadow">
-          <h5 class="mb-1 text-white">Employee Productivity</h5>
-          <p class="text-gray-400 small mb-4">Productivity output for employees.</p>
-
-          <div *ngIf="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+      <div class="grid-card">
+        <div class="summary-stat-box">
+          <div class="stat-icon green"><i class="bi bi-graph-up-arrow"></i></div>
+          <div class="stat-details">
+            <p>Highest Follow-Ups</p>
+            <h4>{{ summary.highestFollowUps }}</h4>
           </div>
+        </div>
+      </div>
 
-          <div *ngIf="!loading && data.length > 0" class="chart-wrapper">
-            <div class="chart-inner-container" [style.height.px]="chartHeight">
+      <div class="grid-card">
+        <div class="summary-stat-box">
+          <div class="stat-icon red"><i class="bi bi-graph-down-arrow"></i></div>
+          <div class="stat-details">
+            <p>Lowest Follow-Ups</p>
+            <h4>{{ summary.lowestFollowUps }}</h4>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-card">
+        <div class="summary-stat-box">
+          <div class="stat-icon orange"><i class="bi bi-people"></i></div>
+          <div class="stat-details">
+            <p>Total Employees</p>
+            <h4>{{ summary.totalEmployees }}</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Chart -->
+    <div class="chart-grid">
+      <div class="grid-card timeline-card">
+        <div class="card-header-premium">
+          <div class="header-title">
+            <div class="icon-box purple"><i class="bi bi-bar-chart-fill"></i></div>
+            <h3>Employee Productivity</h3>
+          </div>
+          <div class="total-badge" *ngIf="data.length > 0">{{ data.length }} Employees</div>
+        </div>
+        
+        <div class="card-body-premium">
+          <div class="chart-wrapper" *ngIf="data.length > 0">
+            <div [style.height.px]="chartHeight">
               <canvas baseChart
                 [data]="barChartData"
                 [options]="barChartOptions"
@@ -75,47 +141,14 @@
               </canvas>
             </div>
           </div>
-
-          <div *ngIf="!loading && data.length === 0" class="text-center py-5 text-gray-400">
-            <i class="bi bi-inbox fs-1 mb-2 d-block opacity-50"></i>
-            No follow-up data available for the selected filters.
-          </div>
-        </div>
-      </div>
-      
-      <!-- Summary Cards -->
-      <div class="row g-3 mt-4" *ngIf="!loading && data.length > 0">
-        <div class="col-md">
-          <div class="p-3 bg-light rounded shadow-sm border text-center">
-            <p class="small text-muted mb-1">Total Follow-Ups</p>
-            <h4 class="mb-0 fw-bold">{{ summary.totalFollowUps }}</h4>
-          </div>
-        </div>
-        <div class="col-md">
-          <div class="p-3 bg-light rounded shadow-sm border text-center">
-            <p class="small text-muted mb-1">Average / Employee</p>
-            <h4 class="mb-0 fw-bold">{{ summary.averageFollowUps }}</h4>
-          </div>
-        </div>
-        <div class="col-md">
-          <div class="p-3 bg-light rounded shadow-sm border text-center">
-            <p class="small text-muted mb-1">Highest Follow-Ups</p>
-            <h4 class="mb-0 fw-bold text-success">{{ summary.highestFollowUps }}</h4>
-          </div>
-        </div>
-        <div class="col-md">
-          <div class="p-3 bg-light rounded shadow-sm border text-center">
-            <p class="small text-muted mb-1">Lowest Follow-Ups</p>
-            <h4 class="mb-0 fw-bold text-danger">{{ summary.lowestFollowUps }}</h4>
-          </div>
-        </div>
-        <div class="col-md">
-          <div class="p-3 bg-light rounded shadow-sm border text-center">
-            <p class="small text-muted mb-1">Total Employees</p>
-            <h4 class="mb-0 fw-bold">{{ summary.totalEmployees }}</h4>
+          
+          <div class="empty-state" *ngIf="data.length === 0">
+            <i class="bi bi-inbox empty-icon"></i>
+            <p>No follow-up data available for the selected filters.</p>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </div>

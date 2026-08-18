@@ -108,10 +108,35 @@ export class ContactsComponent implements OnInit {
     this.showImportExportDropdown = !this.showImportExportDropdown;
   }
 
+  isChannelDropdownOpen = false;
+  isStatusDropdownOpen = false;
+  isAgentDropdownOpen = false;
+  isTagDropdownOpen = false;
+
+  toggleFilterDropdown(dropdownName: string, event: Event) {
+    event.stopPropagation();
+    
+    if (dropdownName !== 'channel') this.isChannelDropdownOpen = false;
+    if (dropdownName !== 'status') this.isStatusDropdownOpen = false;
+    if (dropdownName !== 'agent') this.isAgentDropdownOpen = false;
+    if (dropdownName !== 'tag') this.isTagDropdownOpen = false;
+
+    switch(dropdownName) {
+      case 'channel': this.isChannelDropdownOpen = !this.isChannelDropdownOpen; break;
+      case 'status': this.isStatusDropdownOpen = !this.isStatusDropdownOpen; break;
+      case 'agent': this.isAgentDropdownOpen = !this.isAgentDropdownOpen; break;
+      case 'tag': this.isTagDropdownOpen = !this.isTagDropdownOpen; break;
+    }
+  }
+
   @HostListener('document:click')
   closeDropdowns() {
     this.openDropdownId = null;
     this.showImportExportDropdown = false;
+    this.isChannelDropdownOpen = false;
+    this.isStatusDropdownOpen = false;
+    this.isAgentDropdownOpen = false;
+    this.isTagDropdownOpen = false;
   }
 
   // Lead Details Panel

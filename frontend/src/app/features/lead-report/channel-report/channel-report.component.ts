@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, NgZone, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
@@ -27,6 +27,26 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
     .kpi-shimmer { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%); background-size: 250% 100%; animation: shimmerSweep 1.8s ease-out 0.2s both; pointer-events: none; }
     .chart-card { animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
     .table-row { animation: rowIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.4s + var(--row-i, 0) * 0.07s); }
+    .progress-cell { display: flex; align-items: center; justify-content: flex-start; gap: 0.75rem; }
+    .rate-text { font-weight: 600; color: #0f172a; }
+    .progress-bar-bg { width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 3px; transition: width 1s ease-out; }
+    .date-dropdown-trigger { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 8px 20px; font-weight: 600; font-size: 0.9rem; color: #475569; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; }
+    .date-dropdown-trigger:hover, .date-dropdown-trigger.active { border-color: #a5b4fc; box-shadow: 0 4px 12px rgba(99,102,241,0.12); color: #4f46e5; background: #f8fafc; }
+    .date-dropdown-trigger i.bi-calendar3 { color: #6366f1; transition: transform 0.2s ease; font-size: 1.05rem; }
+    .date-dropdown-trigger.active i.bi-calendar3 { transform: scale(1.1); }
+    .date-dropdown-trigger::after { margin-left: 6px; border-top: 0.35em solid #94a3b8; border-right: 0.35em solid transparent; border-left: 0.35em solid transparent; }
+    .date-dropdown-menu { list-style: none !important; border: 1px solid rgba(255,255,255,0.7) !important; border-radius: 16px !important; box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12), 0 5px 15px rgba(0,0,0,0.05) !important; padding: 10px !important; margin: 0 !important; margin-top: 8px !important; min-width: 220px !important; background: rgba(255, 255, 255, 0.95) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; position: absolute; right: 0; display: none; z-index: 1000; }
+    .date-dropdown-menu.show { display: block; animation: dropdownFadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .date-dropdown-menu li { list-style: none !important; margin: 0 !important; padding: 0 !important; }
+    .date-dropdown-menu .dropdown-item { border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 12px; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); margin-bottom: 4px; cursor: pointer; }
+    .date-dropdown-menu .dropdown-item:last-child { margin-bottom: 0; }
+    .date-dropdown-menu .dropdown-item i { font-size: 1.1rem; color: #94a3b8; transition: all 0.2s ease; }
+    .date-dropdown-menu .dropdown-item:hover { background-color: #f1f5f9; color: #4f46e5; transform: translateX(4px); }
+    .date-dropdown-menu .dropdown-item:hover i { color: #6366f1; transform: scale(1.1); }
+    .date-dropdown-menu .dropdown-item.active { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; box-shadow: 0 4px 10px rgba(99,102,241,0.25); transform: none; }
+    .date-dropdown-menu .dropdown-item.active i { color: #ffffff; }
+    @keyframes dropdownFadeSlide { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
   `],
   template: `
     <div class="report-container flex flex-col gap-20">
@@ -37,14 +57,37 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         </div>
         
         <div class="d-flex align-items-center gap-3 flex-wrap">
-          <select class="form-select premium-select shadow-sm" style="width: auto; min-width: 150px;" [(ngModel)]="dateRange" (change)="onFilterChange()">
-            <option value="today">Today</option>
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="ytd">Year to Date</option>
-            <option value="prev_year">Previous Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
+          <button class="btn btn-primary shadow-sm d-flex align-items-center gap-2 px-4" (click)="onFilterChange()" style="border-radius: 20px;">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+
+          <div class="dropdown" style="position: relative;">
+            <button class="btn date-dropdown-trigger dropdown-toggle" [class.active]="isDropdownOpen" type="button" (click)="toggleDropdown($event)">
+              <i class="bi bi-calendar3"></i>
+              <span>{{ getDateRangeLabel(dateRange) }}</span>
+            </button>
+            <ul class="dropdown-menu date-dropdown-menu" [class.show]="isDropdownOpen">
+              <li><a class="dropdown-item" [class.active]="dateRange === 'today'" (click)="selectDateRange('today')">
+                <i class="bi bi-clock"></i> Today
+              </a></li>
+              <li><a class="dropdown-item" [class.active]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+                <i class="bi bi-calendar2-day"></i> This Month
+              </a></li>
+              <li><a class="dropdown-item" [class.active]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+                <i class="bi bi-calendar2-minus"></i> Last Month
+              </a></li>
+              <li><a class="dropdown-item" [class.active]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+                <i class="bi bi-calendar2-check"></i> Year to Date
+              </a></li>
+              <li><a class="dropdown-item" [class.active]="dateRange === 'prev_year'" (click)="selectDateRange('prev_year')">
+                <i class="bi bi-calendar2-x"></i> Previous Year
+              </a></li>
+              <li><hr class="dropdown-divider" style="margin: 8px 0; border-color: #f1f5f9;"></li>
+              <li><a class="dropdown-item" [class.active]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+                <i class="bi bi-sliders"></i> Custom Range
+              </a></li>
+            </ul>
+          </div>
           
           <ng-container *ngIf="dateRange === 'custom'">
             <div class="d-flex align-items-center gap-2 bg-white rounded shadow-sm px-2 py-1 border">
@@ -53,10 +96,6 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
               <input type="date" class="form-control border-0 bg-transparent p-1 shadow-none" [(ngModel)]="endDate" (change)="onFilterChange()">
             </div>
           </ng-container>
-
-          <button class="btn btn-primary shadow-sm d-flex align-items-center gap-2 px-4" (click)="onFilterChange()">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
-          </button>
         </div>
       </div>
 
@@ -118,10 +157,12 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
                 <td class="fw-semibold" style="text-transform: capitalize;">{{ ch.label }}</td>
                 <td>{{ ch.value }}</td>
                 <td>
-                  <div style="width: 100%; max-width: 150px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-top: 4px;">
-                    <div [style.width.%]="(ch.value / (totalLeads || 1)) * 100" class="bg-primary" style="height: 100%;"></div>
+                  <div class="progress-cell">
+                    <span class="rate-text text-muted small" style="width: 35px; text-align: left;">{{ ((ch.value / (totalLeads || 1)) * 100).toFixed(1) }}%</span>
+                    <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" [style.width.%]="(ch.value / (totalLeads || 1)) * 100"></div>
+                    </div>
                   </div>
-                  <span class="small text-muted">{{ ((ch.value / (totalLeads || 1)) * 100).toFixed(1) }}%</span>
                 </td>
               </tr>
               <tr *ngIf="channels.length === 0">
@@ -138,6 +179,36 @@ export class ChannelReportComponent implements OnInit {
   dateRange: string = 'ytd';
   startDate: string = '';
   endDate: string = '';
+
+  isDropdownOpen = false;
+
+  toggleDropdown(event: Event) {
+    event.stopPropagation();
+    this.isDropdownOpen = !this.isDropdownOpen;
+  }
+
+  @HostListener('document:click')
+  closeDropdown() {
+    this.isDropdownOpen = false;
+  }
+
+  selectDateRange(range: string) {
+    this.dateRange = range;
+    this.isDropdownOpen = false;
+    this.onFilterChange();
+  }
+
+  getDateRangeLabel(range: string): string {
+    const labels: { [key: string]: string } = {
+      'today': 'Today',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+      'ytd': 'Year to Date',
+      'prev_year': 'Previous Year',
+      'custom': 'Custom Range'
+    };
+    return labels[range] || 'Select Range';
+  }
 
   totalLeads = 0;
   topChannel = 'Loading...';

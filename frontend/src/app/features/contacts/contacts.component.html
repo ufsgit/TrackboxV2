@@ -12,35 +12,55 @@
         Search
       </button>
       <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeChannel" (change)="applyFilters()">
-          <option value="">All Channels</option>
-          <option *ngFor="let ch of channels" [value]="ch.name.toLowerCase()">{{ ch.name }}</option>
-        </select>
+        <div class="dropdown custom-filter-dropdown">
+          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('channel', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
+            <span style="text-transform: capitalize;">{{ activeChannel || 'All Channels' }}</span>
+          </button>
+          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isChannelDropdownOpen">
+            <li><a class="dropdown-item" [class.active]="!activeChannel" (click)="activeChannel = ''; applyFilters(); isChannelDropdownOpen = false">All Channels</a></li>
+            <li><a class="dropdown-item" *ngFor="let ch of channels" [class.active]="activeChannel === ch.name.toLowerCase()" (click)="activeChannel = ch.name.toLowerCase(); applyFilters(); isChannelDropdownOpen = false" style="text-transform: capitalize;">{{ ch.name }}</a></li>
+          </ul>
+        </div>
         
-        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeStatus" (change)="applyFilters()">
-          <option value="">All Statuses</option>
-          <ng-container *ngIf="leadStatuses && leadStatuses.length > 0; else defaultStatusList">
-            <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
-          </ng-container>
-          <ng-template #defaultStatusList>
-            <option value="New">New</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Interested">Interested</option>
-            <option value="Not Interested">Not Interested</option>
-            <option value="Converted">Converted</option>
-          </ng-template>
-          <option value="No Follow Up">No Follow Up</option>
-        </select>
+        <div class="dropdown custom-filter-dropdown">
+          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('status', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
+            <span>{{ activeStatus || 'All Statuses' }}</span>
+          </button>
+          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isStatusDropdownOpen">
+            <li><a class="dropdown-item" [class.active]="!activeStatus" (click)="activeStatus = ''; applyFilters(); isStatusDropdownOpen = false">All Statuses</a></li>
+            <ng-container *ngIf="leadStatuses && leadStatuses.length > 0; else defaultStatusList">
+              <li><a class="dropdown-item" *ngFor="let s of leadStatuses" [class.active]="activeStatus === s.name" (click)="activeStatus = s.name; applyFilters(); isStatusDropdownOpen = false">{{ s.name }}</a></li>
+            </ng-container>
+            <ng-template #defaultStatusList>
+              <li><a class="dropdown-item" [class.active]="activeStatus === 'New'" (click)="activeStatus = 'New'; applyFilters(); isStatusDropdownOpen = false">New</a></li>
+              <li><a class="dropdown-item" [class.active]="activeStatus === 'Contacted'" (click)="activeStatus = 'Contacted'; applyFilters(); isStatusDropdownOpen = false">Contacted</a></li>
+              <li><a class="dropdown-item" [class.active]="activeStatus === 'Interested'" (click)="activeStatus = 'Interested'; applyFilters(); isStatusDropdownOpen = false">Interested</a></li>
+              <li><a class="dropdown-item" [class.active]="activeStatus === 'Not Interested'" (click)="activeStatus = 'Not Interested'; applyFilters(); isStatusDropdownOpen = false">Not Interested</a></li>
+              <li><a class="dropdown-item" [class.active]="activeStatus === 'Converted'" (click)="activeStatus = 'Converted'; applyFilters(); isStatusDropdownOpen = false">Converted</a></li>
+            </ng-template>
+            <li><a class="dropdown-item" [class.active]="activeStatus === 'No Follow Up'" (click)="activeStatus = 'No Follow Up'; applyFilters(); isStatusDropdownOpen = false">No Follow Up</a></li>
+          </ul>
+        </div>
 
-        <select *ngIf="isAdmin" class="form-select premium-select shadow-sm" [(ngModel)]="activeAgent" (change)="applyFilters()">
-          <option value="">All Agents</option>
-          <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
-        </select>
+        <div class="dropdown custom-filter-dropdown" *ngIf="isAdmin">
+          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('agent', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
+            <span>{{ activeAgent ? getEmployeeName(activeAgent) : 'All Agents' }}</span>
+          </button>
+          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isAgentDropdownOpen">
+            <li><a class="dropdown-item" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false">All Agents</a></li>
+            <li><a class="dropdown-item" *ngFor="let agent of agents" [class.active]="activeAgent === agent.id" (click)="activeAgent = agent.id; applyFilters(); isAgentDropdownOpen = false">{{ agent.name }}</a></li>
+          </ul>
+        </div>
         
-        <select class="form-select premium-select shadow-sm" [(ngModel)]="activeTag" (change)="applyFilters()">
-          <option value="">All Tags</option>
-          <option *ngFor="let tag of allTags" [value]="tag">{{ tag }}</option>
-        </select>
+        <div class="dropdown custom-filter-dropdown">
+          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('tag', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
+            <span>{{ activeTag || 'All Tags' }}</span>
+          </button>
+          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isTagDropdownOpen">
+            <li><a class="dropdown-item" [class.active]="!activeTag" (click)="activeTag = ''; applyFilters(); isTagDropdownOpen = false">All Tags</a></li>
+            <li><a class="dropdown-item" *ngFor="let tag of allTags" [class.active]="activeTag === tag" (click)="activeTag = tag; applyFilters(); isTagDropdownOpen = false">{{ tag }}</a></li>
+          </ul>
+        </div>
 
         <button class="btn shadow-sm d-flex align-items-center gap-2" 
                 [ngClass]="transferredOnly ? 'btn-primary' : 'btn-outline-primary'"
