@@ -7,19 +7,79 @@
         <p class="report-subtitle">Real-time overview of team performance and activity metrics</p>
       </div>
       <div class="header-actions">
-        <div class="filter-group">
-          <div class="filter-item">
-            <i class="bi bi-calendar3 filter-icon"></i>
-            <input type="date" class="premium-input" [(ngModel)]="selectedDate" (change)="fetchData()">
+        <div class="filter-toolbar">
+          <!-- Custom Date Picker -->
+          <div class="filter-dropdown-wrapper">
+            <div class="filter-item" (click)="toggleCalendar()" [class.active]="isCalendarOpen">
+              <i class="bi bi-calendar3 filter-icon"></i>
+              <span class="filter-value">{{ formattedSelectedDate }}</span>
+              <i class="bi bi-chevron-down filter-caret"></i>
+            </div>
+            
+            <!-- Calendar Popup -->
+            <div class="custom-dropdown-panel calendar-panel" *ngIf="isCalendarOpen">
+              <div class="calendar-header">
+                <button class="cal-nav-btn" (click)="prevMonth($event)"><i class="bi bi-chevron-left"></i></button>
+                <div class="cal-month-year">{{ currentMonth | date:'MMMM yyyy' }}</div>
+                <button class="cal-nav-btn" (click)="nextMonth($event)"><i class="bi bi-chevron-right"></i></button>
+              </div>
+              <div class="calendar-grid">
+                <div class="cal-day-name">Su</div>
+                <div class="cal-day-name">Mo</div>
+                <div class="cal-day-name">Tu</div>
+                <div class="cal-day-name">We</div>
+                <div class="cal-day-name">Th</div>
+                <div class="cal-day-name">Fr</div>
+                <div class="cal-day-name">Sa</div>
+                <div class="cal-cell" 
+                     *ngFor="let d of calendarDays" 
+                     (click)="selectDate(d)"
+                     [class.cal-muted]="!isCurrentMonth(d)"
+                     [class.cal-today]="isToday(d)"
+                     [class.cal-selected]="isSameDate(d, selectedDate)">
+                  {{ d.getDate() }}
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="filter-item">
-            <i class="bi bi-person filter-icon"></i>
-            <select class="premium-input" [(ngModel)]="selectedEmployee" (change)="fetchData()">
-              <option value="All">All Employees</option>
-              <option *ngFor="let u of users" [value]="u.id">{{ u.name }}</option>
-            </select>
+
+          <div class="filter-divider"></div>
+
+          <!-- Custom Employee Dropdown -->
+          <div class="filter-dropdown-wrapper">
+            <div class="filter-item" (click)="toggleDropdown()" [class.active]="isDropdownOpen">
+              <i class="bi bi-person filter-icon"></i>
+              <span class="filter-value">{{ getSelectedEmployeeName() }}</span>
+              <i class="bi bi-chevron-down filter-caret"></i>
+            </div>
+            
+            <!-- Dropdown Popup -->
+            <div class="custom-dropdown-panel employee-panel" *ngIf="isDropdownOpen">
+              <div class="dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search employees..." [(ngModel)]="employeeSearchQuery" (click)="$event.stopPropagation()">
+              </div>
+              <div class="dropdown-list">
+                <div class="dropdown-option" (click)="selectEmployee('All')" [class.selected]="selectedEmployee === 'All'">
+                  <div class="opt-avatar all-avatar"><i class="bi bi-people-fill"></i></div>
+                  <span class="opt-name">All Employees</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="selectedEmployee === 'All'"></i>
+                </div>
+                <div class="dropdown-option" *ngFor="let u of filteredUsers" (click)="selectEmployee(u.id)" [class.selected]="selectedEmployee === u.id">
+                  <div class="opt-avatar">{{ getInitials(u.name) }}</div>
+                  <span class="opt-name">{{ u.name }}</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="selectedEmployee === u.id"></i>
+                </div>
+                <div class="dropdown-empty" *ngIf="filteredUsers.length === 0">
+                  No employees found
+                </div>
+              </div>
+            </div>
           </div>
-          <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing">
+
+          <div class="filter-divider"></div>
+
+          <button class="btn-refresh-toolbar" (click)="fetchData(true)" [class.spinning]="refreshing">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
         </div>

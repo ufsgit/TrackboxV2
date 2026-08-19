@@ -36,40 +36,50 @@
 
   <!-- Interactive Filter Panel (Collapsible) -->
   <div class="filter-panel mb-4" [class.expanded]="isFilterExpanded">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end;">
+    <div class="filter-panel-inner">
       <!-- Date Range -->
-      <div style="grid-column: span 2;">
+      <div class="filter-group date-group">
         <label class="filter-label">Date Range</label>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <input type="date" class="form-control premium-input" style="flex: 1;" [(ngModel)]="filters.startDate" (change)="fetchData()">
-          <span class="text-muted fw-bold" style="font-size: 0.85rem;">to</span>
-          <input type="date" class="form-control premium-input" style="flex: 1;" [(ngModel)]="filters.endDate" (change)="fetchData()">
+        <div class="date-inputs-wrapper">
+          <div class="modern-input-wrapper">
+            <i class="bi bi-calendar3 prefix-icon"></i>
+            <input type="date" class="premium-control" [(ngModel)]="filters.startDate" (change)="fetchData()">
+          </div>
+          <span class="date-separator">to</span>
+          <div class="modern-input-wrapper">
+            <i class="bi bi-calendar3 prefix-icon"></i>
+            <input type="date" class="premium-control" [(ngModel)]="filters.endDate" (change)="fetchData()">
+          </div>
         </div>
       </div>
       
       <!-- Department -->
-      <div>
+      <div class="filter-group">
         <label class="filter-label">Department</label>
-        <select class="form-select premium-input w-100" [(ngModel)]="filters.department" (change)="applyFilters()">
-          <option value="">All Departments</option>
-          <option *ngFor="let d of departments" [value]="d">{{ d }}</option>
-        </select>
+        <div class="modern-input-wrapper">
+          <i class="bi bi-building prefix-icon"></i>
+          <select class="premium-control" [(ngModel)]="filters.department" (change)="applyFilters()">
+            <option value="">All Departments</option>
+            <option *ngFor="let d of departments" [value]="d">{{ d }}</option>
+          </select>
+        </div>
       </div>
       
-
-      
       <!-- Status -->
-      <div>
+      <div class="filter-group">
         <label class="filter-label">Status</label>
-        <select class="form-select premium-input w-100" [(ngModel)]="filters.status" (change)="applyFilters()">
-          <option value="">All</option>
-          <option *ngFor="let st of statuses" [value]="st">{{ st }}</option>
-        </select>
+        <div class="modern-input-wrapper">
+          <i class="bi bi-tag prefix-icon"></i>
+          <select class="premium-control" [(ngModel)]="filters.status" (change)="applyFilters()">
+            <option value="">All</option>
+            <option *ngFor="let st of statuses" [value]="st">{{ st }}</option>
+          </select>
+        </div>
       </div>
       
       <!-- Clear Button -->
-      <div>
-        <button class="btn btn-light w-100 premium-input d-flex align-items-center justify-content-center gap-2" (click)="resetFilters()" style="color: #64748b; font-weight: 600;" title="Clear Filters">
+      <div class="filter-group" style="flex: 0 0 auto;">
+        <button class="btn-clear-filter" (click)="resetFilters()" title="Clear Filters">
           <i class="bi bi-x-circle"></i> Clear
         </button>
       </div>

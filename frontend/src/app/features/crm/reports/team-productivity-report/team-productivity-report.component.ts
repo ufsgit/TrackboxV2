@@ -27,6 +27,15 @@ export class TeamProductivityReportComponent implements OnInit {
   
   totalActivityCount: number = 0;
 
+  // Custom Dropdown State
+  isDropdownOpen: boolean = false;
+  employeeSearchQuery: string = '';
+
+  // Custom Calendar State
+  isCalendarOpen: boolean = false;
+  currentMonth: Date = new Date();
+  calendarDays: Date[] = [];
+
   public lineChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -164,5 +173,107 @@ export class TeamProductivityReportComponent implements OnInit {
       '#14b8a6'  // teal
     ];
     return colors[index % colors.length];
+  }
+
+  // Custom Dropdown Logic
+  toggleDropdown() {
+    this.isDropdownOpen = !this.isDropdownOpen;
+    if (this.isDropdownOpen) this.isCalendarOpen = false;
+  }
+
+  get filteredUsers() {
+    if (!this.employeeSearchQuery) return this.users;
+    return this.users.filter(u => u.name.toLowerCase().includes(this.employeeSearchQuery.toLowerCase()));
+  }
+
+  selectEmployee(id: string) {
+    this.selectedEmployee = id;
+    this.isDropdownOpen = false;
+    this.fetchData();
+  }
+
+  getSelectedEmployeeName(): string {
+    if (this.selectedEmployee === 'All') return 'All Employees';
+    const user = this.users.find(u => u.id === this.selectedEmployee);
+    return user ? user.name : 'All Employees';
+  }
+
+  // Custom Calendar Logic
+  toggleCalendar() {
+    this.isCalendarOpen = !this.isCalendarOpen;
+    if (this.isCalendarOpen) {
+      this.isDropdownOpen = false;
+      this.currentMonth = new Date(this.selectedDate);
+      this.generateCalendar();
+    }
+  }
+
+  generateCalendar() {
+    const year = this.currentMonth.getFullYear();
+    const month = this.currentMonth.getMonth();
+    
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    this.calendarDays = [];
+    
+    // Previous month padding
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      this.calendarDays.push(new Date(year, month - 1, prevMonthDays - i));
+    }
+    
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      this.calendarDays.push(new Date(year, month, i));
+    }
+    
+    // Next month padding to fill 6 rows of 7 days (42 cells)
+    const remainingCells = 42 - this.calendarDays.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      this.calendarDays.push(new Date(year, month + 1, i));
+    }
+  }
+
+  prevMonth(event: Event) {
+    event.stopPropagation();
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    this.generateCalendar();
+  }
+
+  nextMonth(event: Event) {
+    event.stopPropagation();
+    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
+    this.generateCalendar();
+  }
+
+  selectDate(d: Date) {
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    this.selectedDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    this.isCalendarOpen = false;
+    this.fetchData();
+  }
+
+  isSameDate(d1: Date, dateString: string): boolean {
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    const d1Str = `${d1.getFullYear()}-${pad(d1.getMonth() + 1)}-${pad(d1.getDate())}`;
+    return d1Str === dateString;
+  }
+  
+  isToday(d: Date): boolean {
+    const today = new Date();
+    return d.getDate() === today.getDate() && 
+           d.getMonth() === today.getMonth() && 
+           d.getFullYear() === today.getFullYear();
+  }
+  
+  isCurrentMonth(d: Date): boolean {
+    return d.getMonth() === this.currentMonth.getMonth();
+  }
+  
+  get formattedSelectedDate(): string {
+    const d = new Date(this.selectedDate);
+    if (isNaN(d.getTime())) return this.selectedDate;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }

@@ -19,6 +19,41 @@ export class WonLostReportComponent implements OnInit {
   customStartDate: string = '';
   customEndDate: string = '';
   
+  // Custom Dropdown State
+  isDateDropdownOpen: boolean = false;
+
+  toggleDateDropdown() {
+    this.isDateDropdownOpen = !this.isDateDropdownOpen;
+  }
+
+  selectDateRange(range: string) {
+    this.dateRange = range;
+    if (range !== 'custom') {
+      this.isDateDropdownOpen = false;
+      this.fetchData();
+    }
+  }
+
+  applyCustomDate() {
+    if (this.customStartDate && this.customEndDate) {
+      this.isDateDropdownOpen = false;
+      this.fetchData();
+    }
+  }
+
+  getDateRangeLabel(): string {
+    const labels: any = {
+      'today': 'Today',
+      'this_week': 'This Week',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+      'ytd': 'Year to Date',
+      'prev_year': 'Previous Year',
+      'custom': 'Custom Range'
+    };
+    return labels[this.dateRange] || 'Date Range';
+  }
+  
   // Animated KPI values
   kpi_won      = 0;
   kpi_lost     = 0;

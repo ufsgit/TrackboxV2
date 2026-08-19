@@ -280,7 +280,7 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 3000
+            timer: 500
           });
           this.saved.emit();
           this.closeModal();

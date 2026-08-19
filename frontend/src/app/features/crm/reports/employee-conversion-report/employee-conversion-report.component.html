@@ -1,30 +1,77 @@
 <div class="report-page">
 
   <!-- Header -->
-  <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-    <div>
+  <div class="page-header d-flex justify-content-between align-items-center mb-4 gap-3">
+    <div class="title-section">
       <h2 class="page-title">Employee Sales Conversion Report</h2>
-      <p class="page-sub text-muted">Analyze lead generation and conversion performance across employees</p>
+      <p class="page-sub text-muted">Analyze individual employee performance and conversion rates</p>
     </div>
     
-    <div class="header-filters d-flex align-items-center gap-2">
-      <select class="form-select shadow-sm border-0 bg-white" [(ngModel)]="dateRange" (change)="fetchData()" style="width: auto; border-radius: 8px;">
-        <option value="today">Today</option>
-        <option value="this_month">This Month</option>
-        <option value="last_month">Last Month</option>
-        <option value="ytd">Year to Date</option>
-        <option value="custom">Custom Range</option>
-      </select>
-      
-      <div *ngIf="dateRange === 'custom'" class="d-flex align-items-center gap-2 bg-white px-2 py-1 shadow-sm" style="border-radius: 8px;">
-        <input type="date" class="form-control border-0 bg-transparent px-1" [(ngModel)]="customStartDate" (change)="fetchData()">
-        <span class="text-muted">-</span>
-        <input type="date" class="form-control border-0 bg-transparent px-1" [(ngModel)]="customEndDate" (change)="fetchData()">
-      </div>
+    <div class="header-actions ms-auto">
+        <div class="filter-toolbar">
+          <!-- Custom Date / Period Filter -->
+          <div class="filter-dropdown-wrapper">
+            <div class="filter-item" (click)="toggleDateDropdown()" [class.active]="isDateDropdownOpen">
+              <i class="bi bi-calendar3 filter-icon"></i>
+              <span class="filter-value">{{ getDateRangeLabel() }}</span>
+              <i class="bi bi-chevron-down filter-caret"></i>
+            </div>
+            
+            <!-- Date Popup -->
+            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+              <div class="dropdown-list">
+                <div class="dropdown-option" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
+                  <span class="opt-name">Today</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
+                </div>
+                <div class="dropdown-option" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
+                  <span class="opt-name">This Week</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+                </div>
+                <div class="dropdown-option" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
+                  <span class="opt-name">This Month</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+                </div>
+                <div class="dropdown-option" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
+                  <span class="opt-name">Last Month</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+                </div>
+                <div class="dropdown-option" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
+                  <span class="opt-name">Year to Date</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+                </div>
+                <div class="dropdown-option" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
+                  <span class="opt-name">Previous Year</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'prev_year'"></i>
+                </div>
+                <div class="dropdown-option" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
+                  <span class="opt-name">Custom Range</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+                </div>
+              </div>
+              
+              <!-- Custom Range Inputs -->
+              <div class="custom-date-inputs" *ngIf="dateRange === 'custom'" (click)="$event.stopPropagation()">
+                <div class="custom-date-row">
+                  <label>Start Date</label>
+                  <input type="date" class="modern-date-input" [(ngModel)]="customStartDate">
+                </div>
+                <div class="custom-date-row">
+                  <label>End Date</label>
+                  <input type="date" class="modern-date-input" [(ngModel)]="customEndDate">
+                </div>
+                <button class="btn-apply-custom" (click)="applyCustomDate()">Apply Filter</button>
+              </div>
+            </div>
+          </div>
 
-      <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm ms-2" (click)="fetchData(true)" style="border-radius: 8px;">
-        <i class="bi bi-arrow-clockwise" [class.spin-anim]="refreshing"></i> Refresh
-      </button>
+          <div class="filter-divider"></div>
+
+          <!-- Refresh -->
+          <button class="btn-refresh-toolbar" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Report">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
     </div>
   </div>
 

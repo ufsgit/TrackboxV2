@@ -1694,7 +1694,7 @@ export class ContactsComponent implements OnInit {
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 3000
+            timer: 500
           });
           
           // Trigger gamification if status is a "success" state

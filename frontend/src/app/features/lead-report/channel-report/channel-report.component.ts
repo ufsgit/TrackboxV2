@@ -31,71 +31,114 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
     .rate-text { font-weight: 600; color: #0f172a; }
     .progress-bar-bg { width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
     .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 3px; transition: width 1s ease-out; }
-    .date-dropdown-trigger { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 8px 20px; font-weight: 600; font-size: 0.9rem; color: #475569; box-shadow: 0 2px 6px rgba(0,0,0,0.04); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; }
-    .date-dropdown-trigger:hover, .date-dropdown-trigger.active { border-color: #a5b4fc; box-shadow: 0 4px 12px rgba(99,102,241,0.12); color: #4f46e5; background: #f8fafc; }
-    .date-dropdown-trigger i.bi-calendar3 { color: #6366f1; transition: transform 0.2s ease; font-size: 1.05rem; }
-    .date-dropdown-trigger.active i.bi-calendar3 { transform: scale(1.1); }
-    .date-dropdown-trigger::after { margin-left: 6px; border-top: 0.35em solid #94a3b8; border-right: 0.35em solid transparent; border-left: 0.35em solid transparent; }
-    .date-dropdown-menu { list-style: none !important; border: 1px solid rgba(255,255,255,0.7) !important; border-radius: 16px !important; box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12), 0 5px 15px rgba(0,0,0,0.05) !important; padding: 10px !important; margin: 0 !important; margin-top: 8px !important; min-width: 220px !important; background: rgba(255, 255, 255, 0.95) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; position: absolute; right: 0; display: none; z-index: 1000; }
-    .date-dropdown-menu.show { display: block; animation: dropdownFadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .date-dropdown-menu li { list-style: none !important; margin: 0 !important; padding: 0 !important; }
-    .date-dropdown-menu .dropdown-item { border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 12px; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); margin-bottom: 4px; cursor: pointer; }
-    .date-dropdown-menu .dropdown-item:last-child { margin-bottom: 0; }
-    .date-dropdown-menu .dropdown-item i { font-size: 1.1rem; color: #94a3b8; transition: all 0.2s ease; }
-    .date-dropdown-menu .dropdown-item:hover { background-color: #f1f5f9; color: #4f46e5; transform: translateX(4px); }
-    .date-dropdown-menu .dropdown-item:hover i { color: #6366f1; transform: scale(1.1); }
-    .date-dropdown-menu .dropdown-item.active { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; box-shadow: 0 4px 10px rgba(99,102,241,0.25); transform: none; }
-    .date-dropdown-menu .dropdown-item.active i { color: #ffffff; }
-    @keyframes dropdownFadeSlide { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .header-actions { position: relative; z-index: 100; }
+    .filter-toolbar { display: flex; align-items: center; background: #ffffff; border-radius: 12px; padding: 0.35rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05); border: 1px solid #f1f5f9; flex-wrap: wrap; }
+    .filter-dropdown-wrapper { position: relative; }
+    .filter-item { display: flex; align-items: center; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; user-select: none; }
+    .filter-item:hover, .filter-item.active { background: #f8fafc; }
+    .filter-item.active { box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.2); }
+    .filter-icon { color: #8b5cf6; margin-right: 0.6rem; font-size: 1.1rem; }
+    .filter-value { color: #334155; font-size: 0.95rem; font-weight: 500; margin-right: 0.75rem; white-space: nowrap; }
+    .filter-caret { color: #94a3b8; font-size: 0.8rem; transition: transform 0.2s ease; }
+    .filter-item.active .filter-caret { transform: rotate(180deg); }
+    .filter-divider { width: 1px; height: 24px; background: #e2e8f0; margin: 0 0.5rem; }
+    .btn-refresh-toolbar { background: transparent; color: #64748b; border: none; height: 38px; width: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; font-size: 1.1rem; }
+    .btn-refresh-toolbar:hover { background: #f8fafc; color: #8b5cf6; }
+    .btn-refresh-toolbar.spinning i { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .custom-dropdown-panel { position: absolute; top: calc(100% + 8px); right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; z-index: 50; min-width: 220px; animation: dropdownIn 0.2s ease-out; }
+    @keyframes dropdownIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .dropdown-list { max-height: 260px; overflow-y: auto; padding: 0.5rem; }
+    .dropdown-list::-webkit-scrollbar { width: 6px; }
+    .dropdown-list::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+    .dropdown-option { display: flex; align-items: center; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.15s; margin: 0 !important; }
+    .dropdown-option:hover { background: #f8fafc; }
+    .dropdown-option.selected { background: rgba(139, 92, 246, 0.05); }
+    .opt-name { font-size: 0.9rem; color: #334155; font-weight: 500; flex-grow: 1; margin: 0 !important; }
+    .opt-check { color: #8b5cf6; font-size: 1.1rem; }
+    .date-panel { min-width: 220px; }
+    .custom-date-inputs { padding: 0.75rem; border-top: 1px solid #e2e8f0; background: #f8fafc; border-radius: 0 0 12px 12px; }
+    .custom-date-row { margin-bottom: 0.75rem; }
+    .custom-date-row label { display: block; font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 0.25rem; }
+    .modern-date-input { width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem; outline: none; color: #334155; box-sizing: border-box; }
+    .modern-date-input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1); }
+    .btn-apply-custom { width: 100%; background: #8b5cf6; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-apply-custom:hover { background: #7c3aed; }
+    .title-section { flex: 1; min-width: 0; margin-right: 20px; }
   `],
   template: `
     <div class="report-container flex flex-col gap-20">
-      <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
-        <div>
+      <div class="flex justify-between items-center gap-16">
+        <div class="title-section">
           <h2 class="fw-bold mb-1">Channel Report</h2>
           <p class="text-muted mb-0">Analyze lead volume by channel preference</p>
         </div>
         
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          <button class="btn btn-primary shadow-sm d-flex align-items-center gap-2 px-4" (click)="onFilterChange()" style="border-radius: 20px;">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
-          </button>
-
-          <div class="dropdown" style="position: relative;">
-            <button class="btn date-dropdown-trigger dropdown-toggle" [class.active]="isDropdownOpen" type="button" (click)="toggleDropdown($event)">
-              <i class="bi bi-calendar3"></i>
-              <span>{{ getDateRangeLabel(dateRange) }}</span>
-            </button>
-            <ul class="dropdown-menu date-dropdown-menu" [class.show]="isDropdownOpen">
-              <li><a class="dropdown-item" [class.active]="dateRange === 'today'" (click)="selectDateRange('today')">
-                <i class="bi bi-clock"></i> Today
-              </a></li>
-              <li><a class="dropdown-item" [class.active]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
-                <i class="bi bi-calendar2-day"></i> This Month
-              </a></li>
-              <li><a class="dropdown-item" [class.active]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
-                <i class="bi bi-calendar2-minus"></i> Last Month
-              </a></li>
-              <li><a class="dropdown-item" [class.active]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
-                <i class="bi bi-calendar2-check"></i> Year to Date
-              </a></li>
-              <li><a class="dropdown-item" [class.active]="dateRange === 'prev_year'" (click)="selectDateRange('prev_year')">
-                <i class="bi bi-calendar2-x"></i> Previous Year
-              </a></li>
-              <li><hr class="dropdown-divider" style="margin: 8px 0; border-color: #f1f5f9;"></li>
-              <li><a class="dropdown-item" [class.active]="dateRange === 'custom'" (click)="selectDateRange('custom')">
-                <i class="bi bi-sliders"></i> Custom Range
-              </a></li>
-            </ul>
-          </div>
-          
-          <ng-container *ngIf="dateRange === 'custom'">
-            <div class="d-flex align-items-center gap-2 bg-white rounded shadow-sm px-2 py-1 border">
-              <input type="date" class="form-control border-0 bg-transparent p-1 shadow-none" [(ngModel)]="startDate" (change)="onFilterChange()">
-              <span class="text-muted fw-semibold px-2">to</span>
-              <input type="date" class="form-control border-0 bg-transparent p-1 shadow-none" [(ngModel)]="endDate" (change)="onFilterChange()">
+        <div class="header-actions ms-auto">
+          <div class="filter-toolbar">
+            <!-- Custom Date / Period Filter -->
+            <div class="filter-dropdown-wrapper">
+              <div class="filter-item" (click)="toggleDropdown($event)" [class.active]="isDropdownOpen">
+                <i class="bi bi-calendar3 filter-icon"></i>
+                <span class="filter-value">{{ getDateRangeLabel(dateRange) }}</span>
+                <i class="bi bi-chevron-down filter-caret"></i>
+              </div>
+              
+              <!-- Date Popup -->
+              <div class="custom-dropdown-panel date-panel" *ngIf="isDropdownOpen" (click)="$event.stopPropagation()">
+                <div class="dropdown-list">
+                  <div class="dropdown-option" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
+                    <span class="opt-name">Today</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
+                  </div>
+                  <div class="dropdown-option" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
+                    <span class="opt-name">This Week</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+                  </div>
+                  <div class="dropdown-option" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
+                    <span class="opt-name">This Month</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+                  </div>
+                  <div class="dropdown-option" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
+                    <span class="opt-name">Last Month</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+                  </div>
+                  <div class="dropdown-option" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
+                    <span class="opt-name">Year to Date</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+                  </div>
+                  <div class="dropdown-option" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
+                    <span class="opt-name">Previous Year</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'prev_year'"></i>
+                  </div>
+                  <div class="dropdown-option" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
+                    <span class="opt-name">Custom Range</span>
+                    <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+                  </div>
+                </div>
+                
+                <!-- Custom Range Inputs -->
+                <div class="custom-date-inputs" *ngIf="dateRange === 'custom'">
+                  <div class="custom-date-row">
+                    <label>Start Date</label>
+                    <input type="date" class="modern-date-input" [(ngModel)]="startDate">
+                  </div>
+                  <div class="custom-date-row">
+                    <label>End Date</label>
+                    <input type="date" class="modern-date-input" [(ngModel)]="endDate">
+                  </div>
+                  <button class="btn-apply-custom" (click)="applyCustomDate()">Apply Filter</button>
+                </div>
+              </div>
             </div>
-          </ng-container>
+
+            <div class="filter-divider"></div>
+
+            <!-- Refresh -->
+            <button class="btn-refresh-toolbar" (click)="onFilterChange()" [class.spinning]="loading" title="Refresh Report">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -179,6 +222,7 @@ export class ChannelReportComponent implements OnInit {
   dateRange: string = 'ytd';
   startDate: string = '';
   endDate: string = '';
+  loading: boolean = false;
 
   isDropdownOpen = false;
 
@@ -194,8 +238,17 @@ export class ChannelReportComponent implements OnInit {
 
   selectDateRange(range: string) {
     this.dateRange = range;
-    this.isDropdownOpen = false;
-    this.onFilterChange();
+    if (range !== 'custom') {
+      this.isDropdownOpen = false;
+      this.onFilterChange();
+    }
+  }
+
+  applyCustomDate() {
+    if (this.startDate && this.endDate) {
+      this.isDropdownOpen = false;
+      this.onFilterChange();
+    }
   }
 
   getDateRangeLabel(range: string): string {
@@ -230,7 +283,9 @@ export class ChannelReportComponent implements OnInit {
   }
 
   fetchData() {
+    this.loading = true;
     if (this.dateRange === 'custom' && (!this.startDate || !this.endDate)) {
+      this.loading = false;
       return; // Wait until both dates are selected
     }
     
@@ -250,8 +305,12 @@ export class ChannelReportComponent implements OnInit {
           this.animateKPIs();
           this.updateCharts();
         }
+        this.loading = false;
       },
-      error: (err: any) => console.error(err)
+      error: (err: any) => {
+        console.error(err);
+        this.loading = false;
+      }
     });
   }
 

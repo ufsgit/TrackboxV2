@@ -86,6 +86,17 @@ export class LayoutComponent implements OnInit {
         this.loadNotifications();
       }
     });
+
+    // Automatically close all dropdowns when navigation finishes
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.isReportsOpen = false;
+      this.isDepartmentDropdownOpen = false;
+      this.showNotificationDropdown = false;
+      this.showUserProfileDropdown = false;
+      this.isMobileMenuOpen = false;
+    });
   }
 
   toggleMobileMenu() {
