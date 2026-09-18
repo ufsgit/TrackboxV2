@@ -195,6 +195,17 @@ import Swal from 'sweetalert2';
           </div>
         </div>
         
+        <div style="margin-bottom: 24px;">
+          <label style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px;">Allowed Custom Field Categories (Leave empty to allow all)</label>
+          <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 160px; overflow-y: auto; padding: 8px;">
+            <div *ngIf="fieldCategories.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:4px;">No categories available.</div>
+            <label *ngFor="let cat of fieldCategories" class="member-checkbox-item">
+              <input type="checkbox" [checked]="isCategoryAllowed(cat.id)" (change)="toggleAllowedCategory(cat.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
+              <span style="flex:1;">{{ cat.name }}</span>
+            </label>
+          </div>
+        </div>
+        
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
           <button class="btn btn-light" (click)="closeTeamModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; border: none; font-weight: 500;">Cancel</button>
           <button class="btn btn-primary" (click)="saveTeam()" style="padding: 10px 20px; border-radius: 8px; font-weight: 500;">Save Agent</button>
@@ -332,7 +343,8 @@ export class TeamsManagementComponent implements OnInit {
   branches: any[] = [];
   departments: any[] = [];
   designations: any[] = [];
-  currentTeam: any = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [] };
+  fieldCategories: any[] = [];
+  currentTeam: any = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [], allowed_custom_field_categories: [] };
   showTeamModal: boolean = false;
   
   showPermissionsModal: boolean = false;
@@ -381,6 +393,13 @@ export class TeamsManagementComponent implements OnInit {
     this.loadDepartments();
     this.loadDesignations();
     this.loadTeams();
+    this.loadFieldCategories();
+  }
+
+  loadFieldCategories() {
+    this.settingsService.getFieldCategories().subscribe({
+      next: (res: any) => { if (res.success) this.fieldCategories = res.data; }
+    });
   }
 
   loadDesignations() {
@@ -448,17 +467,34 @@ export class TeamsManagementComponent implements OnInit {
     this.currentTeam.member_ids = ids;
   }
 
+  isCategoryAllowed(categoryId: number): boolean {
+    return (this.currentTeam.allowed_custom_field_categories || []).includes(categoryId);
+  }
+
+  toggleAllowedCategory(categoryId: number, event: any) {
+    const ids = [...(this.currentTeam.allowed_custom_field_categories || [])];
+    if (event.target.checked) {
+      if (!ids.includes(categoryId)) ids.push(categoryId);
+    } else {
+      const idx = ids.indexOf(categoryId);
+      if (idx > -1) ids.splice(idx, 1);
+    }
+    this.currentTeam.allowed_custom_field_categories = ids;
+  }
+
   openTeamModal() { 
-    this.currentTeam = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [] }; 
+    this.currentTeam = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [], allowed_custom_field_categories: [] }; 
     this.showTeamModal = true; 
   }
 
   editTeamModal(team: any) {
     this.currentTeam = { 
       ...team, 
-      password: '', 
       date_of_joining: team.date_of_joining ? new Date(team.date_of_joining).toISOString().split('T')[0] : '',
-      member_ids: team.member_ids || []
+      member_ids: team.member_ids || [],
+      allowed_custom_field_categories: team.allowed_custom_field_categories ? 
+        (typeof team.allowed_custom_field_categories === 'string' ? JSON.parse(team.allowed_custom_field_categories) : team.allowed_custom_field_categories) 
+        : []
     };
     this.showTeamModal = true;
   }

@@ -541,3 +541,72 @@
 }
 
 .metric-pill.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+
+/* --- Date Range Dropdown Styles --- */
+.dropdown-list {
+  padding: 0.4rem;
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dropdown-option:hover { background: #f8fafc; }
+.dropdown-option.selected { background: rgba(139,92,246,0.06); }
+
+.opt-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #334155;
+  font-weight: 500;
+}
+.opt-check { color: #8b5cf6; font-size: 1rem; }
+
+.custom-date-inputs {
+  padding: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 0 0 12px 12px;
+}
+.custom-date-row { margin-bottom: 0.6rem; }
+.custom-date-row label {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.modern-date-input {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+  color: #334155;
+  box-sizing: border-box;
+}
+.modern-date-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.1);
+}
+.btn-apply-custom {
+  width: 100%;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  transition: background 0.2s;
+}
+.btn-apply-custom:hover { background: #7c3aed; }

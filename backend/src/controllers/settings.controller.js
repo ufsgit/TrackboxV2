@@ -30,7 +30,7 @@ const updateBusiness = async (req, res) => {
 const getTeam = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, b.name as branch_name, d.name as department_name, des.name as designation_name
+      `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, u.allowed_custom_field_categories, b.name as branch_name, d.name as department_name, des.name as designation_name
        FROM users u 
        LEFT JOIN branches b ON u.branch_id = b.id 
        LEFT JOIN departments d ON u.department_id = d.id 
@@ -57,7 +57,7 @@ const getTeam = async (req, res) => {
 
 const inviteAgent = async (req, res) => {
   try {
-    const { name, email, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active, member_ids } = req.body;
+    const { name, email, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active, member_ids, allowed_custom_field_categories } = req.body;
     const [existing] = await pool.query('SELECT id FROM users WHERE email=?', [email]);
     if (existing.length) return res.status(409).json({ success: false, message: 'Email already in use', data: null });
     
@@ -67,8 +67,8 @@ const inviteAgent = async (req, res) => {
     }
     const hash = await bcrypt.hash(password || 'Trackbox@123', 10);
     const [result] = await pool.query(
-      'INSERT INTO users (business_id, name, email, username, employee_code, designation_id, date_of_joining, password_hash, role, branch_id, department_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.businessId, name, email, username || null, employee_code || null, designation_id || null, date_of_joining || null, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1]
+      'INSERT INTO users (business_id, name, email, username, employee_code, designation_id, date_of_joining, password_hash, role, branch_id, department_id, is_active, allowed_custom_field_categories) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.businessId, name, email, username || null, employee_code || null, designation_id || null, date_of_joining || null, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null]
     );
     const newUserId = result.insertId;
 
@@ -84,7 +84,7 @@ const inviteAgent = async (req, res) => {
       await pool.query('INSERT INTO team_members (team_id, user_id) VALUES ?', [values]);
     }
     
-    const [rows] = await pool.query('SELECT id, name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at FROM users WHERE id=?', [newUserId]);
+    const [rows] = await pool.query('SELECT id, name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at, allowed_custom_field_categories FROM users WHERE id=?', [newUserId]);
     rows[0].member_ids = member_ids || [];
     res.status(201).json({ success: true, data: rows[0], message: 'Agent invited' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
@@ -92,15 +92,15 @@ const inviteAgent = async (req, res) => {
 
 const updateAgent = async (req, res) => {
   try {
-    const { name, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids } = req.body;
+    const { name, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids, allowed_custom_field_categories } = req.body;
     
     if (username) {
       const [existing] = await pool.query('SELECT id FROM users WHERE username=? AND business_id=? AND id != ?', [username, req.user.businessId, req.params.id]);
       if (existing.length) return res.status(409).json({ success: false, message: 'Username already in use', data: null });
     }
 
-    let query = 'UPDATE users SET name=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?';
-    let params = [name, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null];
+    let query = 'UPDATE users SET name=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?, allowed_custom_field_categories=?';
+    let params = [name, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null];
     
     if (password) {
       const hash = await bcrypt.hash(password, 10);
@@ -288,6 +288,16 @@ const testSocialAccountConnection = async (req, res) => {
 
 const getLeadFields = async (req, res) => {
   try {
+    let allowedCategories = null;
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      const [uRows] = await pool.query('SELECT allowed_custom_field_categories FROM users WHERE id = ?', [req.user.userId]);
+      if (uRows.length && uRows[0].allowed_custom_field_categories) {
+        allowedCategories = typeof uRows[0].allowed_custom_field_categories === 'string' 
+          ? JSON.parse(uRows[0].allowed_custom_field_categories) 
+          : uRows[0].allowed_custom_field_categories;
+      }
+    }
+
     const [rows] = await pool.query(
       `SELECT lf.*, fc.name as category_name 
        FROM lead_fields lf 
@@ -296,10 +306,16 @@ const getLeadFields = async (req, res) => {
        ORDER BY lf.display_order ASC, lf.id ASC`,
       [req.user.businessId]
     );
-    const fields = rows.map(f => ({
+    let fields = rows.map(f => ({
       ...f,
       options: typeof f.options === 'string' ? JSON.parse(f.options || '[]') : (f.options || [])
     }));
+
+    if (allowedCategories !== null && Array.isArray(allowedCategories)) {
+      const allowedCategoriesStr = allowedCategories.map(c => String(c));
+      fields = fields.filter(f => allowedCategoriesStr.includes(String(f.category_id)) || f.category_id === null);
+    }
+
     res.json({ success: true, data: fields, message: 'OK' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };

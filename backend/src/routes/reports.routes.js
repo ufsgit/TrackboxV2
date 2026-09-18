@@ -17,6 +17,10 @@ router.get('/leads/employee-conversion', c.getEmployeeConversionReport);
 router.get('/leads/student-pipeline', c.getStudentPipelineReport);
 router.get('/leads/follow-up-report', c.getFollowUpReport);
 router.get('/leads/team-productivity', c.getTeamProductivityReport);
+router.get('/leads/creation', c.getLeadCreationReport);
+
+// Application Reports
+router.get('/applications/status-summary', c.getApplicationStatusSummaryReport);
 
 // Work and Employee Reports
 router.get('/work', c.getWorkReport);

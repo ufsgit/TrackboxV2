@@ -1,0 +1,186 @@
+<div class="report-container" (click)="isDateDropdownOpen && (isDateDropdownOpen = false)">
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="header-top">
+      <div>
+        <h1 class="report-title">Lead Creation Activity</h1>
+        <p class="report-subtitle">Real-time tracking of team performance and lead generation</p>
+      </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="filter-toolbar" (click)="$event.stopPropagation()">
+      <div class="filter-dropdown-wrapper">
+        <div class="filter-item" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
+          <i class="bi bi-calendar3 filter-icon"></i>
+          <span class="filter-value">{{ getDateRangeLabel() }}</span>
+          <i class="bi bi-chevron-down filter-caret" [class.rotated]="isDateDropdownOpen"></i>
+        </div>
+
+        <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+          <div class="dropdown-list">
+            <div class="dropdown-option" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
+              <span class="opt-name">Today</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+              <span class="opt-name">This Week</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+              <span class="opt-name">This Month</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+              <span class="opt-name">Last Month</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+              <span class="opt-name">Year to Date</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+              <span class="opt-name">Custom Range</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+            </div>
+          </div>
+          <div class="custom-date-inputs" *ngIf="dateRange === 'custom'">
+            <div class="custom-date-row">
+              <label>Start Date</label>
+              <input type="date" class="modern-date-input" [(ngModel)]="customStartDate" />
+            </div>
+            <div class="custom-date-row">
+              <label>End Date</label>
+              <input type="date" class="modern-date-input" [(ngModel)]="customEndDate" />
+            </div>
+            <button class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-refresh-toolbar" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loader-container" *ngIf="loading">
+    <div class="modern-spinner"></div>
+    <p>Loading report...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- Stat Cards -->
+    <div class="stats-grid">
+      <!-- Total Leads All Time -->
+      <div class="stat-card">
+        <div class="stat-icon-wrap blue">
+          <i class="bi bi-infinity"></i>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">TOTAL LEADS (ALL TIME)</p>
+          <h2 class="stat-value">{{ totalLeads }}</h2>
+        </div>
+        <div class="stat-bg blue-bg"></div>
+      </div>
+
+      <!-- Leads in Selected Range -->
+      <div class="stat-card">
+        <div class="stat-icon-wrap purple">
+          <i class="bi bi-funnel"></i>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">LEADS IN SELECTED RANGE</p>
+          <h2 class="stat-value">{{ rangeLeads }}</h2>
+        </div>
+        <div class="stat-bg purple-bg"></div>
+      </div>
+
+      <!-- Leads Created Today -->
+      <div class="stat-card">
+        <div class="stat-icon-wrap green">
+          <i class="bi bi-lightning-charge"></i>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">LEADS CREATED TODAY</p>
+          <h2 class="stat-value">{{ todayLeads }}</h2>
+        </div>
+        <div class="stat-bg green-bg"></div>
+      </div>
+
+      <!-- Leads Created This Week -->
+      <div class="stat-card">
+        <div class="stat-icon-wrap orange">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">LEADS CREATED THIS WEEK</p>
+          <h2 class="stat-value">{{ weekLeads }}</h2>
+        </div>
+        <div class="stat-bg orange-bg"></div>
+      </div>
+    </div>
+
+    <!-- Breakdown Table -->
+    <div class="breakdown-card">
+      <div class="breakdown-header">
+        <div class="breakdown-title">
+          <div class="breakdown-icon">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <span>Lead Creation Breakdown</span>
+        </div>
+      </div>
+
+      <div class="breakdown-body">
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="breakdown.length === 0">
+          <i class="bi bi-inbox empty-icon"></i>
+          <p>No data for the selected period.</p>
+        </div>
+
+        <!-- Table -->
+        <table class="breakdown-table" *ngIf="breakdown.length > 0">
+          <thead>
+            <tr>
+              <th>TEAM MEMBER</th>
+              <th>EMPLOYEE CODE</th>
+              <th>CONTRIBUTION</th>
+              <th>LEADS CREATED (IN RANGE)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of breakdown; let i = index">
+              <td>
+                <div class="member-cell">
+                  <div class="member-avatar" [style.background]="getAvatarColor(i)">
+                    {{ getInitials(row.employee || 'Unassigned') }}
+                  </div>
+                  <span class="member-name">{{ row.employee || 'Unassigned' }}</span>
+                </div>
+              </td>
+              <td class="emp-code">{{ row.employee_code || '—' }}</td>
+              <td>
+                <div class="contribution-cell">
+                  <span class="contrib-pct">{{ getContributionPercent(row.leads_created) }}%</span>
+                  <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" [style.width.%]="getContributionPercent(row.leads_created)" [style.background]="getAvatarColor(i)"></div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="leads-badge" [style.background]="getAvatarColor(i) + '20'" [style.color]="getAvatarColor(i)">
+                  {{ row.leads_created }}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

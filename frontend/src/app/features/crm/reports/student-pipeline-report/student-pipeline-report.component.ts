@@ -16,7 +16,11 @@ export class StudentPipelineReportComponent implements OnInit {
   loading: boolean = true;
   refreshing: boolean = false;
   
-  selectedDate: string = new Date().toISOString().split('T')[0];
+  dateRange: string = 'today';
+  customStartDate: string = '';
+  customEndDate: string = '';
+  isDateDropdownOpen: boolean = false;
+  
   selectedStatus: string = 'All';
   selectedEmployee: string = 'All';
   
@@ -27,14 +31,9 @@ export class StudentPipelineReportComponent implements OnInit {
   chartHeight: number = 400;
 
   // Custom Dropdown State
-  isCalendarOpen: boolean = false;
   isEmployeeDropdownOpen: boolean = false;
   isStatusDropdownOpen: boolean = false;
   employeeSearchQuery: string = '';
-
-  // Custom Calendar State
-  currentMonth: Date = new Date();
-  calendarDays: Date[] = [];
 
   public barChartOptions: ChartConfiguration['options'] = {
     indexAxis: 'y', // Horizontal bar chart
@@ -70,7 +69,6 @@ export class StudentPipelineReportComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.generateCalendar();
     this.fetchDropdowns();
     this.fetchData();
   }
@@ -102,7 +100,15 @@ export class StudentPipelineReportComponent implements OnInit {
       this.loading = true;
     }
     
-    let endpoint = `/reports/leads/student-pipeline?date=${this.selectedDate}`;
+    let endpoint = `/reports/leads/student-pipeline?dateRange=${this.dateRange}`;
+    if (this.dateRange === 'custom') {
+      if (!this.customStartDate || !this.customEndDate) {
+        this.loading = false;
+        this.refreshing = false;
+        return;
+      }
+      endpoint += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
+    }
     
     if (this.selectedStatus && this.selectedStatus !== 'All') {
       endpoint += `&status=${encodeURIComponent(this.selectedStatus)}`;
@@ -116,7 +122,7 @@ export class StudentPipelineReportComponent implements OnInit {
       next: (res: any) => {
         if (res.success) {
           // Data is already sorted descending by backend, but let's ensure it just in case
-          this.data = res.data.sort((a: any, b: any) => b.assigned_leads - a.assigned_leads);
+          this.data = res.data.sort((a: any, b: any) => b.total_leads - a.total_leads);
           this.updateCharts();
         }
         setTimeout(() => {
@@ -139,7 +145,7 @@ export class StudentPipelineReportComponent implements OnInit {
       labels: this.data.map(d => `${d.employee_code || 'N/A'} - ${d.employee || 'Unassigned'}`),
       datasets: [
         { 
-          data: this.data.map(d => d.assigned_leads), 
+          data: this.data.map(d => d.total_leads), 
           label: 'Assigned Leads', 
           backgroundColor: '#8b5cf6', // A distinct purple to separate from productivity report
           borderRadius: 4, 
@@ -151,20 +157,18 @@ export class StudentPipelineReportComponent implements OnInit {
 
   // --- Filter Logic ---
 
-  toggleCalendar() {
-    this.isCalendarOpen = !this.isCalendarOpen;
-    if (this.isCalendarOpen) {
+  toggleDateDropdown() {
+    this.isDateDropdownOpen = !this.isDateDropdownOpen;
+    if (this.isDateDropdownOpen) {
       this.isEmployeeDropdownOpen = false;
       this.isStatusDropdownOpen = false;
-      this.currentMonth = new Date(this.selectedDate);
-      this.generateCalendar();
     }
   }
 
   toggleEmployeeDropdown() {
     this.isEmployeeDropdownOpen = !this.isEmployeeDropdownOpen;
     if (this.isEmployeeDropdownOpen) {
-      this.isCalendarOpen = false;
+      this.isDateDropdownOpen = false;
       this.isStatusDropdownOpen = false;
     }
   }
@@ -172,86 +176,42 @@ export class StudentPipelineReportComponent implements OnInit {
   toggleStatusDropdown() {
     this.isStatusDropdownOpen = !this.isStatusDropdownOpen;
     if (this.isStatusDropdownOpen) {
-      this.isCalendarOpen = false;
+      this.isDateDropdownOpen = false;
       this.isEmployeeDropdownOpen = false;
     }
   }
 
-  // Calendar Logic
-  generateCalendar() {
-    const year = this.currentMonth.getFullYear();
-    const month = this.currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    this.calendarDays = [];
-    
-    // Previous month padding
-    const startingDay = firstDay.getDay(); // 0 is Sunday
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = startingDay - 1; i >= 0; i--) {
-      this.calendarDays.push(new Date(year, month - 1, prevMonthLastDay - i));
-    }
-    
-    // Current month days
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      this.calendarDays.push(new Date(year, month, i));
-    }
-    
-    // Next month padding (to complete 42 days grid, 6 rows)
-    const remainingDays = 42 - this.calendarDays.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      this.calendarDays.push(new Date(year, month + 1, i));
+  // Date Range Logic
+  selectDateRange(range: string) {
+    this.dateRange = range;
+    if (range !== 'custom') {
+      this.isDateDropdownOpen = false;
+      this.fetchData();
     }
   }
 
-  prevMonth(event: Event) {
-    event.stopPropagation();
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
-    this.generateCalendar();
+  applyCustomDate() {
+    if (this.customStartDate && this.customEndDate) {
+      this.isDateDropdownOpen = false;
+      this.fetchData();
+    }
   }
 
-  nextMonth(event: Event) {
-    event.stopPropagation();
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
-    this.generateCalendar();
+  getDateRangeLabel(): string {
+    const labels: any = {
+      'today': 'Today',
+      'this_week': 'This Week',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+      'ytd': 'Year to Date',
+      'prev_year': 'Previous Year',
+      'custom': 'Custom Range'
+    };
+    return labels[this.dateRange] || 'Today';
   }
 
-  selectDate(d: Date, event: Event) {
-    event.stopPropagation();
-    // Adjust for local timezone offset when getting ISO string
-    const offset = d.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(d.getTime() - offset)).toISOString().split('T')[0];
-    
-    this.selectedDate = localISOTime;
-    this.isCalendarOpen = false;
-    this.fetchData();
-  }
+  // Employee Logic
 
-  get formattedSelectedDate(): string {
-    const d = new Date(this.selectedDate);
-    if (isNaN(d.getTime())) return this.selectedDate;
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
-
-  isSameDate(d1: Date, d2String: string): boolean {
-    const d2 = new Date(d2String);
-    if (isNaN(d2.getTime())) return false;
-    return d1.getFullYear() === d2.getFullYear() && 
-           d1.getMonth() === d2.getMonth() && 
-           d1.getDate() === d2.getDate();
-  }
-
-  isToday(d: Date): boolean {
-    const today = new Date();
-    return d.getFullYear() === today.getFullYear() && 
-           d.getMonth() === today.getMonth() && 
-           d.getDate() === today.getDate();
-  }
-
-  isCurrentMonth(d: Date): boolean {
-    return d.getMonth() === this.currentMonth.getMonth();
-  }
 
   // Employee Logic
   get filteredUsers() {

@@ -801,32 +801,34 @@ const getEmployeeConversionReport = async (req, res) => {
     let teamFilter = '';
     const selfId = Number(userId);
 
-    // Find the teams the current user belongs to
-    const [myTeams] = await pool.query(
-      `SELECT team_id FROM team_members WHERE user_id = ?`,
-      [selfId]
-    );
-
-    if (myTeams.length > 0) {
-      const teamIds = myTeams.map(t => t.team_id);
-      
-      // Get all members of those teams
-      const [teamRows] = await pool.query(
-        `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-        [teamIds]
+    if (req.user.role === 'agent') {
+      // Find the teams the current user belongs to
+      const [myTeams] = await pool.query(
+        `SELECT team_id FROM team_members WHERE user_id = ?`,
+        [selfId]
       );
-      
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      
-      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      queryParams.push(...teamMemberIds);
-    } else if (req.user.role === 'agent') {
-      // If agent has no team, they only see themselves
-      teamFilter = ` AND c.assigned_to = ? `;
-      queryParams.push(selfId);
+
+      if (myTeams.length > 0) {
+        const teamIds = myTeams.map(t => t.team_id);
+        
+        // Get all members of those teams
+        const [teamRows] = await pool.query(
+          `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
+          [teamIds]
+        );
+        
+        const teamMemberIds = teamRows.map(r => Number(r.user_id));
+        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+        
+        teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
+        queryParams.push(...teamMemberIds);
+      } else {
+        // If agent has no team, they only see themselves
+        teamFilter = ` AND c.assigned_to = ? `;
+        queryParams.push(selfId);
+      }
     }
-    // Admin without a team will see all (teamFilter remains empty)
+    // Admin will see all (teamFilter remains empty)
 
     const query = `
       SELECT 
@@ -875,7 +877,8 @@ const getStudentPipelineReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
     const userId = req.user.userId || req.user.id;
-    const { dateRange, startDate, endDate, status } = req.query;
+    // Removed 'status' because table needs all statuses; graph will filter on frontend.
+    const { dateRange, startDate, endDate, date, course, source, employee } = req.query;
     let dateFilter = '';
     let queryParams = [businessId];
 
@@ -892,15 +895,30 @@ const getStudentPipelineReport = async (req, res) => {
       queryParams.push(startDate, endDate);
     } else if (dateRange === 'today') {
       dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    } else if (date) {
+      dateFilter = 'AND DATE(c.created_at) = ?';
+      queryParams.push(date);
     } else if (startDate && endDate) {
       dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
       queryParams.push(startDate, endDate);
     }
 
-    let statusFilter = '';
-    if (status && status !== 'All') {
-      statusFilter = 'AND c.status_name = ?';
-      queryParams.push(status);
+    let courseFilter = '';
+    if (course && course !== 'All') {
+      courseFilter = 'AND c.enquiry_for_id = ?';
+      queryParams.push(course);
+    }
+
+    let sourceFilter = '';
+    if (source && source !== 'All') {
+      sourceFilter = 'AND c.opt_in_source = ?';
+      queryParams.push(source);
+    }
+
+    let employeeFilter = '';
+    if (employee && employee !== 'All') {
+      employeeFilter = 'AND c.assigned_to = ?';
+      queryParams.push(employee);
     }
 
     let teamFilter = '';
@@ -931,23 +949,41 @@ const getStudentPipelineReport = async (req, res) => {
 
     const query = `
       SELECT 
+        COALESCE(c.assigned_to, 'unassigned') as user_id,
         COALESCE(u.name, 'Unassigned') as employee,
         COALESCE(u.employee_code, 'N/A') as employee_code,
-        COUNT(c.id) as assigned_leads
+        COALESCE(c.status_name, 'Unspecified') as status_name,
+        COUNT(c.id) as lead_count,
+        SUM(IF(c.sale_won = 1, 1, 0)) as converted_count
       FROM contacts c
       LEFT JOIN users u ON c.assigned_to = u.id
-      WHERE c.business_id = ? ${dateFilter} ${statusFilter} ${teamFilter}
-      GROUP BY c.assigned_to, u.name, u.employee_code
-      ORDER BY assigned_leads DESC
+      WHERE c.business_id = ? ${dateFilter} ${courseFilter} ${sourceFilter} ${employeeFilter} ${teamFilter}
+      GROUP BY c.assigned_to, u.name, u.employee_code, c.status_name
     `;
 
     const [rows] = await pool.query(query, queryParams);
 
-    const data = rows.map(r => ({
-      employee: r.employee,
-      employee_code: r.employee_code,
-      assigned_leads: Number(r.assigned_leads) || 0
-    }));
+    const employeesMap = {};
+    rows.forEach(r => {
+      const empId = r.user_id;
+      if (!employeesMap[empId]) {
+        employeesMap[empId] = { 
+          employee: r.employee, 
+          employee_code: r.employee_code, 
+          total_leads: 0, 
+          converted_count: 0, 
+          statuses: {} 
+        };
+      }
+      employeesMap[empId].statuses[r.status_name] = Number(r.lead_count) || 0;
+      employeesMap[empId].total_leads += Number(r.lead_count) || 0;
+      employeesMap[empId].converted_count += Number(r.converted_count) || 0;
+    });
+
+    const data = Object.values(employeesMap).map(e => {
+      e.conversion_rate = e.total_leads > 0 ? ((e.converted_count / e.total_leads) * 100).toFixed(1) : '0.0';
+      return e;
+    });
 
     res.json({ success: true, data });
   } catch (error) {
@@ -963,7 +999,8 @@ const getFollowUpReport = async (req, res) => {
     const { dateRange, startDate, endDate, status, employee } = req.query;
     
     let dateFilter = '';
-    let queryParams = [businessId];
+    // Query uses business_id twice: once in JOIN for contacts, once in WHERE for users
+    let queryParams = [businessId, businessId];
 
     if (dateRange === 'ytd') {
       dateFilter = 'AND YEAR(f.entry_date_time) = YEAR(CURDATE())';
@@ -991,7 +1028,7 @@ const getFollowUpReport = async (req, res) => {
 
     let employeeFilter = '';
     if (employee && employee !== 'All') {
-      employeeFilter = 'AND f.by_user_id = ?';
+      employeeFilter = 'AND u.id = ?';
       queryParams.push(employee);
     }
 
@@ -1014,10 +1051,10 @@ const getFollowUpReport = async (req, res) => {
       const teamMemberIds = teamRows.map(r => Number(r.user_id));
       if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
       
-      teamFilter = ` AND f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      teamFilter = ` AND u.id IN (${teamMemberIds.map(() => '?').join(',')}) `;
       queryParams.push(...teamMemberIds);
     } else if (req.user.role === 'agent') {
-      teamFilter = ` AND f.by_user_id = ? `;
+      teamFilter = ` AND u.id = ? `;
       queryParams.push(selfId);
     }
 
@@ -1026,11 +1063,13 @@ const getFollowUpReport = async (req, res) => {
         COALESCE(u.name, 'Unassigned') as employee_name,
         COALESCE(u.employee_code, 'N/A') as employee_code,
         COUNT(f.follow_up_id) as follow_up_count
-      FROM follow_ups f
-      JOIN contacts c ON f.contact_id = c.id
-      LEFT JOIN users u ON f.by_user_id = u.id
-      WHERE c.business_id = ? ${dateFilter} ${statusFilter} ${employeeFilter} ${teamFilter}
-      GROUP BY f.by_user_id, u.name, u.employee_code
+      FROM users u
+      LEFT JOIN (
+        follow_ups f
+        JOIN contacts c ON f.contact_id = c.id AND c.business_id = ?
+      ) ON u.id = f.by_user_id ${dateFilter} ${statusFilter}
+      WHERE u.business_id = ? AND u.role IN ('agent', 'admin') ${employeeFilter} ${teamFilter}
+      GROUP BY u.id, u.name, u.employee_code
       ORDER BY follow_up_count DESC
     `;
 
@@ -1088,14 +1127,46 @@ const getTeamProductivityReport = async (req, res) => {
     
     let employeeFilterUsers = '';
     let employeeFilterFollowUps = '';
-    let queryParamsUsers = [businessId, businessId, businessId, businessId, businessId, businessId];
+    
+    let teamFilter = '';
+    const selfId = Number(req.user.userId || req.user.id);
+    let teamMemberIds = [];
+
+    if (req.user.role === 'agent') {
+      const [teamRows] = await pool.query(
+        `SELECT team_id FROM team_members WHERE user_id = ?`,
+        [selfId]
+      );
+      if (teamRows.length > 0) {
+        const teamIds = teamRows.map(t => t.team_id);
+        const [members] = await pool.query(
+          `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
+          [teamIds]
+        );
+        teamMemberIds = members.map(m => Number(m.user_id));
+        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+        teamFilter = ` AND u.id IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      } else {
+        teamFilter = ` AND u.id = ? `;
+        teamMemberIds = [selfId];
+      }
+    }
+
+    let queryParamsUsers = [
+      businessId, date, 
+      businessId, date, 
+      businessId, date, 
+      businessId, date, 
+      businessId, date,
+      businessId, ...teamMemberIds
+    ];
     let queryParamsFollowUps = [businessId, date];
 
     if (employee && employee !== 'All') {
       employeeFilterUsers = 'AND u.id = ?';
       queryParamsUsers.push(employee);
       
-      employeeFilterFollowUps = 'AND f.by_user_id = ?';
+      employeeFilterFollowUps = 'AND c.assigned_to = ?';
       queryParamsFollowUps.push(employee);
     }
 
@@ -1105,13 +1176,13 @@ const getTeamProductivityReport = async (req, res) => {
         u.id as employee_id,
         COALESCE(u.name, 'Unassigned') as employee_name,
         COALESCE(u.employee_code, 'N/A') as employee_code,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ?) as assigned,
-        (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE f.by_user_id = u.id AND fc.business_id = ?) as follow_ups,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_lost = 1) as lost,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 1) as converted,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 0 AND c.sale_lost = 0) as pending
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND DATE(c.created_at) = ?) as assigned,
+        (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE f.by_user_id = u.id AND fc.business_id = ? AND DATE(f.entry_date_time) = ?) as follow_ups,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_lost = 1 AND DATE(c.created_at) = ?) as lost,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 1 AND DATE(c.created_at) = ?) as converted,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 0 AND c.sale_lost = 0 AND DATE(c.created_at) = ?) as pending
       FROM users u
-      WHERE u.business_id = ? AND u.role = 'agent' ${employeeFilterUsers}
+      WHERE u.business_id = ? AND u.role = 'agent' ${teamFilter} ${employeeFilterUsers}
     `;
     const [teamProductivityRows] = await pool.query(usersQuery, queryParamsUsers);
 
@@ -1170,6 +1241,111 @@ const getTeamProductivityReport = async (req, res) => {
   }
 };
 
+const getLeadCreationReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { dateRange, startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    if (dateRange === 'today') {
+      dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(c.created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = `AND DATE(c.created_at) BETWEEN '${startDate}' AND '${endDate}'`;
+    }
+
+    // Overall Totals
+    const [[{ totalLeads }]] = await pool.query(`SELECT COUNT(*) as totalLeads FROM contacts c WHERE c.business_id = ?`, [businessId]);
+    const [[{ todayLeads }]] = await pool.query(`SELECT COUNT(*) as todayLeads FROM contacts c WHERE c.business_id = ? AND DATE(c.created_at) = CURDATE()`, [businessId]);
+    const [[{ weekLeads }]] = await pool.query(`SELECT COUNT(*) as weekLeads FROM contacts c WHERE c.business_id = ? AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)`, [businessId]);
+    const [[{ rangeLeads }]] = await pool.query(`SELECT COUNT(*) as rangeLeads FROM contacts c WHERE c.business_id = ? ${dateFilter}`, [businessId]);
+
+    // Group by User for the given date filter
+    const [userBreakdown] = await pool.query(
+      `SELECT u.name as employee, u.employee_code, COUNT(c.id) as leads_created
+       FROM contacts c
+       LEFT JOIN users u ON c.created_by_user = u.id
+       WHERE c.business_id = ? ${dateFilter}
+       GROUP BY c.created_by_user, u.name, u.employee_code
+       ORDER BY leads_created DESC`,
+      [businessId]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        totalLeads: totalLeads || 0,
+        todayLeads: todayLeads || 0,
+        weekLeads: weekLeads || 0,
+        rangeLeads: rangeLeads || 0,
+        breakdown: userBreakdown
+      }
+    });
+
+  } catch (err) {
+    console.error('getLeadCreationReport Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate lead creation report' });
+  }
+};
+const getApplicationStatusSummaryReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { dateRange, startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    let queryParams = [businessId];
+
+    if (dateRange === 'today') {
+      dateFilter = 'AND DATE(a.created_at) = CURDATE()';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(a.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(a.created_at) = MONTH(CURDATE()) AND YEAR(a.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(a.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(a.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
+    } else if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(a.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'prev_year') {
+      dateFilter = 'AND YEAR(a.created_at) = YEAR(CURDATE()) - 1';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(a.created_at) BETWEEN ? AND ?';
+      queryParams.push(startDate, endDate);
+    }
+    
+    queryParams.push(businessId);
+
+    const query = `
+      SELECT 
+        s.name AS status,
+        COUNT(a.id) AS count
+      FROM application_statuses s
+      LEFT JOIN applications a ON a.status_id = s.id AND a.business_id = ? ${dateFilter}
+      LEFT JOIN contacts c ON a.contact_id = c.id
+      WHERE s.business_id = ? AND (a.id IS NULL OR c.id IS NOT NULL)
+      GROUP BY s.id, s.name
+      ORDER BY s.id ASC
+    `;
+
+    const [rows] = await pool.query(query, queryParams);
+
+    res.json({
+      success: true,
+      data: rows
+    });
+
+  } catch (err) {
+    console.error('getApplicationStatusSummaryReport Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate application status summary report' });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -1185,5 +1361,7 @@ module.exports = {
   getEmployeeConversionReport,
   getStudentPipelineReport,
   getFollowUpReport,
-  getTeamProductivityReport
+  getTeamProductivityReport,
+  getLeadCreationReport,
+  getApplicationStatusSummaryReport
 };

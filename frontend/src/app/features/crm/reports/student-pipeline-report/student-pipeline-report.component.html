@@ -10,36 +10,49 @@
         <div class="filter-toolbar">
           <!-- Custom Date Picker -->
           <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleCalendar()" [class.active]="isCalendarOpen">
+            <div class="filter-item" (click)="toggleDateDropdown()" [class.active]="isDateDropdownOpen">
               <i class="bi bi-calendar3 filter-icon"></i>
-              <span class="filter-value">{{ formattedSelectedDate }}</span>
+              <span class="filter-value">{{ getDateRangeLabel() }}</span>
               <i class="bi bi-chevron-down filter-caret"></i>
             </div>
             
-            <!-- Calendar Popup -->
-            <div class="custom-dropdown-panel calendar-panel" *ngIf="isCalendarOpen">
-              <div class="calendar-header">
-                <button class="cal-nav-btn" (click)="prevMonth($event)"><i class="bi bi-chevron-left"></i></button>
-                <span class="cal-month-year">{{ currentMonth | date:'MMMM yyyy' }}</span>
-                <button class="cal-nav-btn" (click)="nextMonth($event)"><i class="bi bi-chevron-right"></i></button>
-              </div>
-              <div class="calendar-grid">
-                <div class="cal-day-name">Su</div>
-                <div class="cal-day-name">Mo</div>
-                <div class="cal-day-name">Tu</div>
-                <div class="cal-day-name">We</div>
-                <div class="cal-day-name">Th</div>
-                <div class="cal-day-name">Fr</div>
-                <div class="cal-day-name">Sa</div>
-                
-                <div class="cal-cell" 
-                     *ngFor="let d of calendarDays" 
-                     [class.cal-muted]="!isCurrentMonth(d)"
-                     [class.cal-today]="isToday(d)"
-                     [class.cal-selected]="isSameDate(d, selectedDate)"
-                     (click)="selectDate(d, $event)">
-                  {{ d.getDate() }}
+            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+              <div class="dropdown-list">
+                <div class="dropdown-option" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
+                  <span class="opt-name">Today</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
                 </div>
+                <div class="dropdown-option" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+                  <span class="opt-name">This Week</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+                  <span class="opt-name">This Month</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+                  <span class="opt-name">Last Month</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+                  <span class="opt-name">Year to Date</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+                  <span class="opt-name">Custom Range</span>
+                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+                </div>
+              </div>
+              <div class="custom-date-inputs" *ngIf="dateRange === 'custom'">
+                <div class="custom-date-row">
+                  <label>Start Date</label>
+                  <input type="date" class="modern-date-input" [(ngModel)]="customStartDate" />
+                </div>
+                <div class="custom-date-row">
+                  <label>End Date</label>
+                  <input type="date" class="modern-date-input" [(ngModel)]="customEndDate" />
+                </div>
+                <button class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
               </div>
             </div>
           </div>
@@ -174,7 +187,7 @@
               <tr *ngFor="let row of data">
                 <td><span class="emp-code text-muted fw-medium">{{ row.employee_code || 'N/A' }}</span></td>
                 <td><span class="emp-name text-dark fw-bold">{{ row.employee || 'Unassigned' }}</span></td>
-                <td class="text-center"><span class="metric-pill purple">{{ row.assigned_leads }}</span></td>
+                <td class="text-center"><span class="metric-pill purple">{{ row.total_leads }}</span></td>
               </tr>
               <tr *ngIf="data.length === 0" class="empty-row">
                 <td colspan="3">

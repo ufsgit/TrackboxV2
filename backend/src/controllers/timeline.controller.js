@@ -22,13 +22,17 @@ const getContactTimeline = async (req, res) => {
       color: '#3b82f6' // Blue
     });
 
+    // Add a small buffer (1 minute) to account for same-transaction inserts that might have slightly older timestamps due to DB precision
+    const contactCreatedAt = new Date(contactRows[0].created_at);
+    contactCreatedAt.setMinutes(contactCreatedAt.getMinutes() - 1);
+
     // 2. Fetch Contact History
     const [historyRows] = await pool.query(`
       SELECT ch.field_name, ch.old_value, ch.new_value, ch.created_at, u.name as changed_by_name
       FROM contact_history ch
       LEFT JOIN users u ON ch.user_id = u.id
-      WHERE ch.contact_id = ? AND ch.business_id = ?
-    `, [contactId, bizId]);
+      WHERE ch.contact_id = ? AND ch.business_id = ? AND ch.created_at >= ?
+    `, [contactId, bizId, contactCreatedAt]);
 
     for (const h of historyRows) {
       let icon = 'bi-pencil-fill';
@@ -57,8 +61,8 @@ const getContactTimeline = async (req, res) => {
 
     // 3. Fetch Follow Ups
     const [followUpRows] = await pool.query(`
-      SELECT * FROM follow_ups WHERE contact_id = ?
-    `, [contactId]);
+      SELECT * FROM follow_ups WHERE contact_id = ? AND entry_date_time >= ?
+    `, [contactId, contactCreatedAt]);
 
     for (const f of followUpRows) {
       events.push({

@@ -125,6 +125,8 @@ export const routes: Routes = [
       { path: 'reports/status', loadComponent: () => import('./features/lead-report/status-report/status-report.component').then(m => m.StatusReportComponent) },
       { path: 'reports/source-conversion', loadComponent: () => import('./features/lead-report/source-conversion-report/source-conversion-report.component').then(m => m.SourceConversionReportComponent) },
       { path: 'sop', loadComponent: () => import('./features/sop/sop.component').then(m => m.SopComponent) },
+      { path: 'reports/lead-creation', loadComponent: () => import('./features/crm/reports/lead-creation-report/lead-creation-report.component').then(m => m.LeadCreationReportComponent) },
+      { path: 'reports/application-status', loadComponent: () => import('./features/crm/reports/application-status-report/application-status-report.component').then(m => m.ApplicationStatusReportComponent) },
     ]
   },
   { path: '**', redirectTo: 'lead-dashboard' }

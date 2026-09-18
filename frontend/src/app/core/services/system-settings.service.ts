@@ -116,6 +116,11 @@ export class SystemSettingsService {
     return this.http.delete(`${this.settingsUrl}/team/${id}`);
   }
 
+  // --- FIELD CATEGORIES ---
+  getFieldCategories(): Observable<any> {
+    return this.http.get(`${this.settingsUrl}/field-categories`);
+  }
+
   // --- TEAM GROUPS (Actual Teams) ---
   getTeamGroups(): Observable<any> {
     return this.http.get(`${this.apiUrl}/teams`);

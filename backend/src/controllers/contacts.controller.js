@@ -36,7 +36,7 @@ const getContacts = async (req, res) => {
       const selfId = Number(req.user.userId);
       if (req.query.transferred_only === 'true') {
         where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-        params.push(selfId.toString(), selfId, selfId);
+        params.push(selfId.toString(), selfId.toString(), selfId);
       } else {
         const [teamRows] = await pool.query(
           `SELECT user_id FROM team_members 
@@ -119,9 +119,20 @@ const getContact = async (req, res) => {
     if (!rows.length) return res.status(404).json({ success: false, message: 'Not found', data: null });
     const contact = rows[0];
 
+    // Fetch allowed categories for the user
+    let allowedCategories = null;
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      const [uRows] = await pool.query('SELECT allowed_custom_field_categories FROM users WHERE id = ?', [req.user.userId]);
+      if (uRows.length && uRows[0].allowed_custom_field_categories) {
+        allowedCategories = typeof uRows[0].allowed_custom_field_categories === 'string' 
+          ? JSON.parse(uRows[0].allowed_custom_field_categories) 
+          : uRows[0].allowed_custom_field_categories;
+      }
+    }
+
     // Fetch custom field values with field metadata
     const [customValues] = await pool.query(
-      `SELECT lf.id as field_id, lf.label, lf.field_key, lf.field_type, lf.options, lf.is_required, lf.display_order,
+      `SELECT lf.id as field_id, lf.category_id, lf.label, lf.field_key, lf.field_type, lf.options, lf.is_required, lf.display_order,
               ccv.value
        FROM lead_fields lf
        LEFT JOIN contact_custom_values ccv ON ccv.field_id = lf.id AND ccv.contact_id = ?
@@ -129,10 +140,18 @@ const getContact = async (req, res) => {
        ORDER BY lf.display_order ASC, lf.id ASC`,
       [req.params.id, req.user.businessId]
     );
-    contact.custom_fields = customValues.map(f => ({
+
+    let mappedValues = customValues.map(f => ({
       ...f,
       options: typeof f.options === 'string' ? JSON.parse(f.options || '[]') : (f.options || [])
     }));
+
+    if (allowedCategories !== null && Array.isArray(allowedCategories)) {
+      const allowedCategoriesStr = allowedCategories.map(c => String(c));
+      mappedValues = mappedValues.filter(f => allowedCategoriesStr.includes(String(f.category_id)) || f.category_id === null);
+    }
+
+    contact.custom_fields = mappedValues;
 
     res.json({ success: true, data: contact, message: 'OK' });
   } catch (err) {
@@ -430,6 +449,9 @@ const updateContact = async (req, res) => {
 
       if (updateFields.assigned_to) {
         let currentList = oldContact.user_list ? (typeof oldContact.user_list === 'string' ? JSON.parse(oldContact.user_list) : oldContact.user_list) : [];
+        if (oldContact.assigned_to && !currentList.includes(oldContact.assigned_to) && !currentList.includes(String(oldContact.assigned_to)) && !currentList.includes(Number(oldContact.assigned_to))) {
+          currentList.push(oldContact.assigned_to);
+        }
         if (!currentList.includes(updateFields.assigned_to) && !currentList.includes(String(updateFields.assigned_to)) && !currentList.includes(Number(updateFields.assigned_to))) {
           currentList.push(updateFields.assigned_to);
         }

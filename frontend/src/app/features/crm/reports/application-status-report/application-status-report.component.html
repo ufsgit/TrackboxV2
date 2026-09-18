@@ -1,0 +1,150 @@
+<div class="report-container" (click)="isDateDropdownOpen && (isDateDropdownOpen = false)">
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="header-top" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h1 class="report-title">Application Status-Wise Summary</h1>
+        <p class="report-subtitle">Analyze the total number of applications grouped by their current status</p>
+      </div>
+      
+      <!-- Filter Toolbar -->
+      <div class="filter-toolbar" (click)="$event.stopPropagation()">
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-item" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
+            <i class="bi bi-calendar3 filter-icon"></i>
+            <span class="filter-value">{{ getDateRangeLabel() }}</span>
+            <i class="bi bi-chevron-down filter-caret" [class.rotated]="isDateDropdownOpen"></i>
+          </div>
+
+          <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-option" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
+                <span class="opt-name">Today</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
+              </div>
+              <div class="dropdown-option" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+                <span class="opt-name">This Week</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+              </div>
+              <div class="dropdown-option" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+                <span class="opt-name">This Month</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+              </div>
+              <div class="dropdown-option" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+                <span class="opt-name">Last Month</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+              </div>
+              <div class="dropdown-option" [class.selected]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+                <span class="opt-name">Year to Date</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+              </div>
+              <div class="dropdown-option" [class.selected]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+                <span class="opt-name">Custom Range</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+              </div>
+            </div>
+            <div class="custom-date-inputs" *ngIf="dateRange === 'custom'">
+              <div class="custom-date-row">
+                <label>Start Date</label>
+                <input type="date" class="modern-date-input" [(ngModel)]="customStartDate" />
+              </div>
+              <div class="custom-date-row">
+                <label>End Date</label>
+                <input type="date" class="modern-date-input" [(ngModel)]="customEndDate" />
+              </div>
+              <button class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-refresh-toolbar" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loader-container" *ngIf="loading">
+    <div class="modern-spinner"></div>
+    <p>Loading report...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- Total Applications Card -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon-wrap bg-light-purple">
+          <i class="bi bi-file-earmark-text"></i>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">Total Applications</p>
+          <h2 class="stat-value">{{ totalApplications }}</h2>
+        </div>
+        <div class="stat-bg bg-light-purple-bubble"></div>
+      </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Applications by Status</div>
+      </div>
+      <div class="chart-body">
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="totalApplications === 0">
+          <i class="bi bi-pie-chart empty-icon"></i>
+          <p>No applications found for the selected period.</p>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="chart-container" *ngIf="isBrowser && totalApplications > 0">
+          <canvas baseChart
+            [data]="pieChartData"
+            [options]="pieChartOptions"
+            [type]="'doughnut'">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown Table -->
+    <div class="breakdown-card">
+      <div class="breakdown-header">
+        <div class="breakdown-title">Status Breakdown</div>
+      </div>
+
+      <div class="breakdown-body">
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>STATUS</th>
+              <th style="text-align: right">COUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of breakdown; let i = index">
+              <td>
+                <div class="status-cell">
+                  <div class="status-dot" [style.background]="getStatusColor(i)"></div>
+                  <span class="status-name">{{ row.status }}</span>
+                </div>
+              </td>
+              <td style="text-align: right">
+                <span class="count-text">{{ row.count }}</span>
+              </td>
+            </tr>
+            <tr *ngIf="breakdown.length === 0">
+              <td colspan="2" class="text-center" style="padding: 2rem; color: #94a3b8;">
+                No statuses found
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

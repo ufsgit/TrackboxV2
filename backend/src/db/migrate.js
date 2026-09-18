@@ -433,6 +433,12 @@ async function runMigrations() {
     await pool.query("ALTER TABLE contacts ADD CONSTRAINT fk_contacts_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL");
   }
 
+  // Add user_list to contacts if it does not already exist
+  const [userListCol] = await pool.query("SHOW COLUMNS FROM contacts LIKE 'user_list'");
+  if (userListCol.length === 0) {
+    await pool.query("ALTER TABLE contacts ADD COLUMN user_list JSON NULL");
+  }
+
   // Extend message_type ENUM to include 'voice' and 'sticker' (safety net)
   try {
     await pool.query("ALTER TABLE messages MODIFY COLUMN message_type ENUM('text','image','video','document','template','interactive','location','audio','voice','sticker')");
@@ -507,7 +513,7 @@ async function runMigrations() {
 
   // Extend channel_preference ENUM to include instagram, facebook, website
   try {
-    await pool.query("ALTER TABLE contacts MODIFY COLUMN channel_preference ENUM('whatsapp','sms','rcs','instagram','facebook','website') DEFAULT 'whatsapp'");
+    await pool.query("ALTER TABLE contacts MODIFY COLUMN channel_preference VARCHAR(100) DEFAULT 'whatsapp'");
   } catch (e) { /* Ignore if already extended */ }
 
   // Create shared_media_library table for reusable files (brochures, PDFs, etc.)
