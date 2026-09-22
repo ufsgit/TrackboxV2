@@ -81,7 +81,8 @@
   user-select: none;
 }
 
-.filter-item:hover, .filter-item.active {
+.filter-item:hover,
+.filter-item.active {
   background: #f8fafc;
 }
 
@@ -144,7 +145,11 @@
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
 /* Custom Dropdown Panels */
 .custom-dropdown-panel {
@@ -161,8 +166,15 @@
 }
 
 @keyframes dropdownIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Employee Dropdown */
@@ -360,6 +372,7 @@
 .status-panel .dropdown-list {
   padding: 0.5rem;
 }
+
 .status-dot {
   width: 12px;
   height: 12px;
@@ -373,11 +386,13 @@
     align-items: stretch;
     padding: 0.5rem;
   }
+
   .filter-divider {
     height: 1px;
     width: 100%;
     margin: 0.5rem 0;
   }
+
   .custom-dropdown-panel {
     width: 100%;
     min-width: unset;
@@ -432,7 +447,10 @@
   font-size: 1.1rem;
 }
 
-.icon-box.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.icon-box.purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
 
 .card-body-premium {
   padding: 1.5rem;
@@ -446,7 +464,8 @@
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 8px; /* space for scrollbar */
+  padding-right: 8px;
+  /* space for scrollbar */
 }
 
 /* Loaders and Empty States */
@@ -515,6 +534,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e2e8f0;
+  text-align: left;
 }
 
 .modern-table td {
@@ -540,7 +560,10 @@
   font-size: 0.9rem;
 }
 
-.metric-pill.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.metric-pill.purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
 
 /* --- Date Range Dropdown Styles --- */
 .dropdown-list {
@@ -555,8 +578,14 @@
   cursor: pointer;
   transition: background 0.15s;
 }
-.dropdown-option:hover { background: #f8fafc; }
-.dropdown-option.selected { background: rgba(139,92,246,0.06); }
+
+.dropdown-option:hover {
+  background: #f8fafc;
+}
+
+.dropdown-option.selected {
+  background: rgba(139, 92, 246, 0.06);
+}
 
 .opt-name {
   flex: 1;
@@ -564,7 +593,11 @@
   color: #334155;
   font-weight: 500;
 }
-.opt-check { color: #8b5cf6; font-size: 1rem; }
+
+.opt-check {
+  color: #8b5cf6;
+  font-size: 1rem;
+}
 
 .custom-date-inputs {
   padding: 0.75rem;
@@ -572,7 +605,11 @@
   background: #f8fafc;
   border-radius: 0 0 12px 12px;
 }
-.custom-date-row { margin-bottom: 0.6rem; }
+
+.custom-date-row {
+  margin-bottom: 0.6rem;
+}
+
 .custom-date-row label {
   display: block;
   font-size: 0.73rem;
@@ -582,6 +619,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
 .modern-date-input {
   width: 100%;
   padding: 0.45rem 0.6rem;
@@ -592,10 +630,12 @@
   color: #334155;
   box-sizing: border-box;
 }
+
 .modern-date-input:focus {
   border-color: #8b5cf6;
-  box-shadow: 0 0 0 2px rgba(139,92,246,0.1);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
 }
+
 .btn-apply-custom {
   width: 100%;
   background: #8b5cf6;
@@ -609,4 +649,7 @@
   margin-top: 0.25rem;
   transition: background 0.2s;
 }
-.btn-apply-custom:hover { background: #7c3aed; }
+
+.btn-apply-custom:hover {
+  background: #7c3aed;
+}

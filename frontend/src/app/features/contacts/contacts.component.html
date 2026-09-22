@@ -520,74 +520,64 @@
             <p class="text-muted small mb-0">Get started by creating a new application for this lead.</p>
           </div>
 
-          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="timeline-container mt-2">
-            <div class="timeline-item" *ngFor="let app of selectedContactApplications">
-              <div class="timeline-icon" [style.border-color]="app.status_color || '#4f46e5'" [style.color]="app.status_color || '#4f46e5'">
-                <i class="bi bi-mortarboard-fill"></i>
-              </div>
-              <div class="timeline-content position-relative p-4 border-0 rounded-4" style="background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
-                <!-- Status Badge Absolute Top Right -->
-                <div class="position-absolute top-0 end-0 mt-4 me-4">
-                    <div class="dropdown">
-                      <button class="btn btn-sm dropdown-toggle rounded-pill shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
-                              [style.background-color]="(app.status_color || '#e2e8f0') + '20'" 
-                              [style.color]="app.status_color || '#475569'" 
-                              [style.border]="'1px solid ' + (app.status_color || '#e2e8f0') + '50'"
-                              style="font-weight: 700; font-size: 0.8rem; padding: 6px 16px; transition: all 0.2s;">
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;" [style.background-color]="app.status_color || '#64748b'"></span>
-                        {{ app.status_name || 'No Status' }}
-                      </button>
-                      <ul class="dropdown-menu shadow border-0" style="border-radius: 12px; font-size: 0.85rem; padding: 8px; min-width: 200px;">
-                        <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Change Status</h6></li>
-                        <li *ngFor="let s of appStatuses">
-                          <button class="dropdown-item d-flex align-items-center gap-2 py-2 rounded-2" (click)="updateApplicationStatus(app, s.id)">
-                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="s.color"></span>
-                            {{ s.name }}
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-                </div>
-
-                <!-- Main Info -->
-                <div style="padding-right: 140px;"> <!-- padding right to avoid overlap with absolute badge -->
-                  <h5 class="mb-2 fw-bolder text-dark" style="font-size: 1.25rem; letter-spacing: -0.5px;">{{ app.university }}</h5>
-                  
-                  <div class="mb-4">
-                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-2" style="font-weight: 600;">
-                      <i class="bi bi-journal-text me-1"></i> {{ app.course }}
-                    </span>
-                  </div>
-
-                  <div class="d-flex flex-wrap align-items-center gap-4 mt-3 pt-3 border-top border-light">
-                    <div class="d-flex align-items-center gap-2 text-secondary">
-                      <div class="d-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 32px; height: 32px;">
-                        <i class="bi bi-geo-alt-fill text-danger opacity-75"></i>
-                      </div>
-                      <span class="fw-medium" style="font-size: 0.9rem;">{{ app.country }}</span>
-                    </div>
-                    
-                    <div class="d-flex align-items-center gap-2 text-secondary">
-                      <div class="d-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 32px; height: 32px;">
-                        <i class="bi bi-calendar-event text-success opacity-75"></i>
-                      </div>
-                      <span class="fw-medium" style="font-size: 0.9rem;">{{ app.intake_name || 'N/A' }} {{ app.year_name || '' }}</span>
-                    </div>
-                  </div>
-                </div>
+          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="d-flex flex-column mt-3" style="gap: 16px;">
+            <div class="card border-0 shadow-sm" *ngFor="let app of selectedContactApplications" 
+                 style="border-radius: 8px; border-left: 4px solid {{ app.status_color || '#10b981' }} !important; position: relative;">
+                 
+              <div class="card-body" style="padding: 24px; position: relative;">
                 
+                <!-- Header with Title and Status -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                  <h5 class="fw-bold text-dark" style="font-size: 1.1rem; margin: 0;">{{ app.course }}</h5>
+                  
+                  <div class="dropdown">
+                    <button class="btn btn-sm dropdown-toggle rounded-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                            [style.background-color]="(app.status_color || '#10b981') + '20'" 
+                            [style.color]="app.status_color || '#10b981'" 
+                            style="font-weight: 600; font-size: 0.75rem; padding: 4px 12px; border: none; display: flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%;" [style.background-color]="app.status_color || '#10b981'"></span>
+                      {{ app.status_name || 'approved' }}
+                    </button>
+                    <ul class="dropdown-menu shadow border-0" style="border-radius: 8px; font-size: 0.85rem; min-width: 150px;">
+                      <li *ngFor="let s of appStatuses">
+                        <button class="dropdown-item d-flex align-items-center gap-2 py-2" (click)="updateApplicationStatus(app, s.id)">
+                          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="s.color"></span>
+                          {{ s.name }}
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Info List -->
+                <div style="display: flex; flex-direction: column; gap: 8px; color: #64748b; font-size: 0.9rem;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-bank" style="width: 16px; text-align: center;"></i>
+                    <span>{{ app.university }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-geo-alt" style="width: 16px; text-align: center;"></i>
+                    <span>{{ app.country }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-calendar3" style="width: 16px; text-align: center;"></i>
+                    <span style="text-transform: uppercase;">{{ app.year_name || '' }} {{ app.intake_name || '' }}</span>
+                  </div>
+                </div>
+
                 <!-- Action Buttons -->
-                <div class="d-flex justify-content-end gap-2 mt-4 pt-3">
-                  <button class="btn btn-sm border-0 px-3 py-2 d-flex align-items-center gap-2" (click)="openAppHistoryModal(app.id)" title="View History" style="font-weight: 600; background-color: rgba(241,245,249,0.7); color: #64748b; border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#e2e8f0'; this.style.color='#0f172a'" onmouseout="this.style.backgroundColor='rgba(241,245,249,0.7)'; this.style.color='#64748b'">
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 24px;">
+                  <button class="btn btn-sm bg-transparent" (click)="openAppHistoryModal(app.id)" style="color: #64748b; border: none; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 4px;">
                     <i class="bi bi-clock-history"></i> History
                   </button>
-                  <button class="btn btn-sm border-0 px-3 py-2 d-flex align-items-center gap-2" (click)="openEditApplicationModal(app)" title="Edit" style="font-weight: 600; background-color: rgba(13, 110, 253, 0.08); color: #0d6efd; border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(13, 110, 253, 0.15)'" onmouseout="this.style.backgroundColor='rgba(13, 110, 253, 0.08)'">
-                    <i class="bi bi-pencil-square"></i> Edit
+                  <button class="btn btn-sm bg-transparent" (click)="openEditApplicationModal(app)" style="color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 6px; font-size: 0.85rem; font-weight: 500; padding: 4px 12px; display: flex; align-items: center; gap: 4px;">
+                    <i class="bi bi-pencil"></i> Edit
                   </button>
-                  <button class="btn btn-sm border-0 px-3 py-2 d-flex align-items-center gap-2" (click)="deleteApplication(app.id)" title="Delete" style="font-weight: 600; background-color: rgba(220, 53, 69, 0.08); color: #dc3545; border-radius: 10px; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(220, 53, 69, 0.15)'" onmouseout="this.style.backgroundColor='rgba(220, 53, 69, 0.08)'">
+                  <button class="btn btn-sm bg-transparent" (click)="deleteApplication(app.id)" style="color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; font-size: 0.85rem; font-weight: 500; padding: 4px 12px; display: flex; align-items: center; gap: 4px;">
                     <i class="bi bi-trash"></i> Delete
                   </button>
                 </div>
+
               </div>
             </div>
           </div>

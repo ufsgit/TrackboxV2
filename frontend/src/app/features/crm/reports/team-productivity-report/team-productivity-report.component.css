@@ -500,6 +500,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e2e8f0;
+  text-align: left;
 }
 
 .modern-table td {

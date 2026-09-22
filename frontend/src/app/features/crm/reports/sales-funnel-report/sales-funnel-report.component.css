@@ -267,6 +267,7 @@
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: .06em;
+  text-align: left;
 }
 
 /* Staggered row entrance using CSS custom property */
