@@ -298,14 +298,15 @@
 }
 
 /* Horizontal Navigation Bar (right of Trackbox logo) */
+/* Horizontal Navigation Bar (right of Trackbox logo) */
 .horizontal-nav-bar {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   padding: 0;
   position: relative;
   overflow: visible;
-  flex-wrap: wrap; /* allow wrapping if needed, or keep nowrap */
+  flex-wrap: nowrap; /* Prevent wrapping so it stays in one line */
   background: transparent;
   width: 100%;
 }
@@ -313,13 +314,13 @@
 .nav-item {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   height: 38px;
-  padding: 0 14px;
+  padding: 0 10px;
   color: #64748b;
   text-decoration: none;
   border-radius: 10px;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -327,6 +328,23 @@
   background: transparent;
   cursor: pointer;
   box-sizing: border-box;
+}
+
+@media (max-width: 1536px) {
+  .nav-item {
+    padding: 0 8px;
+    gap: 4px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .nav-item span {
+    display: none; /* Hide text on small desktops, show only icons */
+  }
+  .nav-item {
+    padding: 0 12px;
+  }
 }
 
 .nav-item i {
