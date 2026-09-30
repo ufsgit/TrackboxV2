@@ -89,6 +89,7 @@ export const routes: Routes = [
       { path: 'operation/leave-request', loadComponent: () => import('./features/leave-request/leave-request.component').then(m => m.LeaveRequestComponent) },
       { path: 'hr/leave-request', loadComponent: () => import('./features/leave-request/leave-request.component').then(m => m.LeaveRequestComponent) },
       { path: 'contacts', component: ContactsComponent },
+      { path: 'leads-list', component: ContactsComponent },
       { path: 'broadcasts', component: BroadcastsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'chatbots', component: ChatbotsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'chatbots/:id/flow', loadComponent: () => import('./features/chatbots/flow-editor/flow-editor.component').then(m => m.FlowEditorComponent), data: { roles: ['admin', 'superadmin'] } },

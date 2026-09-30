@@ -1325,3 +1325,57 @@ body.swal2-toast-shown .swal2-container.swal2-top-end, body.swal2-toast-shown .s
   0% { transform: scale(0.5); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* 3D Animations & Scroll Effects */
+.card-3d-hover {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+.card-3d-hover:hover {
+  transform: translateY(-5px) rotateX(4deg) rotateY(2deg);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05) !important;
+}
+
+.element-3d {
+  transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform: perspective(1000px) translateZ(0);
+}
+.element-3d:hover {
+  transform: perspective(1000px) translateZ(20px) rotateX(2deg) rotateY(-2deg);
+}
+
+.tilt-3d {
+  transition: transform 0.3s ease;
+  transform-style: preserve-3d;
+}
+.tilt-3d:hover {
+  transform: perspective(800px) rotateX(5deg) rotateY(-5deg) scale(1.02);
+}
+
+@keyframes float3d {
+  0% { transform: translateY(0px) rotateX(0) rotateY(0); }
+  50% { transform: translateY(-10px) rotateX(2deg) rotateY(3deg); }
+  100% { transform: translateY(0px) rotateX(0) rotateY(0); }
+}
+.floating-3d {
+  animation: float3d 6s ease-in-out infinite;
+}
+
+@keyframes scrollReveal3d {
+  from {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(15deg) translateY(40px) translateZ(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg) translateY(0) translateZ(0);
+  }
+}
+.scroll-3d-reveal {
+  animation: scrollReveal3d 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.scroll-delay-1 { animation-delay: 0.1s; }
+.scroll-delay-2 { animation-delay: 0.2s; }
+.scroll-delay-3 { animation-delay: 0.3s; }

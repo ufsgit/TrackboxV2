@@ -55,8 +55,8 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         </div>
       </div>
 
-      <div class="grid grid-4 kpi-row">
-        <div class="kpi-card kpi-blue" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+      <div class="grid grid-4 kpi-row scroll-3d-reveal scroll-delay-1">
+        <div class="kpi-card kpi-blue card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
           <div class="kpi-icon bg-primary-soft text-primary"><i class="bi bi-box-arrow-in-right"></i></div>
           <div class="kpi-info">
             <h6 class="kpi-title">Total Enquiries</h6>
@@ -64,7 +64,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
           </div>
           <div class="kpi-glow"></div><div class="kpi-shimmer"></div>
         </div>
-        <div class="kpi-card kpi-orange" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+        <div class="kpi-card kpi-orange card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
           <div class="kpi-icon bg-warning-soft text-warning"><i class="bi bi-currency-dollar"></i></div>
           <div class="kpi-info">
             <h6 class="kpi-title">High-Value Enquiries</h6>
@@ -72,7 +72,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
           </div>
           <div class="kpi-glow"></div><div class="kpi-shimmer"></div>
         </div>
-        <div class="kpi-card kpi-green" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+        <div class="kpi-card kpi-green card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
           <div class="kpi-icon bg-success-soft text-success"><i class="bi bi-facebook"></i></div>
           <div class="kpi-info">
             <h6 class="kpi-title">Top Source</h6>
@@ -80,7 +80,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
           </div>
           <div class="kpi-glow"></div><div class="kpi-shimmer"></div>
         </div>
-        <div class="kpi-card kpi-purple" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+        <div class="kpi-card kpi-purple card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
           <div class="kpi-icon bg-info-soft text-info"><i class="bi bi-lightning-fill"></i></div>
           <div class="kpi-info">
             <h6 class="kpi-title">Avg Lead Score</h6>
@@ -90,8 +90,8 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         </div>
       </div>
 
-      <div class="grid" style="grid-template-columns: 1fr 2fr;">
-        <div class="chart-card h-100">
+      <div class="grid scroll-3d-reveal scroll-delay-2" style="grid-template-columns: 1fr 2fr;">
+        <div class="chart-card h-100 tilt-3d">
           <div class="chart-header">
             <h5>Enquiries by Source</h5>
           </div>
@@ -99,7 +99,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
             <canvas id="sourceChart"></canvas>
           </div>
         </div>
-        <div class="chart-card h-100">
+        <div class="chart-card h-100 tilt-3d">
           <div class="chart-header">
             <h5>Product/Service Categories</h5>
           </div>
@@ -109,7 +109,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         </div>
       </div>
 
-      <div class="chart-card">
+      <div class="chart-card scroll-3d-reveal scroll-delay-3 tilt-3d">
         <div class="chart-header border-bottom pb-3 mb-3">
           <h5>Recent High-Value Enquiries</h5>
         </div>

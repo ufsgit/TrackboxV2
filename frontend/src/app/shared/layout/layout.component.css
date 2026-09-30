@@ -384,7 +384,6 @@
 .horizontal-submenu {
   position: absolute;
   top: 100%;
-  left: 0;
   margin-top: 8px;
   min-width: 240px;
   background: #ffffff;
@@ -398,6 +397,14 @@
   animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.horizontal-submenu.align-left {
+  left: 0;
+}
+
+.horizontal-submenu.align-right {
+  right: 0;
+}
+
 .reports-dropdown-wrapper {
   position: relative;
   display: inline-block;
@@ -406,7 +413,6 @@
 .mega-menu {
   position: absolute;
   top: 100%;
-  left: 0;
   margin-top: 8px;
   width: max-content;
   min-width: 650px;
@@ -421,6 +427,14 @@
   padding: 24px;
   z-index: 1050;
   animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mega-menu.align-left {
+  left: 0;
+}
+
+.mega-menu.align-right {
+  right: 0;
 }
 
 .mega-menu.two-col {

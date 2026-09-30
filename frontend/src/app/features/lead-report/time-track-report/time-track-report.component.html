@@ -20,20 +20,20 @@
   </div>
 
   <!-- KPI Cards -->
-  <div class="kpi-grid fade-up delay-1" *ngIf="!loading">
-    <div class="kpi-card bg-white p-4" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); border-top: 4px solid #4F46E5;">
+  <div class="kpi-grid scroll-3d-reveal scroll-delay-1" *ngIf="!loading">
+    <div class="kpi-card bg-white p-4 card-3d-hover" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); border-top: 4px solid #4F46E5;">
       <div class="text-muted fw-bold mb-1" style="font-size: 0.8rem; text-transform: uppercase;">Total Follow-ups</div>
-      <div class="fw-black text-dark" style="font-size: 2.2rem; line-height: 1;">{{ totalFollowups }}</div>
+      <div class="fw-black text-dark element-3d" style="font-size: 2.2rem; line-height: 1;">{{ totalFollowups }}</div>
       <div class="text-muted mt-2" style="font-size: 0.85rem;"><i class="bi bi-graph-up text-success"></i> Today's Volume</div>
     </div>
     
-    <div class="kpi-card bg-white p-4" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); border-top: 4px solid #F59E0B;">
+    <div class="kpi-card bg-white p-4 card-3d-hover" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); border-top: 4px solid #F59E0B;">
       <div class="text-muted fw-bold mb-1" style="font-size: 0.8rem; text-transform: uppercase;">Busiest Hour</div>
-      <div class="fw-black text-dark" style="font-size: 2.2rem; line-height: 1;">{{ busiestHour }}</div>
+      <div class="fw-black text-dark element-3d" style="font-size: 2.2rem; line-height: 1;">{{ busiestHour }}</div>
       <div class="text-muted mt-2" style="font-size: 0.85rem;">{{ busiestHourCount }} follow-ups during this time</div>
     </div>
     
-    <div class="kpi-card bg-white p-4" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); border-top: 4px solid #10B981;">
+    <div class="kpi-card bg-white p-4 card-3d-hover" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04); border-top: 4px solid #10B981;">
       <div class="text-muted fw-bold mb-1" style="font-size: 0.8rem; text-transform: uppercase;">Avg / Hour</div>
       <div class="fw-black text-dark" style="font-size: 2.2rem; line-height: 1;">{{ averagePerHour }}</div>
       <div class="text-muted mt-2" style="font-size: 0.85rem;">Average follow-ups per hour</div>
@@ -41,7 +41,7 @@
   </div>
 
   <!-- Chart Card -->
-  <div class="chart-card bg-white fade-up delay-2" style="border-radius: 16px; padding: 24px; min-height: 400px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.06);">
+  <div class="chart-card bg-white scroll-3d-reveal scroll-delay-2 tilt-3d" style="border-radius: 16px; padding: 24px; min-height: 400px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.06);">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h5 class="fw-bold m-0" style="color: #1e293b;">Hourly Follow-up Activity</h5>
       <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: #4F46E5; padding: 6px 12px; border-radius: 20px;">{{ selectedDate | date:'mediumDate' }}</span>

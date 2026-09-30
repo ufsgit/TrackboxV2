@@ -1,7 +1,7 @@
 <div class="dashboard">
   <!-- Stats Grid -->
-  <div class="stats-grid">
-    <div class="stat-card clickable" routerLink="/contacts">
+  <div class="stats-grid scroll-3d-reveal scroll-delay-1">
+    <div class="stat-card clickable card-3d-hover" routerLink="/leads-list">
       <div class="stat-icon icon-blue">
         <i class="bi bi-people"></i>
       </div>
@@ -12,8 +12,8 @@
       </div>
     </div>
 
-    <div class="stat-card clickable" routerLink="/inbox">
-      <div class="stat-icon icon-purple">
+    <div class="stat-card clickable card-3d-hover" routerLink="/inbox">
+      <div class="stat-icon icon-purple floating-3d">
         <i class="bi bi-chat-left-dots"></i>
       </div>
       <div class="stat-info">
@@ -23,8 +23,8 @@
       </div>
     </div>
 
-    <div class="stat-card clickable" routerLink="/inbox">
-      <div class="stat-icon icon-green">
+    <div class="stat-card clickable card-3d-hover" routerLink="/inbox">
+      <div class="stat-icon icon-green floating-3d">
         <i class="bi bi-megaphone"></i>
       </div>
       <div class="stat-info">
@@ -34,8 +34,8 @@
       </div>
     </div>
 
-    <div class="stat-card clickable" routerLink="/broadcasts">
-      <div class="stat-icon icon-orange">
+    <div class="stat-card clickable card-3d-hover" routerLink="/broadcasts">
+      <div class="stat-icon icon-orange floating-3d">
         <i class="bi bi-eye"></i>
       </div>
       <div class="stat-info">
@@ -48,7 +48,7 @@
 
   <div class="content-row">
     <!-- Recent Chats -->
-    <div class="recent-chats">
+    <div class="recent-chats scroll-3d-reveal scroll-delay-2 tilt-3d">
       <div class="card-header">
         <h4>Recent Conversations</h4>
         <a routerLink="/inbox" class="btn-link">View All</a>
@@ -76,7 +76,7 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="quick-actions">
+    <div class="quick-actions scroll-3d-reveal scroll-delay-3 tilt-3d">
       <div class="card-header">
         <h4>Quick Actions</h4>
       </div>
@@ -85,7 +85,7 @@
           <i class="bi bi-megaphone"></i>
           <span>New Broadcast</span>
         </a>
-        <a routerLink="/contacts" class="action-btn">
+        <a routerLink="/leads-list" class="action-btn">
           <i class="bi bi-person-plus"></i>
           <span>Add Contact</span>
         </a>

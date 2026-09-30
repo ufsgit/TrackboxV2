@@ -27,8 +27,8 @@
   </div>
 
   <!-- KPI Cards -->
-  <div class="grid grid-4 kpi-row">
-    <div class="kpi-card kpi-blue" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+  <div class="grid grid-4 kpi-row scroll-3d-reveal scroll-delay-1">
+    <div class="kpi-card kpi-blue card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-primary-soft text-primary">
         <i class="bi bi-people-fill"></i>
       </div>
@@ -40,7 +40,7 @@
       <div class="kpi-glow"></div>
       <div class="kpi-shimmer"></div>
     </div>
-    <div class="kpi-card kpi-orange" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+    <div class="kpi-card kpi-orange card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-warning-soft text-warning">
         <i class="bi bi-telephone-outbound-fill"></i>
       </div>
@@ -52,7 +52,7 @@
       <div class="kpi-glow"></div>
       <div class="kpi-shimmer"></div>
     </div>
-    <div class="kpi-card kpi-green" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+    <div class="kpi-card kpi-green card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-success-soft text-success">
         <i class="bi bi-trophy-fill"></i>
       </div>
@@ -64,7 +64,7 @@
       <div class="kpi-glow"></div>
       <div class="kpi-shimmer"></div>
     </div>
-    <div class="kpi-card kpi-purple" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
+    <div class="kpi-card kpi-purple card-3d-hover" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
       <div class="kpi-icon bg-info-soft text-info">
         <i class="bi bi-percent"></i>
       </div>
@@ -79,8 +79,8 @@
   </div>
 
   <!-- Charts Row 1 -->
-  <div class="grid" style="grid-template-columns: 2fr 1fr;">
-    <div class="chart-card h-100">
+  <div class="grid scroll-3d-reveal scroll-delay-2" style="grid-template-columns: 2fr 1fr;">
+    <div class="chart-card h-100 tilt-3d">
       <div class="chart-header">
         <h5>Work Activity Trend</h5>
         <button class="btn btn-sm btn-light"><i class="bi bi-download"></i></button>
@@ -89,7 +89,7 @@
         <canvas id="activityChart"></canvas>
       </div>
     </div>
-    <div class="chart-card h-100">
+    <div class="chart-card h-100 tilt-3d">
       <div class="chart-header">
         <h5>Lead Funnel</h5>
       </div>
@@ -100,8 +100,8 @@
   </div>
 
   <!-- Charts Row 2 & Table -->
-  <div class="grid" style="grid-template-columns: 1fr 1.5fr;">
-    <div class="chart-card h-100">
+  <div class="grid scroll-3d-reveal scroll-delay-3" style="grid-template-columns: 1fr 1.5fr;">
+    <div class="chart-card h-100 tilt-3d">
       <div class="chart-header">
         <h5>Agent Performance</h5>
       </div>
@@ -109,7 +109,7 @@
         <canvas id="agentChart"></canvas>
       </div>
     </div>
-    <div class="chart-card h-100" style="padding-bottom: 0; overflow: hidden; display: flex; flex-direction: column;">
+    <div class="chart-card h-100 tilt-3d" style="padding-bottom: 0; overflow: hidden; display: flex; flex-direction: column;">
       <div class="chart-header" style="border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 0;">
         <h5>Recent Activities</h5>
         <a href="javascript:void(0)" class="text-primary text-decoration-none small fw-bold">View All</a>

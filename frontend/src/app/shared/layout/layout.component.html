@@ -37,6 +37,9 @@
             </button>
             
             <div class="dept-dropdown" *ngIf="isDepartmentDropdownOpen" (click)="$event.stopPropagation()">
+              <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Leads'" (click)="setDepartment('Leads')">
+                <i class="bi bi-envelope"></i> Leads
+              </a>
               <a class="dept-dropdown-item" [class.active]="activeDepartment === 'CRM'" (click)="setDepartment('CRM')">
                 <i class="bi bi-briefcase"></i> CRM
               </a>
@@ -64,7 +67,7 @@
           <i class="bi bi-speedometer2"></i>
           <span>Lead Dashboard</span>
         </a>
-        <a routerLink="/contacts" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
+        <a routerLink="/leads-list" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Dashboard', 'view')">
           <i class="bi bi-people"></i>
           <span>Leads</span>
         </a>
@@ -96,7 +99,7 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
           </button>
-          <div class="mega-menu" *ngIf="isReportsOpen">
+          <div class="mega-menu align-right" *ngIf="isReportsOpen">
             <!-- Column 1 -->
             <div class="mega-menu-column">
               <div class="mega-menu-header">Activity</div>
@@ -166,7 +169,7 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
           </button>
-          <div class="mega-menu" *ngIf="isReportsOpen">
+          <div class="mega-menu align-left" *ngIf="isReportsOpen">
             <!-- Column 1: Lead Activity -->
             <div class="mega-menu-column">
               <div class="mega-menu-header">Lead Activity</div>
@@ -279,7 +282,7 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isOperationReportsOpen"></i>
           </button>
-          <div class="mega-menu two-col" *ngIf="isOperationReportsOpen">
+          <div class="mega-menu two-col align-right" *ngIf="isOperationReportsOpen">
             <!-- Column 1 -->
             <div class="mega-menu-column">
               <div class="mega-menu-header">Service & Support</div>
@@ -352,7 +355,7 @@
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isHrReportsOpen"></i>
           </button>
-          <div class="horizontal-submenu" *ngIf="isHrReportsOpen">
+          <div class="horizontal-submenu align-right" *ngIf="isHrReportsOpen">
             <a routerLink="/attendance-report" routerLinkActive="active" class="submenu-item" (click)="isHrReportsOpen = false">
               <i class="bi bi-circle-fill"></i>
               <span>Attendance</span>

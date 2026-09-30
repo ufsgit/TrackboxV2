@@ -9,8 +9,14 @@ export const environment = {
   // baseUrl: 'https://whatsappapi.trackbox.in/api',
   // socketUrl: 'https://whatsappapi.trackbox.in',
   
-  apiUrl: 'https://wlinkapi.ufstech.co.in/api',
-  baseUrl: 'https://wlinkapi.ufstech.co.in/api',
-  socketUrl: 'https://wlinkapi.ufstech.co.in',
+  // apiUrl: 'https://wlinkapi.ufstech.co.in/api',
+  // baseUrl: 'https://wlinkapi.ufstech.co.in/api',
+  // socketUrl: 'https://wlinkapi.ufstech.co.in',
+
+
+  apiUrl: 'https://crmapi.ufstech.co.in/api',
+  baseUrl: 'https://crmapi.ufstech.co.in/api',
+  socketUrl: 'https://crmapi.ufstech.co.in',
+
 };
 

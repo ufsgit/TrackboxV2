@@ -556,7 +556,7 @@ export class LayoutComponent implements OnInit {
     } else if (hrRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'HR';
       localStorage.setItem('activeDepartment', 'HR');
-    } else if (url.includes('lead-dashboard') || leadsReportRoutes.some(r => url.includes(r)) || url.includes('/inbox') || url.includes('/broadcasts') || url.includes('/chatbots') || url.includes('/templates')) {
+    } else if (url.includes('lead-dashboard') || leadsReportRoutes.some(r => url.includes(r)) || url.includes('/inbox') || url.includes('/broadcasts') || url.includes('/chatbots') || url.includes('/templates') || url.includes('/leads-list')) {
       this.activeDepartment = 'Leads';
       localStorage.setItem('activeDepartment', 'Leads');
     }
@@ -576,7 +576,7 @@ export class LayoutComponent implements OnInit {
     if (last === 'operation-dashboard') return 'Operations Dashboard';
     if (last === 'hr-dashboard') return 'HR Dashboard';
     if (last === 'agent-performance-report') return 'Individuals Reports';
-    if (last === 'contacts') return 'Leads';
+    if (last === 'contacts' || last === 'leads-list') return 'Leads';
     if (last === 'sms') return 'SMS Campaigns';
     if (last === 'ivr') return 'IVR Flows';
     if (last === 'rcs') return 'RCS Business';
