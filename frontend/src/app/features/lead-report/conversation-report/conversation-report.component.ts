@@ -2,6 +2,7 @@ import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
+import { ApiService } from '../../../core/services/api.service';
 
 
 Chart.register(...registerables);
@@ -159,45 +160,56 @@ export class ConversationReportComponent implements OnInit {
   kpi_avgResponseTime = 0;
   kpi_botHandoff = 0;
 
-  constructor(
-    private ngZone: NgZone,
-    private cdr: ChangeDetectorRef
-  ) {}
+
 
   volumeChart: any;
   channelChart: any;
 
-  recentMessages = [
-    { contact: '+1 234-567-8900', channel: 'WhatsApp', message: 'I need help with my quotation.', handledBy: 'Alice Smith', time: new Date(Date.now() - 600000) },
-    { contact: 'john@example.com', channel: 'Email', message: 'Thank you for the update.', handledBy: 'Bot', time: new Date(Date.now() - 3600000) },
-    { contact: '+44 7700 900077', channel: 'SMS', message: 'Yes, please confirm the meeting.', handledBy: 'Charlie Brown', time: new Date(Date.now() - 7200000) },
-    { contact: '+1 987-654-3210', channel: 'WhatsApp', message: 'What are your pricing plans?', handledBy: 'Bot', time: new Date(Date.now() - 14400000) }
-  ];
+  recentMessages: any[] = [];
+
+  constructor(
+    private api: ApiService,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
-    this.animateKPIs();
-    setTimeout(() => {
-      this.initVolumeChart();
-      this.initChannelChart();
-    }, 100);
+    this.fetchData();
+  }
+
+  fetchData() {
+    this.api.get(`/reports/conversation?dateRange=${this.dateRange}`).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          const data = res.data;
+          this.messagesSent = data.messagesSent || 0;
+          this.messagesReceived = data.messagesReceived || 0;
+          this.avgResponseTime = data.avgResponseTime || 0;
+          this.botHandoff = data.botHandoff || 0;
+          this.recentMessages = data.recentMessages || [];
+          
+          this.animateKPIs();
+          
+          setTimeout(() => {
+            if (this.volumeChart) this.volumeChart.destroy();
+            if (this.channelChart) this.channelChart.destroy();
+            this.initVolumeChart(data.volumeData);
+            this.initChannelChart(data.channelData);
+          }, 100);
+        }
+      },
+      error: (err: any) => console.error(err)
+    });
   }
 
   onFilterChange() {
-    this.messagesSent = Math.floor(Math.random() * 20000) + 5000;
-    this.messagesReceived = Math.floor(this.messagesSent * 0.9);
-    
-    this.animateKPIs();
-
-    if (this.volumeChart) this.volumeChart.destroy();
-    if (this.channelChart) this.channelChart.destroy();
-    this.initVolumeChart();
-    this.initChannelChart();
+    this.fetchData();
   }
 
-  initVolumeChart() {
+  initVolumeChart(dataArray?: number[]) {
     const ctx = document.getElementById('volumeChart') as HTMLCanvasElement;
     if (!ctx) return;
-    const realData = Array.from({length: 7}, () => Math.floor(Math.random() * 2000) + 500);
+    const realData = dataArray || Array.from({length: 7}, () => 0);
     this.volumeChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -226,9 +238,10 @@ export class ConversationReportComponent implements OnInit {
     }, 600);
   }
 
-  initChannelChart() {
+  initChannelChart(dataArray?: number[]) {
     const ctx = document.getElementById('channelChart') as HTMLCanvasElement;
     if (!ctx) return;
+    const realData = dataArray || [0, 0, 0, 0];
     this.channelChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -248,7 +261,7 @@ export class ConversationReportComponent implements OnInit {
       }
     });
     setTimeout(() => {
-      this.channelChart.data.datasets[0].data = [65, 15, 10, 10];
+      this.channelChart.data.datasets[0].data = realData;
       this.channelChart.update();
     }, 600);
   }

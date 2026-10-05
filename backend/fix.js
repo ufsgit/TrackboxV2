@@ -1,18 +1,57 @@
 const fs = require('fs');
 const path = require('path');
-const file = path.join('c:', 'Users', 'SALMAN', 'Desktop', 'TRACKBOXV2', 'TrackboxV2', 'backend', 'src', 'controllers', 'reports.controller.js');
-let content = fs.readFileSync(file, 'utf8');
+const p = path.resolve('src/controllers/reports.controller.js');
+let content = fs.readFileSync(p, 'utf8');
 
-const regex = /teamFilter\s*=\s*`\s*AND\s*\(\s*c\.assigned_to\s*=\s*\?\s*OR\s*c\.assigned_to\s*IN\s*\(\s*SELECT\s*DISTINCT\s*tm2\.user_id\s*FROM\s*team_members\s*tm1\s*JOIN\s*team_members\s*tm2\s*ON\s*tm1\.team_id\s*=\s*tm2\.team_id\s*WHERE\s*tm1\.user_id\s*=\s*\?\s*\)\s*\)\s*`;\s*filterParams\.push\(userId,\s*userId\);/g;
+const replacement = `    // Recent Activities
+    const [recentActivities] = await pool.query(
+      \`SELECT u.name as agent, c.name as lead, 
+              COALESCE(c.status_name, 'Contacted') as action, c.created_at as time,
+              'Completed' as status
+       FROM contacts c
+       JOIN users u ON c.assigned_to = u.id
+       WHERE c.business_id = ? \${dateFilter} \${teamFilter}
+       ORDER BY c.created_at DESC LIMIT 10\`,
+      [businessId, ...filterParams]
+    );
 
-const newStr = `teamFilter = \` AND c.assigned_to = ? \`;
-      filterParams.push(userId);`;
+    // Activity Data (Trend over last 7 days)
+    const [activityTrend] = await pool.query(
+      \`SELECT DATE(c.created_at) as date, COUNT(*) as count
+       FROM contacts c
+       WHERE c.business_id = ? AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) \${teamFilter}
+       GROUP BY DATE(c.created_at)
+       ORDER BY date ASC\`,
+      [businessId, ...filterParams]
+    );
 
-const match = content.match(regex);
-if (match) {
-  content = content.replace(regex, newStr);
-  fs.writeFileSync(file, content);
-  console.log('Replaced ' + match.length + ' occurrences.');
-} else {
-  console.log('No matches found.');
-}
+    const activityData = [];
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = activityTrend.find(a => {
+        const aDate = new Date(a.date);
+        return aDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      labels.push(days[d.getDay()]);
+      activityData.push(found ? found.count : 0);
+    }
+
+    res.json({`;
+
+content = content.replace(/\s*\/\/\s*Recent Activities.*?res\.json\(\{/s, '\n' + replacement);
+
+const replace2 = `        recentActivities,
+        activityLabels: labels,
+        activityData: activityData
+      }
+    });`;
+
+content = content.replace(/\s*recentActivities\s*\}\s*\}\);/s, '\n' + replace2);
+
+fs.writeFileSync(p, content, 'utf8');
+console.log('Done with Regex');

@@ -105,9 +105,6 @@ export class WorkReportComponent implements OnInit {
     if (this.funnelChart) this.funnelChart.destroy();
     if (this.agentChart) this.agentChart.destroy();
     
-    // We keep activity chart with dummy line data for now
-    this.initActivityChart();
-    
     const funnelLabels = data.funnelData.map((d: any) => d.name);
     const funnelValues = data.funnelData.map((d: any) => d.count);
     this.initFunnelChart(funnelLabels, funnelValues);
@@ -116,31 +113,31 @@ export class WorkReportComponent implements OnInit {
     const leadsHandled = data.agentData.map((d: any) => d.leadsHandled);
     const conversions = data.agentData.map((d: any) => d.conversions);
     this.initAgentChart(agentLabels, leadsHandled, conversions);
+
+    if (data.activityLabels && data.activityData) {
+      this.initActivityChart(data.activityLabels, data.activityData);
+    } else {
+      this.initActivityChart([], []);
+    }
   }
 
-  initActivityChart() {
+  initActivityChart(labels: string[], callsData: number[]) {
     const ctx = document.getElementById('activityChart') as HTMLCanvasElement;
     if (!ctx) return;
-    const callsData = Array.from({length: 7}, () => Math.floor(Math.random() * 50) + 10);
-    const emailsData = Array.from({length: 7}, () => Math.floor(Math.random() * 50) + 10);
+    
+    const realLabels = labels.length ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const realCallsData = callsData.length ? callsData : [0, 0, 0, 0, 0, 0, 0];
+
     this.activityChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        labels: realLabels,
         datasets: [
           {
-            label: 'Calls Made',
-            data: [0, 0, 0, 0, 0, 0, 0],
+            label: 'Leads Received',
+            data: realCallsData.map(() => 0),
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true
-          },
-          {
-            label: 'Emails Sent',
-            data: [0, 0, 0, 0, 0, 0, 0],
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
             tension: 0.4,
             fill: true
           }
@@ -155,8 +152,7 @@ export class WorkReportComponent implements OnInit {
       }
     });
     setTimeout(() => {
-      this.activityChart.data.datasets[0].data = callsData;
-      this.activityChart.data.datasets[1].data = emailsData;
+      this.activityChart.data.datasets[0].data = realCallsData;
       this.activityChart.update();
     }, 600);
   }

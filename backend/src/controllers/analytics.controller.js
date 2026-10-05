@@ -249,7 +249,7 @@ const getFollowUpReport = async (req, res) => {
     let dateClause = '';
     const params = [bizId];
     if (startDate && endDate) {
-      dateClause = 'AND DATE(f.created_at) >= ? AND DATE(f.created_at) <= ?';
+      dateClause = 'AND DATE(f.entry_date_time) >= ? AND DATE(f.entry_date_time) <= ?';
       params.push(startDate, endDate);
     }
     const [rows] = await pool.query(

@@ -44,6 +44,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         
         <div class="flex items-center gap-16" style="flex-wrap: wrap;">
           <select class="form-select premium-select shadow-sm" [(ngModel)]="dateRange" (change)="onFilterChange()">
+            <option value="all">All Time</option>
             <option value="today">Today</option>
             <option value="this_week">This Week</option>
             <option value="this_month">This Month</option>
@@ -149,7 +150,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
   `
 })
 export class EmployeeReportComponent implements OnInit {
-  dateRange: string = 'this_month';
+  dateRange: string = 'all';
 
   activeAgents = 0;
   totalTasks = 0;
@@ -202,7 +203,8 @@ export class EmployeeReportComponent implements OnInit {
     if (this.performanceChart) this.performanceChart.destroy();
     if (this.activityRadarChart) this.activityRadarChart.destroy();
     this.initPerformanceChart();
-    this.initRadarChart();
+    const ab = data.activityBreakdown || { messages: 0, followUps: 0, contacts: 0, conversions: 0 };
+    this.initRadarChart([ab.messages, ab.followUps, ab.contacts, ab.conversions]);
   }
 
   initPerformanceChart() {
@@ -245,13 +247,13 @@ export class EmployeeReportComponent implements OnInit {
     }, 600);
   }
 
-  initRadarChart() {
+  initRadarChart(breakdownValues: number[] = [0, 0, 0, 0]) {
     const ctx = document.getElementById('activityRadarChart') as HTMLCanvasElement;
     if (!ctx) return;
     this.activityRadarChart = new Chart(ctx, {
       type: 'polarArea',
       data: {
-        labels: ['Calls', 'Emails', 'Meetings', 'Chats'],
+        labels: ['Messages Sent', 'Follow-ups', 'Total Leads', 'Conversions'],
         datasets: [{
           data: [0, 0, 0, 0],
           backgroundColor: [
@@ -273,7 +275,7 @@ export class EmployeeReportComponent implements OnInit {
       }
     });
     setTimeout(() => {
-      this.activityRadarChart.data.datasets[0].data = [120, 80, 45, 200];
+      this.activityRadarChart.data.datasets[0].data = breakdownValues;
       this.activityRadarChart.update();
     }, 600);
   }

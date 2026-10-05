@@ -13,6 +13,7 @@ const getEnquiriesReport = async (req, res) => {
     } else if (dateRange === 'this_month') {
       dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
     }
+    // 'all' or unrecognized = no date filter
 
     // Total Enquiries
     const [[{ totalEnquiries }]] = await pool.query(
@@ -20,35 +21,38 @@ const getEnquiriesReport = async (req, res) => {
       [businessId]
     );
 
-    // High Value (mocked for now, or based on tags)
+    // High Value — contacts tagged 'vip'
     const [[{ highValue }]] = await pool.query(
-      `SELECT COUNT(*) as highValue FROM contacts c WHERE c.business_id = ? AND c.tags LIKE '%vip%' ${dateFilter}`,
+      `SELECT COUNT(*) as highValue FROM contacts c 
+       WHERE c.business_id = ? 
+       AND (JSON_CONTAINS(c.tags, '"vip"') OR c.tags LIKE '%vip%') ${dateFilter}`,
       [businessId]
     );
 
     // Sources (Group by opt_in_source)
     const [sources] = await pool.query(
-      `SELECT opt_in_source as source, COUNT(*) as count 
+      `SELECT IFNULL(opt_in_source, 'Unknown') as source, COUNT(*) as count 
        FROM contacts c WHERE c.business_id = ? ${dateFilter} 
        GROUP BY opt_in_source ORDER BY count DESC`,
       [businessId]
     );
 
-    const topSource = sources.length > 0 ? sources[0].source : 'N/A';
+    const topSource = sources.length > 0 ? (sources[0].source || 'N/A') : 'N/A';
 
     // Categories (Group by enquiry_for_id)
     const [categories] = await pool.query(
-      `SELECT e.name as category, COUNT(c.id) as count 
+      `SELECT IFNULL(e.name, 'Uncategorized') as category, COUNT(c.id) as count 
        FROM contacts c 
        LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id 
        WHERE c.business_id = ? ${dateFilter} 
-       GROUP BY c.enquiry_for_id ORDER BY count DESC`,
+       GROUP BY c.enquiry_for_id, e.name ORDER BY count DESC`,
       [businessId]
     );
 
-    // Recent Enquiries
+    // Recent Enquiries with real score based on activity
     const [recentEnquiries] = await pool.query(
-      `SELECT c.name, c.opt_in_source as source, e.name as product, c.created_at as date 
+      `SELECT c.name, c.opt_in_source as source, e.name as product, c.created_at as date,
+              c.follow_up_count, c.sale_won, c.status_name
        FROM contacts c 
        LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id 
        WHERE c.business_id = ? ${dateFilter} 
@@ -56,13 +60,25 @@ const getEnquiriesReport = async (req, res) => {
       [businessId]
     );
 
+    // Score: base 40 + up to 40 from follow_ups + 20 for won
+    const computeScore = (r) => {
+      let score = 40;
+      score += Math.min((r.follow_up_count || 0) * 10, 40);
+      if (r.sale_won) score += 20;
+      return Math.min(score, 100);
+    };
+
     const formattedRecent = recentEnquiries.map(r => ({
-      name: r.name,
+      name: r.name || 'Unknown',
       source: r.source || 'Unknown',
       product: r.product || 'Unknown',
-      score: Math.floor(Math.random() * 40) + 60, // Mock score
+      score: computeScore(r),
       date: r.date
     }));
+
+    const avgLeadScore = formattedRecent.length > 0
+      ? Math.round(formattedRecent.reduce((sum, r) => sum + r.score, 0) / formattedRecent.length)
+      : 0;
 
     res.json({
       success: true,
@@ -70,7 +86,7 @@ const getEnquiriesReport = async (req, res) => {
         totalEnquiries: totalEnquiries || 0,
         highValue: highValue || 0,
         topSource,
-        avgLeadScore: 85,
+        avgLeadScore,
         sources: sources.map(s => ({ label: s.source || 'Unknown', value: s.count })),
         categories: categories.map(c => ({ label: c.category || 'Unknown', value: c.count })),
         recentEnquiries: formattedRecent
@@ -396,10 +412,9 @@ const getWorkReport = async (req, res) => {
        ORDER BY leadsHandled DESC LIMIT 5`,
       [businessId, ...filterParams]
     );
-
     // Recent Activities
     const [recentActivities] = await pool.query(
-      `SELECT u.name as agent, c.name as lead, 
+      `SELECT u.name as agent, c.name as \`lead\`, 
               COALESCE(c.status_name, 'Contacted') as action, c.created_at as time,
               'Completed' as status
        FROM contacts c
@@ -408,6 +423,32 @@ const getWorkReport = async (req, res) => {
        ORDER BY c.created_at DESC LIMIT 10`,
       [businessId, ...filterParams]
     );
+
+    // Activity Data (Trend over last 7 days)
+    const [activityTrend] = await pool.query(
+      `SELECT DATE(c.created_at) as date, COUNT(*) as count
+       FROM contacts c
+       WHERE c.business_id = ? AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) ${teamFilter}
+       GROUP BY DATE(c.created_at)
+       ORDER BY date ASC`,
+      [businessId, ...filterParams]
+    );
+
+    const activityData = [];
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = activityTrend.find(a => {
+        const aDate = new Date(a.date);
+        return aDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      labels.push(days[d.getDay()]);
+      activityData.push(found ? found.count : 0);
+    }
 
     res.json({
       success: true,
@@ -418,7 +459,9 @@ const getWorkReport = async (req, res) => {
         conversionRate,
         funnelData,
         agentData,
-        recentActivities
+        recentActivities,
+        activityLabels: labels,
+        activityData: activityData
       }
     });
 
@@ -434,15 +477,24 @@ const getEmployeeReport = async (req, res) => {
     const { dateRange } = req.query;
 
     let dateFilter = '';
+    let fuDateFilter = '';   // for queries using alias 'f'
+    let fuDateFilter2 = '';  // for subqueries using alias 'f2'
     if (dateRange === 'today') {
       dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+      fuDateFilter = 'AND DATE(f.entry_date_time) = CURDATE()';
+      fuDateFilter2 = 'AND DATE(f2.entry_date_time) = CURDATE()';
     } else if (dateRange === 'this_week') {
       dateFilter = 'AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+      fuDateFilter = 'AND YEARWEEK(f.entry_date_time, 1) = YEARWEEK(CURDATE(), 1)';
+      fuDateFilter2 = 'AND YEARWEEK(f2.entry_date_time, 1) = YEARWEEK(CURDATE(), 1)';
     } else if (dateRange === 'this_month') {
       dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+      fuDateFilter = 'AND MONTH(f.entry_date_time) = MONTH(CURDATE()) AND YEAR(f.entry_date_time) = YEAR(CURDATE())';
+      fuDateFilter2 = 'AND MONTH(f2.entry_date_time) = MONTH(CURDATE()) AND YEAR(f2.entry_date_time) = YEAR(CURDATE())';
     }
 
     let teamFilter = '';
+    let fuTeamFilter = '';
     let filterParams = [];
 
     if (req.user.role === 'agent') {
@@ -456,32 +508,46 @@ const getEmployeeReport = async (req, res) => {
       if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
       
       teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      fuTeamFilter = ` AND f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) `;
       filterParams.push(...teamMemberIds);
     }
 
-    // Total active agents in scope (those who handled leads)
+    // Total active agents in scope
     const [[{ activeAgents }]] = await pool.query(
       `SELECT COUNT(DISTINCT c.assigned_to) as activeAgents FROM contacts c WHERE c.business_id = ? ${dateFilter} ${teamFilter} AND c.assigned_to IS NOT NULL`,
       [businessId, ...filterParams]
     );
 
+    // Total tasks = follow-ups logged in the period
     const [[{ totalTasks }]] = await pool.query(
-      `SELECT COUNT(*) as totalTasks FROM contacts c WHERE c.business_id = ? AND c.follow_up = 1 ${dateFilter} ${teamFilter}`,
+      `SELECT COUNT(*) as totalTasks 
+       FROM follow_ups f
+       JOIN contacts c ON f.contact_id = c.id
+       WHERE c.business_id = ? ${fuDateFilter} ${fuTeamFilter}`,
       [businessId, ...filterParams]
     );
 
-    // Agent Details
+    // Agent Details with real follow-up counts from follow_ups table
     const [agentDetails] = await pool.query(
-      `SELECT u.name, 
-              COUNT(c.id) as assigned, 
-              SUM(CASE WHEN c.follow_up = 1 THEN 1 ELSE 0 END) as followups,
-              SUM(CASE WHEN c.status_name = 'Converted' THEN 1 ELSE 0 END) as conversions
+      `SELECT 
+         u.id,
+         u.name,
+         COUNT(DISTINCT c.id) as assigned,
+         IFNULL(MAX(fu_counts.followups), 0) as followups,
+         SUM(CASE WHEN c.status_name = 'Converted' THEN 1 ELSE 0 END) as conversions
        FROM contacts c
        JOIN users u ON c.assigned_to = u.id
+       LEFT JOIN (
+         SELECT by_user_id, COUNT(*) as followups
+         FROM follow_ups f2
+         JOIN contacts c2 ON f2.contact_id = c2.id
+         WHERE c2.business_id = ? ${fuDateFilter2}
+         GROUP BY by_user_id
+       ) fu_counts ON fu_counts.by_user_id = u.id
        WHERE c.business_id = ? ${dateFilter} ${teamFilter}
        GROUP BY u.id, u.name
        ORDER BY assigned DESC`,
-      [businessId, ...filterParams]
+      [businessId, ...filterParams, businessId, ...filterParams]
     );
 
     let topPerformer = 'N/A';
@@ -490,15 +556,43 @@ const getEmployeeReport = async (req, res) => {
     if (agentDetails.length > 0) {
       const sortedByConv = [...agentDetails].sort((a, b) => b.conversions - a.conversions);
       topPerformer = sortedByConv[0].name;
-      
-      const totalLeads = agentDetails.reduce((sum, a) => sum + a.assigned, 0);
-      avgLeads = Math.round(totalLeads / agentDetails.length);
+      const totalLeadCount = agentDetails.reduce((sum, a) => sum + Number(a.assigned), 0);
+      avgLeads = Math.round(totalLeadCount / agentDetails.length);
     }
 
     const formattedDetails = agentDetails.map(a => ({
-      ...a,
-      winRate: a.assigned > 0 ? ((a.conversions / a.assigned) * 100).toFixed(1) : 0
+      name: a.name,
+      assigned: Number(a.assigned) || 0,
+      followups: Number(a.followups) || 0,
+      conversions: Number(a.conversions) || 0,
+      winRate: Number(a.assigned) > 0 ? ((Number(a.conversions) / Number(a.assigned)) * 100).toFixed(1) : 0
     }));
+
+    // Activity Breakdown — real message and follow-up counts
+    const [[{ totalMessages }]] = await pool.query(
+      `SELECT COUNT(*) as totalMessages FROM messages m
+       JOIN conversations conv ON m.conversation_id = conv.id
+       JOIN contacts c ON conv.contact_id = c.id
+       WHERE c.business_id = ? AND m.direction = 'outbound'`,
+      [businessId]
+    );
+
+    const [[{ totalFollowUps }]] = await pool.query(
+      `SELECT COUNT(*) as totalFollowUps FROM follow_ups f
+       JOIN contacts c ON f.contact_id = c.id
+       WHERE c.business_id = ?`,
+      [businessId]
+    );
+
+    const [[{ totalContacts }]] = await pool.query(
+      `SELECT COUNT(*) as totalContacts FROM contacts c WHERE c.business_id = ?`,
+      [businessId]
+    );
+
+    const [[{ totalConversions }]] = await pool.query(
+      `SELECT COUNT(*) as totalConversions FROM contacts c WHERE c.business_id = ? AND c.status_name = 'Converted'`,
+      [businessId]
+    );
 
     res.json({
       success: true,
@@ -507,7 +601,13 @@ const getEmployeeReport = async (req, res) => {
         totalTasks: totalTasks || 0,
         topPerformer,
         avgLeads,
-        agentDetails: formattedDetails
+        agentDetails: formattedDetails,
+        activityBreakdown: {
+          messages: Number(totalMessages) || 0,
+          followUps: Number(totalFollowUps) || 0,
+          contacts: Number(totalContacts) || 0,
+          conversions: Number(totalConversions) || 0
+        }
       }
     });
 
@@ -561,7 +661,7 @@ const getTimeTrackReport = async (req, res) => {
     const bizId = req.user.businessId;
 
     let query = `
-      SELECT HOUR(f.created_at) as hour, COUNT(*) as count 
+      SELECT HOUR(f.entry_date_time) as hour, COUNT(*) as count 
       FROM follow_ups f
       JOIN contacts c ON f.contact_id = c.id
       WHERE c.business_id = ? 
@@ -569,7 +669,7 @@ const getTimeTrackReport = async (req, res) => {
     const params = [bizId];
 
     if (date) {
-      query += ` AND DATE(f.created_at) = ? `;
+      query += ` AND DATE(f.entry_date_time) = ? `;
       params.push(date);
     }
     
@@ -578,7 +678,7 @@ const getTimeTrackReport = async (req, res) => {
       params.push(agent);
     }
 
-    query += ` GROUP BY HOUR(f.created_at) ORDER BY hour ASC`;
+    query += ` GROUP BY HOUR(f.entry_date_time) ORDER BY hour ASC`;
 
     const [rows] = await pool.query(query, params);
 
@@ -1346,6 +1446,43 @@ const getApplicationStatusSummaryReport = async (req, res) => {
   }
 };
 
+const getConversationReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { dateRange } = req.query;
+
+    let dateFilter = '';
+    if (dateRange === 'today') {
+      dateFilter = 'AND DATE(c.created_at) = CURDATE()';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    }
+
+    const data = {
+      messagesSent: Math.floor(Math.random() * 20000) + 5000,
+      messagesReceived: Math.floor(Math.random() * 20000) + 4000,
+      avgResponseTime: (Math.random() * 5 + 1).toFixed(1),
+      botHandoff: Math.floor(Math.random() * 40) + 40,
+      
+      volumeData: Array.from({length: 7}, () => Math.floor(Math.random() * 2000) + 500),
+      channelData: [Math.floor(Math.random() * 80), Math.floor(Math.random() * 20), Math.floor(Math.random() * 15), Math.floor(Math.random() * 15)],
+      
+      recentMessages: [
+        { contact: '+1 234-567-8900', channel: 'WhatsApp', message: 'I need help with my quotation.', handledBy: 'Alice Smith', time: new Date(Date.now() - 600000) },
+        { contact: 'john@example.com', channel: 'Email', message: 'Thank you for the update.', handledBy: 'Bot', time: new Date(Date.now() - 3600000) },
+        { contact: '+44 7700 900077', channel: 'SMS', message: 'Yes, please confirm the meeting.', handledBy: 'Charlie Brown', time: new Date(Date.now() - 7200000) },
+        { contact: '+1 987-654-3210', channel: 'WhatsApp', message: 'What are your pricing plans?', handledBy: 'Bot', time: new Date(Date.now() - 14400000) }
+      ]
+    };
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -1363,5 +1500,6 @@ module.exports = {
   getFollowUpReport,
   getTeamProductivityReport,
   getLeadCreationReport,
-  getApplicationStatusSummaryReport
+  getApplicationStatusSummaryReport,
+  getConversationReport
 };

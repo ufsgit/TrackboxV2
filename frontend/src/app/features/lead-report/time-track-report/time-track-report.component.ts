@@ -38,7 +38,7 @@ export class TimeTrackReportComponent implements OnInit {
   }
 
   loadAgents() {
-    this.api.get('/users').subscribe((res: any) => {
+    this.api.get('/settings/team').subscribe((res: any) => {
       if (res.success) {
         this.agents = res.data.filter((u: any) => u.role !== 'admin');
       }
@@ -52,17 +52,6 @@ export class TimeTrackReportComponent implements OnInit {
         this.loading = false;
         if (res.success) {
           this.chartData = res.data;
-          
-          // Check if data is completely empty (all 0s)
-          const total = this.chartData.reduce((sum, d) => sum + d.count, 0);
-          if (total === 0) {
-            // Mock data for demo purposes
-            this.chartData = Array.from({length: 24}, (_, i) => ({
-              hour: i,
-              count: i > 8 && i < 20 ? Math.floor(Math.random() * 15) + 2 : (i === 14 ? 25 : Math.floor(Math.random() * 3))
-            }));
-          }
-
           this.calculateKPIs();
           this.renderChart();
         }
@@ -70,10 +59,10 @@ export class TimeTrackReportComponent implements OnInit {
       error: (err: any) => {
         this.loading = false;
         console.error('Failed to load time track data', err);
-        // Fallback to mock data for demo purposes if API fails
+        // Ensure chart data is empty on error
         this.chartData = Array.from({length: 24}, (_, i) => ({
           hour: i,
-          count: i > 8 && i < 20 ? Math.floor(Math.random() * 25) + 5 : (i === 14 ? 45 : Math.floor(Math.random() * 5))
+          count: 0
         }));
         this.calculateKPIs();
         this.renderChart();

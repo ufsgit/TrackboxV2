@@ -45,6 +45,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         
         <div class="flex items-center gap-16" style="flex-wrap: wrap;">
           <select class="form-select premium-select shadow-sm" [(ngModel)]="dateRange" (change)="onFilterChange()">
+            <option value="all">All Time</option>
             <option value="today">Today</option>
             <option value="this_week">This Week</option>
             <option value="this_month">This Month</option>
@@ -145,7 +146,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
   `
 })
 export class EnquiryReportComponent implements OnInit {
-  dateRange: string = 'this_month';
+  dateRange: string = 'all';
 
   totalEnquiries = 0;
   highValue = 0;
