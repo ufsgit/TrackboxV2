@@ -164,7 +164,7 @@
 
         <!-- Reports Popover -->
         <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
-          <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen" (click)="toggleReports($event)">
+          <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen || isCrmReportsActive()" (click)="toggleReports($event)">
             <i class="bi bi-bar-chart"></i>
             <span>Reports</span>
             <i class="bi bi-chevron-down dropdown-arrow" [class.rotated]="isReportsOpen"></i>
@@ -173,15 +173,15 @@
             <!-- Column 1: Lead Activity -->
             <div class="mega-menu-column">
               <div class="mega-menu-header">Lead Activity</div>
-              <a routerLink="/pending-followup" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="submenu-item">
+              <a routerLink="/pending-followup" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
                 <span>Pending Followup</span>
               </a>
-              <a routerLink="/upcoming-followups" routerLinkActive="active" class="submenu-item">
+              <a routerLink="/upcoming-followups" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
                 <span>Upcoming Followups</span>
               </a>
-              <a routerLink="/todays-leads" routerLinkActive="active" class="submenu-item">
+              <a routerLink="/todays-leads" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-circle-fill"></i>
                 <span>Today's Followups</span>
               </a>
@@ -227,19 +227,27 @@
                 <i class="bi bi-funnel"></i>
                 <span>Student Pipeline</span>
               </a>
-              <a routerLink="/reports/application-status" routerLinkActive="active" class="submenu-item">
+              <a routerLink="/reports/application-status" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-file-earmark-text"></i>
                 <span>Application Status</span>
               </a>
-              <a routerLink="/reports/follow-up-report" routerLinkActive="active" class="submenu-item">
+              <a routerLink="/reports/follow-up-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-clock-history"></i>
                 <span>Follow-Up Report</span>
               </a>
-              <a routerLink="/reports/team-productivity" routerLinkActive="active" class="submenu-item">
+              <a routerLink="/daily-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-calendar-check"></i>
+                <span>Daily Report</span>
+              </a>
+              <a routerLink="/lead-flow" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-graph-up-arrow"></i>
+                <span>Lead Flow</span>
+              </a>
+              <a routerLink="/reports/team-productivity" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-graph-up"></i>
                 <span>Team Productivity</span>
               </a>
-              <a routerLink="/reports/lead-creation" routerLinkActive="active" class="submenu-item">
+              <a routerLink="/reports/lead-creation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-person-plus"></i>
                 <span>Lead Creation Report</span>
               </a>
@@ -515,6 +523,9 @@
         <a *ngIf="authService.hasPermission('Field Categories', 'view')" routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-folder"></i> Field Categories
         </a>
+        <a routerLink="/excel-import" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-file-earmark-excel"></i> Excel Import
+        </a>
         <a *ngIf="authService.hasPermission('Source Categories', 'view')" routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-tag"></i> Source Categories
         </a>
@@ -592,6 +603,9 @@
         </a>
         <a routerLink="/settings" [queryParams]="{tab: 'field-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-folder"></i> Field Categories
+        </a>
+        <a routerLink="/excel-import" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-file-earmark-excel"></i> Excel Import
         </a>
         <a routerLink="/settings" [queryParams]="{tab: 'source-categories'}" class="popup-item" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-tag"></i> Source Categories

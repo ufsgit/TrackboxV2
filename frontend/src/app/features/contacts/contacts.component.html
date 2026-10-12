@@ -91,6 +91,10 @@
           <i class="bi" [ngClass]="viewMode === 'list' ? 'bi-calendar3' : 'bi-list-ul'"></i>
           <span>{{ viewMode === 'list' ? 'Calendar View' : 'List View' }}</span>
         </button>
+        <button class="btn px-3 py-2 shadow-sm d-flex align-items-center gap-2" routerLink="/excel-import" style="border-radius: 12px; font-weight: 600; background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff;" title="Excel Import">
+          <i class="bi bi-file-earmark-excel"></i>
+          <span>Excel Import</span>
+        </button>
         <button class="btn btn-primary px-4 py-2 shadow-sm" (click)="openAddModal()" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
           <i class="bi bi-person-plus me-2"></i> Add Lead
         </button>

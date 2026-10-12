@@ -16,8 +16,12 @@ router.get('/leads/channel-conversion', c.getChannelConversionReport);
 router.get('/leads/employee-conversion', c.getEmployeeConversionReport);
 router.get('/leads/student-pipeline', c.getStudentPipelineReport);
 router.get('/leads/follow-up-report', c.getFollowUpReport);
+router.get('/leads/daily-report', c.getDailyReport);
+router.get('/daily', c.getDailyReport);
 router.get('/leads/team-productivity', c.getTeamProductivityReport);
 router.get('/leads/creation', c.getLeadCreationReport);
+router.get('/leads/flow', c.getLeadFlowReport);
+router.get('/lead-flow', c.getLeadFlowReport);
 router.get('/conversation', c.getConversationReport);
 
 // Application Reports

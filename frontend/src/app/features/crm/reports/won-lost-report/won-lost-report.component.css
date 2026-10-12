@@ -1,10 +1,10 @@
-/* ════════════════════════════════════════════════════════════
-   Won/Lost Report – Animations
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Won/Lost Report â€“ Animations
    All entrance animations are driven by CSS @keyframes so
    they fire automatically as soon as the component mounts.
-   ════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Page layout ──────────────────────────────────────────── */
+/* â”€â”€ Page layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .report-page {
   display: flex;
   flex-direction: column;
@@ -14,7 +14,7 @@
   min-height: 100%;
 }
 
-/* ── Shared keyframes ─────────────────────────────────────── */
+/* â”€â”€ Shared keyframes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -45,7 +45,7 @@
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* ── Header ───────────────────────────────────────────────── */
+/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .page-header {
   display: flex;
   align-items: center;
@@ -308,7 +308,7 @@
   }
 }
 
-/* ── KPI Row – cards enter with stagger ───────────────────── */
+/* â”€â”€ KPI Row â€“ cards enter with stagger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -330,7 +330,7 @@
   cursor: default;
   /* entrance */
   animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  /* hover lift – kept separate so animation doesn't override */
+  /* hover lift â€“ kept separate so animation doesn't override */
   transition: transform .25s, box-shadow .25s;
 }
 
@@ -343,7 +343,7 @@
   box-shadow: 0 18px 42px rgba(0,0,0,.13);
 }
 
-/* ── Pulsing glow blob ────────────────────────────────────── */
+/* â”€â”€ Pulsing glow blob â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .kpi-glow {
   position: absolute;
   right: -22px;
@@ -359,7 +359,7 @@
 .kpi-red   .kpi-glow { background: #ef4444; }
 .kpi-blue  .kpi-glow { background: #3b82f6; }
 
-/* ── Shimmer sweep ────────────────────────────────────────── */
+/* â”€â”€ Shimmer sweep â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .kpi-shimmer {
   position: absolute;
   inset: 0;
@@ -374,7 +374,7 @@
   pointer-events: none;
 }
 
-/* ── Icon ─────────────────────────────────────────────────── */
+/* â”€â”€ Icon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .kpi-icon {
   width: 56px;
   height: 56px;
@@ -390,7 +390,7 @@
 .kpi-red   .kpi-icon { background: #fef2f2; color: #ef4444; }
 .kpi-blue  .kpi-icon { background: #eff6ff; color: #3b82f6; }
 
-/* ── Body ─────────────────────────────────────────────────── */
+/* â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .kpi-body { flex: 1; }
 
 .kpi-label {
@@ -415,7 +415,7 @@
 .kpi-red   .kpi-value { color: #dc2626; }
 .kpi-blue  .kpi-value { color: #3b82f6; }
 
-/* ── Chart card ───────────────────────────────────────────── */
+/* â”€â”€ Chart card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .chart-card {
   background: white;
   border-radius: 24px;
@@ -434,7 +434,7 @@
   margin: 0;
 }
 
-/* ── Table card ───────────────────────────────────────────── */
+/* â”€â”€ Table card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .table-card {
   background: white;
   border-radius: 24px;
@@ -469,7 +469,7 @@
   box-shadow: 0 0 0 3px rgba(99,102,241,.1);
 }
 
-/* ── Table ────────────────────────────────────────────────── */
+/* â”€â”€ Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .perf-table {
   width: 100%;
   border-collapse: collapse;
@@ -538,3 +538,172 @@
   }
 }
 /* Custom Premium Dropdown Styles */
+
+/* ── Custom Premium Modal ─────────────────────────────────── */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInOverlay 0.3s ease-out;
+  padding: 20px;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.custom-modal-container {
+  background: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.custom-modal-container.modal-lg {
+  max-width: 850px;
+}
+
+@keyframes modalPopIn {
+  0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.custom-modal-header {
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.custom-modal-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1.35rem;
+}
+
+.modal-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.custom-modal-close {
+  background: #f1f5f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.custom-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.custom-modal-body {
+  padding: 32px;
+  overflow-y: auto;
+}
+.custom-modal-body.p-0 {
+  padding: 0;
+}
+
+.custom-modal-footer {
+  padding: 24px 32px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  background: #f8fafc;
+}
+
+.btn-custom-secondary {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-custom-secondary:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.deal-detail-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+}
+
+.detail-row {
+  margin-bottom: 12px;
+}
+
+.detail-grid {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px dashed #cbd5e1;
+}
+.detail-col {
+  flex: 1;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 1.05rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.badge-pill-custom {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}

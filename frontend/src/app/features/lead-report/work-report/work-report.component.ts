@@ -36,7 +36,51 @@ export class WorkReportComponent implements OnInit {
   agentChart: any;
 
   recentActivities: any[] = [];
+  totalRecentActivities: number = 0;
   agents: any[] = [];
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 5;
+
+  get totalPages(): number {
+    return Math.ceil(this.totalRecentActivities / this.pageSize) || 1;
+  }
+
+  get paginationStart(): number {
+    if (this.totalRecentActivities === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get paginationEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalRecentActivities);
+  }
+
+  get pages(): number[] {
+    const list: number[] = [];
+    const total = this.totalPages;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, start + 4);
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+    for (let i = start; i <= end; i++) {
+      list.push(i);
+    }
+    return list;
+  }
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+      this.currentPage = page;
+      this.fetchData();
+    }
+  }
+
+  onPageSizeChange() {
+    this.currentPage = 1;
+    this.fetchData();
+  }
 
   constructor(
     private api: ApiService,
@@ -74,7 +118,7 @@ export class WorkReportComponent implements OnInit {
   }
 
   fetchData() {
-    let url = `/reports/work?dateRange=${this.dateRange}`;
+    let url = `/reports/work?dateRange=${this.dateRange}&page=${this.currentPage}&limit=${this.pageSize}`;
     if (this.selectedAgent !== 'all') {
       url += `&agent=${this.selectedAgent}`;
     }
@@ -87,6 +131,7 @@ export class WorkReportComponent implements OnInit {
           this.totalConversions = data.totalConversions || 0;
           this.conversionRate = data.conversionRate || 0;
           this.recentActivities = data.recentActivities || [];
+          this.totalRecentActivities = data.recentActivitiesTotal || 0;
           
           this.animateKPIs();
           this.updateCharts(data);
@@ -97,6 +142,7 @@ export class WorkReportComponent implements OnInit {
   }
 
   onFilterChange() {
+    this.currentPage = 1;
     this.fetchData();
   }
 

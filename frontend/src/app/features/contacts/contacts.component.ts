@@ -2,7 +2,7 @@ import { showImpressiveSuccess } from '../../core/utils/impressive-alert';
 import { Component, OnInit, HostListener, Inject } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApplicationsService } from '../../core/services/applications.service';
@@ -20,7 +20,7 @@ import * as XLSX from 'xlsx';
 @Component({
   selector: 'app-contacts',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChatModalComponent, TimelineComponent, UpdateLeadStatusModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ChatModalComponent, TimelineComponent, UpdateLeadStatusModalComponent],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
 })

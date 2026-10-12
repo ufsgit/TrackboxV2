@@ -1,7 +1,7 @@
 const pool = require('../db/pool');
 
-// Strip garbled encoding artifacts (e.g. em-dash stored in latin1 column comes back as ΓÇö)
-// Heuristic: if >50% of chars are non-ASCII and string is ≤10 chars → treat as garbage
+// Strip garbled encoding artifacts (e.g. em-dash stored in latin1 column comes back as Î“Ã‡Ã¶)
+// Heuristic: if >50% of chars are non-ASCII and string is â‰¤10 chars â†’ treat as garbage
 const sanitizeRemark = (text) => {
   if (!text) return null;
   const t = text.trim();
@@ -816,7 +816,7 @@ const handleOptInLink = async (req, res) => {
       }
     }
     if (link.redirect_url) return res.redirect(link.redirect_url);
-    res.send('<html><body><h2>✅ You have successfully opted in!</h2></body></html>');
+    res.send('<html><body><h2>âœ… You have successfully opted in!</h2></body></html>');
   } catch (err) {
     res.status(500).send('Error processing opt-in');
   }
@@ -932,4 +932,173 @@ const uploadContactDocument = async (req, res) => {
   }
 };
 
-module.exports = { getContacts, getContact, createContact, updateContact, deleteContact, importContacts, exportContacts, optIn, optOut, createOptInLink, handleOptInLink, getUniqueTags, getContactHistory, getContactDocuments, uploadContactDocument };
+const importExcelContacts = async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { leads, statusAndAssignment } = req.body;
+    const bizId  = req.user.businessId;
+    const userId = req.user.userId;
+
+    if (!leads || !Array.isArray(leads) || leads.length === 0) {
+      await conn.rollback(); conn.release();
+      return res.status(400).json({ success: false, message: 'No lead data provided.', data: null });
+    }
+
+    const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason } = statusAndAssignment || {};
+
+    // ── Resolve status ────────────────────────────────────
+    let statusId   = null, statusName = status || null;
+    let sale_won = 0, sale_lost = 0, sale_won_date = null, sale_lost_date = null, sale_won_by = null, sale_lost_by = null;
+    if (statusName) {
+      const [sRows] = await conn.query('SELECT id FROM statuses WHERE name = ? LIMIT 1', [statusName]);
+      if (sRows.length > 0) statusId = sRows[0].id;
+    }
+
+    // ── Resolve branch ────────────────────────────────────
+    let branchId = null, branchName = branch || null;
+    if (branchName) {
+      const [bRows] = await conn.query('SELECT id FROM branches WHERE name = ? LIMIT 1', [branchName]);
+      if (bRows.length > 0) branchId = bRows[0].id;
+    }
+
+    // ── Resolve department ────────────────────────────────
+    let departmentId = null, departmentName = department || null;
+    if (departmentName) {
+      const [dRows] = await conn.query('SELECT id FROM departments WHERE name = ? LIMIT 1', [departmentName]);
+      if (dRows.length > 0) departmentId = dRows[0].id;
+    }
+
+    // ── Resolve assigned user ─────────────────────────────
+    let assignedTo = null;
+    if (assigned_employee) {
+      const [uRows] = await conn.query('SELECT id FROM users WHERE name = ? AND business_id = ? LIMIT 1', [assigned_employee, bizId]);
+      if (uRows.length > 0) assignedTo = uRows[0].id;
+    }
+    if (!assignedTo) assignedTo = userId;
+
+    // ── Follow-up date ────────────────────────────────────
+    let formattedFollowUpDate = null;
+    if (follow_up_date) {
+      try { formattedFollowUpDate = new Date(follow_up_date).toISOString().split('T')[0]; } catch {}
+    }
+
+    // ── User names for follow_ups record ─────────────────
+    let byUserName = null, toUserName = null;
+    const [uNameRows] = await conn.query('SELECT name FROM users WHERE id = ? LIMIT 1', [userId]);
+    if (uNameRows.length) byUserName = uNameRows[0].name;
+    const [tuRows] = await conn.query('SELECT name FROM users WHERE id = ? LIMIT 1', [assignedTo]);
+    if (tuRows.length) toUserName = tuRows[0].name;
+
+    // ── Flexible case-insensitive column finder ───────────
+    // Works with ANY Excel column headers (e.g. "STUDENT NAME", "Mobile No", "Phone No.", etc.)
+    const getCol = (row, keywords) => {
+      const keys = Object.keys(row);
+      for (const kw of keywords) {
+        const found = keys.find(k => k.trim().toLowerCase() === kw.toLowerCase());
+        if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
+          return String(row[found]).trim();
+        }
+      }
+      // Partial match fallback
+      for (const kw of keywords) {
+        const found = keys.find(k => k.trim().toLowerCase().includes(kw.toLowerCase()));
+        if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
+          return String(row[found]).trim();
+        }
+      }
+      return '';
+    };
+
+    // Log actual column headers from first row for debugging
+    if (leads.length > 0) {
+      console.log('[importExcelContacts] Excel column headers:', Object.keys(leads[0]));
+      console.log('[importExcelContacts] First row sample:', JSON.stringify(leads[0]));
+    }
+
+    // ── Process each Excel row ────────────────────────────
+    let inserted = 0, skipped = 0;
+    const errors = [];
+
+    for (const row of leads) {
+      try {
+        const name    = getCol(row, ['Name', 'Full Name', 'Customer Name', 'Student Name', 'Client Name', 'Lead Name', 'Contact Name', 'Person Name', 'Applicant Name', 'Candidate Name']);
+        let   phone   = getCol(row, ['Phone', 'Mobile', 'Phone Number', 'Mobile Number', 'Mobile No', 'Phone No', 'Contact Number', 'Contact No', 'Whatsapp', 'WhatsApp No', 'Cell', 'Tel', 'Telephone', 'Number', 'Contact']);
+        const email   = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
+        const tags    = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
+        const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
+
+        // Skip completely empty rows
+        if (!name && !phone) {
+          skipped++;
+          if (inserted === 0 && skipped === 1) {
+            // Log on first skip to help debug column mapping
+            console.warn('[importExcelContacts] First row skipped - no name/phone found. Row keys:', Object.keys(row), 'Row data:', JSON.stringify(row));
+          }
+          continue;
+        }
+
+        // Phone sanitisation
+        if (phone) {
+          phone = phone.replace(/\D/g, '');               // strip non-digits
+          if (phone.length === 10) phone = '91' + phone;  // auto-prefix
+          if (phone.length !== 12) {
+            skipped++;
+            errors.push('Skipped "' + (name || phone) + '": phone invalid (got ' + phone.length + ' digits after cleaning: ' + phone + ')');
+            continue;
+          }
+          const last10 = phone.slice(-10);
+          const [dupRows] = await conn.query('SELECT id FROM contacts WHERE business_id = ? AND phone LIKE ? LIMIT 1', [bizId, '%' + last10]);
+          if (dupRows.length > 0) { skipped++; errors.push('Skipped "' + name + '": phone ' + phone + ' already exists'); continue; }
+        }
+
+        const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const userList  = [assignedTo];
+
+        // INSERT — columns match trackbox_v2.contacts exactly (no current_sale_status)
+        const [result] = await conn.query(
+          'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), 'whatsapp', assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null]
+        );
+        const contactId = result.insertId;
+
+        // follow_ups record
+        await conn.query(
+          'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [contactId, name || null, formattedFollowUpDate, userId, byUserName, assignedTo, toUserName, statusId, statusName, branchId, branchName, departmentId, departmentName, remark || 'Imported via Excel']
+        );
+
+        inserted++;
+      } catch (rowErr) {
+        skipped++;
+        console.error('[importExcelContacts] row error:', rowErr.message, rowErr);
+        errors.push(rowErr.message);
+      }
+    }
+
+    await conn.commit();
+
+    const detectedCols = leads.length > 0 ? Object.keys(leads[0]) : [];
+    if (inserted === 0) {
+      return res.json({
+        success: false,
+        message: '0 leads imported. ' + skipped + ' rows skipped.' + (errors.length ? ' Errors: ' + errors.slice(0, 5).join(' | ') : ' Check that your Excel has columns matching: Name, Phone/Mobile, Email, Address, Tags.'),
+        data: { inserted, skipped, errors, detectedColumns: detectedCols }
+      });
+    }
+    return res.json({
+      success: true,
+      message: 'Import complete. ' + inserted + ' lead(s) imported' + (skipped ? ', ' + skipped + ' skipped' : '') + '.',
+      data: { inserted, skipped, errors, detectedColumns: detectedCols }
+    });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error('[importExcelContacts] fatal:', err);
+    return res.status(500).json({ success: false, message: err.message, data: null });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+module.exports = { getContacts, getContact, createContact, updateContact, deleteContact, importContacts, exportContacts, optIn, optOut, createOptInLink, handleOptInLink, getUniqueTags, getContactHistory, getContactDocuments, uploadContactDocument, importExcelContacts };

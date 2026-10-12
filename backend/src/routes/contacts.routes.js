@@ -9,6 +9,7 @@ router.get('/export', c.exportContacts);
 router.get('/tags', c.getUniqueTags);
 router.post('/', c.createContact);
 router.post('/import', upload.single('file'), c.importContacts);
+router.post('/import-excel', c.importExcelContacts);
 router.post('/optin-link', c.createOptInLink);
 router.get('/:id/history', c.getContactHistory);
 router.get('/:id', c.getContact);

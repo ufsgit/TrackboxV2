@@ -73,58 +73,62 @@
 
   <ng-container *ngIf="!loading">
 
-    <!-- Stat Cards -->
+    <!-- Stat Cards (Clickable) -->
     <div class="stats-grid">
       <!-- Total Leads All Time -->
-      <div class="stat-card">
+      <div class="stat-card clickable-card" (click)="openCardDetails('all', 'Total Leads (All Time)', 'All leads created across all time')" title="Click to view all leads">
         <div class="stat-icon-wrap blue">
           <i class="bi bi-infinity"></i>
         </div>
         <div class="stat-info">
           <p class="stat-label">TOTAL LEADS (ALL TIME)</p>
           <h2 class="stat-value">{{ totalLeads }}</h2>
+          <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Leads</span>
         </div>
         <div class="stat-bg blue-bg"></div>
       </div>
 
       <!-- Leads in Selected Range -->
-      <div class="stat-card">
+      <div class="stat-card clickable-card" (click)="openCardDetails('range', 'Leads in Selected Range (' + getDateRangeLabel() + ')', 'All leads created within ' + getDateRangeLabel())" title="Click to view leads in this range">
         <div class="stat-icon-wrap purple">
           <i class="bi bi-funnel"></i>
         </div>
         <div class="stat-info">
           <p class="stat-label">LEADS IN SELECTED RANGE</p>
           <h2 class="stat-value">{{ rangeLeads }}</h2>
+          <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Leads</span>
         </div>
         <div class="stat-bg purple-bg"></div>
       </div>
 
       <!-- Leads Created Today -->
-      <div class="stat-card">
+      <div class="stat-card clickable-card" (click)="openCardDetails('today', 'Leads Created Today', 'All leads added today')" title="Click to view today\'s leads">
         <div class="stat-icon-wrap green">
           <i class="bi bi-lightning-charge"></i>
         </div>
         <div class="stat-info">
           <p class="stat-label">LEADS CREATED TODAY</p>
           <h2 class="stat-value">{{ todayLeads }}</h2>
+          <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Leads</span>
         </div>
         <div class="stat-bg green-bg"></div>
       </div>
 
       <!-- Leads Created This Week -->
-      <div class="stat-card">
+      <div class="stat-card clickable-card" (click)="openCardDetails('week', 'Leads Created This Week', 'All leads added during the current week')" title="Click to view this week\'s leads">
         <div class="stat-icon-wrap orange">
           <i class="bi bi-graph-up-arrow"></i>
         </div>
         <div class="stat-info">
           <p class="stat-label">LEADS CREATED THIS WEEK</p>
           <h2 class="stat-value">{{ weekLeads }}</h2>
+          <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Leads</span>
         </div>
         <div class="stat-bg orange-bg"></div>
       </div>
     </div>
 
-    <!-- Breakdown Table -->
+    <!-- Breakdown Table (Clickable Rows) -->
     <div class="breakdown-card">
       <div class="breakdown-header">
         <div class="breakdown-title">
@@ -132,6 +136,7 @@
             <i class="bi bi-people-fill"></i>
           </div>
           <span>Lead Creation Breakdown</span>
+          <span class="breakdown-hint-badge"><i class="bi bi-cursor-fill"></i> Click any member row to view leads</span>
         </div>
       </div>
 
@@ -150,16 +155,19 @@
               <th>EMPLOYEE CODE</th>
               <th>CONTRIBUTION</th>
               <th>LEADS CREATED (IN RANGE)</th>
+              <th class="text-end">ACTION</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of breakdown; let i = index">
+            <tr *ngFor="let row of breakdown; let i = index" class="clickable-row" (click)="openEmployeeDetails(row)" title="Click to view leads created by {{ row.employee || 'Unassigned' }}">
               <td>
                 <div class="member-cell">
                   <div class="member-avatar" [style.background]="getAvatarColor(i)">
                     {{ getInitials(row.employee || 'Unassigned') }}
                   </div>
-                  <span class="member-name">{{ row.employee || 'Unassigned' }}</span>
+                  <div class="member-meta">
+                    <span class="member-name">{{ row.employee || 'Unassigned' }}</span>
+                  </div>
                 </div>
               </td>
               <td class="emp-code">{{ row.employee_code || '—' }}</td>
@@ -173,8 +181,13 @@
               </td>
               <td>
                 <div class="leads-badge" [style.background]="getAvatarColor(i) + '20'" [style.color]="getAvatarColor(i)">
-                  {{ row.leads_created }}
+                  {{ row.leads_created }} Leads
                 </div>
+              </td>
+              <td class="text-end">
+                <button class="btn-view-details" (click)="$event.stopPropagation(); openEmployeeDetails(row)">
+                  <i class="bi bi-eye-fill"></i> View Details
+                </button>
               </td>
             </tr>
           </tbody>
@@ -183,4 +196,167 @@
     </div>
 
   </ng-container>
+
+  <!-- POPUP DETAILS MODAL -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()"></div>
+
+  <div class="details-modal-wrapper" *ngIf="isModalOpen" (click)="$event.stopPropagation()">
+    <div class="details-modal-content">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-title-chip">
+            <i class="bi bi-list-check"></i> Lead Records
+          </div>
+          <h2 class="modal-title">{{ modalTitle }}</h2>
+          <p class="modal-subtitle">{{ modalSubtitle }}</p>
+        </div>
+
+        <div class="modal-header-right">
+          <span class="modal-total-badge">{{ modalTotalCount }} Leads</span>
+          <button class="btn-close-modal" (click)="closeModal()" title="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Filter Toolbar -->
+      <div class="modal-toolbar">
+        <div class="modal-search-box">
+          <i class="bi bi-search modal-search-icon"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="modalSearchQuery" 
+            (keyup.enter)="onModalSearch()" 
+            placeholder="Search lead by name, phone, email, or stage..." 
+            class="modal-search-input" />
+          <button class="btn-clear-search" *ngIf="modalSearchQuery" (click)="clearModalSearch()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <button class="btn-modal-search" (click)="onModalSearch()">Search</button>
+
+        <div class="modal-page-size-box">
+          <span class="ps-label">Show:</span>
+          <select [(ngModel)]="modalPageSize" (change)="modalCurrentPage = 1; fetchModalLeads()" class="modal-select-size">
+            <option [value]="5">5 per page</option>
+            <option [value]="10">10 per page</option>
+            <option [value]="25">25 per page</option>
+            <option [value]="50">50 per page</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Modal Body (Data Table) -->
+      <div class="modal-body">
+        
+        <!-- Loading State -->
+        <div class="modal-loading-state" *ngIf="modalLoading">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p>Loading lead details...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="modal-empty-state" *ngIf="!modalLoading && modalLeads.length === 0">
+          <i class="bi bi-inbox-fill"></i>
+          <h4>No Leads Found</h4>
+          <p>No leads matched the selected criteria or search keyword.</p>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="modal-table-responsive" *ngIf="!modalLoading && modalLeads.length > 0">
+          <table class="modal-leads-table">
+            <thead>
+              <tr>
+                <th>LEAD & CONTACT</th>
+                <th>CREATED DATE</th>
+                <th>CURRENT STAGE</th>
+                <th>CONVERSION</th>
+                <th>ASSIGNED TO</th>
+                <th>SOURCE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lead of modalLeads" class="lead-modal-row">
+                <td>
+                  <div class="lead-info-cell">
+                    <div class="lead-initials-badge">{{ getInitials(lead.name) }}</div>
+                    <div class="lead-details-text">
+                      <span class="lead-name">{{ lead.name }}</span>
+                      <span class="lead-contact-sub" *ngIf="lead.phone">
+                        <i class="bi bi-telephone-fill"></i> {{ lead.phone }}
+                      </span>
+                      <span class="lead-contact-sub" *ngIf="lead.email">
+                        <i class="bi bi-envelope-fill"></i> {{ lead.email }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="lead-date-cell">
+                    <span class="date-str">{{ lead.created_at | date:'MMM d, y' }}</span>
+                    <span class="time-str">{{ lead.created_at | date:'h:mm a' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="stage-tag">{{ lead.status_name || 'Pending' }}</span>
+                </td>
+                <td>
+                  <span class="conv-tag" [ngClass]="{
+                    'conv-won': lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON'),
+                    'conv-progress': lead.sale_won != 1 && !lead.status_name?.toUpperCase()?.includes('WON')
+                  }">
+                    <i class="bi bi-trophy-fill" *ngIf="lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON')"></i>
+                    <i class="bi bi-hourglass-split" *ngIf="lead.sale_won != 1 && !lead.status_name?.toUpperCase()?.includes('WON')"></i>
+                    {{ (lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON')) ? 'Converted (Won)' : 'In Pipeline' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="assignee-cell">
+                    <i class="bi bi-person-circle"></i>
+                    <span>{{ lead.assigned_to }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="source-badge">{{ lead.source || 'Direct' }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Footer (Pagination) -->
+      <div class="modal-footer" *ngIf="modalTotalCount > 0">
+        <div class="modal-pagination-summary">
+          Showing <strong>{{ modalPaginationStart }}</strong> to <strong>{{ modalPaginationEnd }}</strong> of <strong>{{ modalTotalCount }}</strong> leads
+        </div>
+
+        <div class="modal-pagination-controls" *ngIf="modalTotalPages > 1">
+          <button class="modal-pag-btn" (click)="goToModalPage(1)" [disabled]="modalCurrentPage === 1" title="First Page">
+            <i class="bi bi-chevron-double-left"></i>
+          </button>
+          <button class="modal-pag-btn" (click)="goToModalPage(modalCurrentPage - 1)" [disabled]="modalCurrentPage === 1" title="Previous Page">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+
+          <ng-container *ngFor="let p of modalPages">
+            <button class="modal-pag-btn" [class.active]="modalCurrentPage === p" (click)="goToModalPage(p)">
+              {{ p }}
+            </button>
+          </ng-container>
+
+          <button class="modal-pag-btn" (click)="goToModalPage(modalCurrentPage + 1)" [disabled]="modalCurrentPage === modalTotalPages" title="Next Page">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          <button class="modal-pag-btn" (click)="goToModalPage(modalTotalPages)" [disabled]="modalCurrentPage === modalTotalPages" title="Last Page">
+            <i class="bi bi-chevron-double-right"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>

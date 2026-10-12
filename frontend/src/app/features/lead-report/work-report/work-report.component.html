@@ -144,8 +144,44 @@
                 </span>
               </td>
             </tr>
+            <tr *ngIf="recentActivities.length === 0">
+              <td colspan="5" class="text-center py-4 text-muted">
+                No recent activity records found.
+              </td>
+            </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-row" *ngIf="totalRecentActivities > 0">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span class="pagination-info">
+            Showing <strong>{{ paginationStart }}</strong> - <strong>{{ paginationEnd }}</strong> of <strong>{{ totalRecentActivities }}</strong> activities
+          </span>
+          <select class="filter-select" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+            <option [value]="5">5 / page</option>
+            <option [value]="10">10 / page</option>
+            <option [value]="20">20 / page</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;" *ngIf="totalPages > 1">
+          <button class="pag-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First">
+            <i class="bi bi-chevron-double-left"></i>
+          </button>
+          <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button *ngFor="let p of pages" class="pag-btn" [class.active]="p === currentPage" (click)="goToPage(p)">
+            {{ p }}
+          </button>
+          <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          <button class="pag-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last">
+            <i class="bi bi-chevron-double-right"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -33,6 +33,49 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
     .grid:nth-of-type(2) .chart-card:nth-child(1) { animation-delay: 0.2s; }
     .grid:nth-of-type(2) .chart-card:nth-child(2) { animation-delay: 0.3s; }
     .table-row { animation: rowIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.4s + var(--row-i, 0) * 0.07s); }
+
+    /* Modern Pagination */
+    .pagination-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+      margin-top: 16px;
+    }
+    .pagination-info { font-size: 0.85rem; color: #64748b; }
+    .filter-select {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.82rem;
+      color: #334155;
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-select:focus { border-color: #6366f1; }
+    .pag-btn {
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      border-radius: 8px;
+      color: #475569;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .pag-btn:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+    .pag-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .pag-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   `],
   template: `
     <div class="report-container flex flex-col gap-20">
@@ -126,7 +169,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let agent of agentDetails; let i = index" class="table-row" [style.--row-i]="i">
+              <tr *ngFor="let agent of paginatedAgents; let i = index" class="table-row" [style.--row-i]="i">
                 <td>
                   <div class="flex items-center gap-8">
                     <div class="avatar-sm bg-primary-soft text-primary" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
@@ -142,8 +185,44 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
                   <span class="badge badge-success">{{ agent.winRate }}%</span>
                 </td>
               </tr>
+              <tr *ngIf="agentDetails.length === 0">
+                <td colspan="5" class="text-center py-4 text-muted">
+                  No agent logs found for the selected period.
+                </td>
+              </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-row" *ngIf="agentDetails.length > 0">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="pagination-info">
+              Showing <strong>{{ paginationStart }}</strong> - <strong>{{ paginationEnd }}</strong> of <strong>{{ agentDetails.length }}</strong> agents
+            </span>
+            <select class="filter-select" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+              <option [value]="5">5 / page</option>
+              <option [value]="10">10 / page</option>
+              <option [value]="20">20 / page</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;" *ngIf="totalPages > 1">
+            <button class="pag-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First">
+              <i class="bi bi-chevron-double-left"></i>
+            </button>
+            <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button *ngFor="let p of pages" class="pag-btn" [class.active]="p === currentPage" (click)="goToPage(p)">
+              {{ p }}
+            </button>
+            <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="pag-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last">
+              <i class="bi bi-chevron-double-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -165,6 +244,52 @@ export class EmployeeReportComponent implements OnInit {
   activityRadarChart: any;
 
   agentDetails: any[] = [];
+
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 5;
+
+  get totalPages(): number {
+    return Math.ceil(this.agentDetails.length / this.pageSize) || 1;
+  }
+
+  get paginatedAgents(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.agentDetails.slice(start, start + this.pageSize);
+  }
+
+  get paginationStart(): number {
+    if (this.agentDetails.length === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get paginationEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.agentDetails.length);
+  }
+
+  get pages(): number[] {
+    const list: number[] = [];
+    const total = this.totalPages;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, start + 4);
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+    for (let i = start; i <= end; i++) {
+      list.push(i);
+    }
+    return list;
+  }
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+
+  onPageSizeChange() {
+    this.currentPage = 1;
+  }
 
   constructor(
     private api: ApiService,

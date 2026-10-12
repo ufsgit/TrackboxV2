@@ -79,7 +79,7 @@
   <div class="kpi-row">
 
     <!-- Deals Won -->
-    <div class="kpi-card kpi-green">
+    <div class="kpi-card kpi-green" style="cursor: pointer" (click)="openModal('Won')">
       <div class="kpi-icon"><i class="bi bi-trophy"></i></div>
       <div class="kpi-body">
         <span class="kpi-label">Deals Won (This Month)</span>
@@ -90,7 +90,7 @@
     </div>
 
     <!-- Deals Lost -->
-    <div class="kpi-card kpi-red">
+    <div class="kpi-card kpi-red" style="cursor: pointer" (click)="openModal('Lost')">
       <div class="kpi-icon"><i class="bi bi-x-circle"></i></div>
       <div class="kpi-body">
         <span class="kpi-label">Deals Lost (This Month)</span>
@@ -122,7 +122,8 @@
       <canvas baseChart
         [data]="chartData"
         [options]="chartOptions"
-        [type]="chartType">
+        [type]="chartType"
+        (chartClick)="onChartClick($event)">
       </canvas>
     </div>
   </div>
@@ -149,7 +150,9 @@
           <tr *ngFor="let d of filteredDeals; let i = index; let last = last"
               [class.last-row]="last"
               class="table-row"
-              [style.--row-i]="i">
+              [style.--row-i]="i"
+              (click)="openDealModal(d)"
+              style="cursor: pointer;">
             <td><span class="source-name">{{ d.client }}</span></td>
             <td class="bold-cell">{{ d.amount }}</td>
             <td class="muted-cell">{{ d.date }}</td>
@@ -168,4 +171,101 @@
 
 </div>
 
+  <!-- Details Modal -->
+  <div class="custom-modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="custom-modal-container modal-lg" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <div class="d-flex align-items-center gap-3">
+          <div class="modal-icon-badge" [ngClass]="modalStatus === 'Won' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+            <i class="bi" [ngClass]="modalStatus === 'Won' ? 'bi-trophy' : 'bi-x-circle'"></i>
+          </div>
+          <h4 class="custom-modal-title m-0">Deals {{ modalStatus }}</h4>
+        </div>
+        <button class="custom-modal-close" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      
+      <div class="custom-modal-body p-0">
+        <div class="table-responsive">
+          <table class="perf-table m-0">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Amount</th>
+                <th>Date Closed</th>
+                <th>Sales Rep</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of modalDeals" class="table-row">
+                <td><span class="source-name">{{ d.client }}</span></td>
+                <td class="bold-cell">{{ d.amount }}</td>
+                <td class="muted-cell">{{ d.date }}</td>
+                <td class="rep-cell">{{ d.rep }}</td>
+                <td class="muted-cell">{{ d.reason || 'N/A' }}</td>
+              </tr>
+              <tr *ngIf="modalDeals.length === 0">
+                <td colspan="5" class="text-center text-muted py-5">
+                  <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+                  No deals found for this status.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="custom-modal-footer">
+        <button class="btn-custom-secondary" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Single Deal Modal -->
+  <div class="custom-modal-overlay" *ngIf="isDealModalOpen" (click)="closeDealModal()">
+    <div class="custom-modal-container" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header border-bottom-0 pb-0">
+        <h4 class="custom-modal-title m-0">Deal Details</h4>
+        <button class="custom-modal-close" (click)="closeDealModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="custom-modal-body">
+        <div class="deal-detail-card">
+          <div class="detail-row">
+            <small class="detail-label">Client</small>
+            <span class="detail-value text-dark fs-5 fw-bold">{{ selectedDeal.client }}</span>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-col">
+              <small class="detail-label">Amount</small>
+              <span class="detail-value fw-bold text-success fs-5">{{ selectedDeal.amount }}</span>
+            </div>
+            <div class="detail-col">
+              <small class="detail-label">Status</small>
+              <span [ngClass]="getStatusClass(selectedDeal.status)" class="badge-pill-custom">
+                {{ selectedDeal.status }}
+              </span>
+            </div>
+          </div>
+          <div class="detail-row mt-3">
+            <small class="detail-label">Date Closed</small>
+            <span class="detail-value">{{ selectedDeal.date }}</span>
+          </div>
+          <div class="detail-row mt-3">
+            <small class="detail-label">Sales Rep</small>
+            <span class="detail-value rep-cell">{{ selectedDeal.rep }}</span>
+          </div>
+          <div class="detail-row mt-3">
+            <small class="detail-label">Reason</small>
+            <span class="detail-value muted-cell">{{ selectedDeal.reason || 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="custom-modal-footer border-top-0 pt-0 bg-white">
+        <button class="btn-custom-secondary w-100" (click)="closeDealModal()">Close Details</button>
+      </div>
+    </div>
+  </div>

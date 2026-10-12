@@ -25,6 +25,22 @@ export class LeadCreationReportComponent implements OnInit {
   weekLeads: number = 0;
   breakdown: any[] = [];
 
+  // Popup Modal State
+  isModalOpen: boolean = false;
+  modalTitle: string = '';
+  modalSubtitle: string = '';
+  modalBadge: string = '';
+  modalFilterType: 'all' | 'range' | 'today' | 'week' | 'employee' = 'range';
+  modalUserId: any = null;
+  modalEmployeeName: string = '';
+  modalLoading: boolean = false;
+  modalSearchQuery: string = '';
+  modalCurrentPage: number = 1;
+  modalPageSize: number = 10;
+  modalTotalCount: number = 0;
+  modalTotalPages: number = 1;
+  modalLeads: any[] = [];
+
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
@@ -69,6 +85,113 @@ export class LeadCreationReportComponent implements OnInit {
         this.refreshing = false;
       }
     });
+  }
+
+  // --- Modal Popup Handlers ---
+  openCardDetails(type: 'all' | 'range' | 'today' | 'week', title: string, subtitle: string) {
+    this.modalFilterType = type;
+    this.modalUserId = null;
+    this.modalEmployeeName = '';
+    this.modalTitle = title;
+    this.modalSubtitle = subtitle;
+    this.modalCurrentPage = 1;
+    this.modalSearchQuery = '';
+    this.isModalOpen = true;
+    this.fetchModalLeads();
+  }
+
+  openEmployeeDetails(row: any) {
+    this.modalFilterType = 'employee';
+    this.modalUserId = row.user_id;
+    this.modalEmployeeName = row.employee || 'Unassigned';
+    this.modalTitle = `Leads Created by ${this.modalEmployeeName}`;
+    this.modalSubtitle = `Showing leads created in ${this.getDateRangeLabel()} (${row.leads_created} total)`;
+    this.modalCurrentPage = 1;
+    this.modalSearchQuery = '';
+    this.isModalOpen = true;
+    this.fetchModalLeads();
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.modalLeads = [];
+    this.modalSearchQuery = '';
+    this.modalTotalCount = 0;
+  }
+
+  fetchModalLeads() {
+    this.modalLoading = true;
+    let url = `/reports/leads/creation?viewDetails=true&filterType=${this.modalFilterType}&page=${this.modalCurrentPage}&limit=${this.modalPageSize}&dateRange=${this.dateRange}`;
+
+    if (this.dateRange === 'custom' && this.customStartDate && this.customEndDate) {
+      url += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
+    }
+
+    if (this.modalFilterType === 'employee') {
+      url += `&userId=${this.modalUserId ?? ''}`;
+    }
+
+    if (this.modalSearchQuery && this.modalSearchQuery.trim()) {
+      url += `&search=${encodeURIComponent(this.modalSearchQuery.trim())}`;
+    }
+
+    this.api.get(url).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          this.modalLeads = res.data.leads || [];
+          this.modalTotalCount = res.data.totalCount || 0;
+          this.modalTotalPages = res.data.totalPages || 1;
+          this.modalCurrentPage = res.data.page || this.modalCurrentPage;
+        }
+        this.modalLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Failed to load lead details for modal:', err);
+        this.modalLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onModalSearch() {
+    this.modalCurrentPage = 1;
+    this.fetchModalLeads();
+  }
+
+  clearModalSearch() {
+    this.modalSearchQuery = '';
+    this.modalCurrentPage = 1;
+    this.fetchModalLeads();
+  }
+
+  goToModalPage(p: number) {
+    if (p >= 1 && p <= this.modalTotalPages && p !== this.modalCurrentPage) {
+      this.modalCurrentPage = p;
+      this.fetchModalLeads();
+    }
+  }
+
+  get modalPages(): number[] {
+    const list: number[] = [];
+    let start = Math.max(1, this.modalCurrentPage - 2);
+    let end = Math.min(this.modalTotalPages, start + 4);
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+    for (let i = start; i <= end; i++) {
+      list.push(i);
+    }
+    return list;
+  }
+
+  get modalPaginationStart(): number {
+    if (this.modalTotalCount === 0) return 0;
+    return (this.modalCurrentPage - 1) * this.modalPageSize + 1;
+  }
+
+  get modalPaginationEnd(): number {
+    return Math.min(this.modalCurrentPage * this.modalPageSize, this.modalTotalCount);
   }
 
   toggleDateDropdown() {

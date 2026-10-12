@@ -1,0 +1,457 @@
+<div class="report-wrapper" (click)="onDocumentClick()">
+  <!-- Top Navigation / Header -->
+  <div class="report-header">
+    <div class="header-left">
+      <div class="badge-tag">
+        <i class="bi bi-clock-history"></i> CRM Live Operations
+      </div>
+      <h1 class="header-title">Daily Follow-Up Report</h1>
+      <p class="header-subtitle">
+        Every logged follow-up creates an individual entry. Real-time audit of team activities, status progression, and remarks.
+      </p>
+    </div>
+
+    <!-- Filter Control Bar -->
+    <div class="header-actions">
+      <div class="filter-toolbar" (click)="$event.stopPropagation()">
+        
+        <!-- Date Range Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
+            <i class="bi bi-calendar3 filter-icon date-icon"></i>
+            <span class="filter-label">{{ getDateRangeLabel() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isDateDropdownOpen"></i>
+          </div>
+
+          <div class="dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-item" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
+                <span class="item-title">Today</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'today'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'yesterday'" (click)="selectDateRange('yesterday')">
+                <span class="item-title">Yesterday</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'yesterday'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+                <span class="item-title">This Week</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_week'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+                <span class="item-title">This Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_month'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+                <span class="item-title">Last Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'last_month'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'all'" (click)="selectDateRange('all')">
+                <span class="item-title">All Time</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'all'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+                <span class="item-title">Custom Range</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'custom'"></i>
+              </div>
+            </div>
+
+            <!-- Custom Date Inputs -->
+            <div class="custom-date-box" *ngIf="dateRange === 'custom'">
+              <div class="date-input-group">
+                <label>From</label>
+                <input type="date" [(ngModel)]="customStartDate" class="clean-date-input" />
+              </div>
+              <div class="date-input-group">
+                <label>To</label>
+                <input type="date" [(ngModel)]="customEndDate" class="clean-date-input" />
+              </div>
+              <button class="btn-apply-date" (click)="applyCustomDate()">Apply Filter</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Employee Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen">
+            <i class="bi bi-person-badge filter-icon user-icon"></i>
+            <span class="filter-label">{{ getSelectedEmployeeName() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isEmployeeDropdownOpen"></i>
+          </div>
+
+          <div class="dropdown-panel employee-panel" *ngIf="isEmployeeDropdownOpen">
+            <div class="panel-search">
+              <i class="bi bi-search search-icon"></i>
+              <input type="text" placeholder="Search agent name..." [(ngModel)]="employeeSearchQuery" (click)="$event.stopPropagation()" />
+            </div>
+            <div class="dropdown-list">
+              <div class="dropdown-item" [class.selected]="selectedEmployee === 'All'" (click)="selectEmployee('All')">
+                <div class="avatar-tag all-tag"><i class="bi bi-people-fill"></i></div>
+                <span class="item-title">All Employees</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === 'All'"></i>
+              </div>
+              <div class="dropdown-item" *ngFor="let u of filteredUsers" [class.selected]="selectedEmployee === u.id" (click)="selectEmployee(u.id)">
+                <div class="avatar-tag">{{ getInitials(u.name) }}</div>
+                <span class="item-title">{{ u.name }}</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === u.id"></i>
+              </div>
+              <div class="empty-list" *ngIf="filteredUsers.length === 0">No employees match search</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Status Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleStatusDropdown($event)" [class.active]="isStatusDropdownOpen">
+            <i class="bi bi-flag filter-icon status-icon"></i>
+            <span class="filter-label">{{ selectedStatus === 'All' ? 'All Statuses' : selectedStatus }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isStatusDropdownOpen"></i>
+          </div>
+
+          <div class="dropdown-panel status-panel" *ngIf="isStatusDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-item" [class.selected]="selectedStatus === 'All'" (click)="selectStatus('All')">
+                <span class="status-dot dot-all"></span>
+                <span class="item-title">All Statuses</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedStatus === 'All'"></i>
+              </div>
+              <div class="dropdown-item" *ngFor="let s of statuses" [class.selected]="selectedStatus === s.name" (click)="selectStatus(s.name)">
+                <span class="status-dot"></span>
+                <span class="item-title">{{ s.name }}</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedStatus === s.name"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Search Input -->
+        <div class="search-input-wrapper">
+          <i class="bi bi-search search-lens"></i>
+          <input 
+            type="text" 
+            placeholder="Search lead, phone, remarks..." 
+            [(ngModel)]="searchQuery" 
+            (keyup.enter)="onSearchChange()" 
+            class="table-search-input" 
+          />
+          <button *ngIf="searchQuery" (click)="searchQuery=''; onSearchChange()" class="btn-clear-search">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <!-- Refresh Button -->
+        <button class="btn-action-refresh" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh Data">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Metric Cards -->
+  <div class="metrics-grid">
+    <!-- Card 1: Total Followups -->
+    <div class="metric-card card-purple">
+      <div class="metric-card-inner">
+        <div class="metric-info">
+          <span class="metric-eyebrow">TOTAL FOLLOW-UPS</span>
+          <h2 class="metric-number">{{ totalFollowUps | number }}</h2>
+          <span class="metric-subtext">Individual actions performed</span>
+        </div>
+        <div class="metric-icon-box box-purple">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+      </div>
+      <div class="metric-glow"></div>
+    </div>
+
+    <!-- Card 2: Unique Leads Touched -->
+    <div class="metric-card card-blue">
+      <div class="metric-card-inner">
+        <div class="metric-info">
+          <span class="metric-eyebrow">UNIQUE LEADS</span>
+          <h2 class="metric-number">{{ uniqueLeads | number }}</h2>
+          <span class="metric-subtext">Distinct prospects contacted</span>
+        </div>
+        <div class="metric-icon-box box-blue">
+          <i class="bi bi-people-fill"></i>
+        </div>
+      </div>
+      <div class="metric-glow"></div>
+    </div>
+
+    <!-- Card 3: Active SDRs / Agents -->
+    <div class="metric-card card-emerald">
+      <div class="metric-card-inner">
+        <div class="metric-info">
+          <span class="metric-eyebrow">ACTIVE AGENTS</span>
+          <h2 class="metric-number">{{ activeAgents | number }}</h2>
+          <span class="metric-subtext">Team members logging work</span>
+        </div>
+        <div class="metric-icon-box box-emerald">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+      </div>
+      <div class="metric-glow"></div>
+    </div>
+
+    <!-- Card 4: Top Outcome / Status Distribution -->
+    <div class="metric-card card-amber">
+      <div class="metric-card-inner">
+        <div class="metric-info">
+          <span class="metric-eyebrow">STATUS OVERVIEW</span>
+          <div class="mini-status-pills" *ngIf="statusBreakdown.length > 0">
+            <span *ngFor="let sb of statusBreakdown.slice(0, 3)" class="mini-pill">
+              {{ sb.status_name }}: <strong>{{ sb.count }}</strong>
+            </span>
+          </div>
+          <span class="metric-subtext" *ngIf="statusBreakdown.length === 0">No logs for period</span>
+        </div>
+        <div class="metric-icon-box box-amber">
+          <i class="bi bi-bar-chart-fill"></i>
+        </div>
+      </div>
+      <div class="metric-glow"></div>
+    </div>
+  </div>
+
+  <!-- Main Activity Table Card -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="table-title-box">
+        <div class="live-indicator">
+          <span class="live-dot"></span>
+        </div>
+        <h3 class="table-heading">Follow-Up Audit Log</h3>
+        <span class="records-pill" *ngIf="totalFollowUps > 0">{{ totalFollowUps }} Total Entries</span>
+      </div>
+
+      <div class="table-actions">
+        <!-- Page size dropdown -->
+        <div class="page-size-selector">
+          <span>Show:</span>
+          <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="select-page-size">
+            <option [value]="5">5 per page</option>
+            <option [value]="10">10 per page</option>
+            <option [value]="25">25 per page</option>
+            <option [value]="50">50 per page</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-container">
+      <table class="modern-data-table">
+        <thead>
+          <tr>
+            <th class="col-lead">Lead & Contact</th>
+            <th class="col-time">Logged At</th>
+            <th class="col-status">Follow-Up Status</th>
+            <th class="col-agent">Logged By</th>
+            <th class="col-assigned">Assigned SDR</th>
+            <th class="col-next">Next Scheduled</th>
+            <th class="col-remarks">Remarks & Notes</th>
+            <th class="col-action text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading skeleton -->
+          <tr *ngIf="loading">
+            <td colspan="8" class="empty-cell">
+              <div class="loading-state">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p>Fetching real-time follow-up records...</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="!loading && entries.length === 0">
+            <td colspan="8" class="empty-cell">
+              <div class="empty-state-box">
+                <div class="empty-icon-wrap">
+                  <i class="bi bi-calendar-x"></i>
+                </div>
+                <h4>No Follow-Ups Found</h4>
+                <p>There are no follow-up records matching your selected date and filter criteria.</p>
+                <button class="btn-reset-filters" (click)="resetFilters()">
+                  <i class="bi bi-arrow-repeat"></i> Reset Filters to Today
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Data Rows (Each follow-up added = 1 entry) -->
+          <tr *ngFor="let item of entries; let idx = index" class="data-row" [style.--row-delay]="idx * 20 + 'ms'">
+            <!-- Lead Name & Phone -->
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" (click)="viewRemarks(item)">
+                  {{ getInitials(item.lead_name) }}
+                </div>
+                <div class="lead-text">
+                  <span class="lead-title" (click)="viewRemarks(item)" title="View Follow-Up Details">
+                    {{ item.lead_name }}
+                  </span>
+                  <span class="lead-phone" *ngIf="item.phone">
+                    <i class="bi bi-telephone-fill"></i> {{ item.phone }}
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Logged Timestamp -->
+            <td>
+              <div class="timestamp-box">
+                <span class="time-main">{{ item.logged_at | date:'h:mm a' }}</span>
+                <span class="date-sub">{{ item.logged_at | date:'MMM d, y' }}</span>
+              </div>
+            </td>
+
+            <!-- Follow-Up Status -->
+            <td>
+              <span class="badge-status-pill" [ngClass]="getStatusBadgeClass(item.status_name)">
+                <span class="badge-dot"></span>
+                {{ item.status_name }}
+              </span>
+            </td>
+
+            <!-- Logged By (User who added the follow-up) -->
+            <td>
+              <div class="user-cell">
+                <i class="bi bi-person-check user-subicon"></i>
+                <span class="fw-semibold">{{ item.logged_by }}</span>
+              </div>
+            </td>
+
+            <!-- Assigned SDR / Team member -->
+            <td>
+              <div class="user-cell assigned-cell">
+                <i class="bi bi-person-circle user-subicon text-muted"></i>
+                <span>{{ item.assigned_to }}</span>
+              </div>
+            </td>
+
+            <!-- Next Scheduled Date -->
+            <td>
+              <div class="next-date-box" *ngIf="item.next_follow_up_date; else noNextDate">
+                <i class="bi bi-alarm next-icon"></i>
+                <span>{{ item.next_follow_up_date | date:'MMM d, y' }}</span>
+              </div>
+              <ng-template #noNextDate>
+                <span class="text-muted small">—</span>
+              </ng-template>
+            </td>
+
+            <!-- Remarks Note -->
+            <td>
+              <div class="remarks-box" (click)="viewRemarks(item)" [title]="item.remarks">
+                <span class="remarks-snippet">{{ item.remarks || 'No remarks recorded' }}</span>
+                <i class="bi bi-chat-left-text remarks-icon" *ngIf="item.remarks"></i>
+              </div>
+            </td>
+
+            <!-- Action -->
+            <td class="text-end">
+              <button class="btn-table-action" (click)="viewRemarks(item)" title="View Entry Details">
+                <i class="bi bi-eye"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Server-Side Pagination Bar -->
+    <div class="pagination-footer" *ngIf="totalFollowUps > 0">
+      <div class="pagination-summary">
+        Showing <strong>{{ paginationStart }}</strong> to <strong>{{ paginationEnd }}</strong> of <strong>{{ totalFollowUps }}</strong> follow-up entries
+      </div>
+
+      <div class="pagination-controls" *ngIf="totalPages > 1">
+        <button class="pag-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First Page">
+          <i class="bi bi-chevron-double-left"></i>
+        </button>
+        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous Page">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <button 
+          *ngFor="let p of pages" 
+          class="pag-btn" 
+          [class.active]="p === currentPage" 
+          (click)="goToPage(p)"
+        >
+          {{ p }}
+        </button>
+
+        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next Page">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <button class="pag-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last Page">
+          <i class="bi bi-chevron-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Remarks Modal -->
+  <div class="custom-modal-backdrop" *ngIf="selectedLeadForModal" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="avatar-lg">{{ getInitials(selectedLeadForModal.lead_name) }}</div>
+          <div>
+            <h3 class="modal-lead-title">{{ selectedLeadForModal.lead_name }}</h3>
+            <span class="modal-lead-phone" *ngIf="selectedLeadForModal.phone">{{ selectedLeadForModal.phone }}</span>
+          </div>
+        </div>
+        <button class="btn-close-modal" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="modal-meta-item">
+            <label>Follow-Up Status</label>
+            <span class="badge-status-pill" [ngClass]="getStatusBadgeClass(selectedLeadForModal.status_name)">
+              {{ selectedLeadForModal.status_name }}
+            </span>
+          </div>
+          <div class="modal-meta-item">
+            <label>Logged At</label>
+            <span>{{ selectedLeadForModal.logged_at | date:'medium' }}</span>
+          </div>
+          <div class="modal-meta-item">
+            <label>Logged By</label>
+            <span>{{ selectedLeadForModal.logged_by }}</span>
+          </div>
+          <div class="modal-meta-item">
+            <label>Assigned SDR</label>
+            <span>{{ selectedLeadForModal.assigned_to }}</span>
+          </div>
+        </div>
+
+        <div class="modal-remarks-section">
+          <label class="remarks-label">Follow-Up Remarks & Notes</label>
+          <div class="remarks-full-content">
+            {{ selectedLeadForModal.remarks || 'No detailed remarks recorded for this follow-up entry.' }}
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-modal-close" (click)="closeModal()">
+          <i class="bi bi-check2"></i> Close Details
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -78,6 +78,9 @@ export class LayoutComponent implements OnInit {
     if (savedDept && this.departments.includes(savedDept)) {
       this.activeDepartment = savedDept;
     }
+    // Always sync active department with the current router URL
+    this.syncDepartmentWithUrl(this.router.url);
+
     this.user$.subscribe(user => {
       this.currentUser = user;
       if (user?.name) {
@@ -535,19 +538,29 @@ export class LayoutComponent implements OnInit {
     
     this.isSettingsRoute = false;
 
-    const crmRoutes = ['crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management', 'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers', 'pending-followup', 'todays-leads', 'upcoming-followups', 'all-leads', 'quotation-report', 'purchase-order-report', 'sales-funnel-report', 'lead-conversion-report', 'agent-performance-report', 'won-lost-report', 'channel-conversion-report', 'employee-conversion-report', 'reports/employee-productivity', 'reports/student-pipeline', 'reports/follow-up-report', 'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings', 'system-settings'];
+    const crmRoutes = [
+      'crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management',
+      'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers',
+      'pending-followup', 'todays-leads', 'upcoming-followups', 'all-leads',
+      'quotation-report', 'purchase-order-report', 'sales-funnel-report',
+      'lead-conversion-report', 'agent-performance-report', 'won-lost-report',
+      'channel-conversion-report', 'employee-conversion-report', 'reports/employee-productivity',
+      'reports/student-pipeline', 'reports/application-status', 'reports/follow-up-report',
+      'reports/daily-report', 'daily-report', 'lead-flow', 'reports/lead-flow', 'reports/team-productivity', 'reports/lead-creation',
+      'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings', 'system-settings'
+    ];
     
     const operationRoutes = ['operation-dashboard', 'installation', 'customer-feedback', 'warranty-service', 'complaints', 'installation-report', 'complaint-report', 'warranty-report', 'technician-report', 'customer-feedback-report', 'operation/leave-request'];
     
     const hrRoutes = ['hr-dashboard', 'attendance', 'employee-location', 'employees', 'pending-approvals', 'attendance-report', 'leave-report', 'expense-report', 'gps-report', 'performance-report', 'employee-report', 'hr/leave-request'];
 
-    const leadsReportRoutes = ['reports/work', 'reports/conversation', 'reports/employee', 'reports/enquiry', 'reports/status'];
+    const leadsReportRoutes = ['reports/work', 'reports/conversation', 'reports/employee', 'reports/enquiry', 'reports/status', 'reports/time-track', 'reports/source-conversion'];
 
     this.isReportsOpen = false;
     this.isOperationReportsOpen = false;
     this.isHrReportsOpen = false;
 
-    if (crmRoutes.some(route => url.includes(route))) {
+    if (url.includes('daily-report') || url.includes('lead-flow') || crmRoutes.some(route => url.includes(route))) {
       this.activeDepartment = 'CRM';
       localStorage.setItem('activeDepartment', 'CRM');
     } else if (operationRoutes.some(route => url.includes(route))) {
@@ -565,11 +578,26 @@ export class LayoutComponent implements OnInit {
     this.updateCheckInStatus();
   }
 
+  isCrmReportsActive(): boolean {
+    const url = this.router.url || '';
+    const crmReportList = [
+      'daily-report', 'lead-flow', 'pending-followup', 'upcoming-followups', 'todays-leads',
+      'crm/attendance-report', 'channel-report', 'won-lost-report', 'channel-conversion-report',
+      'employee-conversion-report', 'reports/employee-productivity', 'reports/student-pipeline',
+      'reports/application-status', 'reports/follow-up-report', 'reports/team-productivity',
+      'reports/lead-creation', 'quotation-report', 'purchase-order-report', 'sales-funnel-report',
+      'lead-conversion-report', 'agent-performance-report', 'salesperson-report'
+    ];
+    return crmReportList.some(r => url.includes(r));
+  }
+
   private getTitle(url: string): string {
     const segments = url.split('/');
     const last = segments[segments.length - 1].split('?')[0]; // Remove query params
     if (!last || last === 'lead-dashboard') return 'Lead Dashboard';
     if (last === 'crm-dashboard') return 'CRM Dashboard';
+    if (last === 'daily-report') return 'Daily Follow-Up Report';
+    if (last === 'lead-flow') return 'Lead Flow & Conversion Report';
     if (last === 'quotations') return 'Quotations';
     if (last === 'purchase-orders') return 'Purchase Orders';
     if (last === 'delivery-management') return 'Delivery Management';

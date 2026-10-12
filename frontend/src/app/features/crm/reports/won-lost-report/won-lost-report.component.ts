@@ -60,6 +60,12 @@ export class WonLostReportComponent implements OnInit {
   kpi_winRate  = 0;
 
   deals: any[] = [];
+  selectedStatus: string | null = null;
+  
+  // Modal State
+  isModalOpen: boolean = false;
+  modalStatus: string = '';
+  modalDeals: any[] = [];
 
   public chartOptions: ChartConfiguration['options'] = {
     responsive: true,
@@ -71,10 +77,32 @@ export class WonLostReportComponent implements OnInit {
       easing: 'easeOutQuint',
       delay: 100
     } as any,
+    onHover: (event: any, elements: any) => {
+      if (event.native && event.native.target) {
+        event.native.target.style.cursor = elements && elements.length ? 'pointer' : 'default';
+      }
+    },
+    onClick: (event, elements, chart) => {
+      if (elements && elements.length > 0) {
+        const index = elements[0].index;
+        const label = this.chartLabels[index];
+        this.ngZone.run(() => {
+          this.openModal(label);
+        });
+      }
+    },
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { padding: 24, usePointStyle: true, pointStyleWidth: 12, font: { size: 14, weight: 'bold' as any } }
+        labels: { padding: 24, usePointStyle: true, pointStyleWidth: 12, font: { size: 14, weight: 'bold' as any } },
+        onClick: (e, legendItem, legend) => {
+          // Allow clicking legend to also open modal, or just default behavior
+          if (legendItem && legendItem.text) {
+            this.ngZone.run(() => {
+              this.openModal(legendItem.text);
+            });
+          }
+        }
       },
       tooltip: {
         backgroundColor: 'rgba(15,23,42,0.92)',
@@ -175,12 +203,54 @@ export class WonLostReportComponent implements OnInit {
   }
 
   get filteredDeals() {
-    if (!this.searchTerm) return this.deals;
-    return this.deals.filter(d =>
+    let result = this.deals;
+    
+    if (this.selectedStatus) {
+      result = result.filter(d => d.status === this.selectedStatus);
+    }
+    
+    if (!this.searchTerm) return result;
+    
+    return result.filter(d =>
       d.client?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
       d.reason?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
       d.rep?.toLowerCase().includes(this.searchTerm.toLowerCase())
     );
+  }
+
+  openModal(status: string) {
+    this.modalStatus = status;
+    this.modalDeals = this.deals.filter(d => d.status === status);
+    this.isModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  selectedDeal: any = null;
+  isDealModalOpen: boolean = false;
+
+  openDealModal(deal: any) {
+    this.selectedDeal = deal;
+    this.isDealModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  closeDealModal() {
+    this.isDealModalOpen = false;
+    this.selectedDeal = null;
+    this.cdr.detectChanges();
+  }
+
+  onChartClick(event: any) {
+    if (event.active && event.active.length > 0) {
+      const index = event.active[0].index;
+      const label = this.chartLabels[index];
+      this.openModal(label);
+    }
   }
 
   getStatusClass(status: string): string {
