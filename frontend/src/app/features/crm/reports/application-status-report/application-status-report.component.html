@@ -19,6 +19,10 @@
 
           <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
             <div class="dropdown-list">
+              <div class="dropdown-option" [class.selected]="dateRange === 'all'" (click)="selectDateRange('all')">
+                <span class="opt-name">All Dates</span>
+                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'all'"></i>
+              </div>
               <div class="dropdown-option" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
                 <span class="opt-name">Today</span>
                 <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
@@ -73,15 +77,16 @@
 
   <ng-container *ngIf="!loading">
 
-    <!-- Total Applications Card -->
+    <!-- Total Applications Card (Clickable) -->
     <div class="stats-grid">
-      <div class="stat-card">
+      <div class="stat-card clickable-card" (click)="openCardDetails()" title="Click to view all applications">
         <div class="stat-icon-wrap bg-light-purple">
           <i class="bi bi-file-earmark-text"></i>
         </div>
         <div class="stat-info">
           <p class="stat-label">Total Applications</p>
           <h2 class="stat-value">{{ totalApplications }}</h2>
+          <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Applications</span>
         </div>
         <div class="stat-bg bg-light-purple-bubble"></div>
       </div>
@@ -90,7 +95,12 @@
     <!-- Chart Section -->
     <div class="chart-card">
       <div class="chart-header">
-        <div class="chart-title">Applications by Status</div>
+        <div class="chart-title-wrap">
+          <div class="chart-title">Applications by Status</div>
+          <span class="chart-hint-badge" *ngIf="totalApplications > 0">
+            <i class="bi bi-cursor-fill"></i> Click any slice to view applications
+          </span>
+        </div>
       </div>
       <div class="chart-body">
         <!-- Empty State -->
@@ -113,7 +123,12 @@
     <!-- Breakdown Table -->
     <div class="breakdown-card">
       <div class="breakdown-header">
-        <div class="breakdown-title">Status Breakdown</div>
+        <div class="breakdown-title-wrap">
+          <div class="breakdown-title">Status Breakdown</div>
+          <span class="breakdown-hint-badge" *ngIf="breakdown.length > 0">
+            <i class="bi bi-cursor-fill"></i> Click any row to view applications
+          </span>
+        </div>
       </div>
 
       <div class="breakdown-body">
@@ -122,22 +137,30 @@
             <tr>
               <th>STATUS</th>
               <th style="text-align: right">COUNT</th>
+              <th style="text-align: right">ACTION</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of breakdown; let i = index">
+            <tr *ngFor="let row of breakdown; let i = index" class="clickable-row" (click)="openStatusDetails(row.status, row.count, row.color)" title="Click to view {{ row.status }} applications">
               <td>
                 <div class="status-cell">
-                  <div class="status-dot" [style.background]="getStatusColor(i)"></div>
+                  <div class="status-dot" [style.background]="row.color || getStatusColor(i)"></div>
                   <span class="status-name">{{ row.status }}</span>
                 </div>
               </td>
               <td style="text-align: right">
-                <span class="count-text">{{ row.count }}</span>
+                <span class="count-badge" [style.background]="(row.color || getStatusColor(i)) + '1a'" [style.color]="row.color || getStatusColor(i)">
+                  {{ row.count }}
+                </span>
+              </td>
+              <td style="text-align: right">
+                <button class="btn-view-details" (click)="$event.stopPropagation(); openStatusDetails(row.status, row.count, row.color)">
+                  <i class="bi bi-eye-fill"></i> View Details
+                </button>
               </td>
             </tr>
             <tr *ngIf="breakdown.length === 0">
-              <td colspan="2" class="text-center" style="padding: 2rem; color: #94a3b8;">
+              <td colspan="3" class="text-center" style="padding: 2rem; color: #94a3b8;">
                 No statuses found
               </td>
             </tr>
@@ -147,4 +170,170 @@
     </div>
 
   </ng-container>
+
+  <!-- POPUP DETAILS MODAL -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()"></div>
+
+  <div class="details-modal-wrapper" *ngIf="isModalOpen" (click)="$event.stopPropagation()">
+    <div class="details-modal-content">
+      
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-title-chip">
+            <i class="bi bi-file-earmark-medical"></i> Application Records
+          </div>
+          <h2 class="modal-title">{{ modalTitle }}</h2>
+          <p class="modal-subtitle">{{ modalSubtitle }}</p>
+        </div>
+
+        <div class="modal-header-right">
+          <span class="modal-total-badge">{{ modalTotalCount }} Applications</span>
+          <button class="btn-close-modal" (click)="closeModal()" title="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Filter Toolbar -->
+      <div class="modal-toolbar">
+        <div class="modal-search-box">
+          <i class="bi bi-search modal-search-icon"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="modalSearchQuery" 
+            (keyup.enter)="onModalSearch()" 
+            placeholder="Search by course, university, country, or applicant..." 
+            class="modal-search-input" />
+          <button class="btn-clear-search" *ngIf="modalSearchQuery" (click)="clearModalSearch()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <button class="btn-modal-search" (click)="onModalSearch()">Search</button>
+
+        <div class="modal-page-size-box">
+          <span class="ps-label">Show:</span>
+          <select [(ngModel)]="modalPageSize" (change)="modalCurrentPage = 1; fetchModalApplications()" class="modal-select-size">
+            <option [value]="5">5 per page</option>
+            <option [value]="10">10 per page</option>
+            <option [value]="20">20 per page</option>
+            <option [value]="50">50 per page</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Modal Body (Data Table) -->
+      <div class="modal-body">
+        
+        <!-- Loading State -->
+        <div class="modal-loading-state" *ngIf="modalLoading">
+          <div class="modern-spinner"></div>
+          <p>Loading application details...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div class="modal-empty-state" *ngIf="!modalLoading && modalApplications.length === 0">
+          <i class="bi bi-inbox-fill"></i>
+          <h4>No Applications Found</h4>
+          <p>No applications matched the selected criteria or search term.</p>
+        </div>
+
+        <!-- Applications Table -->
+        <div class="modal-table-responsive" *ngIf="!modalLoading && modalApplications.length > 0">
+          <table class="modal-leads-table">
+            <thead>
+              <tr>
+                <th>APPLICANT</th>
+                <th>COURSE & UNIVERSITY</th>
+                <th>COUNTRY</th>
+                <th>STATUS</th>
+                <th>APPLIED DATE</th>
+                <th>DESCRIPTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let app of modalApplications" class="lead-modal-row">
+                <td>
+                  <div class="lead-info-cell">
+                    <div class="lead-initials-badge">{{ getInitials(app.applicant_name) }}</div>
+                    <div class="lead-details-text">
+                      <span class="lead-name">{{ app.applicant_name }}</span>
+                      <span class="lead-contact-sub" *ngIf="app.applicant_phone">
+                        <i class="bi bi-telephone-fill"></i> {{ app.applicant_phone }}
+                      </span>
+                      <span class="lead-contact-sub" *ngIf="app.applicant_email">
+                        <i class="bi bi-envelope-fill"></i> {{ app.applicant_email }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="course-cell">
+                    <span class="course-name">{{ app.course || '—' }}</span>
+                    <span class="university-sub" *ngIf="app.university">
+                      <i class="bi bi-bank2"></i> {{ app.university }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="country-badge" *ngIf="app.country">
+                    <i class="bi bi-geo-alt-fill"></i> {{ app.country }}
+                  </span>
+                  <span *ngIf="!app.country" class="text-muted">—</span>
+                </td>
+                <td>
+                  <span class="status-pill" [style.background]="(app.status_color || '#6366f1') + '1a'" [style.color]="app.status_color || '#6366f1'" [style.borderColor]="(app.status_color || '#6366f1') + '33'">
+                    <span class="status-pill-dot" [style.background]="app.status_color || '#6366f1'"></span>
+                    {{ app.status }}
+                  </span>
+                </td>
+                <td>
+                  <div class="lead-date-cell">
+                    <span class="date-str">{{ app.created_at | date:'MMM d, y' }}</span>
+                    <span class="time-str">{{ app.created_at | date:'h:mm a' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="desc-text" [title]="app.description || ''">
+                    {{ app.description || '—' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer (Pagination) -->
+      <div class="modal-footer" *ngIf="modalTotalCount > 0">
+        <div class="modal-footer-left">
+          <span>Showing <strong>{{ (modalCurrentPage - 1) * modalPageSize + 1 }}</strong> to <strong>{{ (modalCurrentPage * modalPageSize) > modalTotalCount ? modalTotalCount : (modalCurrentPage * modalPageSize) }}</strong> of <strong>{{ modalTotalCount }}</strong> applications</span>
+        </div>
+
+        <div class="modal-pagination" *ngIf="modalTotalPages > 1">
+          <button class="btn-page-nav" [disabled]="modalCurrentPage === 1" (click)="goToModalPage(modalCurrentPage - 1)">
+            <i class="bi bi-chevron-left"></i> Previous
+          </button>
+
+          <div class="page-numbers">
+            <button 
+              *ngFor="let p of getPaginationArray()" 
+              class="btn-page-num" 
+              [class.active]="p === modalCurrentPage"
+              (click)="goToModalPage(p)">
+              {{ p }}
+            </button>
+          </div>
+
+          <button class="btn-page-nav" [disabled]="modalCurrentPage === modalTotalPages" (click)="goToModalPage(modalCurrentPage + 1)">
+            Next <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
