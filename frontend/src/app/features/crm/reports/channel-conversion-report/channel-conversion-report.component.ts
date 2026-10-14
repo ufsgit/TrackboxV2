@@ -42,24 +42,34 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
     maintainAspectRatio: false,
     animation: { duration: 800, easing: 'easeOutQuart' } as any,
     scales: {
-      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.03)' } },
-      x: { grid: { display: false } }
+      y: { 
+        beginAtZero: true,
+        suggestedMax: 5,
+        grid: { color: 'rgba(0,0,0,0.03)' },
+        ticks: { precision: 0, stepSize: 1, font: { size: 10 } }
+      },
+      x: { 
+        grid: { display: false },
+        ticks: { font: { size: 11, weight: 'bold' } }
+      }
     },
     plugins: {
-      legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
-      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 }
+      legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 7, font: { size: 11, weight: 'bold' } } },
+      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, cornerRadius: 8 }
     }
   };
 
   public pieChartOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { animateRotate: true, animateScale: true, duration: 1000, easing: 'easeInOutQuart' } as any,
+    animation: { animateRotate: true, animateScale: true, duration: 800, easing: 'easeInOutQuart' } as any,
     plugins: {
-      legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } },
-      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 }
+      legend: { 
+        display: false
+      },
+      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, cornerRadius: 8 }
     },
-    cutout: '65%'
+    cutout: '72%'
   };
 
   public barChartData: ChartData<'bar'> = { labels: [], datasets: [] };
@@ -69,6 +79,7 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
 
   // Custom Dropdown State
   isDateDropdownOpen: boolean = false;
+  activeViewTab: 'charts' | 'table' | 'split' = 'charts';
 
   constructor(
     private cdr: ChangeDetectorRef, 
@@ -86,7 +97,19 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
     // any post-init if needed
   }
 
-  toggleDateDropdown() {
+  onDocumentClick() {
+    this.isDateDropdownOpen = false;
+  }
+
+  setActiveTab(tab: 'charts' | 'table' | 'split') {
+    this.activeViewTab = tab;
+    this.cdr.detectChanges();
+  }
+
+  toggleDateDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -201,8 +224,24 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
     this.barChartData = {
       labels: this.data.map(d => d.channel.toUpperCase()),
       datasets: [
-        { data: this.data.map(d => d.sale_won), label: 'Sale Won', backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.7 },
-        { data: this.data.map(d => d.sale_lost), label: 'Sale Lost', backgroundColor: '#ef4444', borderRadius: 4, barPercentage: 0.7 }
+        { 
+          data: this.data.map(d => d.sale_won), 
+          label: 'Sale Won', 
+          backgroundColor: '#10b981', 
+          borderRadius: 6, 
+          barPercentage: 0.4,
+          categoryPercentage: 0.4,
+          maxBarThickness: 28
+        },
+        { 
+          data: this.data.map(d => d.sale_lost), 
+          label: 'Sale Lost', 
+          backgroundColor: '#ef4444', 
+          borderRadius: 6, 
+          barPercentage: 0.4,
+          categoryPercentage: 0.4,
+          maxBarThickness: 28
+        }
       ]
     };
 
@@ -265,5 +304,16 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
     if (c.includes('web') || c.includes('site')) return 'bi-globe text-info';
     if (c.includes('referral')) return 'bi-people text-warning';
     return 'bi-hash text-secondary';
+  }
+
+  getTopChannels(limit: number = 3): any[] {
+    if (!this.data || this.data.length === 0) return [];
+    return [...this.data]
+      .sort((a, b) => b.total_leads - a.total_leads)
+      .slice(0, limit)
+      .map(ch => ({
+        ...ch,
+        share_percentage: this.totals.leads > 0 ? ((ch.total_leads / this.totals.leads) * 100).toFixed(1) : 0
+      }));
   }
 }

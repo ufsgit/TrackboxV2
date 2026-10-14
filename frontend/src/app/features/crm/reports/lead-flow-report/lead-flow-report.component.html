@@ -1,14 +1,17 @@
-<div class="lead-flow-wrapper" (click)="onDocumentClick()">
-  <!-- Header & Title Bar -->
-  <div class="report-header">
-    <div class="header-left">
-      <div class="badge-tag">
-        <i class="bi bi-graph-up-arrow"></i> CRM Pipeline Analytics
+<div class="viewport-dashboard fade-in-up" (click)="onDocumentClick()">
+
+  <!-- 1. Top Control Bar (Compact Single Row, Height ~48px) -->
+  <header class="top-control-bar">
+    <div class="brand-cluster">
+      <div class="title-with-badge">
+        <h2 class="dashboard-title">Lead Flow & Conversion</h2>
+        <span class="badge-tag">
+          <i class="bi bi-graph-up-arrow"></i> Pipeline
+        </span>
       </div>
-      <h1 class="header-title">Lead Flow & Conversion Report</h1>
-      <p class="header-subtitle">
-        Track monthly lead generation flow for {{ selectedYear }} alongside converted accounts and conversion performance.
-      </p>
+      <span class="year-indicator">
+        <i class="bi bi-calendar-event text-primary"></i> {{ selectedYear }} Overview
+      </span>
     </div>
 
     <!-- Filter Control Bar -->
@@ -48,7 +51,7 @@
 
         <div class="toolbar-divider"></div>
 
-        <!-- Date Range Filter (Useful for Day-wise and Lead List) -->
+        <!-- Date Range Filter -->
         <div class="filter-dropdown-wrapper">
           <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
             <i class="bi bi-calendar3 filter-icon date-icon"></i>
@@ -144,450 +147,464 @@
         </button>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Peak Month Highlight Banner (Spotlight) -->
-  <div class="peak-month-banner" *ngIf="peakMonth">
-    <div class="peak-banner-left">
-      <div class="trophy-box">
+  <!-- 2. Compact KPI Metrics Strip (5 horizontal tiles in a single row) -->
+  <section class="kpi-strip">
+    <!-- Tile 1: Leads Created -->
+    <div class="kpi-tile tile-cyan">
+      <div class="kpi-icon-box bg-cyan-soft text-cyan">
+        <i class="bi bi-person-plus-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Leads Created</span>
+        <div class="kpi-metric">{{ totals.totalCreated | number }}</div>
+        <span class="kpi-caption text-truncate">New prospects added</span>
+      </div>
+      <div class="tile-glow glow-cyan"></div>
+    </div>
+
+    <!-- Tile 2: Converted (Won) -->
+    <div class="kpi-tile tile-emerald">
+      <div class="kpi-icon-box bg-emerald-soft text-emerald">
         <i class="bi bi-trophy-fill"></i>
       </div>
-      <div class="peak-banner-details">
-        <div class="peak-badge-label">
-          <i class="bi bi-fire"></i> {{ selectedYear }} HIGHEST LEAD VOLUME MONTH
-        </div>
-        <h2 class="peak-title">
-          {{ peakMonth.name }}
-          <span class="peak-count-chip">{{ peakMonth.createdCount }} Leads Received</span>
-        </h2>
-        <p class="peak-desc">
-          <strong>{{ peakMonth.name }}</strong> recorded the highest lead acquisition volume in {{ selectedYear }}. Out of these, 
-          <span class="won-highlight">{{ peakMonth.convertedCount }} leads were converted (won)</span> with a 
-          <strong>{{ peakMonth.conversionRate }}%</strong> conversion rate.
-        </p>
+      <div class="kpi-content">
+        <span class="kpi-header">Converted (Won)</span>
+        <div class="kpi-metric">{{ totals.totalConverted | number }}</div>
+        <span class="kpi-caption text-truncate">Won customer accounts</span>
       </div>
+      <div class="tile-glow glow-emerald"></div>
     </div>
 
-    <div class="peak-banner-stats">
-      <div class="peak-stat-item">
-        <span class="stat-caption">Peak Inflow</span>
-        <span class="stat-val val-blue">{{ peakMonth.createdCount }}</span>
+    <!-- Tile 3: Conversion Rate -->
+    <div class="kpi-tile tile-purple">
+      <div class="kpi-icon-box bg-purple-soft text-purple">
+        <i class="bi bi-percent"></i>
       </div>
-      <div class="stat-divider"></div>
-      <div class="peak-stat-item">
-        <span class="stat-caption">Converted Won</span>
-        <span class="stat-val val-green">{{ peakMonth.convertedCount }}</span>
+      <div class="kpi-content">
+        <span class="kpi-header">Conversion Rate</span>
+        <div class="kpi-metric">{{ totals.conversionRate }}%</div>
+        <span class="kpi-caption text-truncate">Won vs total leads</span>
       </div>
-      <div class="stat-divider"></div>
-      <div class="peak-stat-item">
-        <span class="stat-caption">Win Rate</span>
-        <span class="stat-val val-purple">{{ peakMonth.conversionRate }}%</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Summary Metric KPI Cards -->
-  <div class="kpi-grid">
-    <!-- Card 1: Total Leads Created -->
-    <div class="kpi-card card-cyan">
-      <div class="kpi-card-inner">
-        <div class="kpi-info">
-          <span class="kpi-eyebrow">LEADS CREATED</span>
-          <h2 class="kpi-number">{{ totals.totalCreated | number }}</h2>
-          <span class="kpi-subtext">New prospects added in period</span>
-        </div>
-        <div class="kpi-icon-box box-cyan">
-          <i class="bi bi-person-plus-fill"></i>
-        </div>
-      </div>
-      <div class="card-glow"></div>
+      <div class="tile-glow glow-purple"></div>
     </div>
 
-    <!-- Card 2: Converted (Won) -->
-    <div class="kpi-card card-emerald">
-      <div class="kpi-card-inner">
-        <div class="kpi-info">
-          <span class="kpi-eyebrow">CONVERTED (WON)</span>
-          <h2 class="kpi-number">{{ totals.totalConverted | number }}</h2>
-          <span class="kpi-subtext">Won customer accounts</span>
-        </div>
-        <div class="kpi-icon-box box-emerald">
-          <i class="bi bi-trophy-fill"></i>
-        </div>
+    <!-- Tile 4: In Pipeline -->
+    <div class="kpi-tile tile-amber">
+      <div class="kpi-icon-box bg-amber-soft text-amber">
+        <i class="bi bi-funnel-fill"></i>
       </div>
-      <div class="card-glow"></div>
+      <div class="kpi-content">
+        <span class="kpi-header">In Pipeline</span>
+        <div class="kpi-metric">{{ totals.totalInPipeline | number }}</div>
+        <span class="kpi-caption text-truncate">Active sales pipeline</span>
+      </div>
+      <div class="tile-glow glow-amber"></div>
     </div>
 
-    <!-- Card 3: Overall Conversion Rate -->
-    <div class="kpi-card card-purple">
-      <div class="kpi-card-inner">
-        <div class="kpi-info">
-          <span class="kpi-eyebrow">CONVERSION RATE</span>
-          <h2 class="kpi-number">{{ totals.conversionRate }}%</h2>
-          <span class="kpi-subtext">Won vs total leads created</span>
-        </div>
-        <div class="kpi-icon-box box-purple">
-          <i class="bi bi-percent"></i>
-        </div>
+    <!-- Tile 5: Peak Inflow Spotlight (replaces old giant banner) -->
+    <div class="kpi-tile tile-gold">
+      <div class="kpi-icon-box bg-gold-soft text-gold">
+        <i class="bi bi-fire"></i>
       </div>
-      <div class="card-glow"></div>
-    </div>
-
-    <!-- Card 4: In Progress / Open Pipeline -->
-    <div class="kpi-card card-amber">
-      <div class="kpi-card-inner">
-        <div class="kpi-info">
-          <span class="kpi-eyebrow">IN PIPELINE</span>
-          <h2 class="kpi-number">{{ totals.totalInPipeline | number }}</h2>
-          <span class="kpi-subtext">Active prospects undergoing sales</span>
-        </div>
-        <div class="kpi-icon-box box-amber">
-          <i class="bi bi-funnel-fill"></i>
-        </div>
-      </div>
-      <div class="card-glow"></div>
-    </div>
-  </div>
-
-  <!-- MONTHLY 2026 SIDE-BY-SIDE GRAPHS (Requested Core Feature) -->
-  <div class="charts-row" *ngIf="chartMode === 'monthly'">
-    <!-- SIDE 1 (LEFT GRAPH): Monthly Leads Received (Jan to Dec 2026) with Peak Month Highlight -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="chart-title-box">
-          <div class="dot-indicator dot-blue"></div>
-          <div>
-            <h3 class="chart-heading">Total Leads Received (Jan – Dec {{ selectedYear }})</h3>
-            <span class="chart-subheading">Monthly incoming lead volume with peak month highlighted in vibrant blue</span>
-          </div>
-        </div>
-        <span class="chart-badge badge-blue" *ngIf="peakMonth">
-          <i class="bi bi-trophy-fill"></i> Peak: {{ peakMonth.shortName }} ({{ peakMonth.createdCount }} Leads)
+      <div class="kpi-content" *ngIf="peakMonth">
+        <span class="kpi-header">Peak Inflow ({{ selectedYear }})</span>
+        <div class="kpi-metric text-truncate">{{ peakMonth.name }}</div>
+        <span class="kpi-caption text-gold fw-semibold text-truncate">
+          {{ peakMonth.createdCount }} Leads · {{ peakMonth.convertedCount }} Won ({{ peakMonth.conversionRate }}%)
         </span>
       </div>
-
-      <div class="chart-canvas-container">
-        <canvas baseChart
-          *ngIf="isBrowser && months2026.length > 0"
-          [data]="monthlyLeadsChartData"
-          [options]="monthlyChartOptions"
-          [type]="'bar'">
-        </canvas>
-        <div class="no-chart-data" *ngIf="!loading && months2026.length === 0">
-          <i class="bi bi-bar-chart-line"></i>
-          <span>No monthly data found for {{ selectedYear }}</span>
-        </div>
+      <div class="kpi-content" *ngIf="!peakMonth">
+        <span class="kpi-header">Peak Inflow</span>
+        <div class="kpi-metric">—</div>
+        <span class="kpi-caption text-truncate">No peak record</span>
       </div>
+      <div class="tile-glow glow-gold"></div>
+    </div>
+  </section>
 
-      <div class="chart-footer-note" *ngIf="peakMonth">
-        <i class="bi bi-info-circle-fill info-icon-blue"></i>
-        <span><strong>{{ peakMonth.name }}</strong> recorded the highest lead generation volume (<strong>{{ peakMonth.createdCount }} leads</strong>) across {{ selectedYear }}.</span>
-      </div>
+  <!-- 3. Navigation View Switcher (Tabs) -->
+  <div class="view-tabs-bar">
+    <div class="tabs-group">
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'charts'" (click)="setActiveTab('charts')">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        <span>Visual Analytics</span>
+        <span class="tab-badge" *ngIf="chartMode === 'monthly'">12 Months</span>
+        <span class="tab-badge" *ngIf="chartMode === 'daily'">Daily</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'matrix'" (click)="setActiveTab('matrix')">
+        <i class="bi bi-calendar2-range-fill"></i>
+        <span>12-Month Performance Matrix</span>
+        <span class="tab-badge">{{ selectedYear }}</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'leads'" (click)="setActiveTab('leads')">
+        <i class="bi bi-person-lines-fill"></i>
+        <span>Leads Audit Log</span>
+        <span class="tab-badge" *ngIf="totals.totalCreated > 0">{{ totals.totalCreated }}</span>
+      </button>
     </div>
 
-    <!-- SIDE 2 (RIGHT GRAPH): Monthly Lead Conversions & Won Count (Jan to Dec 2026) -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="chart-title-box">
-          <div class="dot-indicator dot-green"></div>
-          <div>
-            <h3 class="chart-heading">Lead Conversions Count (Jan – Dec {{ selectedYear }})</h3>
-            <span class="chart-subheading">Monthly converted (won) accounts and conversion performance</span>
-          </div>
-        </div>
-        <span class="chart-badge badge-green" *ngIf="peakMonth">
-          <i class="bi bi-check-circle-fill"></i> {{ totals.totalConverted }} Total Won
-        </span>
-      </div>
-
-      <div class="chart-canvas-container">
-        <canvas baseChart
-          *ngIf="isBrowser && months2026.length > 0"
-          [data]="monthlyConversionChartData"
-          [options]="monthlyChartOptions"
-          [type]="'bar'">
-        </canvas>
-        <div class="no-chart-data" *ngIf="!loading && months2026.length === 0">
-          <i class="bi bi-check-circle"></i>
-          <span>No conversion logs recorded for {{ selectedYear }}</span>
-        </div>
-      </div>
-
-      <div class="chart-footer-note" *ngIf="peakMonth">
-        <i class="bi bi-trophy-fill info-icon-green"></i>
-        <span>Converted <strong>{{ peakMonth.convertedCount }} leads</strong> in {{ peakMonth.name }} with a <strong>{{ peakMonth.conversionRate }}%</strong> conversion rate.</span>
-      </div>
+    <div class="tabs-meta" *ngIf="activeViewTab === 'charts' && peakMonth">
+      <span class="meta-chip">
+        <i class="bi bi-trophy-fill text-warning"></i> Highest Inflow: <strong>{{ peakMonth.name }}</strong> ({{ peakMonth.createdCount }} Leads)
+      </span>
     </div>
   </div>
 
-  <!-- DAY-WISE CHARTS SIDE-BY-SIDE (When Day-wise mode is active) -->
-  <div class="charts-row" *ngIf="chartMode === 'daily'">
-    <!-- Day-wise Chart 1 -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="chart-title-box">
-          <div class="dot-indicator dot-blue"></div>
-          <div>
-            <h3 class="chart-heading">Leads Created (Day-wise Trend)</h3>
-            <span class="chart-subheading">Daily volume of incoming leads for selected date range</span>
+  <!-- 4. Main Dashboard Workspace (Fills all remaining height, zero page scroll) -->
+  <main class="dashboard-workspace">
+
+    <!-- TAB 1: VISUAL ANALYTICS (Charts Row) -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'charts'">
+      
+      <!-- Monthly Charts (Side-by-side) -->
+      <div class="charts-row" *ngIf="chartMode === 'monthly'">
+        <!-- Chart 1: Total Leads Received -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
+              <div>
+                <h3 class="chart-heading">Total Leads Received (Jan – Dec {{ selectedYear }})</h3>
+                <span class="chart-subheading">Monthly incoming lead volume with peak month highlighted in vibrant blue</span>
+              </div>
+            </div>
+            <span class="chart-badge badge-blue" *ngIf="peakMonth">
+              <i class="bi bi-trophy-fill"></i> Peak: {{ peakMonth.shortName }} ({{ peakMonth.createdCount }})
+            </span>
+          </div>
+
+          <div class="chart-canvas-container">
+            <canvas baseChart
+              *ngIf="isBrowser && months2026.length > 0"
+              [data]="monthlyLeadsChartData"
+              [options]="monthlyChartOptions"
+              [type]="'bar'">
+            </canvas>
+            <div class="no-chart-data" *ngIf="!loading && months2026.length === 0">
+              <i class="bi bi-bar-chart-line"></i>
+              <span>No monthly data found for {{ selectedYear }}</span>
+            </div>
+          </div>
+
+          <div class="chart-footer-note" *ngIf="peakMonth">
+            <i class="bi bi-info-circle-fill info-icon-blue"></i>
+            <span><strong>{{ peakMonth.name }}</strong> recorded highest generation volume (<strong>{{ peakMonth.createdCount }} leads</strong>).</span>
           </div>
         </div>
-        <span class="chart-badge badge-blue">{{ totals.totalCreated }} Leads</span>
-      </div>
-      <div class="chart-canvas-container">
-        <canvas baseChart
-          *ngIf="isBrowser && daywiseTrend.length > 0"
-          [data]="creationChartData"
-          [options]="lineChartOptions"
-          [type]="'line'">
-        </canvas>
-        <div class="no-chart-data" *ngIf="!loading && daywiseTrend.length === 0">
-          <i class="bi bi-graph-up"></i>
-          <span>No day-wise creation data available for selected date range</span>
-        </div>
-      </div>
-    </div>
 
-    <!-- Day-wise Chart 2 -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="chart-title-box">
-          <div class="dot-indicator dot-green"></div>
-          <div>
-            <h3 class="chart-heading">Conversions Count (Day-wise Trend)</h3>
-            <span class="chart-subheading">Daily converted (won) accounts</span>
+        <!-- Chart 2: Monthly Lead Conversions -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-green"></div>
+              <div>
+                <h3 class="chart-heading">Lead Conversions Count (Jan – Dec {{ selectedYear }})</h3>
+                <span class="chart-subheading">Monthly converted (won) accounts and conversion performance</span>
+              </div>
+            </div>
+            <span class="chart-badge badge-green" *ngIf="peakMonth">
+              <i class="bi bi-check-circle-fill"></i> {{ totals.totalConverted }} Total Won
+            </span>
+          </div>
+
+          <div class="chart-canvas-container">
+            <canvas baseChart
+              *ngIf="isBrowser && months2026.length > 0"
+              [data]="monthlyConversionChartData"
+              [options]="monthlyChartOptions"
+              [type]="'bar'">
+            </canvas>
+            <div class="no-chart-data" *ngIf="!loading && months2026.length === 0">
+              <i class="bi bi-check-circle"></i>
+              <span>No conversion logs recorded for {{ selectedYear }}</span>
+            </div>
+          </div>
+
+          <div class="chart-footer-note" *ngIf="peakMonth">
+            <i class="bi bi-trophy-fill info-icon-green"></i>
+            <span>Converted <strong>{{ peakMonth.convertedCount }} leads</strong> in {{ peakMonth.name }} with a <strong>{{ peakMonth.conversionRate }}%</strong> win rate.</span>
           </div>
         </div>
-        <span class="chart-badge badge-green">{{ totals.totalConverted }} Won</span>
       </div>
-      <div class="chart-canvas-container">
-        <canvas baseChart
-          *ngIf="isBrowser && daywiseTrend.length > 0"
-          [data]="conversionChartData"
-          [options]="lineChartOptions"
-          [type]="'line'">
-        </canvas>
-        <div class="no-chart-data" *ngIf="!loading && daywiseTrend.length === 0">
-          <i class="bi bi-check-circle"></i>
-          <span>No conversion logs recorded for selected dates</span>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- 12-MONTH PERFORMANCE MATRIX TABLE (January to December 2026) -->
-  <div class="table-card monthly-matrix-card" *ngIf="months2026.length > 0">
-    <div class="table-card-header">
-      <div class="table-title-box">
-        <i class="bi bi-calendar2-week header-section-icon"></i>
-        <div>
-          <h3 class="table-heading">{{ selectedYear }} Monthly Lead & Conversion Performance Matrix</h3>
-          <span class="chart-subheading">Complete 12-month breakdown (January to December {{ selectedYear }}) comparing leads received vs converted</span>
-        </div>
-      </div>
-      <span class="records-pill">12 Months (Jan – Dec {{ selectedYear }})</span>
-    </div>
-
-    <div class="table-container">
-      <table class="modern-data-table matrix-table">
-        <thead>
-          <tr>
-            <th>Month</th>
-            <th class="text-center">Leads Received</th>
-            <th class="text-center">Converted (Won)</th>
-            <th class="text-center">Conversion Rate</th>
-            <th class="text-center">In Pipeline</th>
-            <th class="text-center">Performance Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let m of months2026" class="data-row" [class.highlight-peak-row]="m.isPeak">
-            <td>
-              <div class="month-cell">
-                <span class="month-full-name">{{ m.fullName }} {{ selectedYear }}</span>
-                <span class="peak-label-pill" *ngIf="m.isPeak">
-                  <i class="bi bi-trophy-fill"></i> Highest Month
-                </span>
+      <!-- Day-wise Charts (Side-by-side) -->
+      <div class="charts-row" *ngIf="chartMode === 'daily'">
+        <!-- Day-wise Chart 1 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
+              <div>
+                <h3 class="chart-heading">Leads Created (Day-wise Trend)</h3>
+                <span class="chart-subheading">Daily volume of incoming leads for selected range</span>
               </div>
-            </td>
-            <td class="text-center">
-              <span class="lead-volume-val" [class.val-highlight]="m.isPeak">
-                {{ m.createdCount }}
-              </span>
-            </td>
-            <td class="text-center">
-              <span class="won-val" [class.won-active]="m.convertedCount > 0">
-                {{ m.convertedCount }}
-              </span>
-            </td>
-            <td class="text-center">
-              <div class="rate-progress-wrap">
-                <span class="rate-pct" [class.rate-high]="m.conversionRate > 0">{{ m.conversionRate }}%</span>
-                <div class="rate-bar-bg" *ngIf="m.createdCount > 0">
-                  <div class="rate-bar-fill" [style.width.%]="m.conversionRate"></div>
-                </div>
-              </div>
-            </td>
-            <td class="text-center">
-              <span class="pipeline-val">{{ (m.createdCount - m.convertedCount - (m.lostCount || 0)) }}</span>
-            </td>
-            <td class="text-center">
-              <span class="status-badge-matrix" [ngClass]="{
-                'status-peak': m.isPeak,
-                'status-active': !m.isPeak && m.createdCount > 0,
-                'status-zero': m.createdCount === 0
-              }">
-                <i class="bi bi-star-fill" *ngIf="m.isPeak"></i>
-                <i class="bi bi-activity" *ngIf="!m.isPeak && m.createdCount > 0"></i>
-                <i class="bi bi-dash" *ngIf="m.createdCount === 0"></i>
-                {{ m.isPeak ? 'Peak Volume' : (m.createdCount > 0 ? 'Active' : 'No Leads') }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-  </div>
-
-  <!-- Detailed Leads Audit Table -->
-  <div class="table-card">
-    <div class="table-card-header">
-      <div class="table-title-box">
-        <div class="live-dot-wrap">
-          <span class="live-dot"></span>
+            </div>
+            <span class="chart-badge badge-blue">{{ totals.totalCreated }} Leads</span>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas baseChart
+              *ngIf="isBrowser && daywiseTrend.length > 0"
+              [data]="creationChartData"
+              [options]="lineChartOptions"
+              [type]="'line'">
+            </canvas>
+            <div class="no-chart-data" *ngIf="!loading && daywiseTrend.length === 0">
+              <i class="bi bi-graph-up"></i>
+              <span>No day-wise creation data available for selected date range</span>
+            </div>
+          </div>
         </div>
-        <h3 class="table-heading">Created Leads & Stage Audit</h3>
-        <span class="records-pill" *ngIf="totals.totalCreated > 0">{{ totals.totalCreated }} Leads</span>
-      </div>
 
-      <div class="table-actions">
-        <div class="page-size-selector">
-          <span>Show:</span>
-          <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="select-page-size">
-            <option [value]="5">5 per page</option>
-            <option [value]="10">10 per page</option>
-            <option [value]="25">25 per page</option>
-            <option [value]="50">50 per page</option>
-          </select>
+        <!-- Day-wise Chart 2 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-green"></div>
+              <div>
+                <h3 class="chart-heading">Conversions Count (Day-wise Trend)</h3>
+                <span class="chart-subheading">Daily converted (won) accounts</span>
+              </div>
+            </div>
+            <span class="chart-badge badge-green">{{ totals.totalConverted }} Won</span>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas baseChart
+              *ngIf="isBrowser && daywiseTrend.length > 0"
+              [data]="conversionChartData"
+              [options]="lineChartOptions"
+              [type]="'line'">
+            </canvas>
+            <div class="no-chart-data" *ngIf="!loading && daywiseTrend.length === 0">
+              <i class="bi bi-check-circle"></i>
+              <span>No conversion logs recorded for selected dates</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="table-container">
-      <table class="modern-data-table">
-        <thead>
-          <tr>
-            <th>Lead & Contact</th>
-            <th>Created Date</th>
-            <th>Current Stage</th>
-            <th>Conversion Result</th>
-            <th>Assigned SDR</th>
-            <th>Lead Source</th>
-            <th>Follow-Ups</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Loading skeleton -->
-          <tr *ngIf="loading">
-            <td colspan="7" class="empty-cell">
-              <div class="loading-state">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p>Fetching real-time lead flow data...</p>
-              </div>
-            </td>
-          </tr>
+    <!-- TAB 2: 12-MONTH PERFORMANCE MATRIX -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'matrix'">
+      <div class="table-card monthly-matrix-card">
+        <div class="table-card-header">
+          <div class="table-title-box">
+            <i class="bi bi-calendar2-week header-section-icon"></i>
+            <div>
+              <h3 class="table-heading">{{ selectedYear }} Monthly Lead & Conversion Performance Matrix</h3>
+              <span class="chart-subheading">Complete 12-month breakdown (January to December {{ selectedYear }})</span>
+            </div>
+          </div>
+          <span class="records-pill">12 Months (Jan – Dec {{ selectedYear }})</span>
+        </div>
 
-          <!-- Empty State -->
-          <tr *ngIf="!loading && leads.length === 0">
-            <td colspan="7" class="empty-cell">
-              <div class="empty-state-box">
-                <i class="bi bi-funnel"></i>
-                <h4>No Leads Created in this Range</h4>
-                <p>No new leads were added in the selected period and staff filters.</p>
-                <button class="btn-reset-filters" (click)="resetFilters()">
-                  <i class="bi bi-arrow-repeat"></i> Reset to This Month
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Data Rows -->
-          <tr *ngFor="let lead of leads" class="data-row">
-            <td>
-              <div class="lead-cell">
-                <div class="lead-avatar">{{ getInitials(lead.name) }}</div>
-                <div class="lead-text">
-                  <span class="lead-title">{{ lead.name }}</span>
-                  <span class="lead-phone" *ngIf="lead.phone">
-                    <i class="bi bi-telephone-fill"></i> {{ lead.phone }}
+        <div class="table-container">
+          <table class="modern-data-table matrix-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th class="text-center">Leads Received</th>
+                <th class="text-center">Converted (Won)</th>
+                <th class="text-center">Conversion Rate</th>
+                <th class="text-center">In Pipeline</th>
+                <th class="text-center">Performance Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of months2026" class="data-row" [class.highlight-peak-row]="m.isPeak">
+                <td>
+                  <div class="month-cell">
+                    <span class="month-full-name">{{ m.fullName }} {{ selectedYear }}</span>
+                    <span class="peak-label-pill" *ngIf="m.isPeak">
+                      <i class="bi bi-trophy-fill"></i> Highest Month
+                    </span>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="lead-volume-val" [class.val-highlight]="m.isPeak">
+                    {{ m.createdCount }}
                   </span>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="timestamp-box">
-                <span class="date-main">{{ lead.created_at | date:'MMM d, y' }}</span>
-                <span class="time-sub">{{ lead.created_at | date:'h:mm a' }}</span>
-              </div>
-            </td>
-            <td>
-              <span class="badge-stage">{{ lead.status_name }}</span>
-            </td>
-            <td>
-              <span class="badge-outcome" [ngClass]="{
-                'outcome-won': lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON'),
-                'outcome-lost': lead.status_name?.toUpperCase()?.includes('LOST'),
-                'outcome-progress': lead.sale_won != 1 && !lead.status_name?.toUpperCase()?.includes('WON') && !lead.status_name?.toUpperCase()?.includes('LOST')
-              }">
-                <i class="bi bi-check-circle-fill" *ngIf="lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON')"></i>
-                <i class="bi bi-x-circle-fill" *ngIf="lead.status_name?.toUpperCase()?.includes('LOST')"></i>
-                <i class="bi bi-hourglass-split" *ngIf="lead.sale_won != 1 && !lead.status_name?.toUpperCase()?.includes('WON') && !lead.status_name?.toUpperCase()?.includes('LOST')"></i>
-                {{ lead.conversion_status }}
-              </span>
-            </td>
-            <td>
-              <div class="user-cell">
-                <i class="bi bi-person-circle user-icon"></i>
-                <span>{{ lead.assigned_to }}</span>
-              </div>
-            </td>
-            <td>
-              <span class="source-tag">{{ lead.source || 'Direct' }}</span>
-            </td>
-            <td>
-              <span class="followup-count-pill">{{ lead.follow_up_count || 0 }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Server-Side Pagination Bar -->
-    <div class="pagination-footer" *ngIf="totals.totalCreated > 0">
-      <div class="pagination-summary">
-        Showing <strong>{{ paginationStart }}</strong> to <strong>{{ paginationEnd }}</strong> of <strong>{{ totals.totalCreated }}</strong> leads
-      </div>
-
-      <div class="pagination-controls" *ngIf="totalPages > 1">
-        <button class="pag-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First Page">
-          <i class="bi bi-chevron-double-left"></i>
-        </button>
-        <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous Page">
-          <i class="bi bi-chevron-left"></i>
-        </button>
-
-        <ng-container *ngFor="let p of pages">
-          <button class="pag-btn" [class.active]="currentPage === p" (click)="goToPage(p)">
-            {{ p }}
-          </button>
-        </ng-container>
-
-        <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next Page">
-          <i class="bi bi-chevron-right"></i>
-        </button>
-        <button class="pag-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last Page">
-          <i class="bi bi-chevron-double-right"></i>
-        </button>
+                </td>
+                <td class="text-center">
+                  <span class="won-val" [class.won-active]="m.convertedCount > 0">
+                    {{ m.convertedCount }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <div class="rate-progress-wrap">
+                    <span class="rate-pct" [class.rate-high]="m.conversionRate > 0">{{ m.conversionRate }}%</span>
+                    <div class="rate-bar-bg" *ngIf="m.createdCount > 0">
+                      <div class="rate-bar-fill" [style.width.%]="m.conversionRate"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="pipeline-val">{{ (m.createdCount - m.convertedCount - (m.lostCount || 0)) }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="status-badge-matrix" [ngClass]="{
+                    'status-peak': m.isPeak,
+                    'status-active': !m.isPeak && m.createdCount > 0,
+                    'status-zero': m.createdCount === 0
+                  }">
+                    <i class="bi bi-star-fill" *ngIf="m.isPeak"></i>
+                    <i class="bi bi-activity" *ngIf="!m.isPeak && m.createdCount > 0"></i>
+                    <i class="bi bi-dash" *ngIf="m.createdCount === 0"></i>
+                    {{ m.isPeak ? 'Peak Volume' : (m.createdCount > 0 ? 'Active' : 'No Leads') }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- TAB 3: LEADS AUDIT TABLE -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'leads'">
+      <div class="table-card">
+        <div class="table-card-header">
+          <div class="table-title-box">
+            <div class="live-dot-wrap">
+              <span class="live-dot"></span>
+            </div>
+            <h3 class="table-heading">Created Leads & Stage Audit</h3>
+            <span class="records-pill" *ngIf="totals.totalCreated > 0">{{ totals.totalCreated }} Leads</span>
+          </div>
+
+          <div class="table-actions">
+            <div class="page-size-selector">
+              <span>Show:</span>
+              <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="select-page-size">
+                <option [value]="5">5 per page</option>
+                <option [value]="10">10 per page</option>
+                <option [value]="25">25 per page</option>
+                <option [value]="50">50 per page</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="modern-data-table">
+            <thead>
+              <tr>
+                <th>Lead & Contact</th>
+                <th>Created Date</th>
+                <th>Current Stage</th>
+                <th>Conversion Result</th>
+                <th>Assigned SDR</th>
+                <th>Lead Source</th>
+                <th>Follow-Ups</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Loading skeleton -->
+              <tr *ngIf="loading">
+                <td colspan="7" class="empty-cell">
+                  <div class="loading-state">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Fetching real-time lead flow data...</p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Empty State -->
+              <tr *ngIf="!loading && leads.length === 0">
+                <td colspan="7" class="empty-cell">
+                  <div class="empty-state-box">
+                    <i class="bi bi-funnel"></i>
+                    <h4>No Leads Created in this Range</h4>
+                    <p>No new leads were added in the selected period and staff filters.</p>
+                    <button class="btn-reset-filters" (click)="resetFilters()">
+                      <i class="bi bi-arrow-repeat"></i> Reset to This Month
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Data Rows -->
+              <tr *ngFor="let lead of leads" class="data-row">
+                <td>
+                  <div class="lead-cell">
+                    <div class="lead-avatar">{{ getInitials(lead.name) }}</div>
+                    <div class="lead-text">
+                      <span class="lead-title">{{ lead.name }}</span>
+                      <span class="lead-phone" *ngIf="lead.phone">
+                        <i class="bi bi-telephone-fill"></i> {{ lead.phone }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="timestamp-box">
+                    <span class="date-main">{{ lead.created_at | date:'MMM d, y' }}</span>
+                    <span class="time-sub">{{ lead.created_at | date:'h:mm a' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge-stage">{{ lead.status_name }}</span>
+                </td>
+                <td>
+                  <span class="badge-outcome" [ngClass]="{
+                    'outcome-won': lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON'),
+                    'outcome-lost': lead.status_name?.toUpperCase()?.includes('LOST'),
+                    'outcome-progress': lead.sale_won != 1 && !lead.status_name?.toUpperCase()?.includes('WON') && !lead.status_name?.toUpperCase()?.includes('LOST')
+                  }">
+                    <i class="bi bi-check-circle-fill" *ngIf="lead.sale_won == 1 || lead.status_name?.toUpperCase()?.includes('WON')"></i>
+                    <i class="bi bi-x-circle-fill" *ngIf="lead.status_name?.toUpperCase()?.includes('LOST')"></i>
+                    <i class="bi bi-hourglass-split" *ngIf="lead.sale_won != 1 && !lead.status_name?.toUpperCase()?.includes('WON') && !lead.status_name?.toUpperCase()?.includes('LOST')"></i>
+                    {{ lead.conversion_status }}
+                  </span>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <i class="bi bi-person-circle user-icon"></i>
+                    <span>{{ lead.assigned_to }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="source-tag">{{ lead.source || 'Direct' }}</span>
+                </td>
+                <td>
+                  <span class="followup-count-pill">{{ lead.follow_up_count || 0 }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Server-Side Pagination Bar -->
+        <div class="pagination-footer" *ngIf="totals.totalCreated > 0">
+          <div class="pagination-summary">
+            Showing <strong>{{ paginationStart }}</strong> to <strong>{{ paginationEnd }}</strong> of <strong>{{ totals.totalCreated }}</strong> leads
+          </div>
+
+          <div class="pagination-controls" *ngIf="totalPages > 1">
+            <button class="pag-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First Page">
+              <i class="bi bi-chevron-double-left"></i>
+            </button>
+            <button class="pag-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous Page">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <ng-container *ngFor="let p of pages">
+              <button class="pag-btn" [class.active]="currentPage === p" (click)="goToPage(p)">
+                {{ p }}
+              </button>
+            </ng-container>
+
+            <button class="pag-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next Page">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="pag-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last Page">
+              <i class="bi bi-chevron-double-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>

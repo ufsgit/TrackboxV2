@@ -161,46 +161,100 @@ export class WorkReportComponent implements OnInit {
     this.initAgentChart(agentLabels, leadsHandled, conversions);
 
     if (data.activityLabels && data.activityData) {
-      this.initActivityChart(data.activityLabels, data.activityData);
+      this.initActivityChart(data.activityLabels, data.activityData, data.followUpTrendData);
     } else {
       this.initActivityChart([], []);
     }
   }
 
-  initActivityChart(labels: string[], callsData: number[]) {
+  initActivityChart(labels: string[], callsData: number[], followUpData?: number[]) {
     const ctx = document.getElementById('activityChart') as HTMLCanvasElement;
     if (!ctx) return;
     
+    if (this.activityChart) {
+      this.activityChart.destroy();
+      this.activityChart = null;
+    }
+    
     const realLabels = labels.length ? labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const realCallsData = callsData.length ? callsData : [0, 0, 0, 0, 0, 0, 0];
+    const realFollowUpData = followUpData && followUpData.length ? followUpData : [];
+
+    const datasets: any[] = [
+      {
+        label: 'Leads Received',
+        data: realCallsData,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.12)',
+        borderWidth: 2.5,
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: '#3b82f6',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }
+    ];
+
+    if (realFollowUpData.length) {
+      datasets.push({
+        label: 'Follow-ups Completed',
+        data: realFollowUpData,
+        borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139, 92, 246, 0.08)',
+        borderWidth: 2.5,
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: '#8b5cf6',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      });
+    }
 
     this.activityChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: realLabels,
-        datasets: [
-          {
-            label: 'Leads Received',
-            data: realCallsData.map(() => 0),
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true
-          }
-        ]
+        datasets: datasets
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
-        scales: { y: { beginAtZero: true } },
-        animation: { duration: 1200, easing: 'easeOutQuart' }
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              boxWidth: 12,
+              font: { family: 'Plus Jakarta Sans', size: 12, weight: 'bold' },
+              color: '#475569'
+            }
+          },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            titleFont: { size: 13, family: 'Plus Jakarta Sans', weight: 'bold' },
+            bodyFont: { size: 13, family: 'Plus Jakarta Sans' },
+            padding: 12,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0, color: '#94a3b8' },
+            grid: { color: 'rgba(226, 232, 240, 0.6)' }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 11 } }
+          }
+        },
+        animation: { duration: 1000, easing: 'easeOutQuart' }
       }
     });
-    setTimeout(() => {
-      this.activityChart.data.datasets[0].data = realCallsData;
-      this.activityChart.update();
-    }, 600);
   }
 
   initFunnelChart(labels: string[], values: number[]) {

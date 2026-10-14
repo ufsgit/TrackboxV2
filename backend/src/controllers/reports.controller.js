@@ -523,7 +523,19 @@ const getWorkReport = async (req, res) => {
     let teamFilter = '';
     let filterParams = [];
 
-    if (req.user.role === 'agent') {
+    if (agent && agent !== 'all') {
+      let targetUserId = null;
+      if (!isNaN(Number(agent))) {
+        targetUserId = Number(agent);
+      } else {
+        const [uRows] = await pool.query('SELECT id FROM users WHERE (name = ? OR username = ?) AND business_id = ?', [agent, agent, businessId]);
+        if (uRows.length) targetUserId = uRows[0].id;
+      }
+      if (targetUserId) {
+        teamFilter += ` AND (c.assigned_to = ? OR EXISTS (SELECT 1 FROM follow_ups fu WHERE fu.contact_id = c.id AND (fu.by_user_id = ? OR fu.to_user_id = ?))) `;
+        filterParams.push(targetUserId, targetUserId, targetUserId);
+      }
+    } else if (req.user.role === 'agent') {
       const selfId = Number(userId);
       const [teamRows] = await pool.query(
         `SELECT user_id FROM team_members 
@@ -603,30 +615,142 @@ const getWorkReport = async (req, res) => {
       [businessId, ...filterParams, limit, offset]
     );
 
-    // Activity Data (Trend over last 7 days)
-    const [activityTrend] = await pool.query(
-      `SELECT DATE(c.created_at) as date, COUNT(*) as count
-       FROM contacts c
-       WHERE c.business_id = ? AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) ${teamFilter}
-       GROUP BY DATE(c.created_at)
-       ORDER BY date ASC`,
-      [businessId, ...filterParams]
-    );
+    // Activity Data (Trend matching dateRange)
+    let activityLabels = [];
+    let activityData = [];
+    let followUpTrendData = [];
 
-    const activityData = [];
-    const labels = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const found = activityTrend.find(a => {
-        const aDate = new Date(a.date);
-        return aDate.toISOString().split('T')[0] === dateStr;
-      });
-      
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      labels.push(days[d.getDay()]);
-      activityData.push(found ? found.count : 0);
+    if (dateRange === 'today' || dateRange === 'yesterday') {
+      const targetDateExpr = dateRange === 'today' ? 'CURDATE()' : 'DATE_SUB(CURDATE(), INTERVAL 1 DAY)';
+      const [hourlyLeads] = await pool.query(
+        `SELECT HOUR(c.created_at) as hour, COUNT(*) as count 
+         FROM contacts c 
+         WHERE c.business_id = ? AND DATE(c.created_at) = ${targetDateExpr} ${teamFilter} 
+         GROUP BY HOUR(c.created_at)`,
+        [businessId, ...filterParams]
+      );
+      const [hourlyFollowUps] = await pool.query(
+        `SELECT HOUR(f.entry_date_time) as hour, COUNT(*) as count 
+         FROM follow_ups f 
+         JOIN contacts c ON f.contact_id = c.id 
+         WHERE c.business_id = ? AND DATE(f.entry_date_time) = ${targetDateExpr} ${teamFilter} 
+         GROUP BY HOUR(f.entry_date_time)`,
+        [businessId, ...filterParams]
+      );
+
+      for (let h = 0; h < 24; h += 2) {
+        const label = h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+        activityLabels.push(label);
+        const lCount = (hourlyLeads.find(r => r.hour === h)?.count || 0) + (hourlyLeads.find(r => r.hour === h + 1)?.count || 0);
+        const fCount = (hourlyFollowUps.find(r => r.hour === h)?.count || 0) + (hourlyFollowUps.find(r => r.hour === h + 1)?.count || 0);
+        activityData.push(lCount);
+        followUpTrendData.push(fCount);
+      }
+    } else if (dateRange === 'this_week') {
+      const [dailyLeads] = await pool.query(
+        `SELECT DATE_FORMAT(c.created_at, '%Y-%m-%d') as date_str, COUNT(*) as count 
+         FROM contacts c 
+         WHERE c.business_id = ? AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1) ${teamFilter} 
+         GROUP BY date_str`,
+        [businessId, ...filterParams]
+      );
+      const [dailyFollowUps] = await pool.query(
+        `SELECT DATE_FORMAT(f.entry_date_time, '%Y-%m-%d') as date_str, COUNT(*) as count 
+         FROM follow_ups f 
+         JOIN contacts c ON f.contact_id = c.id 
+         WHERE c.business_id = ? AND YEARWEEK(f.entry_date_time, 1) = YEARWEEK(CURDATE(), 1) ${teamFilter} 
+         GROUP BY date_str`,
+        [businessId, ...filterParams]
+      );
+
+      const now = new Date();
+      const currentDay = now.getDay();
+      const distanceToMon = (currentDay + 6) % 7;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - distanceToMon);
+
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${day}`;
+
+        activityLabels.push(dayNames[i]);
+        const foundLead = dailyLeads.find(r => r.date_str === dateStr);
+        const foundFu = dailyFollowUps.find(r => r.date_str === dateStr);
+        activityData.push(foundLead ? foundLead.count : 0);
+        followUpTrendData.push(foundFu ? foundFu.count : 0);
+      }
+    } else if (dateRange === 'last_month') {
+      const [dailyLeads] = await pool.query(
+        `SELECT DATE_FORMAT(c.created_at, '%Y-%m-%d') as date_str, COUNT(*) as count 
+         FROM contacts c 
+         WHERE c.business_id = ? AND MONTH(c.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(c.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) ${teamFilter} 
+         GROUP BY date_str`,
+        [businessId, ...filterParams]
+      );
+      const [dailyFollowUps] = await pool.query(
+        `SELECT DATE_FORMAT(f.entry_date_time, '%Y-%m-%d') as date_str, COUNT(*) as count 
+         FROM follow_ups f 
+         JOIN contacts c ON f.contact_id = c.id 
+         WHERE c.business_id = ? AND MONTH(f.entry_date_time) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(f.entry_date_time) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) ${teamFilter} 
+         GROUP BY date_str`,
+        [businessId, ...filterParams]
+      );
+
+      const now = new Date();
+      const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      const totalDays = prevMonth.getDate();
+      const mName = prevMonth.toLocaleString('en-US', { month: 'short' });
+      const yearStr = prevMonth.getFullYear();
+      const mNum = String(prevMonth.getMonth() + 1).padStart(2, '0');
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dayStr = String(day).padStart(2, '0');
+        const dateStr = `${yearStr}-${mNum}-${dayStr}`;
+        activityLabels.push(`${mName} ${day}`);
+        const foundLead = dailyLeads.find(r => r.date_str === dateStr);
+        const foundFu = dailyFollowUps.find(r => r.date_str === dateStr);
+        activityData.push(foundLead ? foundLead.count : 0);
+        followUpTrendData.push(foundFu ? foundFu.count : 0);
+      }
+    } else {
+      // Default: 'this_month'
+      const [dailyLeads] = await pool.query(
+        `SELECT DATE_FORMAT(c.created_at, '%Y-%m-%d') as date_str, COUNT(*) as count 
+         FROM contacts c 
+         WHERE c.business_id = ? AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE()) ${teamFilter} 
+         GROUP BY date_str`,
+        [businessId, ...filterParams]
+      );
+      const [dailyFollowUps] = await pool.query(
+        `SELECT DATE_FORMAT(f.entry_date_time, '%Y-%m-%d') as date_str, COUNT(*) as count 
+         FROM follow_ups f 
+         JOIN contacts c ON f.contact_id = c.id 
+         WHERE c.business_id = ? AND MONTH(f.entry_date_time) = MONTH(CURDATE()) AND YEAR(f.entry_date_time) = YEAR(CURDATE()) ${teamFilter} 
+         GROUP BY date_str`,
+        [businessId, ...filterParams]
+      );
+
+      const now = new Date();
+      const currentMonthDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const mName = now.toLocaleString('en-US', { month: 'short' });
+      const yearStr = now.getFullYear();
+      const mNum = String(now.getMonth() + 1).padStart(2, '0');
+
+      const endDay = Math.min(now.getDate(), currentMonthDays);
+      for (let day = 1; day <= Math.max(endDay, 7); day++) {
+        const dayStr = String(day).padStart(2, '0');
+        const dateStr = `${yearStr}-${mNum}-${dayStr}`;
+        activityLabels.push(`${mName} ${day}`);
+        const foundLead = dailyLeads.find(r => r.date_str === dateStr);
+        const foundFu = dailyFollowUps.find(r => r.date_str === dateStr);
+        activityData.push(foundLead ? foundLead.count : 0);
+        followUpTrendData.push(foundFu ? foundFu.count : 0);
+      }
     }
 
     res.json({
@@ -642,8 +766,9 @@ const getWorkReport = async (req, res) => {
         page,
         limit,
         recentActivities,
-        activityLabels: labels,
-        activityData: activityData
+        activityLabels,
+        activityData,
+        followUpTrendData
       }
     });
 
@@ -899,13 +1024,48 @@ const getTimeTrackReport = async (req, res) => {
     const params = [bizId];
 
     if (date) {
-      query += ` AND DATE(f.entry_date_time) = ? `;
-      params.push(date);
+      query += ` AND (DATE(f.entry_date_time) = ? OR DATE(f.follow_up_date) = ?) `;
+      params.push(date, date);
     }
     
     if (agent && agent !== 'all') {
-      query += ` AND f.by_user_id = ? `;
-      params.push(agent);
+      let targetUserId = null;
+      let targetUserName = null;
+      if (!isNaN(Number(agent))) {
+        targetUserId = Number(agent);
+        const [uRows] = await pool.query('SELECT name FROM users WHERE id = ?', [targetUserId]);
+        if (uRows.length) targetUserName = uRows[0].name;
+      } else {
+        targetUserName = agent;
+        const [uRows] = await pool.query('SELECT id, name FROM users WHERE (name = ? OR username = ?) AND business_id = ?', [agent, agent, bizId]);
+        if (uRows.length) {
+          targetUserId = uRows[0].id;
+          targetUserName = uRows[0].name;
+        }
+      }
+
+      if (targetUserId && targetUserName) {
+        query += ` AND (f.by_user_id = ? OR f.to_user_id = ? OR c.assigned_to = ? OR f.by_user_name = ? OR f.to_user_name = ?) `;
+        params.push(targetUserId, targetUserId, targetUserId, targetUserName, targetUserName);
+      } else if (targetUserId) {
+        query += ` AND (f.by_user_id = ? OR f.to_user_id = ? OR c.assigned_to = ?) `;
+        params.push(targetUserId, targetUserId, targetUserId);
+      } else if (targetUserName) {
+        query += ` AND (f.by_user_name = ? OR f.to_user_name = ?) `;
+        params.push(targetUserName, targetUserName);
+      }
+    } else if (req.user.role === 'agent') {
+      const selfId = Number(req.user.userId || req.user.id);
+      const [teamRows] = await pool.query(
+        `SELECT user_id FROM team_members 
+         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
+        [selfId, bizId]
+      );
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+
+      query += ` AND (f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) OR f.to_user_id IN (${teamMemberIds.map(() => '?').join(',')}) OR c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})) `;
+      params.push(...teamMemberIds, ...teamMemberIds, ...teamMemberIds);
     }
 
     query += ` GROUP BY HOUR(f.entry_date_time) ORDER BY hour ASC`;
@@ -1575,8 +1735,8 @@ const getTeamProductivityReport = async (req, res) => {
       employeeFilterUsers = 'AND u.id = ?';
       queryParamsUsers.push(employee);
       
-      employeeFilterFollowUps = 'AND c.assigned_to = ?';
-      queryParamsFollowUps.push(employee);
+      employeeFilterFollowUps = 'AND (c.assigned_to = ? OR f.by_user_id = ? OR f.to_user_id = ?)';
+      queryParamsFollowUps.push(employee, employee, employee);
     }
 
     // 1. Team Productivity Table Data
@@ -1586,7 +1746,7 @@ const getTeamProductivityReport = async (req, res) => {
         COALESCE(u.name, 'Unassigned') as employee_name,
         COALESCE(u.employee_code, 'N/A') as employee_code,
         (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND DATE(c.created_at) = ?) as assigned,
-        (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE f.by_user_id = u.id AND fc.business_id = ? AND DATE(f.entry_date_time) = ?) as follow_ups,
+        (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE (f.by_user_id = u.id OR f.to_user_id = u.id) AND fc.business_id = ? AND DATE(f.entry_date_time) = ?) as follow_ups,
         (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_lost = 1 AND DATE(c.created_at) = ?) as lost,
         (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 1 AND DATE(c.created_at) = ?) as converted,
         (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 0 AND c.sale_lost = 0 AND DATE(c.created_at) = ?) as pending

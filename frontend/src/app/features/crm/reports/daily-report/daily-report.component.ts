@@ -180,6 +180,13 @@ export class DailyReportComponent implements OnInit {
       this.isDateDropdownOpen = false;
       this.currentPage = 1;
       this.fetchData();
+    } else {
+      if (!this.customStartDate) {
+        this.customStartDate = new Date().toISOString().split('T')[0];
+      }
+      if (!this.customEndDate) {
+        this.customEndDate = new Date().toISOString().split('T')[0];
+      }
     }
   }
 

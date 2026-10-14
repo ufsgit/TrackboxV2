@@ -18,28 +18,33 @@ export class EmployeeProductivityReportComponent implements OnInit {
   dateRange: string = 'ytd';
   customStartDate: string = '';
   customEndDate: string = '';
+  searchTerm: string = '';
   
   data: any[] = [];
-  chartHeight: number = 400;
+  totals: any = { conversions: 0, leads: 0, employees: 0, topPerformer: 'N/A', avgPerEmp: '0' };
+  animatedTotals: any = { conversions: 0, leads: 0, employees: 0, avgPerEmp: '0' };
 
   public barChartOptions: ChartConfiguration['options'] = {
-    indexAxis: 'y', // This makes it a horizontal bar chart
+    indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
     animation: { duration: 800, easing: 'easeOutQuart' } as any,
     scales: {
       x: { 
         beginAtZero: true, 
+        suggestedMax: 5,
         grid: { color: 'rgba(0,0,0,0.03)' },
-        title: { display: true, text: 'Lead Conversion Count' }
+        ticks: { precision: 0, stepSize: 1, font: { size: 10 } },
+        title: { display: true, text: 'Lead Conversions', font: { size: 10, weight: 'bold' } }
       },
       y: { 
-        grid: { display: false }
+        grid: { display: false },
+        ticks: { font: { size: 11, weight: 'bold' } }
       }
     },
     plugins: {
       legend: { display: false },
-      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 }
+      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, cornerRadius: 8 }
     }
   };
 
@@ -47,8 +52,9 @@ export class EmployeeProductivityReportComponent implements OnInit {
   
   isBrowser = false;
 
-  // Custom Dropdown State
+  // Custom Dropdown State & View Mode
   isDateDropdownOpen: boolean = false;
+  activeViewTab: 'split' | 'chart' | 'table' = 'split';
 
   constructor(
     private cdr: ChangeDetectorRef, 
@@ -62,7 +68,19 @@ export class EmployeeProductivityReportComponent implements OnInit {
     this.fetchData();
   }
 
-  toggleDateDropdown() {
+  onDocumentClick() {
+    this.isDateDropdownOpen = false;
+  }
+
+  setActiveTab(tab: 'split' | 'chart' | 'table') {
+    this.activeViewTab = tab;
+    this.cdr.detectChanges();
+  }
+
+  toggleDateDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -114,9 +132,14 @@ export class EmployeeProductivityReportComponent implements OnInit {
     this.api.get(endpoint).subscribe({
       next: (res: any) => {
         if (res.success) {
-          // Sort by conversion count (sale_won) descending
-          this.data = res.data.sort((a: any, b: any) => b.sale_won - a.sale_won);
+          this.data = (res.data || []).sort((a: any, b: any) => (b.sale_won || 0) - (a.sale_won || 0));
+          this.calculateTotals();
           this.updateCharts();
+          if (this.isBrowser) {
+            this.animateCountUp();
+          } else {
+            this.animatedTotals = { ...this.totals };
+          }
         }
         setTimeout(() => {
           this.loading = false;
@@ -132,19 +155,69 @@ export class EmployeeProductivityReportComponent implements OnInit {
     });
   }
 
+  calculateTotals() {
+    const conversions = this.data.reduce((sum, r) => sum + (r.sale_won || 0), 0);
+    const leads = this.data.reduce((sum, r) => sum + (r.total_leads || 0), 0);
+    const employees = this.data.length;
+    const topPerformer = this.data.length > 0 && this.data[0].sale_won > 0 ? (this.data[0].employee || 'Unassigned') : 'None';
+    const avgPerEmp = employees > 0 ? (conversions / employees).toFixed(1) : '0';
+    this.totals = { conversions, leads, employees, topPerformer, avgPerEmp };
+  }
+
+  animateCountUp() {
+    const duration = 800;
+    const steps = 30;
+    const interval = duration / steps;
+    let currentStep = 0;
+
+    const targets = { ...this.totals };
+    this.animatedTotals = { conversions: 0, leads: 0, employees: 0, avgPerEmp: '0' };
+
+    const timer = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+
+      this.animatedTotals.conversions = Math.floor(targets.conversions * ease);
+      this.animatedTotals.leads = Math.floor(targets.leads * ease);
+      this.animatedTotals.employees = Math.floor(targets.employees * ease);
+      this.animatedTotals.avgPerEmp = (targets.avgPerEmp * ease).toFixed(1);
+
+      this.cdr.detectChanges();
+
+      if (currentStep >= steps) {
+        clearInterval(timer);
+        this.animatedTotals = { ...targets };
+        this.cdr.detectChanges();
+      }
+    }, interval);
+  }
+
   updateCharts() {
-    this.chartHeight = Math.max(400, this.data.length * 40);
     this.barChartData = {
-      labels: this.data.map(d => `${d.employee_code || 'N/A'} - ${d.employee || 'Unassigned'}`),
+      labels: this.data.map(d => `${d.employee || 'Unassigned'}`),
       datasets: [
         { 
           data: this.data.map(d => d.sale_won), 
           label: 'Conversions', 
-          backgroundColor: '#3b82f6', // A nice blue
-          borderRadius: 4, 
-          barPercentage: 0.6 
+          backgroundColor: '#3b82f6',
+          borderRadius: 6, 
+          barPercentage: 0.4,
+          categoryPercentage: 0.4,
+          maxBarThickness: 24
         }
       ]
     };
+  }
+
+  getFilteredData(): any[] {
+    if (!this.searchTerm || !this.searchTerm.trim()) {
+      return this.data;
+    }
+    const q = this.searchTerm.toLowerCase().trim();
+    return this.data.filter(r => 
+      (r.employee && r.employee.toLowerCase().includes(q)) ||
+      (r.employee_code && r.employee_code.toLowerCase().includes(q))
+    );
   }
 }

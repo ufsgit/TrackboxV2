@@ -1,243 +1,369 @@
-<div class="report-page">
+<div class="viewport-dashboard fade-in-up" (click)="onDocumentClick()">
 
-  <!-- Header -->
-  <div class="page-header d-flex justify-content-between align-items-center mb-4 gap-3">
-    <div class="title-section">
-      <h2 class="page-title">Channel Sales Conversion Report</h2>
-      <p class="page-sub text-muted">Analyze lead generation and conversion performance across all channels</p>
+  <!-- 1. Top Control Bar (Compact Single Row, Height ~44px) -->
+  <header class="top-control-bar">
+    <div class="brand-cluster">
+      <div class="title-with-badge">
+        <h2 class="dashboard-title">Channel Sales Conversion</h2>
+        <span class="badge-tag">
+          <i class="bi bi-funnel-fill"></i> Channels
+        </span>
+      </div>
+      <span class="subtitle-indicator">
+        <i class="bi bi-bar-chart-steps text-primary"></i> {{ getDateRangeLabel() }} Overview
+      </span>
     </div>
-    
-    <div class="header-actions ms-auto">
-        <div class="filter-toolbar">
-          <!-- Custom Date / Period Filter -->
-          <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleDateDropdown()" [class.active]="isDateDropdownOpen">
-              <i class="bi bi-calendar3 filter-icon"></i>
-              <span class="filter-value">{{ getDateRangeLabel() }}</span>
-              <i class="bi bi-chevron-down filter-caret"></i>
-            </div>
-            
-            <!-- Date Popup -->
-            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
-              <div class="dropdown-list">
-                <div class="dropdown-option" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
-                  <span class="opt-name">Today</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
-                  <span class="opt-name">This Week</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
-                  <span class="opt-name">This Month</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
-                  <span class="opt-name">Last Month</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
-                  <span class="opt-name">Year to Date</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
-                  <span class="opt-name">Previous Year</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'prev_year'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
-                  <span class="opt-name">Custom Range</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
-                </div>
-              </div>
-              
-              <!-- Custom Range Inputs -->
-              <div class="custom-date-inputs" *ngIf="dateRange === 'custom'" (click)="$event.stopPropagation()">
-                <div class="custom-date-row">
-                  <label>Start Date</label>
-                  <input type="date" class="modern-date-input" [(ngModel)]="customStartDate">
-                </div>
-                <div class="custom-date-row">
-                  <label>End Date</label>
-                  <input type="date" class="modern-date-input" [(ngModel)]="customEndDate">
-                </div>
-                <button class="btn-apply-custom" (click)="applyCustomDate()">Apply Filter</button>
-              </div>
-            </div>
+
+    <!-- Filter Actions Inline -->
+    <div class="header-actions">
+      <div class="filter-toolbar" (click)="$event.stopPropagation()">
+        
+        <!-- Date Range Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
+            <i class="bi bi-calendar3 filter-icon date-icon"></i>
+            <span class="filter-label">{{ getDateRangeLabel() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isDateDropdownOpen"></i>
           </div>
 
-          <div class="filter-divider"></div>
+          <div class="dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-item" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
+                <span class="item-title">Today</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'today'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
+                <span class="item-title">This Week</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_week'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
+                <span class="item-title">This Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_month'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
+                <span class="item-title">Last Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'last_month'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
+                <span class="item-title">Year to Date</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'ytd'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
+                <span class="item-title">Previous Year</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'prev_year'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
+                <span class="item-title">Custom Range</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'custom'"></i>
+              </div>
+            </div>
 
-          <!-- Refresh -->
-          <button class="btn-refresh-toolbar" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Report">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
+            <!-- Custom Date Inputs -->
+            <div class="custom-date-box" *ngIf="dateRange === 'custom'" (click)="$event.stopPropagation()">
+              <div class="date-input-group">
+                <label>Start Date</label>
+                <input type="date" class="clean-date-input" [(ngModel)]="customStartDate">
+              </div>
+              <div class="date-input-group">
+                <label>End Date</label>
+                <input type="date" class="clean-date-input" [(ngModel)]="customEndDate">
+              </div>
+              <button class="btn-apply-date" (click)="applyCustomDate()">Apply Filter</button>
+            </div>
+          </div>
         </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Refresh -->
+        <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Report">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Compact KPI Metrics Strip (4 horizontal tiles in a single row, Height ~56px) -->
+  <section class="kpi-strip">
+    <!-- Tile 1: Total Leads -->
+    <div class="kpi-tile tile-blue">
+      <div class="kpi-icon-box bg-blue-soft text-blue">
+        <i class="bi bi-funnel-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Total Leads</span>
+        <div class="kpi-metric">{{ animatedTotals.leads | number }}</div>
+        <span class="kpi-caption text-truncate">Acquisition inflow</span>
+      </div>
+      <div class="tile-glow glow-blue"></div>
+    </div>
+
+    <!-- Tile 2: Total Won -->
+    <div class="kpi-tile tile-emerald">
+      <div class="kpi-icon-box bg-emerald-soft text-emerald">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Total Won</span>
+        <div class="kpi-metric text-emerald">{{ animatedTotals.won | number }}</div>
+        <span class="kpi-caption text-truncate">Successful deals</span>
+      </div>
+      <div class="tile-glow glow-emerald"></div>
+    </div>
+
+    <!-- Tile 3: Total Lost -->
+    <div class="kpi-tile tile-rose">
+      <div class="kpi-icon-box bg-rose-soft text-rose">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Total Lost</span>
+        <div class="kpi-metric text-rose">{{ animatedTotals.lost | number }}</div>
+        <span class="kpi-caption text-truncate">Unconverted leads</span>
+      </div>
+      <div class="tile-glow glow-rose"></div>
+    </div>
+
+    <!-- Tile 4: Avg Conversion -->
+    <div class="kpi-tile tile-indigo">
+      <div class="kpi-icon-box bg-indigo-soft text-indigo">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Avg Conversion</span>
+        <div class="kpi-metric text-indigo">{{ animatedTotals.conversion }}%</div>
+        <span class="kpi-caption text-truncate">Overall win rate</span>
+      </div>
+      <div class="tile-glow glow-indigo"></div>
+    </div>
+  </section>
+
+  <!-- 3. Navigation View Switcher (Height ~30px) -->
+  <div class="view-tabs-bar">
+    <div class="tabs-group">
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'charts'" (click)="setActiveTab('charts')">
+        <i class="bi bi-pie-chart-fill"></i>
+        <span>Visual Analytics</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'table'" (click)="setActiveTab('table')">
+        <i class="bi bi-table"></i>
+        <span>Channel Breakdown</span>
+        <span class="tab-badge" *ngIf="data && data.length > 0">{{ data.length }}</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'split'" (click)="setActiveTab('split')">
+        <i class="bi bi-layout-split"></i>
+        <span>Unified View</span>
+      </button>
+    </div>
+
+    <div class="tabs-meta" *ngIf="totals.leads > 0">
+      <span class="meta-chip">
+        <i class="bi bi-check2-circle text-success"></i> <strong>{{ data.length }} Active Channels</strong>
+      </span>
     </div>
   </div>
 
-  <!-- Skeletons & Content -->
-  <div class="content-wrapper" [class.is-loading]="loading || refreshing">
-    
-    <!-- KPI Cards Grid -->
-    <div class="kpi-grid mb-4">
-      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 0ms;">
-        <div class="kpi-deco" style="background: rgba(13, 110, 253, 0.05);"></div>
-        <div class="kpi-icon bg-primary-light text-primary">
-          <i class="bi bi-funnel"></i>
-        </div>
-        <span class="kpi-label">Total Leads</span>
-        <h3 class="kpi-value text-dark">{{ animatedTotals.leads }}</h3>
-      </div>
-      
-      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 60ms;">
-        <div class="kpi-deco" style="background: rgba(25, 135, 84, 0.05);"></div>
-        <div class="kpi-icon bg-success-light text-success">
-          <i class="bi bi-check-circle"></i>
-        </div>
-        <span class="kpi-label">Total Won</span>
-        <h3 class="kpi-value text-success">{{ animatedTotals.won }}</h3>
-      </div>
-      
-      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 120ms;">
-        <div class="kpi-deco" style="background: rgba(220, 53, 69, 0.05);"></div>
-        <div class="kpi-icon bg-danger-light text-danger">
-          <i class="bi bi-x-circle"></i>
-        </div>
-        <span class="kpi-label">Total Lost</span>
-        <h3 class="kpi-value text-danger">{{ animatedTotals.lost }}</h3>
-      </div>
-      
-      <div class="kpi-card premium-card staggered-enter" style="animation-delay: 180ms;">
-        <div class="kpi-deco" style="background: rgba(13, 202, 240, 0.05);"></div>
-        <div class="kpi-icon bg-info-light text-info">
-          <i class="bi bi-graph-up-arrow"></i>
-        </div>
-        <span class="kpi-label">Avg Conversion</span>
-        <h3 class="kpi-value text-info">{{ animatedTotals.conversion }}%</h3>
-      </div>
-    </div>
+  <!-- 4. Main Dashboard Workspace (Fills all remaining height, ZERO page scroll) -->
+  <main class="dashboard-workspace">
 
-    <!-- Charts Row -->
-    <div class="row mb-4 charts-row">
-      <!-- Pie Chart -->
-      <div class="col-lg-5 mb-4 mb-lg-0 staggered-enter" style="animation-delay: 240ms;">
-        <div class="card border-0 premium-card h-100">
-          <div class="card-body p-4 d-flex flex-column">
-            <h5 class="card-title fw-bold mb-4 chart-title">Leads by Channel</h5>
-            <div class="chart-container flex-grow-1" style="position: relative; height: 300px; width: 100%;">
+    <!-- TAB 1: VISUAL ANALYTICS (Charts Side-by-Side in 1 Row) -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'charts'">
+      <div class="charts-row">
+        <!-- Donut Chart: Leads by Channel -->
+        <div class="chart-card donut-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
+              <div>
+                <h3 class="chart-heading">Leads by Channel</h3>
+                <span class="chart-subheading">Distribution share</span>
+              </div>
+            </div>
+            <span class="chart-badge badge-blue">
+              <i class="bi bi-pie-chart"></i> Share
+            </span>
+          </div>
+
+          <div class="donut-card-body">
+            <!-- Compact 180px Donut Ring -->
+            <div class="donut-canvas-container">
               <canvas *ngIf="isBrowser && !loading && !refreshing" baseChart 
                 [data]="pieChartData" 
                 [options]="pieChartOptions" 
                 type="doughnut">
               </canvas>
-              <!-- Skeleton fallback -->
+              <div class="donut-center-stat" *ngIf="!loading && !refreshing && animatedTotals.leads > 0">
+                <span class="center-stat-val">{{ animatedTotals.leads }}</span>
+                <span class="center-stat-label">Leads</span>
+              </div>
               <div class="skeleton-chart pie-skeleton" *ngIf="loading || refreshing"></div>
+            </div>
+
+            <!-- Sleek Acquisition Sources Breakdown Panel -->
+            <div class="donut-breakdown-panel" *ngIf="!loading && !refreshing">
+              <div class="breakdown-header-label">Acquisition Sources</div>
+              <div class="breakdown-items-list">
+                <div *ngFor="let ch of getTopChannels(4)" class="breakdown-row-item">
+                  <div class="breakdown-info">
+                    <span class="breakdown-name">
+                      <span class="ch-dot" [style.background-color]="getChannelColor(ch.channel)"></span>
+                      {{ ch.channel | uppercase }}
+                    </span>
+                    <span class="breakdown-pct">{{ ch.share_percentage }}%</span>
+                  </div>
+                  <div class="breakdown-bar-track">
+                    <div class="breakdown-bar-fill" [style.width.%]="ch.share_percentage" [style.background-color]="getChannelColor(ch.channel)"></div>
+                  </div>
+                  <div class="breakdown-val">
+                    <strong>{{ ch.total_leads }}</strong> <small>leads</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Micro metric summary footer -->
+          <div class="chart-card-footer" *ngIf="!loading && !refreshing">
+            <div *ngFor="let ch of getTopChannels(3)" class="ch-metric-pill">
+              <span class="ch-dot" [style.background-color]="getChannelColor(ch.channel)"></span>
+              <span class="ch-name">{{ ch.channel | uppercase }}</span>
+              <span class="ch-count">{{ ch.total_leads }}</span>
+              <span class="ch-share">({{ ch.share_percentage }}%)</span>
             </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Bar Chart -->
-      <div class="col-lg-7 staggered-enter" style="animation-delay: 300ms;">
-        <div class="card border-0 premium-card h-100">
-          <div class="card-body p-4 d-flex flex-column">
-            <h5 class="card-title fw-bold mb-4 chart-title">Channel Performance</h5>
-            <div class="chart-container flex-grow-1" style="position: relative; height: 300px; width: 100%;">
-              <canvas *ngIf="isBrowser && !loading && !refreshing" baseChart 
-                [data]="barChartData" 
-                [options]="barChartOptions" 
-                type="bar">
-              </canvas>
-              <!-- Skeleton fallback -->
-              <div class="skeleton-chart bar-skeleton" *ngIf="loading || refreshing">
-                <div class="skeleton-bar" *ngFor="let i of [1,2,3,4,5]"></div>
+
+        <!-- Bar Chart: Channel Performance -->
+        <div class="chart-card bar-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-green"></div>
+              <div>
+                <h3 class="chart-heading">Channel Performance</h3>
+                <span class="chart-subheading">Won vs Lost volume</span>
               </div>
+            </div>
+            <span class="chart-badge badge-green">
+              <i class="bi bi-bar-chart"></i> Outcome
+            </span>
+          </div>
+
+          <div class="bar-canvas-container">
+            <canvas *ngIf="isBrowser && !loading && !refreshing" baseChart 
+              [data]="barChartData" 
+              [options]="barChartOptions" 
+              type="bar">
+            </canvas>
+            <div class="skeleton-chart bar-skeleton" *ngIf="loading || refreshing">
+              <div class="skeleton-bar" *ngFor="let i of [1,2,3,4,5]"></div>
+            </div>
+          </div>
+
+          <!-- Micro metric summary footer -->
+          <div class="chart-card-footer" *ngIf="!loading && !refreshing">
+            <div class="ch-metric-pill metric-pill-won">
+              <i class="bi bi-trophy-fill text-emerald me-1"></i>
+              <span class="ch-name">Won:</span>
+              <span class="ch-count text-emerald">{{ animatedTotals.won }}</span>
+            </div>
+            <div class="ch-metric-pill metric-pill-lost">
+              <i class="bi bi-x-circle-fill text-rose me-1"></i>
+              <span class="ch-name">Lost:</span>
+              <span class="ch-count text-rose">{{ animatedTotals.lost }}</span>
+            </div>
+            <div class="ch-metric-pill metric-pill-rate">
+              <i class="bi bi-percent text-indigo me-1"></i>
+              <span class="ch-name">Win Rate:</span>
+              <span class="ch-count text-indigo">{{ animatedTotals.conversion }}%</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Data Table -->
-    <div class="card border-0 premium-card staggered-enter" style="animation-delay: 360ms;">
-      <div class="card-body p-0">
-        <div class="p-4 border-bottom header-divider">
-          <h5 class="card-title fw-bold mb-0 chart-title">Channel Breakdown</h5>
+    <!-- TAB 2: CHANNEL BREAKDOWN TABLE (Full Height with Scrollable Container) -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'table'">
+      <div class="table-card">
+        <div class="table-card-header">
+          <div class="table-title-box">
+            <i class="bi bi-diagram-3-fill header-section-icon"></i>
+            <h3 class="table-heading">Channel Breakdown Details</h3>
+            <span class="records-pill">{{ data.length }} Channels</span>
+          </div>
         </div>
-        
-        <div class="table-responsive">
-          <table class="table table-hover mb-0 align-middle custom-table">
-            <thead class="table-light">
+        <div class="table-container">
+          <table class="modern-data-table">
+            <thead>
               <tr>
-                <th class="ps-4 py-3 border-0 text-muted">Channel Name</th>
-                <th class="py-3 border-0 text-muted text-center">Total Leads</th>
-                <th class="py-3 border-0 text-muted">Share of Total</th>
-                <th class="py-3 border-0 text-muted text-center">Sale Won</th>
-                <th class="py-3 border-0 text-muted text-center">Sale Lost</th>
-                <th class="py-3 border-0 text-muted">Conversion Rate</th>
+                <th class="ps-3">Channel Name</th>
+                <th class="text-center">Total Leads</th>
+                <th>Share of Total</th>
+                <th class="text-center">Sale Won</th>
+                <th class="text-center">Sale Lost</th>
+                <th class="text-center">Conversion Rate</th>
               </tr>
             </thead>
             <tbody>
-              
-              <!-- Skeleton Rows -->
+              <!-- Skeletons -->
               <ng-container *ngIf="loading || refreshing">
                 <tr *ngFor="let i of [1,2,3,4]">
-                  <td class="ps-4 py-3"><div class="skeleton-line" style="width: 120px; height: 20px;"></div></td>
-                  <td class="py-3 text-center"><div class="skeleton-line mx-auto" style="width: 40px; height: 20px;"></div></td>
-                  <td class="py-3"><div class="skeleton-line" style="width: 100px; height: 8px; border-radius: 4px;"></div></td>
-                  <td class="py-3 text-center"><div class="skeleton-line mx-auto" style="width: 40px; height: 20px;"></div></td>
-                  <td class="py-3 text-center"><div class="skeleton-line mx-auto" style="width: 40px; height: 20px;"></div></td>
-                  <td class="py-3"><div class="skeleton-line" style="width: 60px; height: 20px;"></div></td>
+                  <td class="ps-3 py-3"><div class="skeleton-line" style="width: 120px; height: 18px;"></div></td>
+                  <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 40px; height: 18px;"></div></td>
+                  <td class="py-3"><div class="skeleton-line" style="width: 100px; height: 8px;"></div></td>
+                  <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 40px; height: 18px;"></div></td>
+                  <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 40px; height: 18px;"></div></td>
+                  <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 50px; height: 18px;"></div></td>
                 </tr>
               </ng-container>
 
               <!-- Real Rows -->
               <ng-container *ngIf="!loading && !refreshing">
                 <tr *ngFor="let row of data">
-                  <td class="ps-4 py-3">
-                    <div class="d-flex align-items-center gap-3">
+                  <td class="ps-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
                       <div class="icon-wrapper" [style.color]="getChannelColor(row.channel)">
-                        <i class="bi fs-5" [ngClass]="getChannelIcon(row.channel)"></i>
+                        <i class="bi" [ngClass]="getChannelIcon(row.channel)"></i>
                       </div>
-                      <span class="fw-bold text-dark text-capitalize">{{ row.channel }}</span>
+                      <span class="fw-bold text-dark text-capitalize" style="font-size: 0.86rem;">{{ row.channel }}</span>
                     </div>
                   </td>
-                  <td class="py-3 fw-semibold text-secondary fs-6 text-center">{{ row.total_leads }}</td>
-                  <td class="py-3">
-                    <div class="progress-cell">
-                      <span class="rate-text text-muted small" style="width: 35px; text-align: left;">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
-                      <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" [style.width]="(totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0) + '%'"></div>
+                  <td class="text-center py-2">
+                    <span class="lead-volume-val">{{ row.total_leads }}</span>
+                  </td>
+                  <td class="py-2">
+                    <div class="rate-progress-wrap">
+                      <div class="rate-bar-bg flex-grow-1" style="max-width: 110px;">
+                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="getChannelColor(row.channel)"></div>
                       </div>
+                      <span class="rate-pct">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
                     </div>
                   </td>
-                  <td class="py-3 fw-bold text-success fs-6 text-center">{{ row.sale_won }}</td>
-                  <td class="py-3 fw-bold text-danger fs-6 text-center">{{ row.sale_lost }}</td>
-                  <td class="py-3">
-                    <div class="progress-cell">
-                      <span class="rate-text fw-bold" style="width: 45px; text-align: left;" [ngClass]="{'text-success': row.conversion_rate >= 10, 'text-warning': row.conversion_rate > 0 && row.conversion_rate < 10, 'text-muted': row.conversion_rate == 0}">{{ row.conversion_rate }}%</span>
-                      <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" [style.width]="row.conversion_rate + '%'"></div>
-                      </div>
-                    </div>
+                  <td class="text-center py-2">
+                    <span class="won-val" [class.won-active]="row.sale_won > 0">{{ row.sale_won }}</span>
                   </td>
-                </tr>
-                
-                <!-- Totals Footer -->
-                <tr class="table-light border-top border-2">
-                  <td class="ps-4 py-3 fw-bold text-dark text-uppercase fs-6">Total / Average</td>
-                  <td class="py-3 fw-bold text-dark fs-5 text-center">{{ totals.leads }}</td>
-                  <td class="py-3"></td>
-                  <td class="py-3 fw-bold text-success fs-5 text-center">{{ totals.won }}</td>
-                  <td class="py-3 fw-bold text-danger fs-5 text-center">{{ totals.lost }}</td>
-                  <td class="py-3 fw-bold text-primary fs-5">{{ totals.conversion }}%</td>
+                  <td class="text-center py-2">
+                    <span class="lost-val">{{ row.sale_lost }}</span>
+                  </td>
+                  <td class="text-center py-2">
+                    <span class="status-badge-matrix" [ngClass]="row.conversion_rate >= 10 ? 'status-peak' : (row.conversion_rate > 0 ? 'status-active' : 'status-zero')">
+                      {{ row.conversion_rate }}%
+                    </span>
+                  </td>
                 </tr>
 
-                <!-- Empty State -->
+                <!-- Totals Row -->
+                <tr class="totals-summary-row">
+                  <td class="ps-3 py-2 fw-bold text-dark text-uppercase" style="font-size: 0.82rem;">Total / Average</td>
+                  <td class="text-center py-2 fw-bold text-dark" style="font-size: 0.95rem;">{{ totals.leads }}</td>
+                  <td class="py-2"></td>
+                  <td class="text-center py-2 fw-bold text-emerald" style="font-size: 0.95rem;">{{ totals.won }}</td>
+                  <td class="text-center py-2 fw-bold text-rose" style="font-size: 0.95rem;">{{ totals.lost }}</td>
+                  <td class="text-center py-2 fw-bold text-indigo" style="font-size: 0.95rem;">{{ totals.conversion }}%</td>
+                </tr>
+
                 <tr *ngIf="data.length === 0">
                   <td colspan="6" class="text-center py-5 text-muted">
-                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
-                    No channel conversion data found for this period.
+                    No channel conversion records found for this period.
                   </td>
                 </tr>
               </ng-container>
@@ -246,6 +372,85 @@
         </div>
       </div>
     </div>
-  </div>
 
+    <!-- TAB 3: UNIFIED SPLIT VIEW (Donut Left 40% + Table Right 60%) -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'split'">
+      <div class="split-view-row">
+        <!-- Left: Donut Chart -->
+        <div class="chart-card split-donut-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
+              <h3 class="chart-heading">Leads Distribution</h3>
+            </div>
+            <span class="chart-badge badge-blue">Share</span>
+          </div>
+          <div class="chart-canvas-container donut-canvas-container">
+            <canvas *ngIf="isBrowser && !loading && !refreshing" baseChart 
+              [data]="pieChartData" 
+              [options]="pieChartOptions" 
+              type="doughnut">
+            </canvas>
+            <div class="donut-center-stat" *ngIf="!loading && !refreshing && animatedTotals.leads > 0">
+              <span class="center-stat-val">{{ animatedTotals.leads }}</span>
+              <span class="center-stat-label">Leads</span>
+            </div>
+            <div class="skeleton-chart pie-skeleton" *ngIf="loading || refreshing"></div>
+          </div>
+        </div>
+
+        <!-- Right: Table -->
+        <div class="table-card split-table-card">
+          <div class="table-card-header">
+            <div class="table-title-box">
+              <i class="bi bi-diagram-3-fill header-section-icon"></i>
+              <h3 class="table-heading">Channel Breakdown</h3>
+            </div>
+            <span class="records-pill">{{ data.length }} Channels</span>
+          </div>
+          <div class="table-container">
+            <table class="modern-data-table">
+              <thead>
+                <tr>
+                  <th class="ps-3">Channel</th>
+                  <th class="text-center">Leads</th>
+                  <th>Share</th>
+                  <th class="text-center">Won</th>
+                  <th class="text-center">Lost</th>
+                  <th class="text-center">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of data">
+                  <td class="ps-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi" [ngClass]="getChannelIcon(row.channel)"></i>
+                      <span class="fw-bold text-dark text-capitalize" style="font-size: 0.82rem;">{{ row.channel }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center py-2 font-weight-bold" style="font-size: 0.85rem;">{{ row.total_leads }}</td>
+                  <td class="py-2">
+                    <div class="rate-progress-wrap">
+                      <div class="rate-bar-bg" style="width: 45px;">
+                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="getChannelColor(row.channel)"></div>
+                      </div>
+                      <span class="rate-pct" style="font-size: 0.72rem;">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
+                    </div>
+                  </td>
+                  <td class="text-center py-2 text-success font-weight-bold" style="font-size: 0.85rem;">{{ row.sale_won }}</td>
+                  <td class="text-center py-2 text-muted" style="font-size: 0.85rem;">{{ row.sale_lost }}</td>
+                  <td class="text-center py-2">
+                    <span class="status-badge-matrix" [ngClass]="row.conversion_rate > 0 ? 'status-active' : 'status-zero'">
+                      {{ row.conversion_rate }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>

@@ -1,146 +1,374 @@
-<div class="report-container">
-  <!-- Header Section -->
-  <div class="report-header">
-    <div class="header-content d-flex justify-content-between align-items-center gap-3">
-      <div class="title-section">
-        <h2 class="report-title">Employee Productivity Report</h2>
-        <p class="report-subtitle">Lead conversion performance by employee</p>
-      </div>
-      <div class="header-actions ms-auto">
-        <div class="filter-toolbar">
-          <!-- Custom Date / Period Filter -->
-          <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleDateDropdown()" [class.active]="isDateDropdownOpen">
-              <i class="bi bi-calendar3 filter-icon"></i>
-              <span class="filter-value">{{ getDateRangeLabel() }}</span>
-              <i class="bi bi-chevron-down filter-caret"></i>
-            </div>
-            
-            <!-- Date Popup -->
-            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
-              <div class="dropdown-list">
-                <div class="dropdown-option" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
-                  <span class="opt-name">Today</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
-                  <span class="opt-name">This Week</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
-                  <span class="opt-name">This Month</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
-                  <span class="opt-name">Last Month</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
-                  <span class="opt-name">Year to Date</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
-                  <span class="opt-name">Previous Year</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'prev_year'"></i>
-                </div>
-                <div class="dropdown-option" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
-                  <span class="opt-name">Custom Range</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
-                </div>
-              </div>
-              
-              <!-- Custom Range Inputs -->
-              <div class="custom-date-inputs" *ngIf="dateRange === 'custom'" (click)="$event.stopPropagation()">
-                <div class="custom-date-row">
-                  <label>Start Date</label>
-                  <input type="date" class="modern-date-input" [(ngModel)]="customStartDate">
-                </div>
-                <div class="custom-date-row">
-                  <label>End Date</label>
-                  <input type="date" class="modern-date-input" [(ngModel)]="customEndDate">
-                </div>
-                <button class="btn-apply-custom" (click)="applyCustomDate()">Apply Filter</button>
-              </div>
-            </div>
-          </div>
+<div class="viewport-dashboard fade-in-up" (click)="onDocumentClick()">
 
-          <div class="filter-divider"></div>
-
-          <!-- Refresh -->
-          <button class="btn-refresh-toolbar" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Report">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
+  <!-- 1. Top Control Bar (Compact Single Row, Height ~44px) -->
+  <header class="top-control-bar">
+    <div class="brand-cluster">
+      <div class="title-with-badge">
+        <h2 class="dashboard-title">Employee Productivity Report</h2>
+        <span class="badge-tag">
+          <i class="bi bi-speedometer2"></i> Productivity
+        </span>
       </div>
+      <span class="subtitle-indicator">
+        <i class="bi bi-bar-chart-steps text-primary"></i> {{ getDateRangeLabel() }} Overview
+      </span>
     </div>
-  </div>
 
-  <div *ngIf="loading" class="loader-container">
-    <div class="modern-spinner"></div>
-    <p>Loading productivity data...</p>
-  </div>
-
-  <div *ngIf="!loading">
-    <!-- Main Chart -->
-    <div class="chart-grid">
-      <div class="grid-card timeline-card">
-        <div class="card-header-premium">
-          <div class="header-title">
-            <div class="icon-box blue"><i class="bi bi-bar-chart-fill"></i></div>
-            <h3>Employee Productivity</h3>
-          </div>
-          <div class="total-badge" *ngIf="data.length > 0">Sorted highest to lowest</div>
-        </div>
+    <!-- Filter Actions Inline -->
+    <div class="header-actions">
+      <div class="filter-toolbar" (click)="$event.stopPropagation()">
         
-        <div class="card-body-premium">
-          <div class="chart-wrapper" *ngIf="data.length > 0">
-            <div [style.height.px]="chartHeight">
-              <canvas baseChart
-                [data]="barChartData"
-                [options]="barChartOptions"
-                [type]="'bar'">
-              </canvas>
+        <!-- Date Range Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
+            <i class="bi bi-calendar3 filter-icon date-icon"></i>
+            <span class="filter-label">{{ getDateRangeLabel() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isDateDropdownOpen"></i>
+          </div>
+
+          <div class="dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-item" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
+                <span class="item-title">Today</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'today'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
+                <span class="item-title">This Week</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_week'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
+                <span class="item-title">This Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_month'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
+                <span class="item-title">Last Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'last_month'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
+                <span class="item-title">Year to Date</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'ytd'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
+                <span class="item-title">Previous Year</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'prev_year'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
+                <span class="item-title">Custom Range</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'custom'"></i>
+              </div>
+            </div>
+
+            <!-- Custom Date Inputs -->
+            <div class="custom-date-box" *ngIf="dateRange === 'custom'" (click)="$event.stopPropagation()">
+              <div class="date-input-group">
+                <label>Start Date</label>
+                <input type="date" class="clean-date-input" [(ngModel)]="customStartDate">
+              </div>
+              <div class="date-input-group">
+                <label>End Date</label>
+                <input type="date" class="clean-date-input" [(ngModel)]="customEndDate">
+              </div>
+              <button class="btn-apply-date" (click)="applyCustomDate()">Apply Filter</button>
             </div>
           </div>
-          
-          <div class="empty-state" *ngIf="data.length === 0">
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Refresh -->
+        <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Report">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Compact KPI Metrics Strip (4 horizontal tiles in a single row, Height ~56px) -->
+  <section class="kpi-strip">
+    <!-- Tile 1: Total Conversions -->
+    <div class="kpi-tile tile-blue">
+      <div class="kpi-icon-box bg-blue-soft text-blue">
+        <i class="bi bi-trophy-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Total Conversions</span>
+        <div class="kpi-metric text-blue">{{ animatedTotals.conversions | number }}</div>
+        <span class="kpi-caption text-truncate">Successfully closed</span>
+      </div>
+      <div class="tile-glow glow-blue"></div>
+    </div>
+
+    <!-- Tile 2: Active Team Size -->
+    <div class="kpi-tile tile-indigo">
+      <div class="kpi-icon-box bg-indigo-soft text-indigo">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Active Staff</span>
+        <div class="kpi-metric text-indigo">{{ animatedTotals.employees | number }}</div>
+        <span class="kpi-caption text-truncate">Employees tracked</span>
+      </div>
+      <div class="tile-glow glow-indigo"></div>
+    </div>
+
+    <!-- Tile 3: Top Performer -->
+    <div class="kpi-tile tile-emerald">
+      <div class="kpi-icon-box bg-emerald-soft text-emerald">
+        <i class="bi bi-star-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Top Performer</span>
+        <div class="kpi-metric text-emerald text-truncate" style="font-size: 1.05rem;" title="{{ totals.topPerformer }}">{{ totals.topPerformer }}</div>
+        <span class="kpi-caption text-truncate">Lead conversions leader</span>
+      </div>
+      <div class="tile-glow glow-emerald"></div>
+    </div>
+
+    <!-- Tile 4: Avg Output -->
+    <div class="kpi-tile tile-amber">
+      <div class="kpi-icon-box bg-amber-soft text-amber">
+        <i class="bi bi-graph-up-arrow"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Avg Output</span>
+        <div class="kpi-metric text-amber">{{ animatedTotals.avgPerEmp }}</div>
+        <span class="kpi-caption text-truncate">Conversions / employee</span>
+      </div>
+      <div class="tile-glow glow-amber"></div>
+    </div>
+  </section>
+
+  <!-- 3. Navigation View Switcher (Height ~30px) -->
+  <div class="view-tabs-bar">
+    <div class="tabs-group">
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'split'" (click)="setActiveTab('split')">
+        <i class="bi bi-layout-split"></i>
+        <span>Unified View</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'chart'" (click)="setActiveTab('chart')">
+        <i class="bi bi-bar-chart-fill"></i>
+        <span>Chart View</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'table'" (click)="setActiveTab('table')">
+        <i class="bi bi-table"></i>
+        <span>Productivity Table</span>
+        <span class="tab-badge" *ngIf="data && data.length > 0">{{ data.length }}</span>
+      </button>
+    </div>
+
+    <div class="tabs-meta" *ngIf="data.length > 0">
+      <span class="meta-chip">
+        <i class="bi bi-person-check-fill text-success"></i> <strong>{{ data.length }} Team Members</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- 4. Main Dashboard Workspace (Fills all remaining height, ZERO page scroll) -->
+  <main class="dashboard-workspace">
+
+    <!-- TAB 1: UNIFIED VIEW (Chart Left 50% + Table Right 50%) -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'split'">
+      <div class="split-view-row">
+        
+        <!-- Left: Productivity Bar Chart Card -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
+              <div>
+                <h3 class="chart-heading">Conversion Ranking</h3>
+                <span class="chart-subheading">Sorted highest to lowest</span>
+              </div>
+            </div>
+            <span class="chart-badge badge-blue">
+              <i class="bi bi-bar-chart"></i> Output
+            </span>
+          </div>
+
+          <div class="chart-canvas-container">
+            <canvas *ngIf="isBrowser && !loading && !refreshing && data.length > 0" baseChart
+              [data]="barChartData"
+              [options]="barChartOptions"
+              [type]="'bar'">
+            </canvas>
+            
+            <div class="empty-state" *ngIf="!loading && !refreshing && data.length === 0">
+              <i class="bi bi-inbox empty-icon"></i>
+              <p>No conversion data found for this period.</p>
+            </div>
+
+            <div class="skeleton-chart bar-skeleton" *ngIf="loading || refreshing">
+              <div class="skeleton-bar" *ngFor="let i of [1,2,3,4,5]"></div>
+            </div>
+          </div>
+
+          <div class="chart-card-footer" *ngIf="!loading && !refreshing">
+            <div class="ch-metric-pill metric-pill-won">
+              <i class="bi bi-check-circle-fill text-emerald me-1"></i>
+              <span class="ch-name">Total Won:</span>
+              <span class="ch-count text-emerald">{{ animatedTotals.conversions }}</span>
+            </div>
+            <div class="ch-metric-pill metric-pill-rate">
+              <i class="bi bi-people-fill text-indigo me-1"></i>
+              <span class="ch-name">Team Avg:</span>
+              <span class="ch-count text-indigo">{{ animatedTotals.avgPerEmp }} / emp</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Productivity Data Table Card -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <div class="table-title-box">
+              <i class="bi bi-table header-section-icon"></i>
+              <h3 class="table-heading">Performance Matrix</h3>
+            </div>
+            <div class="table-search-box">
+              <i class="bi bi-search search-icon"></i>
+              <input type="text" class="table-search-input" [(ngModel)]="searchTerm" placeholder="Search staff...">
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="modern-data-table">
+              <thead>
+                <tr>
+                  <th class="ps-3">Employee</th>
+                  <th>Emp Code</th>
+                  <th class="text-center">Conversions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngIf="loading || refreshing">
+                  <tr *ngFor="let i of [1,2,3,4]">
+                    <td class="ps-3 py-3"><div class="skeleton-line" style="width: 130px; height: 18px;"></div></td>
+                    <td class="py-3"><div class="skeleton-line" style="width: 70px; height: 18px;"></div></td>
+                    <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 45px; height: 18px;"></div></td>
+                  </tr>
+                </ng-container>
+
+                <ng-container *ngIf="!loading && !refreshing">
+                  <tr *ngFor="let row of getFilteredData()">
+                    <td class="ps-3 py-2">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="icon-avatar">
+                          <i class="bi bi-person-fill"></i>
+                        </div>
+                        <span class="fw-bold text-dark text-capitalize" style="font-size: 0.84rem;">{{ row.employee || 'Unassigned' }}</span>
+                      </div>
+                    </td>
+                    <td class="py-2">
+                      <span class="emp-code-badge">{{ row.employee_code || 'N/A' }}</span>
+                    </td>
+                    <td class="text-center py-2">
+                      <span class="conversion-pill" [class.conversion-active]="row.sale_won > 0">
+                        {{ row.sale_won || 0 }}
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="getFilteredData().length === 0">
+                    <td colspan="3" class="text-center py-4 text-muted">
+                      No records match your filter criteria.
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: FULL CHART VIEW -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'chart'">
+      <div class="chart-card full-pane-card">
+        <div class="chart-header">
+          <div class="chart-title-box">
+            <div class="dot-indicator dot-blue"></div>
+            <div>
+              <h3 class="chart-heading">Employee Productivity Chart</h3>
+              <span class="chart-subheading">Full breakdown across staff members</span>
+            </div>
+          </div>
+          <span class="chart-badge badge-blue">
+            <i class="bi bi-bar-chart"></i> Output Overview
+          </span>
+        </div>
+
+        <div class="chart-canvas-container">
+          <canvas *ngIf="isBrowser && !loading && !refreshing && data.length > 0" baseChart
+            [data]="barChartData"
+            [options]="barChartOptions"
+            [type]="'bar'">
+          </canvas>
+          <div class="empty-state" *ngIf="!loading && !refreshing && data.length === 0">
             <i class="bi bi-inbox empty-icon"></i>
-            <p>No data available for the selected date range.</p>
+            <p>No conversion data found for this period.</p>
+          </div>
+          <div class="skeleton-chart bar-skeleton" *ngIf="loading || refreshing">
+            <div class="skeleton-bar" *ngFor="let i of [1,2,3,4,5]"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Data Table -->
-    <div class="grid-card table-card mt-4 mb-4">
-      <div class="card-header-premium">
-        <div class="header-title">
-          <div class="icon-box purple"><i class="bi bi-table"></i></div>
-          <h3>Productivity Data Table</h3>
+    <!-- TAB 3: FULL DATA TABLE VIEW -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'table'">
+      <div class="table-card full-pane-card">
+        <div class="table-card-header">
+          <div class="table-title-box">
+            <i class="bi bi-table header-section-icon"></i>
+            <h3 class="table-heading">Employee Productivity Data Table</h3>
+            <span class="records-pill">{{ data.length }} Employees</span>
+          </div>
+          <div class="table-search-box">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" class="table-search-input" [(ngModel)]="searchTerm" placeholder="Search staff name or code...">
+          </div>
         </div>
-      </div>
-      <div class="card-body-premium p-0">
-        <div class="modern-table-wrapper">
-          <table class="modern-table">
+
+        <div class="table-container">
+          <table class="modern-data-table">
             <thead>
               <tr>
-                <th>Employee Code</th>
+                <th class="ps-4">Employee Code</th>
                 <th>Employee Name</th>
-                <th class="text-center">Lead Conversions</th>
+                <th class="text-center">Total Inflow</th>
+                <th class="text-center">Lead Conversions (Won)</th>
+                <th class="text-center">Lost Deals</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of data">
-                <td><span class="emp-code text-muted fw-medium">{{ row.employee_code || 'N/A' }}</span></td>
-                <td><span class="emp-name text-dark fw-bold">{{ row.employee || 'Unassigned' }}</span></td>
-                <td class="text-center"><span class="metric-pill blue">{{ row.sale_won || 0 }}</span></td>
-              </tr>
-              <tr *ngIf="data.length === 0" class="empty-row">
-                <td colspan="3">
-                  <div class="empty-state py-5">
-                    <i class="bi bi-folder-x empty-icon"></i>
-                    <p>No data found for this selection.</p>
+              <tr *ngFor="let row of getFilteredData()">
+                <td class="ps-4 py-2">
+                  <span class="emp-code-badge">{{ row.employee_code || 'N/A' }}</span>
+                </td>
+                <td class="py-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="icon-avatar">
+                      <i class="bi bi-person-fill"></i>
+                    </div>
+                    <span class="fw-bold text-dark text-capitalize" style="font-size: 0.86rem;">{{ row.employee || 'Unassigned' }}</span>
                   </div>
+                </td>
+                <td class="text-center py-2 text-muted fw-semibold" style="font-size: 0.86rem;">
+                  {{ row.total_leads || 0 }}
+                </td>
+                <td class="text-center py-2">
+                  <span class="conversion-pill" [class.conversion-active]="row.sale_won > 0">
+                    {{ row.sale_won || 0 }}
+                  </span>
+                </td>
+                <td class="text-center py-2 text-danger fw-semibold" style="font-size: 0.86rem;">
+                  {{ row.sale_lost || 0 }}
+                </td>
+              </tr>
+
+              <tr *ngIf="getFilteredData().length === 0">
+                <td colspan="5" class="text-center py-5 text-muted">
+                  No records found matching your search.
                 </td>
               </tr>
             </tbody>
@@ -149,5 +377,5 @@
       </div>
     </div>
 
-  </div>
+  </main>
 </div>

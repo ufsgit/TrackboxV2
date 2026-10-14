@@ -55,6 +55,7 @@ export class LeadFlowReportComponent implements OnInit {
 
   // View mode toggle
   chartMode: 'monthly' | 'daily' = 'monthly';
+  activeViewTab: 'charts' | 'matrix' | 'leads' = 'charts';
 
   // 2026 Monthly Data & Peak Month
   months2026: any[] = [];
@@ -445,6 +446,11 @@ export class LeadFlowReportComponent implements OnInit {
     this.selectedEmployee = 'All';
     this.currentPage = 1;
     this.fetchData();
+  }
+
+  setActiveTab(tab: 'charts' | 'matrix' | 'leads') {
+    this.activeViewTab = tab;
+    this.cdr.detectChanges();
   }
 
   getDateRangeLabel(): string {

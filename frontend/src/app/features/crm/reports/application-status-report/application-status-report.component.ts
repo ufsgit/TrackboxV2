@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID, NgZone, HostListener } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -48,7 +48,9 @@ export class ApplicationStatusReportComponent implements OnInit {
         const index = elements[0].index;
         const item = this.chartBreakdown[index];
         if (item) {
-          this.openStatusDetails(item.status, item.count, item.color);
+          this.ngZone.run(() => {
+            this.openStatusDetails(item.status, item.count, item.color);
+          });
         }
       }
     },
@@ -92,9 +94,17 @@ export class ApplicationStatusReportComponent implements OnInit {
   constructor(
     private api: ApiService, 
     private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent) {
+    if (this.isModalOpen) {
+      this.closeModal(event);
+    }
   }
 
   ngOnInit() {
@@ -195,31 +205,44 @@ export class ApplicationStatusReportComponent implements OnInit {
 
   // --- Modal Popup Handlers ---
   openCardDetails() {
-    this.modalStatusFilter = 'all';
-    this.modalTitle = 'All Applications';
-    this.modalSubtitle = `Showing all applications in ${this.getDateRangeLabel()} (${this.totalApplications} total)`;
-    this.modalCurrentPage = 1;
-    this.modalSearchQuery = '';
-    this.isModalOpen = true;
-    this.fetchModalApplications();
+    this.ngZone.run(() => {
+      this.modalStatusFilter = 'all';
+      this.modalTitle = 'All Applications';
+      this.modalSubtitle = `Showing all applications in ${this.getDateRangeLabel()} (${this.totalApplications} total)`;
+      this.modalCurrentPage = 1;
+      this.modalSearchQuery = '';
+      this.isModalOpen = true;
+      this.cdr.detectChanges();
+      this.fetchModalApplications();
+    });
   }
 
   openStatusDetails(statusName: string, count?: number, color?: string) {
-    this.modalStatusFilter = statusName;
-    const countText = count !== undefined ? ` (${count} total)` : '';
-    this.modalTitle = `Applications: ${statusName}`;
-    this.modalSubtitle = `Status: ${statusName} in ${this.getDateRangeLabel()}${countText}`;
-    this.modalCurrentPage = 1;
-    this.modalSearchQuery = '';
-    this.isModalOpen = true;
-    this.fetchModalApplications();
+    this.ngZone.run(() => {
+      this.modalStatusFilter = statusName;
+      const countText = count !== undefined ? ` (${count} total)` : '';
+      this.modalTitle = `Applications: ${statusName}`;
+      this.modalSubtitle = `Status: ${statusName} in ${this.getDateRangeLabel()}${countText}`;
+      this.modalCurrentPage = 1;
+      this.modalSearchQuery = '';
+      this.isModalOpen = true;
+      this.cdr.detectChanges();
+      this.fetchModalApplications();
+    });
   }
 
-  closeModal() {
-    this.isModalOpen = false;
-    this.modalApplications = [];
-    this.modalSearchQuery = '';
-    this.modalTotalCount = 0;
+  closeModal(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.ngZone.run(() => {
+      this.isModalOpen = false;
+      this.modalApplications = [];
+      this.modalSearchQuery = '';
+      this.modalTotalCount = 0;
+      this.cdr.detectChanges();
+    });
   }
 
   fetchModalApplications() {
@@ -240,25 +263,29 @@ export class ApplicationStatusReportComponent implements OnInit {
 
     this.api.get(url).subscribe({
       next: (res: any) => {
-        if (res.success && res.data) {
-          this.modalApplications = res.data.applications || [];
-          this.modalTotalCount = res.data.totalCount || 0;
-          this.modalTotalPages = res.data.totalPages || 1;
-        } else {
-          this.modalApplications = [];
-          this.modalTotalCount = 0;
-          this.modalTotalPages = 1;
-        }
-        this.modalLoading = false;
-        this.cdr.detectChanges();
+        this.ngZone.run(() => {
+          if (res.success && res.data) {
+            this.modalApplications = res.data.applications || [];
+            this.modalTotalCount = res.data.totalCount || 0;
+            this.modalTotalPages = res.data.totalPages || 1;
+          } else {
+            this.modalApplications = [];
+            this.modalTotalCount = 0;
+            this.modalTotalPages = 1;
+          }
+          this.modalLoading = false;
+          this.cdr.detectChanges();
+        });
       },
       error: (err: any) => {
         console.error('Failed to load application details', err);
-        this.modalApplications = [];
-        this.modalTotalCount = 0;
-        this.modalTotalPages = 1;
-        this.modalLoading = false;
-        this.cdr.detectChanges();
+        this.ngZone.run(() => {
+          this.modalApplications = [];
+          this.modalTotalCount = 0;
+          this.modalTotalPages = 1;
+          this.modalLoading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }

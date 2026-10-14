@@ -172,7 +172,7 @@
   </ng-container>
 
   <!-- POPUP DETAILS MODAL -->
-  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()"></div>
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal($event)"></div>
 
   <div class="details-modal-wrapper" *ngIf="isModalOpen" (click)="$event.stopPropagation()">
     <div class="details-modal-content">
@@ -189,8 +189,8 @@
 
         <div class="modal-header-right">
           <span class="modal-total-badge">{{ modalTotalCount }} Applications</span>
-          <button class="btn-close-modal" (click)="closeModal()" title="Close">
-            <i class="bi bi-x-lg"></i>
+          <button type="button" class="btn-close-modal" (click)="closeModal($event)" title="Close" aria-label="Close">
+            <i class="bi bi-x-lg" style="pointer-events: none;"></i>
           </button>
         </div>
       </div>
@@ -306,30 +306,41 @@
 
       </div>
 
-      <!-- Modal Footer (Pagination) -->
-      <div class="modal-footer" *ngIf="modalTotalCount > 0">
-        <div class="modal-footer-left">
+      <!-- Modal Footer (Pagination & Dismiss) -->
+      <div class="modal-footer">
+        <div class="modal-footer-left" *ngIf="modalTotalCount > 0">
           <span>Showing <strong>{{ (modalCurrentPage - 1) * modalPageSize + 1 }}</strong> to <strong>{{ (modalCurrentPage * modalPageSize) > modalTotalCount ? modalTotalCount : (modalCurrentPage * modalPageSize) }}</strong> of <strong>{{ modalTotalCount }}</strong> applications</span>
         </div>
+        <div class="modal-footer-left" *ngIf="modalTotalCount === 0">
+          <span>0 applications found</span>
+        </div>
 
-        <div class="modal-pagination" *ngIf="modalTotalPages > 1">
-          <button class="btn-page-nav" [disabled]="modalCurrentPage === 1" (click)="goToModalPage(modalCurrentPage - 1)">
-            <i class="bi bi-chevron-left"></i> Previous
-          </button>
+        <div class="modal-footer-right">
+          <div class="modal-pagination-controls" *ngIf="modalTotalPages > 1">
+            <button class="modal-pag-btn" (click)="goToModalPage(1)" [disabled]="modalCurrentPage === 1" title="First Page">
+              <i class="bi bi-chevron-double-left"></i>
+            </button>
+            <button class="modal-pag-btn" (click)="goToModalPage(modalCurrentPage - 1)" [disabled]="modalCurrentPage === 1" title="Previous Page">
+              <i class="bi bi-chevron-left"></i>
+            </button>
 
-          <div class="page-numbers">
             <button 
               *ngFor="let p of getPaginationArray()" 
-              class="btn-page-num" 
+              class="modal-pag-btn" 
               [class.active]="p === modalCurrentPage"
               (click)="goToModalPage(p)">
               {{ p }}
             </button>
+
+            <button class="modal-pag-btn" (click)="goToModalPage(modalCurrentPage + 1)" [disabled]="modalCurrentPage === modalTotalPages" title="Next Page">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="modal-pag-btn" (click)="goToModalPage(modalTotalPages)" [disabled]="modalCurrentPage === modalTotalPages" title="Last Page">
+              <i class="bi bi-chevron-double-right"></i>
+            </button>
           </div>
 
-          <button class="btn-page-nav" [disabled]="modalCurrentPage === modalTotalPages" (click)="goToModalPage(modalCurrentPage + 1)">
-            Next <i class="bi bi-chevron-right"></i>
-          </button>
+          <button type="button" class="btn-modal-dismiss" (click)="closeModal($event)">Close</button>
         </div>
       </div>
 

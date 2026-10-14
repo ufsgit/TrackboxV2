@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { NgChartsModule } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { ChartConfiguration, ChartData } from 'chart.js';
 
 @Component({
   selector: 'app-employee-conversion-report',
@@ -24,42 +24,44 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
   animatedTotals: any = { leads: 0, won: 0, lost: 0, conversion: 0 };
 
   // Common Colors for consistency
-  colorMap: any = {
-    whatsapp: '#25D366',
-    instagram: '#E1306C',
-    facebook: '#1877F2',
-    messenger: '#0084FF',
-    linkedin: '#0A66C2',
-    website: '#0DCAF0',
-    rcs: '#198754',
-    sms: '#6F42C1',
-    referral: '#FFC107',
-    other: '#6C757D'
-  };
+  colorPalette: string[] = [
+    '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', 
+    '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4', '#64748b'
+  ];
 
   public barChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
     animation: { duration: 800, easing: 'easeOutQuart' } as any,
     scales: {
-      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.03)' } },
-      x: { grid: { display: false } }
+      y: { 
+        beginAtZero: true, 
+        suggestedMax: 5,
+        grid: { color: 'rgba(0,0,0,0.03)' },
+        ticks: { precision: 0, stepSize: 1, font: { size: 10 } }
+      },
+      x: { 
+        grid: { display: false },
+        ticks: { font: { size: 11, weight: 'bold' } }
+      }
     },
     plugins: {
-      legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
-      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 }
+      legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 7, font: { size: 11, weight: 'bold' } } },
+      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, cornerRadius: 8 }
     }
   };
 
   public pieChartOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { animateRotate: true, animateScale: true, duration: 1000, easing: 'easeInOutQuart' } as any,
+    animation: { animateRotate: true, animateScale: true, duration: 800, easing: 'easeInOutQuart' } as any,
     plugins: {
-      legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } },
-      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 }
+      legend: { 
+        display: false 
+      },
+      tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, cornerRadius: 8 }
     },
-    cutout: '65%'
+    cutout: '72%'
   };
 
   public barChartData: ChartData<'bar'> = { labels: [], datasets: [] };
@@ -67,8 +69,9 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
   
   isBrowser = false;
 
-  // Custom Dropdown State
+  // Custom Dropdown State & View Tab
   isDateDropdownOpen: boolean = false;
+  activeViewTab: 'charts' | 'table' | 'split' = 'charts';
 
   constructor(
     private cdr: ChangeDetectorRef, 
@@ -86,7 +89,19 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
     // any post-init if needed
   }
 
-  toggleDateDropdown() {
+  onDocumentClick() {
+    this.isDateDropdownOpen = false;
+  }
+
+  setActiveTab(tab: 'charts' | 'table' | 'split') {
+    this.activeViewTab = tab;
+    this.cdr.detectChanges();
+  }
+
+  toggleDateDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -120,11 +135,9 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
 
   getEmployeeColor(employee: string): string {
     const c = (employee || '').toLowerCase();
-    // Provide some default colors based on a hash of the name or just cycle through a palette
-    const colors = ['#25D366', '#E1306C', '#1877F2', '#0084FF', '#0A66C2', '#0DCAF0', '#198754', '#6F42C1', '#FFC107'];
     let hash = 0;
     for (let i = 0; i < c.length; i++) hash = c.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
+    return this.colorPalette[Math.abs(hash) % this.colorPalette.length];
   }
 
   fetchData(isRefresh = false) {
@@ -160,10 +173,10 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
           this.loading = false;
           this.refreshing = false;
           this.cdr.detectChanges();
-        }, 150); // slight delay for smooth transition
+        }, 150);
       },
       error: (err: any) => {
-        console.error('Failed to load channel conversion report', err);
+        console.error('Failed to load employee conversion report', err);
         this.loading = false;
         this.refreshing = false;
       }
@@ -182,7 +195,6 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
     const timer = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-      // easeOutExpo
       const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
 
       this.animatedTotals.leads = Math.floor(targets.leads * ease);
@@ -205,8 +217,24 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
     this.barChartData = {
       labels: this.data.map(d => (d.employee || 'Unassigned').toUpperCase()),
       datasets: [
-        { data: this.data.map(d => d.sale_won), label: 'Sale Won', backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.7 },
-        { data: this.data.map(d => d.sale_lost), label: 'Sale Lost', backgroundColor: '#ef4444', borderRadius: 4, barPercentage: 0.7 }
+        { 
+          data: this.data.map(d => d.sale_won), 
+          label: 'Sale Won', 
+          backgroundColor: '#10b981', 
+          borderRadius: 6, 
+          barPercentage: 0.4,
+          categoryPercentage: 0.4,
+          maxBarThickness: 28
+        },
+        { 
+          data: this.data.map(d => d.sale_lost), 
+          label: 'Sale Lost', 
+          backgroundColor: '#ef4444', 
+          borderRadius: 6, 
+          barPercentage: 0.4,
+          categoryPercentage: 0.4,
+          maxBarThickness: 28
+        }
       ]
     };
 
@@ -220,7 +248,7 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
 
     this.data.forEach(d => {
       if (d.total_leads === 0) return;
-      const share = (d.total_leads / totalLeads) * 100;
+      const share = totalLeads > 0 ? (d.total_leads / totalLeads) * 100 : 0;
       if (share < 2) {
         otherLeads += d.total_leads;
       } else {
@@ -233,7 +261,7 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
     if (otherLeads > 0) {
       pieLabels.push('OTHER');
       pieData.push(otherLeads);
-      pieColors.push(this.colorMap['other']);
+      pieColors.push('#64748b');
     }
 
     this.pieChartData = {
@@ -261,6 +289,17 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit 
   }
 
   getEmployeeIcon(employee: string): string {
-    return 'bi-person-circle text-primary';
+    return 'bi-person-badge';
+  }
+
+  getTopEmployees(limit: number = 4): any[] {
+    if (!this.data || this.data.length === 0) return [];
+    return [...this.data]
+      .sort((a, b) => b.total_leads - a.total_leads)
+      .slice(0, limit)
+      .map(emp => ({
+        ...emp,
+        share_percentage: this.totals.leads > 0 ? ((emp.total_leads / this.totals.leads) * 100).toFixed(1) : 0
+      }));
   }
 }

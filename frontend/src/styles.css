@@ -1388,4 +1388,79 @@ body.swal2-toast-shown .swal2-container.swal2-top-end, body.swal2-toast-shown .s
 
 .scroll-delay-1 { animation-delay: 0.1s; }
 .scroll-delay-2 { animation-delay: 0.2s; }
-.scroll-delay-3 { animation-delay: 0.3s; }
+.scroll-delay-3 { animation-delay: 0.3s; }
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL RESOLUTION-FRIENDLY RESPONSIVE SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Universal table responsiveness */
+.table-responsive,
+.table-container,
+.modern-data-table-wrap,
+.data-table-wrapper {
+  width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Universal dropdown overflow containment */
+.dropdown-panel,
+.custom-dropdown-panel,
+.horizontal-submenu,
+.mega-menu {
+  max-width: calc(100vw - 24px) !important;
+  box-sizing: border-box !important;
+}
+
+/* Universal modal responsive containment */
+.modal-dialog,
+.details-modal-wrapper,
+.modal-card {
+  max-width: min(100%, 94vw) !important;
+  box-sizing: border-box !important;
+}
+
+/* Intermediate screen resolution tuning (1024px to 1366px) */
+@media (max-width: 1366px) {
+  .report-container,
+  .report-wrapper,
+  .report-page {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+/* Tablet screen tuning (768px to 1024px) */
+@media (max-width: 1024px) {
+  .report-container,
+  .report-wrapper,
+  .report-page {
+    padding: 1rem 1.25rem;
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  }
+}
+
+/* Mobile screen tuning (< 768px) */
+@media (max-width: 768px) {
+  .report-container,
+  .report-wrapper,
+  .report-page {
+    padding: 0.75rem 0.75rem;
+  }
+
+  .page-heading,
+  .report-title,
+  .header-title {
+    font-size: 1.4rem !important;
+  }
+
+  .grid-4,
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
