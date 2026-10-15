@@ -1,175 +1,411 @@
-<div class="report-container" (click)="isDateDropdownOpen && (isDateDropdownOpen = false)">
+<div class="viewport-dashboard fade-in-up" (click)="onDocumentClick()">
 
-  <!-- Header -->
-  <div class="report-header">
-    <div class="header-top" style="display: flex; justify-content: space-between; align-items: flex-start;">
-      <div>
-        <h1 class="report-title">Application Status-Wise Summary</h1>
-        <p class="report-subtitle">Analyze the total number of applications grouped by their current status</p>
+  <!-- 1. Top Control Bar (Compact Single Row, Height ~44px) -->
+  <header class="top-control-bar">
+    <div class="brand-cluster">
+      <div class="title-with-badge">
+        <h2 class="dashboard-title">Application Status Summary</h2>
+        <span class="badge-tag">
+          <i class="bi bi-file-earmark-medical"></i> Statuses
+        </span>
       </div>
-      
-      <!-- Filter Toolbar -->
+      <span class="subtitle-indicator">
+        <i class="bi bi-bar-chart-steps text-primary"></i> {{ getDateRangeLabel() }} Overview
+      </span>
+    </div>
+
+    <!-- Filter Actions Inline -->
+    <div class="header-actions">
       <div class="filter-toolbar" (click)="$event.stopPropagation()">
+        
+        <!-- Date Range Filter -->
         <div class="filter-dropdown-wrapper">
-          <div class="filter-item" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
-            <i class="bi bi-calendar3 filter-icon"></i>
-            <span class="filter-value">{{ getDateRangeLabel() }}</span>
-            <i class="bi bi-chevron-down filter-caret" [class.rotated]="isDateDropdownOpen"></i>
+          <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
+            <i class="bi bi-calendar3 filter-icon date-icon"></i>
+            <span class="filter-label">{{ getDateRangeLabel() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isDateDropdownOpen"></i>
           </div>
 
-          <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+          <div class="dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
             <div class="dropdown-list">
-              <div class="dropdown-option" [class.selected]="dateRange === 'all'" (click)="selectDateRange('all')">
-                <span class="opt-name">All Dates</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'all'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('all')" [class.selected]="dateRange === 'all'">
+                <span class="item-title">All Dates</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'all'"></i>
               </div>
-              <div class="dropdown-option" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
-                <span class="opt-name">Today</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
+                <span class="item-title">Today</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'today'"></i>
               </div>
-              <div class="dropdown-option" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
-                <span class="opt-name">This Week</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">
+                <span class="item-title">This Week</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_week'"></i>
               </div>
-              <div class="dropdown-option" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
-                <span class="opt-name">This Month</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">
+                <span class="item-title">This Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_month'"></i>
               </div>
-              <div class="dropdown-option" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
-                <span class="opt-name">Last Month</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('last_month')" [class.selected]="dateRange === 'last_month'">
+                <span class="item-title">Last Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'last_month'"></i>
               </div>
-              <div class="dropdown-option" [class.selected]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
-                <span class="opt-name">Year to Date</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('ytd')" [class.selected]="dateRange === 'ytd'">
+                <span class="item-title">Year to Date</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'ytd'"></i>
               </div>
-              <div class="dropdown-option" [class.selected]="dateRange === 'custom'" (click)="selectDateRange('custom')">
-                <span class="opt-name">Custom Range</span>
-                <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+              <div class="dropdown-item" (click)="selectDateRange('prev_year')" [class.selected]="dateRange === 'prev_year'">
+                <span class="item-title">Previous Year</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'prev_year'"></i>
+              </div>
+              <div class="dropdown-item" (click)="selectDateRange('custom')" [class.selected]="dateRange === 'custom'">
+                <span class="item-title">Custom Range</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'custom'"></i>
               </div>
             </div>
-            <div class="custom-date-inputs" *ngIf="dateRange === 'custom'">
-              <div class="custom-date-row">
+
+            <!-- Custom Date Inputs -->
+            <div class="custom-date-box" *ngIf="dateRange === 'custom'" (click)="$event.stopPropagation()">
+              <div class="date-input-group">
                 <label>Start Date</label>
-                <input type="date" class="modern-date-input" [(ngModel)]="customStartDate" />
+                <input type="date" class="clean-date-input" [(ngModel)]="customStartDate">
               </div>
-              <div class="custom-date-row">
+              <div class="date-input-group">
                 <label>End Date</label>
-                <input type="date" class="modern-date-input" [(ngModel)]="customEndDate" />
+                <input type="date" class="clean-date-input" [(ngModel)]="customEndDate">
               </div>
-              <button class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
+              <button class="btn-apply-date" (click)="applyCustomDate()">Apply Filter</button>
             </div>
           </div>
         </div>
 
-        <button class="btn-refresh-toolbar" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh">
+        <div class="toolbar-divider"></div>
+
+        <!-- Refresh -->
+        <button class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Report">
           <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Loading State -->
-  <div class="loader-container" *ngIf="loading">
-    <div class="modern-spinner"></div>
-    <p>Loading report...</p>
-  </div>
-
-  <ng-container *ngIf="!loading">
-
-    <!-- Total Applications Card (Clickable) -->
-    <div class="stats-grid">
-      <div class="stat-card clickable-card" (click)="openCardDetails()" title="Click to view all applications">
-        <div class="stat-icon-wrap bg-light-purple">
-          <i class="bi bi-file-earmark-text"></i>
-        </div>
-        <div class="stat-info">
-          <p class="stat-label">Total Applications</p>
-          <h2 class="stat-value">{{ totalApplications }}</h2>
-          <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Applications</span>
-        </div>
-        <div class="stat-bg bg-light-purple-bubble"></div>
+  <!-- 2. Compact KPI Metrics Strip (4 horizontal tiles in a single row, Height ~56px) -->
+  <section class="kpi-strip">
+    <!-- Tile 1: Total Applications -->
+    <div class="kpi-tile tile-purple clickable-kpi" (click)="openCardDetails()" title="Click to view all applications">
+      <div class="kpi-icon-box bg-purple-soft text-purple">
+        <i class="bi bi-file-earmark-text"></i>
       </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Total Applications</span>
+        <div class="kpi-metric text-purple">{{ totalApplications | number }}</div>
+        <span class="kpi-caption text-truncate"><i class="bi bi-box-arrow-up-right me-1"></i>View all</span>
+      </div>
+      <div class="tile-glow glow-purple"></div>
     </div>
 
-    <!-- Chart Section -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="chart-title-wrap">
-          <div class="chart-title">Applications by Status</div>
-          <span class="chart-hint-badge" *ngIf="totalApplications > 0">
-            <i class="bi bi-cursor-fill"></i> Click any slice to view applications
-          </span>
-        </div>
+    <!-- Tile 2: Approved / Converted -->
+    <div class="kpi-tile tile-emerald">
+      <div class="kpi-icon-box bg-emerald-soft text-emerald">
+        <i class="bi bi-check-circle-fill"></i>
       </div>
-      <div class="chart-body">
-        <!-- Empty State -->
-        <div class="empty-state" *ngIf="totalApplications === 0">
-          <i class="bi bi-pie-chart empty-icon"></i>
-          <p>No applications found for the selected period.</p>
-        </div>
-
-        <!-- Chart Container -->
-        <div class="chart-container" *ngIf="isBrowser && totalApplications > 0">
-          <canvas baseChart
-            [data]="pieChartData"
-            [options]="pieChartOptions"
-            [type]="'doughnut'">
-          </canvas>
-        </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Approved / Closed</span>
+        <div class="kpi-metric text-emerald">{{ approvedCount | number }}</div>
+        <span class="kpi-caption text-truncate">Completed applications</span>
       </div>
+      <div class="tile-glow glow-emerald"></div>
     </div>
 
-    <!-- Breakdown Table -->
-    <div class="breakdown-card">
-      <div class="breakdown-header">
-        <div class="breakdown-title-wrap">
-          <div class="breakdown-title">Status Breakdown</div>
-          <span class="breakdown-hint-badge" *ngIf="breakdown.length > 0">
-            <i class="bi bi-cursor-fill"></i> Click any row to view applications
-          </span>
-        </div>
+    <!-- Tile 3: Pending / In Progress -->
+    <div class="kpi-tile tile-rose">
+      <div class="kpi-icon-box bg-rose-soft text-rose">
+        <i class="bi bi-hourglass-split"></i>
       </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Pending / Review</span>
+        <div class="kpi-metric text-rose">{{ pendingCount | number }}</div>
+        <span class="kpi-caption text-truncate">Active in pipeline</span>
+      </div>
+      <div class="tile-glow glow-rose"></div>
+    </div>
 
-      <div class="breakdown-body">
-        <table class="breakdown-table">
-          <thead>
-            <tr>
-              <th>STATUS</th>
-              <th style="text-align: right">COUNT</th>
-              <th style="text-align: right">ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of breakdown; let i = index" class="clickable-row" (click)="openStatusDetails(row.status, row.count, row.color)" title="Click to view {{ row.status }} applications">
-              <td>
-                <div class="status-cell">
-                  <div class="status-dot" [style.background]="row.color || getStatusColor(i)"></div>
-                  <span class="status-name">{{ row.status }}</span>
+    <!-- Tile 4: Status Categories -->
+    <div class="kpi-tile tile-blue">
+      <div class="kpi-icon-box bg-blue-soft text-blue">
+        <i class="bi bi-tags-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Status States</span>
+        <div class="kpi-metric text-blue">{{ statusCount | number }}</div>
+        <span class="kpi-caption text-truncate">Categories tracked</span>
+      </div>
+      <div class="tile-glow glow-blue"></div>
+    </div>
+  </section>
+
+  <!-- 3. Navigation View Switcher (Height ~30px) -->
+  <div class="view-tabs-bar">
+    <div class="tabs-group">
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'split'" (click)="setActiveTab('split')">
+        <i class="bi bi-layout-split"></i>
+        <span>Unified View</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'chart'" (click)="setActiveTab('chart')">
+        <i class="bi bi-pie-chart-fill"></i>
+        <span>Chart View</span>
+      </button>
+      <button class="view-tab-btn" [class.active]="activeViewTab === 'table'" (click)="setActiveTab('table')">
+        <i class="bi bi-table"></i>
+        <span>Status Breakdown</span>
+        <span class="tab-badge" *ngIf="breakdown && breakdown.length > 0">{{ breakdown.length }}</span>
+      </button>
+    </div>
+
+    <div class="tabs-meta" *ngIf="totalApplications > 0">
+      <span class="meta-chip">
+        <i class="bi bi-check2-circle text-success"></i> <strong>{{ totalApplications }} Total Applications</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- 4. Main Dashboard Workspace (Fills all remaining height, ZERO page scroll) -->
+  <main class="dashboard-workspace">
+
+    <!-- TAB 1: UNIFIED VIEW (Donut Chart Left 50% + Table Right 50%) -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'split'">
+      <div class="split-view-row">
+        
+        <!-- Left: Donut Chart Card -->
+        <div class="chart-card donut-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
+              <div>
+                <h3 class="chart-heading">Applications by Status</h3>
+                <span class="chart-subheading">Distribution share</span>
+              </div>
+            </div>
+            <span class="chart-badge badge-blue">
+              <i class="bi bi-cursor-fill"></i> Click Slice
+            </span>
+          </div>
+
+          <div class="donut-card-body">
+            <!-- Compact 180px Donut Ring -->
+            <div class="donut-canvas-container">
+              <canvas *ngIf="isBrowser && !loading && !refreshing && totalApplications > 0" baseChart 
+                [data]="pieChartData" 
+                [options]="pieChartOptions" 
+                type="doughnut">
+              </canvas>
+              <div class="donut-center-stat" *ngIf="!loading && !refreshing && totalApplications > 0">
+                <span class="center-stat-val">{{ totalApplications }}</span>
+                <span class="center-stat-label">Applications</span>
+              </div>
+              <div class="skeleton-chart pie-skeleton" *ngIf="loading || refreshing"></div>
+
+              <div class="empty-state" *ngIf="!loading && !refreshing && totalApplications === 0">
+                <i class="bi bi-pie-chart empty-icon"></i>
+                <p>No applications found.</p>
+              </div>
+            </div>
+
+            <!-- Top Statuses Breakdown Panel -->
+            <div class="donut-breakdown-panel" *ngIf="!loading && !refreshing && totalApplications > 0">
+              <div class="breakdown-header-label">Status Distribution</div>
+              <div class="breakdown-items-list">
+                <div *ngFor="let s of topStatuses4" 
+                     class="breakdown-row-item clickable-status" 
+                     (click)="openStatusDetails(s.status, s.count, s.color)">
+                  <div class="breakdown-info">
+                    <span class="breakdown-name">
+                      <span class="ch-dot" [style.background-color]="s.color"></span>
+                      {{ s.status | uppercase }}
+                    </span>
+                    <span class="breakdown-pct">{{ s.percentage }}%</span>
+                  </div>
+                  <div class="breakdown-bar-track">
+                    <div class="breakdown-bar-fill" [style.width.%]="s.percentage" [style.background-color]="s.color"></div>
+                  </div>
+                  <div class="breakdown-val">
+                    <strong>{{ s.count }}</strong> <small>apps</small>
+                  </div>
                 </div>
-              </td>
-              <td style="text-align: right">
-                <span class="count-badge" [style.background]="(row.color || getStatusColor(i)) + '1a'" [style.color]="row.color || getStatusColor(i)">
-                  {{ row.count }}
-                </span>
-              </td>
-              <td style="text-align: right">
-                <button class="btn-view-details" (click)="$event.stopPropagation(); openStatusDetails(row.status, row.count, row.color)">
-                  <i class="bi bi-eye-fill"></i> View Details
-                </button>
-              </td>
-            </tr>
-            <tr *ngIf="breakdown.length === 0">
-              <td colspan="3" class="text-center" style="padding: 2rem; color: #94a3b8;">
-                No statuses found
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Micro metric summary footer -->
+          <div class="chart-card-footer" *ngIf="!loading && !refreshing && totalApplications > 0">
+            <div *ngFor="let s of topStatuses3" class="ch-metric-pill" (click)="openStatusDetails(s.status, s.count, s.color)">
+              <span class="ch-dot" [style.background-color]="s.color"></span>
+              <span class="ch-name">{{ s.status | uppercase }}</span>
+              <span class="ch-count">{{ s.count }}</span>
+              <span class="ch-share">({{ s.percentage }}%)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Status Breakdown Table Card -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <div class="table-title-box">
+              <i class="bi bi-file-earmark-bar-graph header-section-icon"></i>
+              <h3 class="table-heading">Status Breakdown Table</h3>
+            </div>
+            <span class="records-pill">{{ breakdown.length }} Statuses</span>
+          </div>
+
+          <div class="table-container">
+            <table class="modern-data-table">
+              <thead>
+                <tr>
+                  <th class="ps-3">Status</th>
+                  <th class="text-center">Share</th>
+                  <th class="text-center">Applications</th>
+                  <th class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngIf="loading || refreshing">
+                  <tr *ngFor="let i of [1,2,3,4]">
+                    <td class="ps-3 py-3"><div class="skeleton-line" style="width: 120px; height: 18px;"></div></td>
+                    <td class="py-3"><div class="skeleton-line mx-auto" style="width: 80px; height: 6px;"></div></td>
+                    <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 40px; height: 18px;"></div></td>
+                    <td class="text-center py-3"><div class="skeleton-line mx-auto" style="width: 80px; height: 18px;"></div></td>
+                  </tr>
+                </ng-container>
+
+                <ng-container *ngIf="!loading && !refreshing">
+                  <tr *ngFor="let row of breakdown; let i = index" 
+                      class="clickable-row" 
+                      (click)="openStatusDetails(row.status, row.count, row.color || getStatusColor(i))">
+                    <td class="ps-3 py-2">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="status-dot-sm" [style.background-color]="row.color || getStatusColor(i)"></div>
+                        <span class="fw-bold text-dark text-capitalize" style="font-size: 0.85rem;">{{ row.status }}</span>
+                      </div>
+                    </td>
+                    <td class="py-2">
+                      <div class="rate-progress-wrap justify-content-center">
+                        <div class="rate-bar-bg" style="width: 60px;">
+                          <div class="rate-bar-fill" [style.width.%]="totalApplications > 0 ? (row.count / totalApplications) * 100 : 0" [style.background-color]="row.color || getStatusColor(i)"></div>
+                        </div>
+                        <span class="rate-pct" style="font-size: 0.72rem;">{{ totalApplications > 0 ? ((row.count / totalApplications) * 100).toFixed(0) : 0 }}%</span>
+                      </div>
+                    </td>
+                    <td class="text-center py-2">
+                      <span class="count-badge" [style.background]="(row.color || getStatusColor(i)) + '1a'" [style.color]="row.color || getStatusColor(i)">
+                        {{ row.count }}
+                      </span>
+                    </td>
+                    <td class="text-center py-2">
+                      <button class="btn-action-view" (click)="$event.stopPropagation(); openStatusDetails(row.status, row.count, row.color || getStatusColor(i))">
+                        <i class="bi bi-eye-fill"></i> View
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="breakdown.length === 0">
+                    <td colspan="4" class="text-center py-4 text-muted">
+                      No status records found for this period.
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
 
-  </ng-container>
+    <!-- TAB 2: FULL CHART VIEW -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'chart'">
+      <div class="chart-card full-pane-card">
+        <div class="chart-header">
+          <div class="chart-title-box">
+            <div class="dot-indicator dot-blue"></div>
+            <div>
+              <h3 class="chart-heading">Applications Status Distribution</h3>
+              <span class="chart-subheading">Full breakdown across statuses</span>
+            </div>
+          </div>
+          <span class="chart-badge badge-blue">
+            <i class="bi bi-pie-chart"></i> Distribution
+          </span>
+        </div>
+
+        <div class="chart-canvas-container">
+          <div class="donut-canvas-container" style="width: 260px; height: 260px; max-width: 260px; max-height: 260px;">
+            <canvas *ngIf="isBrowser && !loading && !refreshing && totalApplications > 0" baseChart
+              [data]="pieChartData"
+              [options]="pieChartOptions"
+              type="doughnut">
+            </canvas>
+            <div class="donut-center-stat" *ngIf="!loading && !refreshing && totalApplications > 0">
+              <span class="center-stat-val" style="font-size: 1.6rem;">{{ totalApplications }}</span>
+              <span class="center-stat-label">Applications</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: FULL DATA TABLE VIEW -->
+    <div class="tab-pane-full" *ngIf="activeViewTab === 'table'">
+      <div class="table-card full-pane-card">
+        <div class="table-card-header">
+          <div class="table-title-box">
+            <i class="bi bi-file-earmark-bar-graph header-section-icon"></i>
+            <h3 class="table-heading">All Status Breakdowns</h3>
+            <span class="records-pill">{{ breakdown.length }} Statuses</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="modern-data-table">
+            <thead>
+              <tr>
+                <th class="ps-4">Status</th>
+                <th class="text-center">Count</th>
+                <th>Share of Total</th>
+                <th class="text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of breakdown; let i = index" class="clickable-row" (click)="openStatusDetails(row.status, row.count, row.color || getStatusColor(i))">
+                <td class="ps-4 py-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="status-dot-sm" [style.background-color]="row.color || getStatusColor(i)"></div>
+                    <span class="fw-bold text-dark text-capitalize" style="font-size: 0.88rem;">{{ row.status }}</span>
+                  </div>
+                </td>
+                <td class="text-center py-2">
+                  <span class="count-badge" [style.background]="(row.color || getStatusColor(i)) + '1a'" [style.color]="row.color || getStatusColor(i)">
+                    {{ row.count }}
+                  </span>
+                </td>
+                <td class="py-2">
+                  <div class="rate-progress-wrap">
+                    <div class="rate-bar-bg flex-grow-1" style="max-width: 140px;">
+                      <div class="rate-bar-fill" [style.width.%]="totalApplications > 0 ? (row.count / totalApplications) * 100 : 0" [style.background-color]="row.color || getStatusColor(i)"></div>
+                    </div>
+                    <span class="rate-pct">{{ totalApplications > 0 ? ((row.count / totalApplications) * 100).toFixed(1) : 0 }}%</span>
+                  </div>
+                </td>
+                <td class="text-center py-2">
+                  <button class="btn-action-view" (click)="$event.stopPropagation(); openStatusDetails(row.status, row.count, row.color || getStatusColor(i))">
+                    <i class="bi bi-eye-fill"></i> View Details
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
 
   <!-- POPUP DETAILS MODAL -->
   <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal($event)"></div>

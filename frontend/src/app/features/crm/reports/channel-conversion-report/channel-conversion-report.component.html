@@ -203,16 +203,16 @@
             <div class="donut-breakdown-panel" *ngIf="!loading && !refreshing">
               <div class="breakdown-header-label">Acquisition Sources</div>
               <div class="breakdown-items-list">
-                <div *ngFor="let ch of getTopChannels(4)" class="breakdown-row-item">
+                <div *ngFor="let ch of topChannels4" class="breakdown-row-item">
                   <div class="breakdown-info">
                     <span class="breakdown-name">
-                      <span class="ch-dot" [style.background-color]="getChannelColor(ch.channel)"></span>
+                      <span class="ch-dot" [style.background-color]="ch.color"></span>
                       {{ ch.channel | uppercase }}
                     </span>
                     <span class="breakdown-pct">{{ ch.share_percentage }}%</span>
                   </div>
                   <div class="breakdown-bar-track">
-                    <div class="breakdown-bar-fill" [style.width.%]="ch.share_percentage" [style.background-color]="getChannelColor(ch.channel)"></div>
+                    <div class="breakdown-bar-fill" [style.width.%]="ch.share_percentage" [style.background-color]="ch.color"></div>
                   </div>
                   <div class="breakdown-val">
                     <strong>{{ ch.total_leads }}</strong> <small>leads</small>
@@ -224,8 +224,8 @@
 
           <!-- Micro metric summary footer -->
           <div class="chart-card-footer" *ngIf="!loading && !refreshing">
-            <div *ngFor="let ch of getTopChannels(3)" class="ch-metric-pill">
-              <span class="ch-dot" [style.background-color]="getChannelColor(ch.channel)"></span>
+            <div *ngFor="let ch of topChannels3" class="ch-metric-pill">
+              <span class="ch-dot" [style.background-color]="ch.color"></span>
               <span class="ch-name">{{ ch.channel | uppercase }}</span>
               <span class="ch-count">{{ ch.total_leads }}</span>
               <span class="ch-share">({{ ch.share_percentage }}%)</span>
@@ -321,7 +321,7 @@
                 <tr *ngFor="let row of data">
                   <td class="ps-3 py-2">
                     <div class="d-flex align-items-center gap-2">
-                      <div class="icon-wrapper" [style.color]="getChannelColor(row.channel)">
+                      <div class="icon-wrapper" [style.color]="row.color">
                         <i class="bi" [ngClass]="getChannelIcon(row.channel)"></i>
                       </div>
                       <span class="fw-bold text-dark text-capitalize" style="font-size: 0.86rem;">{{ row.channel }}</span>
@@ -333,7 +333,7 @@
                   <td class="py-2">
                     <div class="rate-progress-wrap">
                       <div class="rate-bar-bg flex-grow-1" style="max-width: 110px;">
-                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="getChannelColor(row.channel)"></div>
+                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="row.color"></div>
                       </div>
                       <span class="rate-pct">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
                     </div>
@@ -432,7 +432,7 @@
                   <td class="py-2">
                     <div class="rate-progress-wrap">
                       <div class="rate-bar-bg" style="width: 45px;">
-                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="getChannelColor(row.channel)"></div>
+                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="row.color"></div>
                       </div>
                       <span class="rate-pct" style="font-size: 0.72rem;">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
                     </div>

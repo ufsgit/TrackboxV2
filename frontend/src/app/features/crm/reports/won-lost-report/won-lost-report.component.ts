@@ -94,7 +94,7 @@ export class WonLostReportComponent implements OnInit {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { padding: 24, usePointStyle: true, pointStyleWidth: 12, font: { size: 14, weight: 'bold' as any } },
+        labels: { padding: 12, usePointStyle: true, pointStyleWidth: 10, font: { size: 12, weight: '600' as any } },
         onClick: (e, legendItem, legend) => {
           // Allow clicking legend to also open modal, or just default behavior
           if (legendItem && legendItem.text) {

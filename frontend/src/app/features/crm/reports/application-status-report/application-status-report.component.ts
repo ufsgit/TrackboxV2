@@ -20,8 +20,12 @@ export class ApplicationStatusReportComponent implements OnInit {
   customStartDate: string = '';
   customEndDate: string = '';
   isDateDropdownOpen: boolean = false;
+  activeViewTab: 'split' | 'chart' | 'table' = 'split';
 
   totalApplications: number = 0;
+  approvedCount: number = 0;
+  pendingCount: number = 0;
+  statusCount: number = 0;
   breakdown: any[] = [];
   chartBreakdown: any[] = [];
 
@@ -42,7 +46,7 @@ export class ApplicationStatusReportComponent implements OnInit {
   public pieChartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '60%', // Makes it a donut chart
+    cutout: '72%',
     onClick: (evt: any, elements: any[]) => {
       if (elements && elements.length > 0) {
         const index = elements[0].index;
@@ -61,24 +65,11 @@ export class ApplicationStatusReportComponent implements OnInit {
     },
     plugins: {
       legend: {
-        display: true,
-        position: 'right',
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          font: {
-            family: 'Inter, sans-serif',
-            size: 12
-          }
-        }
+        display: false
       },
       tooltip: {
-        backgroundColor: '#ffffff',
-        titleColor: '#212529',
-        bodyColor: '#212529',
-        borderColor: '#dee2e6',
-        borderWidth: 1,
-        padding: 12,
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        padding: 10,
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
@@ -111,61 +102,19 @@ export class ApplicationStatusReportComponent implements OnInit {
     this.fetchData();
   }
 
-  fetchData(isRefresh = false) {
-    if (isRefresh) {
-      this.refreshing = true;
-    } else {
-      this.loading = true;
-    }
-
-    let endpoint = `/reports/applications/status-summary?dateRange=${this.dateRange}`;
-    if (this.dateRange === 'custom') {
-      if (!this.customStartDate || !this.customEndDate) {
-        this.loading = false;
-        this.refreshing = false;
-        return;
-      }
-      endpoint += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
-    }
-
-    this.api.get(endpoint).subscribe({
-      next: (res: any) => {
-        if (res.success) {
-          this.breakdown = res.data || [];
-          this.totalApplications = this.breakdown.reduce((sum, item) => sum + (Number(item.count) || 0), 0);
-          this.updateChart();
-        }
-        setTimeout(() => {
-          this.loading = false;
-          this.refreshing = false;
-          this.cdr.detectChanges();
-        }, 150);
-      },
-      error: (err: any) => {
-        console.error('Failed to load application status report', err);
-        this.loading = false;
-        this.refreshing = false;
-      }
-    });
+  onDocumentClick() {
+    this.isDateDropdownOpen = false;
   }
 
-  updateChart() {
-    this.chartBreakdown = this.breakdown.filter(d => Number(d.count) > 0);
-    
-    this.pieChartData = {
-      labels: this.chartBreakdown.map(d => d.status),
-      datasets: [
-        {
-          data: this.chartBreakdown.map(d => Number(d.count)),
-          backgroundColor: this.chartBreakdown.map((d, i) => d.color || this.getStatusColor(i)),
-          borderWidth: 0,
-          hoverOffset: 6
-        }
-      ]
-    };
+  setActiveTab(tab: 'split' | 'chart' | 'table') {
+    this.activeViewTab = tab;
+    this.cdr.detectChanges();
   }
 
-  toggleDateDropdown() {
+  toggleDateDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -198,9 +147,122 @@ export class ApplicationStatusReportComponent implements OnInit {
     return labels[this.dateRange] || 'All Dates';
   }
 
+  topStatuses4: any[] = [];
+  topStatuses3: any[] = [];
+  private apiSub: any = null;
+
+  fetchData(isRefresh = false) {
+    if (this.apiSub) {
+      this.apiSub.unsubscribe();
+      this.apiSub = null;
+    }
+
+    if (isRefresh) {
+      this.refreshing = true;
+    } else {
+      this.loading = true;
+    }
+
+    let endpoint = `/reports/applications/status-summary?dateRange=${this.dateRange}`;
+    if (this.dateRange === 'custom') {
+      if (!this.customStartDate || !this.customEndDate) {
+        this.loading = false;
+        this.refreshing = false;
+        return;
+      }
+      endpoint += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
+    }
+
+    this.apiSub = this.api.get(endpoint).subscribe({
+      next: (res: any) => {
+        if (res && res.success) {
+          const rawBreakdown: any[] = Array.isArray(res.data) ? res.data : [];
+          this.breakdown = rawBreakdown.map((item: any, idx: number) => ({
+            ...item,
+            color: item.color || this.getStatusColor(idx)
+          }));
+          this.totalApplications = this.breakdown.reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+          
+          // Calculate status subsets for KPI strip
+          this.approvedCount = this.breakdown
+            .filter(b => (b.status || '').toLowerCase().includes('approved') || (b.status || '').toLowerCase().includes('won') || (b.status || '').toLowerCase().includes('accept'))
+            .reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+            
+          this.pendingCount = this.breakdown
+            .filter(b => (b.status || '').toLowerCase().includes('pending') || (b.status || '').toLowerCase().includes('process') || (b.status || '').toLowerCase().includes('review') || (b.status || '').toLowerCase().includes('submit'))
+            .reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+
+          this.updateChart();
+          this.prepareTopStatuses();
+        } else {
+          this.breakdown = [];
+          this.totalApplications = 0;
+          this.approvedCount = 0;
+          this.pendingCount = 0;
+          this.updateChart();
+          this.prepareTopStatuses();
+        }
+        this.loading = false;
+        this.refreshing = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Failed to load application status report', err);
+        this.breakdown = [];
+        this.totalApplications = 0;
+        this.approvedCount = 0;
+        this.pendingCount = 0;
+        this.updateChart();
+        this.prepareTopStatuses();
+        this.loading = false;
+        this.refreshing = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  prepareTopStatuses() {
+    if (!this.breakdown || this.breakdown.length === 0) {
+      this.topStatuses4 = [];
+      this.topStatuses3 = [];
+      return;
+    }
+    const sorted = [...this.breakdown]
+      .filter(s => Number(s.count) > 0)
+      .sort((a, b) => Number(b.count) - Number(a.count))
+      .map(s => ({
+        ...s,
+        percentage: this.totalApplications > 0 ? (((Number(s.count) || 0) / this.totalApplications) * 100).toFixed(1) : '0'
+      }));
+
+    this.topStatuses4 = sorted.slice(0, 4);
+    this.topStatuses3 = sorted.slice(0, 3);
+  }
+
+  updateChart() {
+    this.chartBreakdown = this.breakdown.filter(d => Number(d.count) > 0);
+    this.statusCount = this.chartBreakdown.length;
+    
+    this.pieChartData = {
+      labels: this.chartBreakdown.map(d => d.status),
+      datasets: [
+        {
+          data: this.chartBreakdown.map(d => Number(d.count)),
+          backgroundColor: this.chartBreakdown.map(d => d.color),
+          borderWidth: 0,
+          hoverOffset: 6
+        }
+      ]
+    };
+  }
+
   getStatusColor(index: number): string {
-    const colors = ['#10b981', '#fb3909', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#f97316'];
+    const colors = ['#10b981', '#ef4444', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#f97316'];
     return colors[index % colors.length];
+  }
+
+  getTopStatuses(limit: number = 4): any[] {
+    return limit === 3 ? this.topStatuses3 : this.topStatuses4;
   }
 
   // --- Modal Popup Handlers ---

@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID, AfterViewInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-channel-conversion-report',
@@ -12,7 +13,7 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
   templateUrl: './channel-conversion-report.component.html',
   styleUrl: './channel-conversion-report.component.css'
 })
-export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
+export class ChannelConversionReportComponent implements OnInit, AfterViewInit, OnDestroy {
   loading: boolean = true;
   refreshing: boolean = false;
   dateRange: string = 'ytd';
@@ -20,8 +21,14 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
   customEndDate: string = '';
   
   data: any[] = [];
+  topChannels4: any[] = [];
+  topChannels3: any[] = [];
+
   totals: any = { leads: 0, won: 0, lost: 0, conversion: 0, loss: 0 };
   animatedTotals: any = { leads: 0, won: 0, lost: 0, conversion: 0 };
+
+  private countTimer: any = null;
+  private apiSub: Subscription | null = null;
 
   // Common Colors for consistency
   colorMap: any = {
@@ -40,10 +47,10 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
   public barChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { duration: 800, easing: 'easeOutQuart' } as any,
+    animation: { duration: 600, easing: 'easeOutQuart' } as any,
     scales: {
       y: { 
-        beginAtZero: true,
+        beginAtZero: true, 
         suggestedMax: 5,
         grid: { color: 'rgba(0,0,0,0.03)' },
         ticks: { precision: 0, stepSize: 1, font: { size: 10 } }
@@ -62,10 +69,10 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
   public pieChartOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { animateRotate: true, animateScale: true, duration: 800, easing: 'easeInOutQuart' } as any,
+    animation: { animateRotate: true, animateScale: true, duration: 600, easing: 'easeInOutQuart' } as any,
     plugins: {
       legend: { 
-        display: false
+        display: false 
       },
       tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, cornerRadius: 8 }
     },
@@ -83,6 +90,7 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
 
   constructor(
     private cdr: ChangeDetectorRef, 
+    private ngZone: NgZone,
     private api: ApiService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
@@ -95,6 +103,17 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     // any post-init if needed
+  }
+
+  ngOnDestroy() {
+    if (this.countTimer) {
+      clearInterval(this.countTimer);
+      this.countTimer = null;
+    }
+    if (this.apiSub) {
+      this.apiSub.unsubscribe();
+      this.apiSub = null;
+    }
   }
 
   onDocumentClick() {
@@ -147,6 +166,16 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
   }
 
   fetchData(isRefresh = false) {
+    if (this.countTimer) {
+      clearInterval(this.countTimer);
+      this.countTimer = null;
+    }
+
+    if (this.apiSub) {
+      this.apiSub.unsubscribe();
+      this.apiSub = null;
+    }
+
     if (isRefresh) {
       this.refreshing = true;
     } else {
@@ -163,60 +192,107 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
       endpoint += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
     }
 
-    this.api.get(endpoint).subscribe({
+    this.apiSub = this.api.get(endpoint).subscribe({
       next: (res: any) => {
-        if (res.success) {
-          this.data = res.data;
+        if (res && res.success) {
+          const rawData: any[] = Array.isArray(res.data) ? res.data : [];
+          this.data = rawData.map((row: any) => ({
+            ...row,
+            color: this.getChannelColor(row.channel)
+          }));
           this.calculateTotals();
+          this.prepareTopChannels();
           this.updateCharts();
           if (this.isBrowser) {
             this.animateCountUp();
           } else {
             this.animatedTotals = { ...this.totals };
           }
+        } else {
+          this.data = [];
+          this.calculateTotals();
+          this.prepareTopChannels();
+          this.updateCharts();
+          this.animatedTotals = { ...this.totals };
         }
-        setTimeout(() => {
-          this.loading = false;
-          this.refreshing = false;
-          this.cdr.detectChanges();
-        }, 150); // slight delay for smooth transition
+        this.loading = false;
+        this.refreshing = false;
+        this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error('Failed to load channel conversion report', err);
+        this.data = [];
+        this.calculateTotals();
+        this.prepareTopChannels();
+        this.updateCharts();
+        this.animatedTotals = { ...this.totals };
         this.loading = false;
         this.refreshing = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
+  private prepareTopChannels() {
+    if (!this.data || this.data.length === 0) {
+      this.topChannels4 = [];
+      this.topChannels3 = [];
+      return;
+    }
+    const sorted = [...this.data]
+      .sort((a, b) => (Number(b.total_leads) || 0) - (Number(a.total_leads) || 0))
+      .map(ch => ({
+        ...ch,
+        share_percentage: this.totals.leads > 0 ? (((Number(ch.total_leads) || 0) / this.totals.leads) * 100).toFixed(1) : '0'
+      }));
+
+    this.topChannels4 = sorted.slice(0, 4);
+    this.topChannels3 = sorted.slice(0, 3);
+  }
+
   animateCountUp() {
-    const duration = 800; // ms
-    const steps = 30;
+    if (this.countTimer) {
+      clearInterval(this.countTimer);
+      this.countTimer = null;
+    }
+
+    const duration = 600; // ms
+    const steps = 20;
     const interval = duration / steps;
     let currentStep = 0;
 
     const targets = { ...this.totals };
     this.animatedTotals = { leads: 0, won: 0, lost: 0, conversion: 0 };
 
-    const timer = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / steps;
-      // easeOutExpo
-      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    this.ngZone.runOutsideAngular(() => {
+      this.countTimer = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / steps;
+        const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
 
-      this.animatedTotals.leads = Math.floor(targets.leads * ease);
-      this.animatedTotals.won = Math.floor(targets.won * ease);
-      this.animatedTotals.lost = Math.floor(targets.lost * ease);
-      this.animatedTotals.conversion = (targets.conversion * ease).toFixed(1);
+        const currentLeads = Math.floor(targets.leads * ease);
+        const currentWon = Math.floor(targets.won * ease);
+        const currentLost = Math.floor(targets.lost * ease);
+        const currentConversion = (targets.conversion * ease).toFixed(1);
 
-      this.cdr.detectChanges();
+        this.ngZone.run(() => {
+          this.animatedTotals.leads = currentLeads;
+          this.animatedTotals.won = currentWon;
+          this.animatedTotals.lost = currentLost;
+          this.animatedTotals.conversion = currentConversion;
+          this.cdr.detectChanges();
+        });
 
-      if (currentStep >= steps) {
-        clearInterval(timer);
-        this.animatedTotals = { ...targets };
-        this.cdr.detectChanges();
-      }
-    }, interval);
+        if (currentStep >= steps) {
+          clearInterval(this.countTimer);
+          this.countTimer = null;
+          this.ngZone.run(() => {
+            this.animatedTotals = { ...targets };
+            this.cdr.detectChanges();
+          });
+        }
+      }, interval);
+    });
   }
 
   updateCharts() {
@@ -307,13 +383,6 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit {
   }
 
   getTopChannels(limit: number = 3): any[] {
-    if (!this.data || this.data.length === 0) return [];
-    return [...this.data]
-      .sort((a, b) => b.total_leads - a.total_leads)
-      .slice(0, limit)
-      .map(ch => ({
-        ...ch,
-        share_percentage: this.totals.leads > 0 ? ((ch.total_leads / this.totals.leads) * 100).toFixed(1) : 0
-      }));
+    return limit === 4 ? this.topChannels4 : this.topChannels3;
   }
 }

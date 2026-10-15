@@ -204,16 +204,16 @@
             <div class="donut-breakdown-panel" *ngIf="!loading && !refreshing">
               <div class="breakdown-header-label">Top Performers</div>
               <div class="breakdown-items-list">
-                <div *ngFor="let emp of getTopEmployees(4)" class="breakdown-row-item">
+                <div *ngFor="let emp of topEmployees4" class="breakdown-row-item">
                   <div class="breakdown-info">
                     <span class="breakdown-name">
-                      <span class="ch-dot" [style.background-color]="getEmployeeColor(emp.employee)"></span>
+                      <span class="ch-dot" [style.background-color]="emp.color"></span>
                       {{ emp.employee | uppercase }}
                     </span>
                     <span class="breakdown-pct">{{ emp.share_percentage }}%</span>
                   </div>
                   <div class="breakdown-bar-track">
-                    <div class="breakdown-bar-fill" [style.width.%]="emp.share_percentage" [style.background-color]="getEmployeeColor(emp.employee)"></div>
+                    <div class="breakdown-bar-fill" [style.width.%]="emp.share_percentage" [style.background-color]="emp.color"></div>
                   </div>
                   <div class="breakdown-val">
                     <strong>{{ emp.total_leads }}</strong> <small>leads</small>
@@ -225,8 +225,8 @@
 
           <!-- Micro metric summary footer -->
           <div class="chart-card-footer" *ngIf="!loading && !refreshing">
-            <div *ngFor="let emp of getTopEmployees(3)" class="ch-metric-pill">
-              <span class="ch-dot" [style.background-color]="getEmployeeColor(emp.employee)"></span>
+            <div *ngFor="let emp of topEmployees3" class="ch-metric-pill">
+              <span class="ch-dot" [style.background-color]="emp.color"></span>
               <span class="ch-name">{{ emp.employee | uppercase }}</span>
               <span class="ch-count">{{ emp.total_leads }}</span>
               <span class="ch-share">({{ emp.share_percentage }}%)</span>
@@ -322,7 +322,7 @@
                 <tr *ngFor="let row of data">
                   <td class="ps-3 py-2">
                     <div class="d-flex align-items-center gap-2">
-                      <div class="icon-wrapper" [style.color]="getEmployeeColor(row.employee)">
+                      <div class="icon-wrapper" [style.color]="row.color">
                         <i class="bi" [ngClass]="getEmployeeIcon(row.employee)"></i>
                       </div>
                       <span class="fw-bold text-dark text-capitalize" style="font-size: 0.86rem;">{{ row.employee }}</span>
@@ -334,7 +334,7 @@
                   <td class="py-2">
                     <div class="rate-progress-wrap">
                       <div class="rate-bar-bg flex-grow-1" style="max-width: 110px;">
-                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="getEmployeeColor(row.employee)"></div>
+                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="row.color"></div>
                       </div>
                       <span class="rate-pct">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
                     </div>
@@ -433,7 +433,7 @@
                   <td class="py-2">
                     <div class="rate-progress-wrap">
                       <div class="rate-bar-bg" style="width: 45px;">
-                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="getEmployeeColor(row.employee)"></div>
+                        <div class="rate-bar-fill" [style.width.%]="totals.leads > 0 ? (row.total_leads / totals.leads) * 100 : 0" [style.background-color]="row.color"></div>
                       </div>
                       <span class="rate-pct" style="font-size: 0.72rem;">{{ totals.leads > 0 ? ((row.total_leads / totals.leads) * 100).toFixed(1) : 0 }}%</span>
                     </div>

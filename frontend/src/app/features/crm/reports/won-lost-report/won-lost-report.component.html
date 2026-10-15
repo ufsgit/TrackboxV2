@@ -1,10 +1,13 @@
 <div class="report-page">
 
   <!-- Header -->
-  <div class="page-header d-flex justify-content-between align-items-center gap-3 mb-4">
+  <div class="page-header d-flex justify-content-between align-items-center gap-3">
     <div class="title-section">
-      <h2 class="page-title">Sales Won / Lost Report</h2>
-      <p class="page-sub text-muted">Analyze the performance of won and lost leads to identify trends and improve conversion rates.</p>
+      <div class="d-flex align-items-center gap-2">
+        <h2 class="page-title">Sales Won / Lost Report</h2>
+        <span class="report-badge"><i class="bi bi-funnel"></i> Deals</span>
+      </div>
+      <p class="page-sub text-muted">Analyze performance of won and lost leads to identify trends and conversion rates.</p>
     </div>
     
     <div class="header-actions ms-auto">
@@ -113,59 +116,95 @@
 
   </div>
 
-  <!-- Chart Section -->
-  <div class="chart-card">
-    <div class="chart-header">
-      <h5 class="chart-title">Win / Loss Ratio</h5>
+  <!-- Main Analytics Workspace (Side-by-Side: Chart Left, Table Right) -->
+  <div class="report-workspace">
+    <!-- Chart Section -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-pie-chart-fill text-primary"></i>
+          <h5 class="chart-title">Win / Loss Ratio</h5>
+        </div>
+        <span class="ratio-badge">
+          <span class="dot-won"></span> Won {{ kpi_won }} &nbsp;|&nbsp; <span class="dot-lost"></span> Lost {{ kpi_lost }}
+        </span>
+      </div>
+      <div class="chart-canvas-wrapper">
+        <canvas baseChart
+          [data]="chartData"
+          [options]="chartOptions"
+          [type]="chartType"
+          (chartClick)="onChartClick($event)">
+        </canvas>
+      </div>
+      <div class="chart-footer-stats">
+        <div class="stat-pill won-pill" (click)="openModal('Won')">
+          <i class="bi bi-trophy-fill text-success"></i>
+          <span>Won: <strong>{{ kpi_won }}</strong></span>
+        </div>
+        <div class="stat-pill lost-pill" (click)="openModal('Lost')">
+          <i class="bi bi-x-circle-fill text-danger"></i>
+          <span>Lost: <strong>{{ kpi_lost }}</strong></span>
+        </div>
+        <div class="stat-pill rate-pill">
+          <i class="bi bi-percent text-primary"></i>
+          <span>Win Rate: <strong>{{ kpi_winRate }}%</strong></span>
+        </div>
+      </div>
     </div>
-    <div style="height: 320px; display: flex; justify-content: center; align-items: center;">
-      <canvas baseChart
-        [data]="chartData"
-        [options]="chartOptions"
-        [type]="chartType"
-        (chartClick)="onChartClick($event)">
-      </canvas>
-    </div>
-  </div>
 
-  <!-- Data Table -->
-  <div class="table-card">
-    <div class="table-header">
-      <h5 class="chart-title">Deal Outcomes</h5>
-      <input type="text" [(ngModel)]="searchTerm" class="search-input" placeholder="Search client or reason…">
-    </div>
-    <div class="table-responsive p-0">
-      <table class="perf-table">
-        <thead>
-          <tr>
-            <th>Client</th>
-            <th>Amount</th>
-            <th>Date Closed</th>
-            <th>Sales Rep</th>
-            <th>Primary Reason</th>
-            <th class="text-end">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let d of filteredDeals; let i = index; let last = last"
-              [class.last-row]="last"
-              class="table-row"
-              [style.--row-i]="i"
-              (click)="openDealModal(d)"
-              style="cursor: pointer;">
-            <td><span class="source-name">{{ d.client }}</span></td>
-            <td class="bold-cell">{{ d.amount }}</td>
-            <td class="muted-cell">{{ d.date }}</td>
-            <td class="rep-cell">{{ d.rep }}</td>
-            <td class="muted-cell">{{ d.reason }}</td>
-            <td class="text-end">
-              <span [ngClass]="getStatusClass(d.status)" style="font-size:0.8rem;font-weight:600;">
-                {{ d.status }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Data Table Section -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-table text-primary"></i>
+          <h5 class="chart-title">Deal Outcomes</h5>
+          <span class="badge bg-light text-secondary border ms-1">{{ filteredDeals.length }} deals</span>
+        </div>
+        <div class="search-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" [(ngModel)]="searchTerm" class="search-input" placeholder="Search client or rep…">
+        </div>
+      </div>
+      <div class="table-responsive-container">
+        <table class="perf-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Date Closed</th>
+              <th>Sales Rep</th>
+              <th>Primary Reason</th>
+              <th class="text-end">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of filteredDeals; let i = index; let last = last"
+                [class.last-row]="last"
+                class="table-row"
+                [style.--row-i]="i"
+                (click)="openDealModal(d)"
+                style="cursor: pointer;">
+              <td><span class="source-name">{{ d.client }}</span></td>
+              <td class="bold-cell">{{ d.amount }}</td>
+              <td class="muted-cell">{{ d.date }}</td>
+              <td class="rep-cell">{{ d.rep }}</td>
+              <td class="muted-cell text-truncate" style="max-width: 140px;" [title]="d.reason">{{ d.reason || '—' }}</td>
+              <td class="text-end">
+                <span [ngClass]="getStatusClass(d.status)" class="status-pill">
+                  {{ d.status }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="filteredDeals.length === 0">
+              <td colspan="6" class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-3 d-block mb-1 opacity-50"></i>
+                No deals match your search criteria.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 

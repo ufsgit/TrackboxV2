@@ -652,6 +652,18 @@ export class ContactsComponent implements OnInit {
     return status?.color || '#4f46e5'; // default primary
   }
 
+  getSelectedAppStatusColor(): string {
+    if (!this.currentApplication?.status_id) return '#94a3b8';
+    const s = this.appStatuses.find((x: any) => x.id == this.currentApplication.status_id);
+    return s?.color || '#6366f1';
+  }
+
+  getSelectedAppStatusName(): string {
+    if (!this.currentApplication?.status_id) return 'Not Selected';
+    const s = this.appStatuses.find((x: any) => x.id == this.currentApplication.status_id);
+    return s?.name || 'Not Selected';
+  }
+
   loadLeadFields() {
     this.api.get('/settings/lead-fields').subscribe({
       next: (res: any) => {

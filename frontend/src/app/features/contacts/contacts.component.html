@@ -504,10 +504,15 @@
 
         <!-- APPLICATION TAB -->
         <div *ngIf="detailActiveTab === 'Application'" class="tab-pane">
-          <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; width: 100%;">
-            <h5 class="mb-0 text-dark fw-bold">Applications</h5>
-            <button class="btn btn-primary btn-sm rounded-3 shadow-sm px-3" (click)="openAddApplicationModal()">
-              <i class="bi bi-plus-circle me-1"></i> Add Application
+          <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; width: 100%; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h5 class="mb-0 text-dark fw-bold" style="font-size: 1.15rem; letter-spacing: -0.02em;">Applications</h5>
+              <span style="font-size: 0.76rem; font-weight: 700; background: rgba(99, 102, 241, 0.1); color: #4f46e5; padding: 2px 9px; border-radius: 20px;">
+                {{ selectedContactApplications.length }} {{ selectedContactApplications.length === 1 ? 'Application' : 'Applications' }}
+              </span>
+            </div>
+            <button class="btn btn-sm px-3 py-2" (click)="openAddApplicationModal()" style="border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); display: flex; align-items: center; gap: 6px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+              <i class="bi bi-plus-circle-fill"></i> Add Application
             </button>
           </div>
 
@@ -516,35 +521,48 @@
             <p class="mt-2 text-muted small">Loading applications...</p>
           </div>
 
-          <div *ngIf="!loadingApplications && selectedContactApplications.length === 0" class="text-center py-5 bg-light rounded-4 border-dashed">
+          <div *ngIf="!loadingApplications && selectedContactApplications.length === 0" class="text-center py-5 bg-light rounded-4 border-dashed" style="border: 2px dashed #e2e8f0; background: #fafbfc !important; border-radius: 16px;">
             <div class="mb-3">
-              <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
+              <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(99, 102, 241, 0.08); color: #6366f1; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+                <i class="bi bi-mortarboard"></i>
+              </div>
             </div>
-            <h6 class="text-dark fw-bold">No applications found</h6>
-            <p class="text-muted small mb-0">Get started by creating a new application for this lead.</p>
+            <h6 class="text-dark fw-bold mb-1">No Applications Registered</h6>
+            <p class="text-muted small mb-3">Add target universities, degree programs, and track application milestones.</p>
+            <button class="btn btn-sm btn-outline-primary px-3 py-1.5" (click)="openAddApplicationModal()" style="border-radius: 8px; font-weight: 600;">
+              <i class="bi bi-plus-lg me-1"></i> Create First Application
+            </button>
           </div>
 
           <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="d-flex flex-column mt-3" style="gap: 16px;">
-            <div class="card border-0 shadow-sm" *ngFor="let app of selectedContactApplications" 
-                 style="border-radius: 8px; border-left: 4px solid {{ app.status_color || '#10b981' }} !important; position: relative;">
+            <div class="card border-0" *ngFor="let app of selectedContactApplications" 
+                 style="border-radius: 16px; border: 1px solid #eef2f6 !important; border-left: 4px solid {{ app.status_color || '#6366f1' }} !important; background: #ffffff; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03); transition: transform 0.2s, box-shadow 0.2s; position: relative;"
+                 onmouseover="this.style.boxShadow='0 8px 24px rgba(15, 23, 42, 0.07)'; this.style.transform='translateY(-2px)'"
+                 onmouseout="this.style.boxShadow='0 4px 14px rgba(15, 23, 42, 0.03)'; this.style.transform='translateY(0)'">
                  
-              <div class="card-body" style="padding: 24px; position: relative;">
+              <div class="card-body" style="padding: 20px 24px; position: relative;">
                 
                 <!-- Header with Title and Status -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                  <h5 class="fw-bold text-dark" style="font-size: 1.1rem; margin: 0;">{{ app.course }}</h5>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; flex-wrap: wrap;">
+                  <div>
+                    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6366f1; background: rgba(99, 102, 241, 0.08); padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;">
+                      <i class="bi bi-buildings"></i> {{ app.university }}
+                    </span>
+                    <h5 class="fw-bold text-dark" style="font-size: 1.15rem; margin: 0; letter-spacing: -0.015em;">{{ app.course }}</h5>
+                  </div>
                   
                   <div class="dropdown">
                     <button class="btn btn-sm dropdown-toggle rounded-pill" type="button" data-bs-toggle="dropdown" aria-expanded="false" 
-                            [style.background-color]="(app.status_color || '#10b981') + '20'" 
+                            [style.background-color]="(app.status_color || '#10b981') + '18'" 
                             [style.color]="app.status_color || '#10b981'" 
-                            style="font-weight: 600; font-size: 0.75rem; padding: 4px 12px; border: none; display: flex; align-items: center; gap: 6px;">
-                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%;" [style.background-color]="app.status_color || '#10b981'"></span>
-                      {{ app.status_name || 'approved' }}
+                            [style.borderColor]="(app.status_color || '#10b981') + '40'"
+                            style="font-weight: 700; font-size: 0.78rem; padding: 5px 14px; border: 1px solid; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                      <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%;" [style.background-color]="app.status_color || '#10b981'"></span>
+                      {{ app.status_name || 'Active' }}
                     </button>
-                    <ul class="dropdown-menu shadow border-0" style="border-radius: 8px; font-size: 0.85rem; min-width: 150px;">
+                    <ul class="dropdown-menu shadow border-0" style="border-radius: 12px; font-size: 0.85rem; min-width: 170px; padding: 6px;">
                       <li *ngFor="let s of appStatuses">
-                        <button class="dropdown-item d-flex align-items-center gap-2 py-2" (click)="updateApplicationStatus(app, s.id)">
+                        <button class="dropdown-item d-flex align-items-center gap-2 py-2" style="border-radius: 8px;" (click)="updateApplicationStatus(app, s.id)">
                           <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="s.color"></span>
                           {{ s.name }}
                         </button>
@@ -553,32 +571,32 @@
                   </div>
                 </div>
 
-                <!-- Info List -->
-                <div style="display: flex; flex-direction: column; gap: 8px; color: #64748b; font-size: 0.9rem;">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="bi bi-bank" style="width: 16px; text-align: center;"></i>
-                    <span>{{ app.university }}</span>
+                <!-- Info Badges Row -->
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; color: #64748b; font-size: 0.86rem;">
+                  <div style="display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                    <i class="bi bi-geo-alt-fill text-indigo" style="font-size: 0.85rem;"></i>
+                    <span style="font-weight: 600; color: #334155;">{{ app.country }}</span>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="bi bi-geo-alt" style="width: 16px; text-align: center;"></i>
-                    <span>{{ app.country }}</span>
+                  <div *ngIf="app.intake_name || app.year_name" style="display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                    <i class="bi bi-calendar3-event text-amber" style="font-size: 0.85rem;"></i>
+                    <span style="font-weight: 600; color: #334155;">{{ app.intake_name || '' }} {{ app.year_name || '' }}</span>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <i class="bi bi-calendar3" style="width: 16px; text-align: center;"></i>
-                    <span style="text-transform: uppercase;">{{ app.year_name || '' }} {{ app.intake_name || '' }}</span>
+                  <div *ngIf="app.description" style="display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-style: italic; font-size: 0.82rem;">
+                    <i class="bi bi-chat-quote"></i>
+                    <span>{{ app.description | slice:0:70 }}{{ app.description.length > 70 ? '...' : '' }}</span>
                   </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 24px;">
-                  <button class="btn btn-sm bg-transparent" (click)="openAppHistoryModal(app.id)" style="color: #64748b; border: none; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 4px;">
-                    <i class="bi bi-clock-history"></i> History
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #f8fafc;">
+                  <button class="btn btn-sm" (click)="openAppHistoryModal(app.id)" style="color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; font-weight: 600; padding: 5px 12px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.color='#0f172a'" onmouseout="this.style.background='#f8fafc'; this.style.color='#64748b'">
+                    <i class="bi bi-clock-history"></i> Audit Log
                   </button>
-                  <button class="btn btn-sm bg-transparent" (click)="openEditApplicationModal(app)" style="color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 6px; font-size: 0.85rem; font-weight: 500; padding: 4px 12px; display: flex; align-items: center; gap: 4px;">
-                    <i class="bi bi-pencil"></i> Edit
+                  <button class="btn btn-sm" (click)="openEditApplicationModal(app)" style="color: #4f46e5; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; font-size: 0.82rem; font-weight: 600; padding: 5px 14px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(99, 102, 241, 0.15)'" onmouseout="this.style.background='rgba(99, 102, 241, 0.08)'">
+                    <i class="bi bi-pencil-square"></i> Edit
                   </button>
-                  <button class="btn btn-sm bg-transparent" (click)="deleteApplication(app.id)" style="color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; font-size: 0.85rem; font-weight: 500; padding: 4px 12px; display: flex; align-items: center; gap: 4px;">
-                    <i class="bi bi-trash"></i> Delete
+                  <button class="btn btn-sm" (click)="deleteApplication(app.id)" style="color: #ef4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; font-size: 0.82rem; font-weight: 600; padding: 5px 14px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.15)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.08)'">
+                    <i class="bi bi-trash3"></i> Delete
                   </button>
                 </div>
 
@@ -1135,128 +1153,288 @@
 </div>
 
 <!-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ ADD/EDIT APPLICATION MODAL ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ -->
-<div class="custom-modal" *ngIf="showAddApplicationModal">
-  <div class="modal-backdrop" (click)="showAddApplicationModal = false"></div>
-  <div class="modal-card">
+<div class="custom-modal center-modal app-modal-overlay" *ngIf="showAddApplicationModal">
+  <div class="modal-backdrop app-backdrop" (click)="showAddApplicationModal = false"></div>
+  <div class="app-modal-card">
     
+    <!-- Top Aesthetic Gradient Accent Line -->
+    <div class="app-modal-top-accent"></div>
 
-    <div class="modal-header-fs" style="padding: 24px 32px 16px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-      <div style="display:flex; align-items:center; gap:16px;">
-        <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(79,70,229,0.2);">
-          <i class="bi bi-mortarboard-fill" style="color:#fff;font-size:1.4rem;"></i>
+    <!-- Header Section -->
+    <div class="app-modal-header">
+      <div class="app-modal-header-left">
+        <div class="app-header-icon-box">
+          <i class="bi bi-mortarboard-fill"></i>
         </div>
-        <div>
-          <h4 style="margin:0; font-weight: 800; font-size: 1.4rem; color: #0f172a;">{{ currentApplication.id ? 'Edit Application' : 'Add Application' }}</h4>
-          <p style="margin:4px 0 0;font-size:0.85rem;color:#64748b; font-weight: 500;">Provide the key details for this university application.</p>
+        <div class="app-header-text">
+          <div class="app-header-title-row">
+            <h4 class="app-modal-title">{{ currentApplication.id ? 'Edit Application' : 'Add Application' }}</h4>
+            <span class="app-mode-badge" [class.edit]="currentApplication.id">
+              <i class="bi" [ngClass]="currentApplication.id ? 'bi-pencil-fill' : 'bi-stars'"></i>
+              {{ currentApplication.id ? 'EDITING #' + currentApplication.id : 'NEW APPLICATION' }}
+            </span>
+          </div>
+          <p class="app-modal-subtitle">Specify institution, academic program, admissions intake, and current stage.</p>
         </div>
       </div>
-      <button class="close-btn" (click)="showAddApplicationModal = false" style="font-size:1.4rem; background:#f8fafc; border:none; border-radius:12px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.color='#0f172a'" onmouseout="this.style.background='#f8fafc'; this.style.color='#64748b'">&times;</button>
+      <button class="app-close-btn" (click)="showAddApplicationModal = false" title="Close Modal">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
     
-    <div class="modal-body-scroll" style="padding: 32px; background: #ffffff;">
-      <div class="row g-4">
-        
-        <div class="col-md-12">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">University Name <span class="text-danger">*</span></label>
-          <div class="position-relative">
-            <i class="bi bi-building position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-            <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.university" placeholder="e.g. Oxford University" style="padding-left: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500;">
+    <!-- Body Section -->
+    <div class="app-modal-body">
+      
+      <!-- Section 1: Institution & Academic Program -->
+      <div class="app-form-section">
+        <div class="app-section-header">
+          <div class="section-icon program-icon">
+            <i class="bi bi-bank2"></i>
+          </div>
+          <div>
+            <div class="section-title">Institution & Program Details</div>
+            <div class="section-desc">Target university destination and enrolled degree course</div>
           </div>
         </div>
 
-        <div class="col-md-6">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Course <span class="text-danger">*</span></label>
-          <div class="position-relative">
-            <i class="bi bi-journal-text position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-            <input type="text" class="form-control premium-input" [(ngModel)]="currentApplication.course" placeholder="e.g. BSc Computer Science" style="padding-left: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500;">
+        <div class="app-grid-row">
+          <!-- University Name (Span 7) -->
+          <div class="app-field-col-7">
+            <label class="app-label">
+              University Name <span class="app-req">*</span>
+            </label>
+            <div class="app-input-wrap">
+              <i class="bi bi-buildings-fill app-input-icon"></i>
+              <input 
+                type="text" 
+                class="app-input" 
+                [(ngModel)]="currentApplication.university" 
+                placeholder="e.g. Oxford University, Harvard, Melbourne"
+                autofocus>
+            </div>
+          </div>
+
+          <!-- Destination Country (Span 5) -->
+          <div class="app-field-col-5">
+            <label class="app-label">
+              Destination Country <span class="app-req">*</span>
+            </label>
+            <div class="app-input-wrap">
+              <i class="bi bi-geo-alt-fill app-input-icon text-indigo"></i>
+              <input 
+                type="text" 
+                list="countryList" 
+                class="app-input" 
+                [(ngModel)]="currentApplication.country" 
+                placeholder="Select or type country">
+              <datalist id="countryList">
+                <option *ngFor="let c of countries" [value]="c"></option>
+              </datalist>
+            </div>
+          </div>
+
+          <!-- Course / Degree Program (Span 12) -->
+          <div class="app-field-col-12">
+            <label class="app-label">
+              Course / Degree Program <span class="app-req">*</span>
+            </label>
+            <div class="app-input-wrap">
+              <i class="bi bi-journal-code app-input-icon text-purple"></i>
+              <input 
+                type="text" 
+                list="courseList" 
+                class="app-input" 
+                [(ngModel)]="currentApplication.course" 
+                (change)="onCourseSelect()" 
+                (input)="onCourseSelect()" 
+                placeholder="e.g. Master of Science in Data Analytics & AI">
+              <datalist id="courseList">
+                <option *ngFor="let c of courses" [value]="c.name"></option>
+              </datalist>
+            </div>
+
+            <!-- Verified Course Info Card -->
+            <div class="course-meta-card" *ngIf="selectedCourseDetails">
+              <div class="course-meta-badge"><i class="bi bi-patch-check-fill"></i> Verified Catalog Program</div>
+              <div class="course-meta-details">
+                <span *ngIf="selectedCourseDetails.amount">
+                  <i class="bi bi-cash-stack"></i> Tuition: <strong>{{ selectedCourseDetails.amount | currency }}</strong>
+                </span>
+                <span *ngIf="selectedCourseDetails.duration">
+                  <i class="bi bi-hourglass-split"></i> Duration: <strong>{{ selectedCourseDetails.duration }}</strong>
+                </span>
+                <span *ngIf="selectedCourseDetails.description">
+                  <i class="bi bi-info-circle"></i> {{ selectedCourseDetails.description }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Admissions Schedule & Status -->
+      <div class="app-form-section">
+        <div class="app-section-header">
+          <div class="section-icon timeline-icon">
+            <i class="bi bi-calendar2-check-fill"></i>
+          </div>
+          <div>
+            <div class="section-title">Timeline & Application Status</div>
+            <div class="section-desc">Target admission cohort schedule and current processing stage</div>
           </div>
         </div>
 
-        <div class="col-md-6">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Country <span class="text-danger">*</span></label>
-          <div class="position-relative">
-            <i class="bi bi-geo-alt position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-            <input type="text" list="countryList" class="form-control premium-input" [(ngModel)]="currentApplication.country" placeholder="Select Country" style="padding-left: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500;">
+        <div class="app-grid-row">
+          <!-- Intake Season -->
+          <div class="app-field-col-4">
+            <label class="app-label">Intake Season</label>
+            <div class="app-select-wrap">
+              <i class="bi bi-sun-fill app-input-icon text-amber"></i>
+              <select class="app-select" [(ngModel)]="currentApplication.intake_id">
+                <option value="">Select Intake</option>
+                <option *ngFor="let i of intakes" [value]="i.id">{{ i.name }}</option>
+              </select>
+              <i class="bi bi-chevron-down app-select-chevron"></i>
+            </div>
           </div>
-          <datalist id="countryList">
-            <option *ngFor="let c of countries" [value]="c"></option>
-          </datalist>
+
+          <!-- Academic Year -->
+          <div class="app-field-col-4">
+            <label class="app-label">Academic Year</label>
+            <div class="app-select-wrap">
+              <i class="bi bi-calendar3 app-input-icon text-blue"></i>
+              <select class="app-select" [(ngModel)]="currentApplication.year_id">
+                <option value="">Select Year</option>
+                <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
+              </select>
+              <i class="bi bi-chevron-down app-select-chevron"></i>
+            </div>
+          </div>
+
+          <!-- Application Status -->
+          <div class="app-field-col-4">
+            <label class="app-label">Current Status</label>
+            <div class="app-select-wrap">
+              <i class="bi bi-shield-check app-input-icon text-emerald"></i>
+              <select class="app-select" [(ngModel)]="currentApplication.status_id">
+                <option value="">Select Status</option>
+                <option *ngFor="let s of appStatuses" [value]="s.id">{{ s.name }}</option>
+              </select>
+              <i class="bi bi-chevron-down app-select-chevron"></i>
+            </div>
+          </div>
+
+          <!-- Live Status Indicator Banner -->
+          <div class="app-field-col-12" *ngIf="getSelectedAppStatusName() !== 'Not Selected'">
+            <div class="live-status-card" [style.borderColor]="getSelectedAppStatusColor() + '40'">
+              <div class="live-status-left">
+                <span class="live-status-pulse" [style.backgroundColor]="getSelectedAppStatusColor()"></span>
+                <span class="live-status-label">Active Status Stage:</span>
+                <span class="live-status-value" [style.color]="getSelectedAppStatusColor()">{{ getSelectedAppStatusName() }}</span>
+              </div>
+              <span class="live-status-tag" [style.backgroundColor]="getSelectedAppStatusColor() + '18'" [style.color]="getSelectedAppStatusColor()">
+                Selected
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Notes & Documentation -->
+      <div class="app-form-section">
+        <div class="app-section-header">
+          <div class="section-icon notes-icon">
+            <i class="bi bi-card-text"></i>
+          </div>
+          <div>
+            <div class="section-title">Additional Notes & Remarks</div>
+            <div class="section-desc">Record conditional requirements, deadlines, test scores, or notes</div>
+          </div>
         </div>
 
-        <div class="col-md-4">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Intake</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.intake_id" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500; cursor: pointer;">
-            <option value="">Select Intake</option>
-            <option *ngFor="let i of intakes" [value]="i.id">{{ i.name }}</option>
-          </select>
+        <div class="app-field-col-12">
+          <div class="app-textarea-wrap">
+            <textarea 
+              class="app-textarea" 
+              rows="3" 
+              [(ngModel)]="currentApplication.description" 
+              placeholder="Enter specific admission criteria, application deadlines, scholarship details, or counselor notes..."></textarea>
+          </div>
         </div>
-        
-        <div class="col-md-4">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Year</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.year_id" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 500; cursor: pointer;">
-            <option value="">Select Year</option>
-            <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
-          </select>
-        </div>
+      </div>
 
-        <div class="col-md-4">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Status</label>
-          <select class="form-select premium-input" [(ngModel)]="currentApplication.status_id" style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; height: 48px; font-weight: 600; color: #4f46e5; cursor: pointer;">
-            <option value="">Select Status</option>
-            <option *ngFor="let s of appStatuses" [value]="s.id">{{ s.name }}</option>
-          </select>
-        </div>
-
-        <div class="col-md-12">
-          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Additional Notes</label>
-          <textarea class="form-control premium-input" rows="3" [(ngModel)]="currentApplication.description" placeholder="Any specific requirements or notes regarding this application..." style="border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px; font-weight: 500; resize: none;"></textarea>
-        </div>
-        
+    </div>
+    
+    <!-- Modal Footer -->
+    <div class="app-modal-footer">
+      <div class="app-footer-hint">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>Fields marked with <strong class="app-req">*</strong> are required.</span>
+      </div>
+      <div class="app-footer-actions">
+        <button type="button" class="app-btn-cancel" (click)="showAddApplicationModal = false">
+          Cancel
+        </button>
+        <button type="button" class="app-btn-save" (click)="saveApplication()">
+          <i class="bi bi-check2-circle"></i>
+          <span>{{ currentApplication.id ? 'Update Application' : 'Save Application' }}</span>
+        </button>
       </div>
     </div>
-    
-    <div class="modal-footer-fs" style="padding: 24px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 20px 20px; display: flex; justify-content: flex-end; gap: 12px;">
-      <button class="btn btn-light" (click)="showAddApplicationModal = false" style="border-radius: 12px; font-weight: 700; padding: 12px 24px; color: #64748b; border: 1px solid #e2e8f0; background: #ffffff; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#ffffff'">Cancel</button>
-      <button class="btn btn-primary" (click)="saveApplication()" style="border-radius: 12px; font-weight: 700; padding: 12px 32px; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">Save Application</button>
-    </div>
+
   </div>
 </div>
 
 <!-- ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ APPLICATION HISTORY MODAL ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ -->
-<div class="custom-modal center-modal" *ngIf="showAppHistoryModal">
-  <div class="modal-backdrop" (click)="showAppHistoryModal = false"></div>
-  <div class="modal-card popup-card" style="max-width: 800px; width: 90%;">
-    <div class="modal-header-fs">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;">
-          <i class="bi bi-clock-history" style="color:#4f46e5;font-size:1.1rem;"></i>
+<div class="custom-modal center-modal app-modal-overlay" *ngIf="showAppHistoryModal">
+  <div class="modal-backdrop app-backdrop" (click)="showAppHistoryModal = false"></div>
+  <div class="app-modal-card" style="max-width: 720px;">
+    
+    <div class="app-modal-top-accent" style="background: linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6);"></div>
+
+    <div class="app-modal-header">
+      <div class="app-modal-header-left">
+        <div class="app-header-icon-box" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);">
+          <i class="bi bi-clock-history"></i>
         </div>
-        <div>
-          <h4>Application History</h4>
-          <p style="margin:0;font-size:0.8rem;color:#64748b;">Timeline of changes</p>
+        <div class="app-header-text">
+          <h4 class="app-modal-title">Application Audit History</h4>
+          <p class="app-modal-subtitle">Complete chronological activity log and stage progression</p>
         </div>
       </div>
-      <button class="close-btn" (click)="showAppHistoryModal = false" style="font-size:1.6rem; background:#f1f5f9; border:none; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569;">&times;</button>
+      <button class="app-close-btn" (click)="showAppHistoryModal = false" title="Close Modal">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
-    <div class="modal-body-scroll" style="background:#f8fafc; padding:24px;">
-      <div class="timeline" style="position:relative; margin-left:16px;">
-        <div *ngFor="let hist of applicationHistory" style="position:relative; padding-bottom:24px; padding-left:32px; border-left:2px solid #e2e8f0;">
-          <div style="position:absolute; left:-7px; top:4px; width:12px; height:12px; border-radius:50%; background:#4f46e5; border:2px solid #fff; box-shadow:0 0 0 2px #e0e7ff;"></div>
-          <div style="background:#fff; border-radius:8px; padding:12px 16px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-              <h6 style="margin:0; font-weight:600; color:#1e293b; font-size:0.95rem;">{{ hist.action }}</h6>
-              <span style="font-size:0.75rem; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:12px;">{{ hist.created_at | date:'MMM d, y, h:mm a' }}</span>
+
+    <div class="app-modal-body" style="background: #f8fafc; padding: 24px 32px;">
+      <div class="app-history-timeline">
+        <div *ngFor="let hist of applicationHistory" class="history-item">
+          <div class="history-dot"></div>
+          <div class="history-card">
+            <div class="history-card-header">
+              <span class="history-action-badge">{{ hist.action }}</span>
+              <span class="history-date"><i class="bi bi-clock"></i> {{ hist.created_at | date:'MMM d, y, h:mm a' }}</span>
             </div>
-            <p style="margin:0 0 8px 0; font-size:0.9rem; color:#475569;">{{ hist.details }}</p>
-            <div style="font-size:0.8rem; color:#94a3b8; display:flex; align-items:center; gap:6px;">
-              <i class="bi bi-person-fill"></i> By: <span style="color:#64748b; font-weight:500;">{{ hist.user_name || 'System' }}</span>
+            <p class="history-details">{{ hist.details }}</p>
+            <div class="history-author">
+              <i class="bi bi-person-circle"></i> Recorded by: <strong>{{ hist.user_name || 'System' }}</strong>
             </div>
           </div>
         </div>
-        <div *ngIf="applicationHistory.length === 0" class="text-center text-muted">
-          No history found for this application.
+
+        <div *ngIf="applicationHistory.length === 0" class="history-empty">
+          <div class="empty-icon"><i class="bi bi-clock"></i></div>
+          <h6>No History Records Yet</h6>
+          <p>Any status updates, edits, or activity on this application will appear here automatically.</p>
         </div>
       </div>
+    </div>
+
+    <div class="app-modal-footer" style="justify-content: flex-end;">
+      <button type="button" class="app-btn-cancel" (click)="showAppHistoryModal = false">
+        Close
+      </button>
     </div>
   </div>
 </div>
