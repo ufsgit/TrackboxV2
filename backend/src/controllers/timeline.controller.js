@@ -77,6 +77,54 @@ const getContactTimeline = async (req, res) => {
       });
     }
 
+    // 4. Fetch Emails (Brevo & System Emails)
+    const [emailRows] = await pool.query(`
+      SELECT id, subject, content, to_email, sender_email, status, bounce_reason, brevo_message_id, sent_at
+      FROM lead_emails
+      WHERE contact_id = ? AND business_id = ?
+    `, [contactId, bizId]);
+
+    for (const em of emailRows) {
+      let icon = 'bi-envelope-check-fill';
+      let color = '#2563eb'; // Blue
+      const st = (em.status || 'sent').toLowerCase();
+      
+      if (st === 'delivered') {
+        color = '#10b981'; // Green
+        icon = 'bi-check2-all';
+      } else if (st === 'opened' || st === 'clicked') {
+        color = '#06b6d4'; // Cyan
+        icon = 'bi-envelope-open-fill';
+      } else if (st === 'bounced') {
+        color = '#ef4444'; // Red
+        icon = 'bi-exclamation-octagon-fill';
+      } else if (st === 'blocked' || st === 'failed') {
+        color = '#dc2626'; // Deep Red
+        icon = 'bi-x-circle-fill';
+      }
+
+      const formattedStatus = st.charAt(0).toUpperCase() + st.slice(1);
+      const detailStr = em.bounce_reason 
+        ? `Status: ${formattedStatus} (${em.bounce_reason}) • To: ${em.to_email}`
+        : `Status: ${formattedStatus} • To: ${em.to_email}`;
+
+      events.push({
+        type: 'email',
+        title: `Email: ${em.subject}`,
+        description: em.content,
+        details: detailStr,
+        emailStatus: formattedStatus,
+        bounceReason: em.bounce_reason,
+        toEmail: em.to_email,
+        senderEmail: em.sender_email,
+        messageId: em.brevo_message_id,
+        author: em.sender_email,
+        date: em.sent_at,
+        icon,
+        color
+      });
+    }
+
     // Sort chronologically (newest first)
     events.sort((a, b) => new Date(b.date) - new Date(a.date));
 

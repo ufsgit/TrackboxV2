@@ -87,7 +87,8 @@ export class ExcelImportComponent implements OnInit {
 
   isTransferStatus(statusName: string): boolean {
     if (!statusName) return false;
-    const found = this.leadStatuses.find(s => s.name === statusName);
+    const clean = statusName.trim().toLowerCase();
+    const found = this.leadStatuses.find(s => (s.name || '').trim().toLowerCase() === clean);
     if (!found) return false;
     const tr = found.transfer;
     return tr === true || tr === 1 || String(tr).toLowerCase() === 'true' || String(tr) === '1' || String(tr).toLowerCase() === 'yes';
@@ -95,7 +96,8 @@ export class ExcelImportComponent implements OnInit {
 
   isFollowupStatus(statusName: string): boolean {
     if (!statusName) return false;
-    const found = this.leadStatuses.find(s => s.name === statusName);
+    const clean = statusName.trim().toLowerCase();
+    const found = this.leadStatuses.find(s => (s.name || '').trim().toLowerCase() === clean);
     if (!found) return false;
     const fn = found.follow_needed;
     return fn === 'Yes' || fn === true || fn === 1 || String(fn).toLowerCase() === 'yes' || String(fn).toLowerCase() === 'true' || String(fn) === '1';
@@ -208,15 +210,65 @@ export class ExcelImportComponent implements OnInit {
     this.api.post('/contacts/import-excel', payload).subscribe({
       next: (res: any) => {
         this.loading = false;
+        const d = res.data || {};
+        const invalidEmails = d.invalidEmails || [];
+
         if (res.success) {
-          const d = res.data || {};
-          const msg = `${res.message}${d.skipped ? `\n${d.skipped} row(s) skipped (duplicates or invalid phone).` : ''}`;
-          Swal.fire('Import Successful', msg, 'success').then(() => {
-            this.router.navigate(['/contacts']);
-          });
+          if (invalidEmails.length > 0) {
+            // Build informative table for invalid emails
+            const tableRows = invalidEmails.map((item: any) => `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 12px; font-weight: 600; text-align: center;">Row ${item.row}</td>
+                <td style="padding: 8px 12px; font-weight: 500;">${item.name}</td>
+                <td style="padding: 8px 12px; color: #ef4444; font-family: monospace;">${item.email}</td>
+                <td style="padding: 8px 12px; color: #dc2626; font-size: 0.85rem;">${item.error}</td>
+              </tr>
+            `).join('');
+
+            const htmlContent = `
+              <div style="text-align: left; font-size: 0.95rem;">
+                <div style="padding: 12px 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; color: #92400e; margin-bottom: 16px;">
+                  <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                  <strong>${invalidEmails.length} record(s)</strong> have invalid email addresses. 
+                  Valid records (${d.inserted}) were imported successfully.
+                </div>
+                <div style="max-height: 260px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                    <thead>
+                      <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
+                        <th style="padding: 8px 12px; text-align: center;">Import Row</th>
+                        <th style="padding: 8px 12px;">Student Name</th>
+                        <th style="padding: 8px 12px;">Email Provided</th>
+                        <th style="padding: 8px 12px;">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${tableRows}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+
+            Swal.fire({
+              title: 'Import Completed with Warnings',
+              html: htmlContent,
+              icon: 'warning',
+              width: '680px',
+              confirmButtonText: 'Understood, Go to Leads',
+              confirmButtonColor: '#6366f1'
+            }).then(() => {
+              this.router.navigate(['/contacts']);
+            });
+
+          } else {
+            const msg = `${res.message}${d.skipped ? `\n${d.skipped} row(s) skipped (duplicates or invalid phone).` : ''}`;
+            Swal.fire('Import Successful', msg, 'success').then(() => {
+              this.router.navigate(['/contacts']);
+            });
+          }
         } else {
           // Show detected columns to help user fix their Excel file
-          const d = res.data || {};
           let detail = res.message || 'Failed to import leads.';
           if (d.detectedColumns && d.detectedColumns.length > 0) {
             detail += `\n\nDetected columns in your Excel:\n${d.detectedColumns.join(', ')}\n\nExpected columns like:\nName, Phone (or Mobile), Email, Address, Tags`;

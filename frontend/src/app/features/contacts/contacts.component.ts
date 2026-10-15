@@ -78,7 +78,51 @@ export class ContactsComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
   totalContacts = 0;
+  overallTotalContacts = 0;
   totalPages = 1;
+
+  // Lead Checkbox Selection State
+  selectedContactIds: Set<number> = new Set();
+  isAllSelected = false;
+
+  toggleSelectAll() {
+    if (this.isAllSelected) {
+      this.selectedContactIds.clear();
+      this.isAllSelected = false;
+    } else {
+      this.contacts.forEach(c => {
+        if (c.id) this.selectedContactIds.add(c.id);
+      });
+      this.isAllSelected = true;
+    }
+  }
+
+  toggleSelectContact(contactId: number, event: Event) {
+    event.stopPropagation();
+    if (this.selectedContactIds.has(contactId)) {
+      this.selectedContactIds.delete(contactId);
+    } else {
+      this.selectedContactIds.add(contactId);
+    }
+    this.updateSelectAllStatus();
+  }
+
+  isContactSelected(contactId: number): boolean {
+    return this.selectedContactIds.has(contactId);
+  }
+
+  updateSelectAllStatus() {
+    if (!this.contacts || this.contacts.length === 0) {
+      this.isAllSelected = false;
+      return;
+    }
+    this.isAllSelected = this.contacts.every(c => this.selectedContactIds.has(c.id));
+  }
+
+  clearSelection() {
+    this.selectedContactIds.clear();
+    this.isAllSelected = false;
+  }
 
   // Calendar View State
   viewMode: 'list' | 'calendar' = 'list';
@@ -520,6 +564,7 @@ export class ContactsComponent implements OnInit {
     this.loadDocumentTypes();
     this.loadChannels();
     this.loadCourses();
+    this.loadEmailTemplates();
 
     // Handle deep-link from report pages: ?contactId=X&action=profile|followup
     this.route.queryParams.subscribe(params => {
@@ -708,7 +753,9 @@ export class ContactsComponent implements OnInit {
             tags: Array.isArray(c.tags) ? c.tags : JSON.parse(c.tags || '[]')
           }));
         this.totalContacts = res.total || 0;
+        this.overallTotalContacts = res.overall_total !== undefined ? res.overall_total : (this.overallTotalContacts || this.totalContacts);
         this.totalPages = Math.max(1, Math.ceil(this.totalContacts / this.pageSize));
+        this.updateSelectAllStatus();
         this.loading = false;
       },
       error: () => this.loading = false
@@ -1838,6 +1885,189 @@ export class ContactsComponent implements OnInit {
     this.showDailyLeadsModal = false;
     this.selectedDailyDate = null;
     this.selectedDailyLeads = [];
+  }
+
+  // Bulk Email State
+  showBulkEmailModal = false;
+  bulkEmailLoadingPreview = false;
+  bulkEmailSending = false;
+  showInvalidEmailDetails = false;
+  bulkEmailSubject = '';
+  bulkEmailBody = 'Hello {{first_name}},\n\nWe have an important update regarding your application and enquiry.\nPlease feel free to contact us if you have any questions.\n\nBest regards,\nAdmissions Team';
+  emailTemplates: any[] = [];
+  selectedTemplateId: any = '';
+  bulkEmailPreview: any = {
+    totalMatched: 0,
+    validCount: 0,
+    invalidCount: 0,
+    missingCount: 0,
+    invalidRecipients: [],
+    missingRecipients: []
+  };
+
+  loadEmailTemplates() {
+    this.api.get('/templates').subscribe({
+      next: (res: any) => {
+        if (res.success && Array.isArray(res.data)) {
+          this.emailTemplates = res.data;
+        }
+      },
+      error: (err: any) => console.error('Failed to load email templates', err)
+    });
+  }
+
+  onEmailTemplateSelected(event: any) {
+    const templateId = event.target.value;
+    this.selectedTemplateId = templateId;
+    if (!templateId) return;
+
+    const found = this.emailTemplates.find(t => String(t.id) === String(templateId));
+    if (found) {
+      if (found.name) {
+        this.bulkEmailSubject = found.name;
+      }
+      if (found.body) {
+        this.bulkEmailBody = found.body;
+      }
+    }
+  }
+
+  openBulkEmailModal() {
+    this.showBulkEmailModal = true;
+    this.showInvalidEmailDetails = false;
+    if (!this.emailTemplates || this.emailTemplates.length === 0) {
+      this.loadEmailTemplates();
+    }
+    this.fetchBulkEmailPreview();
+  }
+
+  closeBulkEmailModal() {
+    if (this.bulkEmailSending) return;
+    this.showBulkEmailModal = false;
+    this.showInvalidEmailDetails = false;
+  }
+
+  toggleInvalidEmailDetails() {
+    this.showInvalidEmailDetails = !this.showInvalidEmailDetails;
+  }
+
+  fetchBulkEmailPreview() {
+    this.bulkEmailLoadingPreview = true;
+    const filterPayload: any = {
+      channel: this.activeChannel || null,
+      status: this.activeStatus || null,
+      tag: this.activeTag || null,
+      search: this.searchQuery ? this.searchQuery.trim() : null,
+      agent: this.activeAgent || null,
+      transferred_only: this.transferredOnly ? 'true' : 'false'
+    };
+
+    if (this.selectedContactIds.size > 0) {
+      filterPayload.selected_contact_ids = Array.from(this.selectedContactIds);
+    }
+
+    this.api.post('/contacts/preview-bulk-email', filterPayload).subscribe({
+      next: (res: any) => {
+        this.bulkEmailLoadingPreview = false;
+        if (res.success && res.data) {
+          this.bulkEmailPreview = res.data;
+        }
+      },
+      error: (err: any) => {
+        this.bulkEmailLoadingPreview = false;
+        Swal.fire('Error', err.error?.message || 'Failed to fetch email recipient preview', 'error');
+      }
+    });
+  }
+
+  sendBulkEmailViaBrevo() {
+    if (!this.bulkEmailSubject.trim()) {
+      Swal.fire('Subject Required', 'Please enter an email subject line before sending.', 'warning');
+      return;
+    }
+    if (!this.bulkEmailBody.trim()) {
+      Swal.fire('Message Required', 'Please enter your email message body before sending.', 'warning');
+      return;
+    }
+    if (this.bulkEmailPreview.validCount === 0) {
+      Swal.fire('No Valid Recipients', 'There are no recipients with valid email addresses matching the selected filters/leads.', 'info');
+      return;
+    }
+
+    const targetDesc = this.selectedContactIds.size > 0 
+      ? `<strong>${this.selectedContactIds.size} individually selected leads</strong> (${this.bulkEmailPreview.validCount} valid email addresses)`
+      : `<strong>${this.bulkEmailPreview.validCount} filtered leads</strong> with valid email addresses`;
+
+    Swal.fire({
+      title: 'Confirm Bulk Email Dispatch',
+      html: `
+        <div style="text-align: left; font-size: 0.95rem;">
+          <p>You are about to send personalized emails via Brevo to ${targetDesc}.</p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px;">
+            <div><strong>Subject:</strong> ${this.bulkEmailSubject}</div>
+            <div style="margin-top: 4px; color: #64748b; font-size: 0.85rem;">Sender: worksufs@gmail.com</div>
+          </div>
+          <p style="margin-top: 12px; font-size: 0.85rem; color: #059669;">
+            <i class="bi bi-shield-check me-1"></i> Each email will be logged in the student's individual CRM timeline.
+          </p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: `Send to ${this.bulkEmailPreview.validCount} Recipients`,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.bulkEmailSending = true;
+        const sendPayload: any = {
+          channel: this.activeChannel || null,
+          status: this.activeStatus || null,
+          tag: this.activeTag || null,
+          search: this.searchQuery ? this.searchQuery.trim() : null,
+          agent: this.activeAgent || null,
+          transferred_only: this.transferredOnly ? 'true' : 'false',
+          subject: this.bulkEmailSubject,
+          body: this.bulkEmailBody,
+          template_id: this.selectedTemplateId || null
+        };
+
+        if (this.selectedContactIds.size > 0) {
+          sendPayload.selected_contact_ids = Array.from(this.selectedContactIds);
+        }
+
+        this.api.post('/contacts/send-bulk-email', sendPayload).subscribe({
+          next: (res: any) => {
+            this.bulkEmailSending = false;
+            this.closeBulkEmailModal();
+            if (res.success) {
+              const d = res.data || {};
+              Swal.fire({
+                title: 'Emails Sent Successfully!',
+                html: `
+                  <div style="text-align: left;">
+                    <p>${res.message}</p>
+                    <ul style="font-size: 0.9rem; color: #475569;">
+                      <li>Total Valid Recipients: <strong>${d.totalRecipients || 0}</strong></li>
+                      <li>Successfully Dispatched: <strong>${d.sentCount || 0}</strong></li>
+                      ${d.failedCount ? `<li style="color: #ef4444;">Failed: <strong>${d.failedCount}</strong></li>` : ''}
+                    </ul>
+                    <small class="text-muted">Delivery and bounce statuses will update automatically via Brevo webhooks.</small>
+                  </div>
+                `,
+                icon: 'success'
+              });
+            } else {
+              Swal.fire('Email Dispatch Warning', res.message || 'Something went wrong', 'warning');
+            }
+          },
+          error: (err: any) => {
+            this.bulkEmailSending = false;
+            Swal.fire('Send Failed', err.error?.message || 'Failed to dispatch emails via Brevo.', 'error');
+          }
+        });
+      }
+    });
   }
 
 }

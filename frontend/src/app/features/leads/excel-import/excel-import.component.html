@@ -1,6 +1,6 @@
 <div class="excel-import-page">
 
-  <!-- Page Header -->
+  <!-- Compact Top Bar -->
   <div class="page-header">
     <div class="page-header-left">
       <div class="page-icon">
@@ -8,27 +8,29 @@
       </div>
       <div>
         <h1 class="page-title">Excel Import</h1>
-        <p class="page-subtitle">Bulk import leads from your Excel spreadsheet</p>
+        <p class="page-subtitle">Bulk import leads from your Excel spreadsheet (.xlsx, .xls)</p>
       </div>
     </div>
-    <a routerLink="/contacts" class="btn-back">
-      <i class="bi bi-arrow-left me-1"></i> Back to Leads
-    </a>
+    <div class="page-header-right">
+      <a routerLink="/contacts" class="btn-back">
+        <i class="bi bi-arrow-left me-1"></i> Back to Leads
+      </a>
+    </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="import-container">
+  <!-- Single Viewport Main Grid (Left Column: File Upload | Right Column: Status & Assignment) -->
+  <div class="import-viewport-grid">
 
-    <!-- Step 1: File Upload -->
-    <div class="step-card" [class.step-done]="selectedFile">
-      <div class="step-header">
+    <!-- LEFT COLUMN: Step 1 Upload -->
+    <div class="panel-card upload-panel" [class.panel-done]="selectedFile">
+      <div class="panel-header">
         <div class="step-badge" [class.done]="selectedFile">
           <i class="bi bi-check-lg" *ngIf="selectedFile"></i>
           <span *ngIf="!selectedFile">1</span>
         </div>
         <div>
-          <h2 class="step-title">Upload Excel File</h2>
-          <p class="step-desc">Select a <strong>.xlsx</strong> or <strong>.xls</strong> file from your computer</p>
+          <h2 class="panel-title">Upload Excel File</h2>
+          <p class="panel-desc">Drag &amp; drop or click to choose a spreadsheet</p>
         </div>
       </div>
 
@@ -40,7 +42,7 @@
           <div class="drop-icon">
             <i class="bi bi-cloud-arrow-up"></i>
           </div>
-          <p class="drop-title">Click to browse or drag & drop</p>
+          <p class="drop-title">Click to browse or drag &amp; drop</p>
           <p class="drop-hint">Supported formats: <span>.xlsx</span> &amp; <span>.xls</span></p>
         </ng-container>
 
@@ -55,7 +57,7 @@
                 <i class="bi bi-check-circle-fill text-success me-1"></i>
                 {{ excelData.length }} rows detected
               </span>
-              <span class="file-rows" style="font-size: 0.75rem; color: #64748b; margin-top: 4px;" *ngIf="excelColumns.length > 0">
+              <span class="file-cols" *ngIf="excelColumns.length > 0">
                 <strong>Columns:</strong> {{ excelColumns.join(', ') }}
               </span>
             </div>
@@ -66,9 +68,11 @@
         </ng-container>
       </div>
 
-      <!-- Column Guide -->
+      <!-- Expected columns guide -->
       <div class="column-guide">
-        <div class="guide-title"><i class="bi bi-info-circle me-1"></i> Expected Excel columns</div>
+        <div class="guide-title">
+          <i class="bi bi-info-circle me-1 text-primary"></i> Expected Excel Columns
+        </div>
         <div class="guide-columns">
           <span class="col-tag required">Name *</span>
           <span class="col-tag required">Phone *</span>
@@ -76,36 +80,49 @@
           <span class="col-tag">Tags</span>
           <span class="col-tag">Address</span>
         </div>
-        <p class="guide-note">Column headers must match exactly (case-insensitive). 10-digit phone numbers will be auto-prefixed with 91.</p>
+        <p class="guide-note">Headers are case-insensitive. 10-digit phone numbers auto-prefixed with 91.</p>
       </div>
     </div>
 
-    <!-- Step 2: Status & Assignment -->
-    <div class="step-card">
-      <div class="step-header">
+    <!-- RIGHT COLUMN: Step 2 Status & Assignment + Action Bar -->
+    <div class="panel-card form-panel">
+      <div class="panel-header">
         <div class="step-badge">2</div>
         <div>
-          <h2 class="step-title">Status &amp; Assignment</h2>
-          <p class="step-desc">These values will be applied to all imported leads</p>
+          <h2 class="panel-title">Status &amp; Assignment</h2>
+          <p class="panel-desc">Configure assignment rules for all imported leads</p>
         </div>
       </div>
 
       <div class="fields-grid">
-
         <!-- Status -->
         <div class="field-group">
           <label class="field-label">Status <span class="req">*</span></label>
           <select class="field-select" [(ngModel)]="newContact.status">
             <option value="">-- Select Status --</option>
             <ng-container *ngFor="let s of leadStatuses">
-              <option *ngIf="s.name.trim() !== 'NO DATE'" [value]="s.name">{{ s.name }}</option>
+              <option *ngIf="s && s.name && s.name.trim() !== 'NO DATE'" [value]="s.name.trim()">{{ s.name.trim() }}</option>
             </ng-container>
+          </select>
+        </div>
+
+        <!-- Follow Up Date -->
+        <div class="field-group" *ngIf="isFollowupStatus(newContact.status)">
+          <label class="field-label">Follow Up Date</label>
+          <input type="date" class="field-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
+        </div>
+
+        <!-- Loss Reason -->
+        <div class="field-group" *ngIf="newContact.status === 'Sales Loss'">
+          <label class="field-label">Loss Reason</label>
+          <select class="field-select" [(ngModel)]="newContact.loss_reason">
+            <option value="">-- Select Reason --</option>
+            <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
           </select>
         </div>
 
         <!-- Transfer fields shown conditionally -->
         <ng-container *ngIf="isTransferStatus(newContact.status)">
-
           <!-- Branch -->
           <div class="field-group">
             <label class="field-label">Branch <span class="req">*</span></label>
@@ -125,7 +142,7 @@
           </div>
 
           <!-- Employee -->
-          <div class="field-group" *ngIf="newContact.department">
+          <div class="field-group full-width" *ngIf="newContact.department">
             <label class="field-label">Employee <span class="req">*</span></label>
             <select class="field-select" [(ngModel)]="newContact.assigned_employee">
               <option value="">-- Select Employee --</option>
@@ -136,42 +153,31 @@
           <!-- Remark (full width) -->
           <div class="field-group full-width">
             <label class="field-label">Remark / Note <span class="req">*</span></label>
-            <textarea class="field-textarea" [(ngModel)]="newContact.remark" rows="3" placeholder="Add a remark or note..."></textarea>
+            <textarea class="field-textarea" [(ngModel)]="newContact.remark" rows="2" placeholder="Add a remark or note..."></textarea>
           </div>
-
         </ng-container>
+      </div>
 
-        <!-- Follow Up Date -->
-        <div class="field-group" *ngIf="isFollowupStatus(newContact.status)">
-          <label class="field-label">Follow Up Date</label>
-          <input type="date" class="field-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
+      <!-- Action Footer Integrated Inside Panel -->
+      <div class="panel-action-footer">
+        <div class="action-info">
+          <span *ngIf="selectedFile">
+            <i class="bi bi-info-circle-fill text-primary me-1"></i>
+            <strong>{{ excelData.length }} rows</strong> ready &bull; Status: <strong>{{ newContact.status || 'Not selected' }}</strong>
+          </span>
+          <span *ngIf="!selectedFile" class="text-muted">
+            <i class="bi bi-arrow-left-circle me-1"></i> Please upload an Excel file
+          </span>
         </div>
-
-        <!-- Loss Reason -->
-        <div class="field-group" *ngIf="newContact.status === 'Sales Loss'">
-          <label class="field-label">Loss Reason</label>
-          <select class="field-select" [(ngModel)]="newContact.loss_reason">
-            <option value="">-- Select Reason --</option>
-            <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
-          </select>
+        <div class="action-buttons">
+          <a routerLink="/contacts" class="btn-cancel">Cancel</a>
+          <button class="btn-import" (click)="importLeads()" [disabled]="loading || !selectedFile || !newContact.status">
+            <span *ngIf="!loading"><i class="bi bi-check2-circle me-1"></i>Import Leads</span>
+            <span *ngIf="loading"><span class="spinner-border spinner-border-sm me-1"></span>Importing...</span>
+          </button>
         </div>
+      </div>
 
-      </div>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="action-bar">
-      <div class="action-info" *ngIf="selectedFile">
-        <i class="bi bi-info-circle text-primary me-2"></i>
-        Ready to import <strong>{{ excelData.length }} rows</strong> with status <strong>{{ newContact.status || '—' }}</strong>
-      </div>
-      <div class="action-buttons">
-        <a routerLink="/contacts" class="btn-cancel">Cancel</a>
-        <button class="btn-import" (click)="importLeads()" [disabled]="loading">
-          <span *ngIf="!loading"><i class="bi bi-check2-circle me-2"></i>Import Leads</span>
-          <span *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span>Importing...</span>
-        </button>
-      </div>
     </div>
 
   </div>

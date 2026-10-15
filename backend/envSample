@@ -2,7 +2,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=root123
-DB_NAME=wlink
+DB_NAME=trackbox_v2
 JWT_SECRET=urbanchat_super_secret_jwt_key_2024
 JWT_EXPIRES_IN=7d
 
@@ -29,3 +29,8 @@ PORT=3000
 
 # Attendance Settings
 EXPECTED_START_TIME="12:30"
+
+# Brevo Email Settings
+BREVO_API_KEY=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
+BREVO_SENDER_EMAIL=worksufs@gmail.com
+BREVO_SENDER_NAME="Trackbox CRM"

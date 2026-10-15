@@ -37,10 +37,32 @@
             <h5 class="mb-0 fw-bold" [style.color]="event.color">{{ event.title }}</h5>
             <small class="text-muted fw-medium"><i class="bi bi-clock me-1"></i> {{ event.date | date:'MMM d, y, h:mm a' }}</small>
           </div>
+
+          <!-- Email specific header if event is an email -->
+          <div *ngIf="event.type === 'email'" class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span class="badge" [ngClass]="{
+              'bg-success': event.emailStatus === 'Delivered',
+              'bg-primary': event.emailStatus === 'Sent' || event.emailStatus === 'Queued',
+              'bg-info text-dark': event.emailStatus === 'Opened' || event.emailStatus === 'Clicked',
+              'bg-danger': event.emailStatus === 'Bounced' || event.emailStatus === 'Blocked' || event.emailStatus === 'Failed'
+            }">
+              <i class="bi bi-patch-check-fill me-1" *ngIf="event.emailStatus === 'Delivered'"></i>
+              <i class="bi bi-exclamation-triangle-fill me-1" *ngIf="event.emailStatus === 'Bounced' || event.emailStatus === 'Blocked'"></i>
+              {{ event.emailStatus || 'Sent' }}
+            </span>
+            <span class="badge bg-light text-secondary border" *ngIf="event.toEmail">
+              <i class="bi bi-envelope me-1"></i>{{ event.toEmail }}
+            </span>
+            <span class="badge bg-light text-danger border" *ngIf="event.bounceReason">
+              Reason: {{ event.bounceReason }}
+            </span>
+          </div>
           
-          <p class="mb-2 text-dark">{{ event.description }}</p>
+          <div [ngClass]="event.type === 'email' ? 'p-3 bg-light rounded border text-secondary font-monospace small' : 'mb-2 text-dark'" style="white-space: pre-wrap; word-break: break-word;">
+            {{ event.description }}
+          </div>
           
-          <div *ngIf="event.details" class="event-details bg-light p-2 rounded mb-2">
+          <div *ngIf="event.details && event.type !== 'email'" class="event-details bg-light p-2 rounded mb-2">
             <small class="text-secondary">{{ event.details }}</small>
           </div>
           

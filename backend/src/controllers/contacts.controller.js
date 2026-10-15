@@ -91,7 +91,26 @@ const getContacts = async (req, res) => {
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 
-    res.json({ success: true, data: rows.map(r => ({ ...r, latest_remark: sanitizeRemark(r.latest_remark) })), total, with_followup, without_followup, page: p, limit: lim, message: 'OK' });
+    let baseWhere = 'WHERE c.business_id = ?';
+    const baseParams = [bizId];
+    if (req.user.role === 'agent') {
+      const selfId = Number(req.user.userId);
+      const [teamRows] = await pool.query(
+        `SELECT user_id FROM team_members 
+         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
+        [selfId, bizId]
+      );
+      const teamMemberIds = teamRows.map(r => Number(r.user_id));
+      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
+      baseWhere += ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
+      baseParams.push(...teamMemberIds);
+    }
+    const [[{ overall_total }]] = await pool.query(
+      `SELECT COUNT(*) as overall_total FROM contacts c ${baseWhere}`,
+      baseParams
+    );
+
+    res.json({ success: true, data: rows.map(r => ({ ...r, latest_remark: sanitizeRemark(r.latest_remark) })), total, overall_total: overall_total || total, with_followup, without_followup, page: p, limit: lim, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
   }
@@ -949,11 +968,14 @@ const importExcelContacts = async (req, res) => {
     const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason } = statusAndAssignment || {};
 
     // ── Resolve status ────────────────────────────────────
-    let statusId   = null, statusName = status || null;
+    let statusId   = null, statusName = status ? status.trim() : null;
     let sale_won = 0, sale_lost = 0, sale_won_date = null, sale_lost_date = null, sale_won_by = null, sale_lost_by = null;
     if (statusName) {
-      const [sRows] = await conn.query('SELECT id FROM statuses WHERE name = ? LIMIT 1', [statusName]);
-      if (sRows.length > 0) statusId = sRows[0].id;
+      const [sRows] = await conn.query('SELECT id, name FROM statuses WHERE TRIM(name) = ? OR name = ? LIMIT 1', [statusName, statusName]);
+      if (sRows.length > 0) {
+        statusId = sRows[0].id;
+        statusName = sRows[0].name;
+      }
     }
 
     // ── Resolve branch ────────────────────────────────────
@@ -1020,12 +1042,16 @@ const importExcelContacts = async (req, res) => {
     // ── Process each Excel row ────────────────────────────
     let inserted = 0, skipped = 0;
     const errors = [];
+    const invalidEmails = [];
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-    for (const row of leads) {
+    for (let rowIndex = 0; rowIndex < leads.length; rowIndex++) {
+      const row = leads[rowIndex];
+      const actualRowNumber = rowIndex + 2; // Assuming row 1 is header
       try {
         const name    = getCol(row, ['Name', 'Full Name', 'Customer Name', 'Student Name', 'Client Name', 'Lead Name', 'Contact Name', 'Person Name', 'Applicant Name', 'Candidate Name']);
         let   phone   = getCol(row, ['Phone', 'Mobile', 'Phone Number', 'Mobile Number', 'Mobile No', 'Phone No', 'Contact Number', 'Contact No', 'Whatsapp', 'WhatsApp No', 'Cell', 'Tel', 'Telephone', 'Number', 'Contact']);
-        const email   = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
+        let   email   = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
         const tags    = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
         const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
 
@@ -1033,10 +1059,24 @@ const importExcelContacts = async (req, res) => {
         if (!name && !phone) {
           skipped++;
           if (inserted === 0 && skipped === 1) {
-            // Log on first skip to help debug column mapping
             console.warn('[importExcelContacts] First row skipped - no name/phone found. Row keys:', Object.keys(row), 'Row data:', JSON.stringify(row));
           }
           continue;
+        }
+
+        // Validate and clean email
+        if (email) {
+          email = email.trim();
+          if (!emailRegex.test(email)) {
+            invalidEmails.push({
+              row: actualRowNumber,
+              name: name || 'Unnamed Lead',
+              email: email,
+              error: 'Invalid email format'
+            });
+            // Keep email null on the contact record so bad email isn't saved as valid
+            email = null;
+          }
         }
 
         // Phone sanitisation
@@ -1084,13 +1124,13 @@ const importExcelContacts = async (req, res) => {
       return res.json({
         success: false,
         message: '0 leads imported. ' + skipped + ' rows skipped.' + (errors.length ? ' Errors: ' + errors.slice(0, 5).join(' | ') : ' Check that your Excel has columns matching: Name, Phone/Mobile, Email, Address, Tags.'),
-        data: { inserted, skipped, errors, detectedColumns: detectedCols }
+        data: { inserted, skipped, errors, invalidEmails, detectedColumns: detectedCols }
       });
     }
     return res.json({
       success: true,
       message: 'Import complete. ' + inserted + ' lead(s) imported' + (skipped ? ', ' + skipped + ' skipped' : '') + '.',
-      data: { inserted, skipped, errors, detectedColumns: detectedCols }
+      data: { inserted, skipped, errors, invalidEmails, detectedColumns: detectedCols }
     });
 
   } catch (err) {
@@ -1101,4 +1141,288 @@ const importExcelContacts = async (req, res) => {
     if (conn) conn.release();
   }
 };
-module.exports = { getContacts, getContact, createContact, updateContact, deleteContact, importContacts, exportContacts, optIn, optOut, createOptInLink, handleOptInLink, getUniqueTags, getContactHistory, getContactDocuments, uploadContactDocument, importExcelContacts };
+const brevoService = require('../services/brevo.service');
+
+// Helper to build filtering WHERE clause matching getContacts
+const buildContactFilterWhere = (bizId, user, { channel, status, tag, search, agent, transferred_only }) => {
+  let where = 'WHERE c.business_id = ?';
+  const params = [bizId];
+
+  if (user.role === 'agent') {
+    const selfId = Number(user.userId);
+    if (transferred_only === 'true') {
+      where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+      params.push(selfId.toString(), selfId.toString(), selfId);
+    } else {
+      where += ` AND (c.assigned_to = ? OR JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?))`;
+      params.push(selfId, selfId.toString(), selfId.toString());
+    }
+  } else {
+    if (transferred_only === 'true') {
+      if (agent) {
+        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+        params.push(agent.toString(), agent, agent);
+      } else {
+        where += ` AND JSON_LENGTH(c.user_list) > 1`;
+      }
+    } else if (agent) {
+      where += ' AND c.assigned_to = ?';
+      params.push(agent);
+    }
+  }
+
+  if (channel) {
+    where += ' AND c.channel_preference = ?';
+    params.push(channel);
+  }
+  if (status === 'No Follow Up' || status === 'no_followup' || (status && status.trim() === 'NO DATE')) {
+    where += ' AND c.follow_up_date IS NULL';
+  } else if (status) {
+    where += ' AND c.status_name = ?';
+    params.push(status);
+  }
+  if (search) {
+    where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  if (tag) {
+    where += ' AND JSON_CONTAINS(c.tags, ?)';
+    params.push(JSON.stringify(tag));
+  }
+
+  return { where, params };
+};
+
+/**
+ * Preview recipients for bulk email send
+ * Supports filtering by channel, status, tag, search, agent, transferred_only
+ * AND optional selected_contact_ids (if user checked specific leads)
+ */
+const previewBulkEmail = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { channel, status, tag, search, agent, transferred_only, selected_contact_ids } = req.body;
+    let { where, params } = buildContactFilterWhere(bizId, req.user, { channel, status, tag, search, agent, transferred_only });
+
+    if (Array.isArray(selected_contact_ids) && selected_contact_ids.length > 0) {
+      where += ` AND c.id IN (${selected_contact_ids.map(() => '?').join(',')})`;
+      params.push(...selected_contact_ids.map(id => Number(id)));
+    }
+
+    const [rows] = await pool.query(`
+      SELECT c.id, c.name, c.email, c.phone, c.status_name
+      FROM contacts c
+      ${where}
+      ORDER BY c.id DESC
+    `, params);
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const validRecipients = [];
+    const invalidRecipients = [];
+    const missingRecipients = [];
+
+    rows.forEach(contact => {
+      const rawEmail = contact.email ? String(contact.email).trim() : '';
+      if (!rawEmail) {
+        missingRecipients.push({
+          id: contact.id,
+          name: contact.name || 'Unnamed Lead',
+          phone: contact.phone,
+          error: 'Missing email address'
+        });
+      } else if (!emailRegex.test(rawEmail)) {
+        invalidRecipients.push({
+          id: contact.id,
+          name: contact.name || 'Unnamed Lead',
+          email: rawEmail,
+          phone: contact.phone,
+          error: 'Invalid email format'
+        });
+      } else {
+        validRecipients.push({
+          id: contact.id,
+          name: contact.name || 'Unnamed Lead',
+          email: rawEmail
+        });
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        totalMatched: rows.length,
+        validCount: validRecipients.length,
+        invalidCount: invalidRecipients.length,
+        missingCount: missingRecipients.length,
+        invalidRecipients: invalidRecipients,
+        missingRecipients: missingRecipients.slice(0, 50)
+      }
+    });
+  } catch (err) {
+    console.error('[previewBulkEmail] error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * Send bulk email via Brevo to valid recipients matching filters or selected IDs
+ * Saves rendered email record per recipient in lead_emails
+ */
+const sendBulkEmail = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { channel, status, tag, search, agent, transferred_only, selected_contact_ids, template_id, subject, body } = req.body;
+
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ success: false, message: 'Subject is required' });
+    }
+    if (!body || !body.trim()) {
+      return res.status(400).json({ success: false, message: 'Message body is required' });
+    }
+
+    let { where, params } = buildContactFilterWhere(bizId, req.user, { channel, status, tag, search, agent, transferred_only });
+
+    if (Array.isArray(selected_contact_ids) && selected_contact_ids.length > 0) {
+      where += ` AND c.id IN (${selected_contact_ids.map(() => '?').join(',')})`;
+      params.push(...selected_contact_ids.map(id => Number(id)));
+    }
+
+    const [rows] = await pool.query(`
+      SELECT c.id, c.name, c.email, c.phone, c.status_name
+      FROM contacts c
+      ${where}
+      ORDER BY c.id DESC
+    `, params);
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const validRecipients = [];
+
+    rows.forEach(c => {
+      const em = c.email ? String(c.email).trim() : '';
+      if (em && emailRegex.test(em)) {
+        validRecipients.push({
+          id: c.id,
+          name: c.name || 'Valued Customer',
+          email: em
+        });
+      }
+    });
+
+    if (validRecipients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid email recipients found matching the selected filters/leads.'
+      });
+    }
+
+    const campaignId = `CAMP-${Date.now()}`;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'worksufs@gmail.com';
+    let sentCount = 0;
+    let failedCount = 0;
+    const sendResults = [];
+
+    for (const recipient of validRecipients) {
+      const firstName = (recipient.name || '').split(' ')[0] || 'there';
+      const personalizedSubject = subject
+        .replace(/\{\{first_name\}\}/gi, firstName)
+        .replace(/\{\{name\}\}/gi, recipient.name);
+
+      const personalizedBody = body
+        .replace(/\{\{first_name\}\}/gi, firstName)
+        .replace(/\{\{name\}\}/gi, recipient.name);
+
+      let initialStatus = 'sent';
+      let brevoMsgId = null;
+      let failureReason = null;
+
+      try {
+        const brevoRes = await brevoService.sendEmail({
+          toEmail: recipient.email,
+          toName: recipient.name,
+          subject: personalizedSubject,
+          htmlContent: personalizedBody.replace(/\n/g, '<br/>'),
+          textContent: personalizedBody
+        });
+        brevoMsgId = brevoRes.messageId;
+        sentCount++;
+      } catch (sendErr) {
+        initialStatus = 'failed';
+        failureReason = sendErr.message;
+        failedCount++;
+        console.error(`[sendBulkEmail] Failed sending to ${recipient.email}:`, sendErr.message);
+      }
+
+      // Save email record into lead_emails linked to student/lead
+      try {
+        await pool.query(`
+          INSERT INTO lead_emails (
+            business_id, contact_id, campaign_id, brevo_message_id, 
+            sender_email, to_email, subject, content, status, bounce_reason
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          bizId,
+          recipient.id,
+          campaignId,
+          brevoMsgId,
+          senderEmail,
+          recipient.email,
+          personalizedSubject,
+          personalizedBody,
+          initialStatus,
+          failureReason
+        ]);
+      } catch (dbErr) {
+        console.error(`[sendBulkEmail] Error saving email history for contact ${recipient.id}:`, dbErr);
+      }
+
+      sendResults.push({
+        contactId: recipient.id,
+        email: recipient.email,
+        status: initialStatus,
+        messageId: brevoMsgId,
+        error: failureReason
+      });
+    }
+
+    const isSuccess = sentCount > 0;
+    return res.json({
+      success: isSuccess,
+      message: isSuccess
+        ? `Bulk email process finished. ${sentCount} email(s) sent successfully${failedCount > 0 ? `, ${failedCount} failed` : ''}.`
+        : `Email delivery failed: ${sendResults[0]?.error || 'Unable to deliver emails via Brevo.'}`,
+      data: {
+        campaignId,
+        totalRecipients: validRecipients.length,
+        sentCount,
+        failedCount,
+        results: sendResults
+      }
+    });
+
+  } catch (err) {
+    console.error('[sendBulkEmail] error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { 
+  getContacts, 
+  getContact, 
+  createContact, 
+  updateContact, 
+  deleteContact, 
+  importContacts, 
+  exportContacts, 
+  optIn, 
+  optOut, 
+  createOptInLink, 
+  handleOptInLink, 
+  getUniqueTags, 
+  getContactHistory, 
+  getContactDocuments, 
+  uploadContactDocument, 
+  importExcelContacts,
+  previewBulkEmail,
+  sendBulkEmail
+};
+

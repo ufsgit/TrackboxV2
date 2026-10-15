@@ -10,6 +10,8 @@ router.get('/tags', c.getUniqueTags);
 router.post('/', c.createContact);
 router.post('/import', upload.single('file'), c.importContacts);
 router.post('/import-excel', c.importExcelContacts);
+router.post('/preview-bulk-email', c.previewBulkEmail);
+router.post('/send-bulk-email', c.sendBulkEmail);
 router.post('/optin-link', c.createOptInLink);
 router.get('/:id/history', c.getContactHistory);
 router.get('/:id', c.getContact);

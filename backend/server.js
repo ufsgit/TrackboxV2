@@ -12,6 +12,7 @@ const { handleWhatsappWebhook } = require('./src/webhooks/whatsapp');
 const { handleFacebookWebhook } = require('./src/webhooks/facebook');
 const { handleInstagramWebhook } = require('./src/webhooks/instagram');
 const { handleRazorpayWebhook, handleStripeWebhook } = require('./src/webhooks/payments');
+const { handleBrevoWebhook } = require('./src/webhooks/brevo');
 const { handleIncomingCall, handleKeyPress } = require('./src/controllers/ivr.controller');
 const { redirect } = require('./src/controllers/ctwa.controller');
 const { handleOptInLink } = require('./src/controllers/contacts.controller');
@@ -70,6 +71,8 @@ app.get('/api/webhooks/facebook', (req, res) => handleFacebookWebhook(req, res, 
 app.post('/api/webhooks/facebook', (req, res) => handleFacebookWebhook(req, res, io));
 app.get('/api/webhooks/instagram', (req, res) => handleInstagramWebhook(req, res, io));
 app.post('/api/webhooks/instagram', (req, res) => handleInstagramWebhook(req, res, io));
+app.post('/api/webhooks/brevo', (req, res) => handleBrevoWebhook(req, res, io));
+app.get('/api/webhooks/brevo', (req, res) => res.status(200).send('Brevo webhook active'));
 app.post('/api/webhooks/razorpay', handleRazorpayWebhook);
 app.post('/api/webhooks/stripe', handleStripeWebhook);
 app.post('/api/webhooks/ivr/incoming', handleIncomingCall);
