@@ -29,7 +29,7 @@ export const routeTransitionAnimations = trigger('triggerName', [
         animate('150ms cubic-bezier(0.22, 1, 0.36, 1)', style({ opacity: 0, transform: 'translateY(-10px)' }))
       ], { optional: true }),
       query(':enter', [
-        animate('250ms 50ms cubic-bezier(0.22, 1, 0.36, 1)', style({ opacity: 1, transform: 'translateY(0)' }))
+        animate('250ms 50ms cubic-bezier(0.22, 1, 0.36, 1)', style({ opacity: 1, transform: 'none', position: 'relative' }))
       ], { optional: true })
     ])
   ])
@@ -176,7 +176,7 @@ export class LayoutComponent implements OnInit {
         next: (res: any) => {
           if (res.success) {
             this.isCheckedIn = true;
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: res.message });
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: res.message });
           }
         },
         error: async (err: any) => {
@@ -204,12 +204,12 @@ export class LayoutComponent implements OnInit {
               this.attendanceService.addCheckIn(this.activeDepartment, reason).subscribe({
                  next: (res: any) => {
                    this.isCheckedIn = true;
-                   Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: res.message });
+                   Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: res.message });
                  }
               });
             }
           } else {
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'info', title: err.error?.message || 'Error checking in' });
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'info', title: err.error?.message || 'Error checking in' });
             if (err.error?.message?.includes('already checked in')) this.isCheckedIn = true;
           }
         }
@@ -220,11 +220,11 @@ export class LayoutComponent implements OnInit {
         next: (res: any) => {
           if (res.success) {
             this.isCheckedIn = false;
-            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: res.message });
+            Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: res.message });
           }
         },
         error: (err: any) => {
-          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'warning', title: err.error?.message || 'Error checking out' });
+          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'warning', title: err.error?.message || 'Error checking out' });
           if (err.error?.message?.includes('No active')) this.isCheckedIn = false;
         }
       });
@@ -464,11 +464,16 @@ export class LayoutComponent implements OnInit {
           toast: true,
           position: 'top-end',
           showConfirmButton: false,
-          timer: 5000,
+          timer: 2000,
           timerProgressBar: true,
           icon: 'info',
           title: 'New Assignment',
-          text: `${contactName} was assigned to you`
+          text: `${contactName} was assigned to you`,
+          didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+            toast.addEventListener('click', () => Swal.close());
+          }
         });
 
         // Browser notification

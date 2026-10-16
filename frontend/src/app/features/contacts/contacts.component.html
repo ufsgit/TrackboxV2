@@ -1,367 +1,549 @@
 <div class="contacts-page-wrapper">
 
 <div class="contacts-page" *ngIf="!showImportDetailsView">
-  <!-- Page Header -->
-  <div class="contacts-header d-flex justify-content-between align-items-center" style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; width: 100% !important;">
-    <div class="header-left" style="display: flex; align-items: center; gap: 16px; flex: 1; margin-right: 16px;">
-      <div class="search-box" style="margin: 0; max-width: 300px; width: 100%;">
-        <i class="bi bi-search"></i>
-        <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name, phone or email..." class="premium-input">
-      </div>
-      <button class="btn" (click)="onSearch()" style="background: #6366f1; color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2); transition: all 0.2s;">
-        Search
-      </button>
-      <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <div class="dropdown custom-filter-dropdown">
-          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('channel', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
-            <span style="text-transform: capitalize;">{{ activeChannel || 'All Channels' }}</span>
-          </button>
-          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isChannelDropdownOpen">
-            <li><a class="dropdown-item" [class.active]="!activeChannel" (click)="activeChannel = ''; applyFilters(); isChannelDropdownOpen = false">All Channels</a></li>
-            <li><a class="dropdown-item" *ngFor="let ch of channels" [class.active]="activeChannel === ch.name.toLowerCase()" (click)="activeChannel = ch.name.toLowerCase(); applyFilters(); isChannelDropdownOpen = false" style="text-transform: capitalize;">{{ ch.name }}</a></li>
-          </ul>
+  
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- 2. HEADER ROW (Title & Actions)                                      -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="leads-header-row">
+    <div class="leads-title-col">
+      <div class="leads-title-top">
+        <div class="leads-title-icon-box">
+          <i class="bi bi-people-fill"></i>
         </div>
-        
-        <div class="dropdown custom-filter-dropdown">
-          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('status', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
-            <span>{{ activeStatus || 'All Statuses' }}</span>
-          </button>
-          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isStatusDropdownOpen">
-            <li><a class="dropdown-item" [class.active]="!activeStatus" (click)="activeStatus = ''; applyFilters(); isStatusDropdownOpen = false">All Statuses</a></li>
-            <ng-container *ngIf="leadStatuses && leadStatuses.length > 0; else defaultStatusList">
-              <li><a class="dropdown-item" *ngFor="let s of leadStatuses" [class.active]="activeStatus === s.name" (click)="activeStatus = s.name; applyFilters(); isStatusDropdownOpen = false">{{ s.name }}</a></li>
-            </ng-container>
-            <ng-template #defaultStatusList>
-              <li><a class="dropdown-item" [class.active]="activeStatus === 'New'" (click)="activeStatus = 'New'; applyFilters(); isStatusDropdownOpen = false">New</a></li>
-              <li><a class="dropdown-item" [class.active]="activeStatus === 'Contacted'" (click)="activeStatus = 'Contacted'; applyFilters(); isStatusDropdownOpen = false">Contacted</a></li>
-              <li><a class="dropdown-item" [class.active]="activeStatus === 'Interested'" (click)="activeStatus = 'Interested'; applyFilters(); isStatusDropdownOpen = false">Interested</a></li>
-              <li><a class="dropdown-item" [class.active]="activeStatus === 'Not Interested'" (click)="activeStatus = 'Not Interested'; applyFilters(); isStatusDropdownOpen = false">Not Interested</a></li>
-              <li><a class="dropdown-item" [class.active]="activeStatus === 'Converted'" (click)="activeStatus = 'Converted'; applyFilters(); isStatusDropdownOpen = false">Converted</a></li>
-            </ng-template>
-            <li><a class="dropdown-item" [class.active]="activeStatus === 'No Follow Up'" (click)="activeStatus = 'No Follow Up'; applyFilters(); isStatusDropdownOpen = false">No Follow Up</a></li>
-          </ul>
+        <div>
+          <div class="leads-title-with-badge">
+            <h1 class="leads-main-title">Leads Directory</h1>
+            <span class="leads-header-pill">
+              <span class="pulse-dot"></span>
+              {{ overallTotalContacts }} Total Leads
+            </span>
+          </div>
+          <p class="leads-subtitle">Track follow-ups, manage schedules and broadcast to prospects from one workspace.</p>
         </div>
-
-        <div class="dropdown custom-filter-dropdown" *ngIf="isAdmin">
-          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('agent', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
-            <span>{{ activeAgent ? getEmployeeName(activeAgent) : 'All Agents' }}</span>
-          </button>
-          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isAgentDropdownOpen">
-            <li><a class="dropdown-item" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false">All Agents</a></li>
-            <li><a class="dropdown-item" *ngFor="let agent of agents" [class.active]="activeAgent === agent.id" (click)="activeAgent = agent.id; applyFilters(); isAgentDropdownOpen = false">{{ agent.name }}</a></li>
-          </ul>
-        </div>
-        
-        <div class="dropdown custom-filter-dropdown">
-          <button class="btn premium-select shadow-sm dropdown-toggle" type="button" (click)="toggleFilterDropdown('tag', $event)" aria-expanded="false" style="text-align: left; display: flex; justify-content: space-between; align-items: center; min-width: 140px;">
-            <span>{{ activeTag || 'All Tags' }}</span>
-          </button>
-          <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isTagDropdownOpen">
-            <li><a class="dropdown-item" [class.active]="!activeTag" (click)="activeTag = ''; applyFilters(); isTagDropdownOpen = false">All Tags</a></li>
-            <li><a class="dropdown-item" *ngFor="let tag of allTags" [class.active]="activeTag === tag" (click)="activeTag = tag; applyFilters(); isTagDropdownOpen = false">{{ tag }}</a></li>
-          </ul>
-        </div>
-
-        <button class="btn shadow-sm d-flex align-items-center gap-2" 
-                [ngClass]="transferredOnly ? 'btn-primary' : 'btn-outline-primary'"
-                (click)="toggleTransferredOnly()"
-                style="border-radius: 12px; font-weight: 600; white-space: nowrap;">
-          <i class="bi bi-arrow-left-right"></i>
-          Transferred Leads
-        </button>
       </div>
     </div>
     
-    <div class="header-actions" style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important;">
-      <div class="dropdown" *ngIf="false">
-        <button class="btn btn-export shadow-sm dropdown-toggle" type="button" (click)="toggleImportExportDropdown($event)" aria-expanded="false" style="border-radius: 12px;">
-          <i class="bi bi-cloud-arrow-down me-1"></i> Import/Export
+    <div class="leads-actions-col">
+      <!-- Segmented View Mode Switcher -->
+      <div class="leads-view-segmented-switcher">
+        <button type="button" class="view-switch-btn" [class.active]="viewMode === 'list'" (click)="setViewMode('list')" title="Switch to Table View">
+          <i class="bi bi-table"></i>
+          <span>Table View</span>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" [class.show]="showImportExportDropdown" style="border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); min-width: 180px;">
-          <li><a class="dropdown-item py-2" href="javascript:void(0)" (click)="exportContacts()"><i class="bi bi-download me-2 text-info"></i> Export</a></li>
-          <li>
-            <a class="dropdown-item py-2 mb-0" style="cursor: pointer; width: 100%; display: flex; align-items: center;" (click)="openBulkImportModal()">
-              <i class="bi bi-upload me-2 text-primary"></i> Import Leads
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="d-flex align-items-center gap-2 ms-1">
-        <button class="btn btn-outline-secondary px-3 py-2 shadow-sm d-flex align-items-center gap-2" (click)="toggleViewMode()" style="border-radius: 12px; font-weight: 600;" title="Toggle Calendar View">
-          <i class="bi" [ngClass]="viewMode === 'list' ? 'bi-calendar3' : 'bi-list-ul'"></i>
-          <span>{{ viewMode === 'list' ? 'Calendar View' : 'List View' }}</span>
-        </button>
-        <button class="btn px-3 py-2 shadow-sm d-flex align-items-center gap-2 position-relative" (click)="openBulkEmailModal()" style="border-radius: 12px; font-weight: 600; background: linear-gradient(135deg,#6366f1,#4f46e5); border: none; color: #fff;" title="Send Bulk Email via Brevo">
-          <i class="bi bi-envelope-fill"></i>
-          <span>Send Email</span>
-          <span *ngIf="selectedContactIds.size > 0" class="badge rounded-pill bg-white text-primary ms-1" style="font-size: 0.72rem; font-weight: 700;">
-            {{ selectedContactIds.size }}
-          </span>
-        </button>
-        <button class="btn px-3 py-2 shadow-sm d-flex align-items-center gap-2" routerLink="/excel-import" style="border-radius: 12px; font-weight: 600; background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff;" title="Excel Import">
-          <i class="bi bi-file-earmark-excel"></i>
-          <span>Excel Import</span>
-        </button>
-        <button class="btn btn-primary px-4 py-2 shadow-sm" (click)="openAddModal()" style="border-radius: 12px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); border: none;">
-          <i class="bi bi-person-plus me-2"></i> Add Lead
+        <button type="button" class="view-switch-btn" [class.active]="viewMode === 'calendar'" (click)="setViewMode('calendar')" title="Switch to Calendar Schedule">
+          <i class="bi bi-calendar3"></i>
+          <span>Calendar</span>
         </button>
       </div>
-    </div>
-  </div>
 
-  <!-- Dynamic Counts & Lead Selection Status Bar -->
-  <div class="d-flex flex-wrap align-items-center justify-content-between px-3 py-2 mb-3 rounded-3 shadow-sm" style="background: #ffffff; border: 1px solid #e2e8f0;">
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-      <div class="d-flex align-items-center gap-2">
-        <span class="text-secondary small fw-semibold">Total Leads:</span>
-        <span class="badge rounded-pill bg-secondary-subtle text-secondary px-2 py-1 fw-bold" style="font-size: 0.85rem;">{{ overallTotalContacts }}</span>
-      </div>
-      <div class="vr" style="height: 16px;"></div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="text-primary small fw-semibold">Filtered Leads:</span>
-        <span class="badge rounded-pill bg-primary-subtle text-primary px-2 py-1 fw-bold" style="font-size: 0.85rem;">{{ totalContacts }}</span>
-      </div>
-      <div class="vr" style="height: 16px;"></div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="text-success small fw-semibold">Selected Recipients:</span>
-        <span class="badge rounded-pill bg-success-subtle text-success px-2 py-1 fw-bold" style="font-size: 0.85rem;">{{ selectedContactIds.size }}</span>
-      </div>
-    </div>
+      <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
+        <i class="bi bi-envelope-fill"></i>
+        <span>Send Email</span>
+        <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
+          {{ selectedContactIds.size }}
+        </span>
+      </button>
 
-    <div class="d-flex align-items-center gap-2" *ngIf="selectedContactIds.size > 0">
-      <small class="text-muted">{{ selectedContactIds.size }} of {{ totalContacts }} selected</small>
-      <button class="btn btn-sm btn-link text-decoration-none p-0 text-danger fw-semibold" (click)="clearSelection()" style="font-size: 0.8rem;">
-        Clear Selection
+      <button class="leads-btn leads-btn-excel" routerLink="/excel-import" title="Excel Import">
+        <i class="bi bi-file-earmark-excel-fill"></i>
+        <span>Excel Import</span>
+      </button>
+
+      <button class="leads-btn leads-btn-green" (click)="openAddModal()" title="Add New Lead">
+        <i class="bi bi-plus-lg"></i>
+        <span>Add Lead</span>
       </button>
     </div>
   </div>
 
-  <!-- Contacts Table Section (List View) -->
-  <div class="contacts-table-container table-responsive" *ngIf="viewMode === 'list'">
-    <table class="contacts-table">
-      <thead>
-        <tr>
-          <th style="width: 44px; text-align: center;">
-            <input type="checkbox" class="form-check-input" [checked]="isAllSelected" (change)="toggleSelectAll()" title="Select All On Page" style="cursor: pointer; width: 17px; height: 17px;">
-          </th>
-          <th style="width: 40px; text-align: center;">#</th>
-          <th>Name</th>
-          <th>Employee</th>
-          <th style="width: 120px;">Phone</th>
-          <th>Status</th>
-          <th style="width: 140px;">Follow Up</th>
-          <th></th>
-          <th style="width: 350px;">Remark</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngIf="loading">
-          <td colspan="9" class="text-center py-5">
-            <div class="spinner-border text-success"></div>
-          </td>
-        </tr>
-        <tr *ngIf="!loading && contacts.length === 0">
-          <td colspan="9" class="text-center py-5">
-            <div class="empty-state-wrapper">
-              <div class="empty-state-illustration">
-                <!-- Abstract document/CRM SVG -->
-                <svg width="160" height="160" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect class="doc-back" x="40" y="30" width="100" height="130" rx="12" fill="#E2E8F0"/>
-                  <rect class="doc-front" x="60" y="50" width="100" height="130" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="4"/>
-                  <path class="doc-line" d="M80 80h60M80 100h60M80 120h40" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
-                  <circle class="badge-float" cx="160" cy="140" r="24" fill="#10B981"/>
-                  <path class="badge-float" d="M152 140l5 5 11-11" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path class="sparkle s1" d="M20 70l5-15 15-5-15-5-5-15-5 15-15 5 15 5 5 15z" fill="#FBBF24"/>
-                  <path class="sparkle s2" d="M180 50l3-9 9-3-9-3-3-9-3 9-9 3 9 3 3 9z" fill="#60A5FA"/>
-                </svg>
-              </div>
-              <h4 class="empty-state-title">Your Pipeline is Empty</h4>
-              <p class="empty-state-desc">Start building your success story by adding your very first lead.</p>
-              <button class="btn btn-primary add-first-btn mt-3" (click)="openAddModal()">
-                <i class="bi bi-plus-circle-fill me-2"></i> Add First Lead
-              </button>
-            </div>
-          </td>
-        </tr>
-        
-        <tr *ngFor="let contact of contacts; let i = index" 
-            class="lead-row"
-            (click)="openQuickStatusModal(contact)"
-            title="Click to update follow-up">
-          <td (click)="$event.stopPropagation()" class="text-center">
-            <input type="checkbox" 
-                   class="form-check-input" 
-                   [checked]="isContactSelected(contact.id)" 
-                   (change)="toggleSelectContact(contact.id, $event)" 
-                   style="cursor: pointer; width: 17px; height: 17px;">
-          </td>
-          <td (click)="$event.stopPropagation()" class="text-center">
-            <span class="text-muted fw-bold" style="font-size: 0.85rem;">{{ (currentPage - 1) * pageSize + i + 1 }}</span>
-          </td>
-          <td (click)="$event.stopPropagation()">
-            <div class="d-flex align-items-center contact-profile" (click)="openDetailPanel(contact)" title="Click to view details" style="cursor: pointer;">
-              <div>
-                <div class="fw-bold contact-name" style="font-size: 0.95rem; color: #4f46e5; font-weight: 700;">{{ contact.name }}</div>
-              </div>
-            </div>
-          </td>
-          
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <span class="text-dark" style="font-weight: 500; font-size: 0.9rem;">
-                {{ contact.assigned_employee_name || getEmployeeName(contact.assigned_to) || 'Unassigned' }}
-              </span>
-            </div>
-          </td>
-          
-          <td class="fw-bold" style="color: #475569;">{{ contact.phone }}</td>
-          
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge" 
-                    [style.backgroundColor]="contact.status_name ? getStatusColor(contact.status_name) + '20' : '#f1f5f9'"
-                    [style.color]="contact.status_name ? getStatusColor(contact.status_name) : '#64748b'"
-                    [style.borderColor]="contact.status_name ? getStatusColor(contact.status_name) + '50' : '#e2e8f0'"
-                    style="padding: 6px 12px; font-weight: 700; letter-spacing: 0.5px; font-size: 0.72rem; text-transform: uppercase; border: 1px solid;">
-                {{ contact.status_name || '-' }}
-              </span>
-            </div>
-          </td>
-          
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <span *ngIf="contact.follow_up_date" class="follow-up-badge">
-                <i class="bi bi-calendar-check me-1"></i>{{ (contact.follow_up_date | date:'dd MMM yyyy') }}
-              </span>
-              <span *ngIf="!contact.follow_up_date" class="follow-up-empty">
-                <i class="bi bi-calendar-plus me-1"></i>Set Follow Up
-              </span>
-            </div>
-          </td>
-
-          <td (click)="$event.stopPropagation()">
-            <div class="quick-actions-container d-flex align-items-center gap-2">
-              <a *ngIf="contact.phone" [href]="'https://wa.me/' + contact.phone" target="_blank" class="btn btn-sm text-success quick-action-btn wa-btn" title="WhatsApp">
-                <i class="bi bi-whatsapp" style="font-size: 1.1rem;"></i>
-              </a>
-              <a *ngIf="false" [href]="'tel:' + contact.phone" class="btn btn-sm text-primary quick-action-btn call-btn" title="Call">
-                <i class="bi bi-telephone-fill" style="font-size: 1.1rem;"></i>
-              </a>
-              <button *ngIf="false" class="btn btn-sm text-primary default-action-btn" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;" (click)="openQuickStatusModal(contact)" title="Add Follow Up" onmouseover="this.style.backgroundColor='#e2e8f0'" onmouseout="this.style.backgroundColor='#f1f5f9'">
-                <i class="bi bi-calendar-plus" style="font-size: 1.1rem;"></i>
-              </button>
-            </div>
-          </td>
-
-          <td style="max-width: 400px; width: 400px;">
-            <div class="text-muted small mb-1" style="word-wrap: break-word; white-space: normal;">
-              <ng-container *ngIf="!contact.isRemarkExpanded && contact.latest_remark && contact.latest_remark.length > 35">
-                {{ contact.latest_remark | slice:0:35 }}...
-              </ng-container>
-              <ng-container *ngIf="contact.isRemarkExpanded || !contact.latest_remark || contact.latest_remark.length <= 35">
-                {{ contact.latest_remark || '' }}
-              </ng-container>
-            </div>
-            <a href="javascript:void(0)" 
-               *ngIf="contact.latest_remark && contact.latest_remark.length > 35"
-               (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded; $event.stopPropagation()" 
-               class="small text-primary text-decoration-none fw-bold" 
-               style="font-size: 0.75rem;">
-              {{ contact.isRemarkExpanded ? 'Show Less' : 'Read More' }}
-            </a>
-          </td>
-          
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Calendar View Section -->
-  <div class="calendar-container" *ngIf="viewMode === 'calendar'">
-
-    <!-- Calendar Header (Month / Year Controls) -->
-    <div class="calendar-header d-flex align-items-center mb-4 gap-3" style="display: flex !important; flex-direction: row !important; align-items: center !important; width: 100% !important;">
-      <h3 class="mb-0 text-primary fw-bold">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
-      <button class="btn btn-sm btn-light fw-bold px-3" style="border-radius: 8px; color: #4f46e5; border: 1px solid #c7d2fe; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" (click)="goToToday()">Today</button>
-      <div style="display: flex !important; flex-direction: row !important; align-items: center !important;">
-        <button class="btn btn-outline-secondary me-2 shadow-sm rounded-circle" (click)="prevCalendarMonth()">
-          <i class="bi bi-chevron-left"></i>
-        </button>
-        <button class="btn btn-outline-secondary shadow-sm rounded-circle" (click)="nextCalendarMonth()">
-          <i class="bi bi-chevron-right"></i>
-        </button>
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- 3. FOUR STAT CARDS ROW                                               -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="leads-stats-row">
+    <!-- Card 1: Total Leads -->
+    <div class="stat-card stat-card-purple">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrapper icon-purple">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">TOTAL LEADS</span>
+          <div class="stat-value">{{ overallTotalContacts }}</div>
+          <span class="stat-badge badge-purple">All Time Pipeline</span>
+        </div>
       </div>
     </div>
 
-    <!-- Loading State -->
-    <div class="text-center py-5" *ngIf="calendarLoading">
-      <div class="spinner-border text-success"></div>
-      <p class="mt-2 text-muted">Loading calendar data...</p>
+    <!-- Card 2: Filtered Leads -->
+    <div class="stat-card stat-card-cyan">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrapper icon-cyan">
+          <i class="bi bi-funnel-fill"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">FILTERED LEADS</span>
+          <div class="stat-value">{{ totalContacts }}</div>
+          <span class="stat-badge badge-cyan">Active Criteria</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Calendar Grid -->
-    <div class="calendar-grid" *ngIf="!calendarLoading">
-      <!-- Days of Week Header -->
-      <div class="calendar-days-header">
-        <div class="day-label">Sun</div>
-        <div class="day-label">Mon</div>
-        <div class="day-label">Tue</div>
-        <div class="day-label">Wed</div>
-        <div class="day-label">Thu</div>
-        <div class="day-label">Fri</div>
-        <div class="day-label">Sat</div>
+    <!-- Card 3: Selected Recipients -->
+    <div class="stat-card stat-card-indigo" [class.stat-card-has-selection]="selectedContactIds.size > 0">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrapper icon-indigo">
+          <i class="bi bi-check2-circle"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">SELECTED RECIPIENTS</span>
+          <div class="stat-value">{{ selectedContactIds.size }}</div>
+          <span class="stat-badge badge-indigo">Ready for Action</span>
+        </div>
       </div>
-      
-      <!-- Calendar Weeks/Days -->
-      <div class="calendar-week" *ngFor="let week of calendarWeeks">
-        <div class="calendar-day" 
-             *ngFor="let day of week" 
-             [class.inactive-month]="!day.isCurrentMonth"
-             [class.has-leads]="day.count > 0"
-             [ngStyle]="day.isToday ? {'background': '#f5f3ff', 'border': '2px solid #6366f1'} : {}"
-             (click)="openDailyLeadsModal(day)">
-          <div class="day-number" [ngStyle]="day.isToday ? {'background': '#4f46e5', 'color': 'white', 'border-radius': '50%', 'width': '28px', 'height': '28px', 'display': 'flex', 'align-items': 'center', 'justify-content': 'center', 'font-weight': 'bold', 'margin-bottom': '6px'} : {}">{{ day.date | date:'d' }}</div>
-          <div class="day-content" *ngIf="day.count > 0">
-            <span class="lead-count-badge">{{ day.count }} Lead{{ day.count > 1 ? 's' : '' }}</span>
+    </div>
+
+    <!-- Card 4: Selected with Email -->
+    <div class="stat-card stat-card-green">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrapper icon-green">
+          <i class="bi bi-envelope-check-fill"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">WITH VALID EMAIL</span>
+          <div class="stat-value-group">
+            <span class="stat-value">{{ selectedWithEmailCount }}</span>
+            <span class="stat-sub-missing" *ngIf="selectedMissingEmailCount > 0">{{ selectedMissingEmailCount }} missing</span>
           </div>
+          <span class="stat-badge badge-green">Deliverable Contacts</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Pagination -->
-  <div class="pagination-bar" *ngIf="viewMode === 'list' && totalContacts > 0">
-    <div class="pagination-info d-flex align-items-center gap-3">
-      <span>Showing <strong>{{ paginationStart }}</strong> - <strong>{{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads</span>
-      <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="form-select form-select-sm" style="width: auto; border-radius: 8px; font-weight: 500;">
-        <option [ngValue]="10">10 per page</option>
-        <option [ngValue]="20">20 per page</option>
-        <option [ngValue]="50">50 per page</option>
-        <option [ngValue]="100">100 per page</option>
-      </select>
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- 4. TABLE CARD CONTAINER                                              -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <div class="leads-table-card">
+
+    <!-- 4.a: Filter Bar -->
+    <div class="leads-filter-bar">
+      <!-- Search input -->
+      <div class="leads-search-box">
+        <i class="bi bi-search search-magnifier-icon"></i>
+        <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Search by name, phone or email..." class="leads-search-input">
+        <button *ngIf="searchQuery" class="search-clear-btn" (click)="searchQuery = ''; onSearch()" title="Clear Search">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <!-- Dropdown: Channels -->
+      <div class="dropdown custom-filter-dropdown">
+        <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeChannel" type="button" (click)="toggleFilterDropdown('channel', $event)" aria-expanded="false">
+          <i class="bi bi-chat-dots me-1 text-muted"></i>
+          <span>{{ activeChannel || 'All Channels' }}</span>
+          <i class="bi bi-chevron-down chevron-down-icon"></i>
+        </button>
+        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isChannelDropdownOpen">
+          <li><a class="dropdown-item" [class.active]="!activeChannel" (click)="activeChannel = ''; applyFilters(); isChannelDropdownOpen = false">All Channels</a></li>
+          <li><a class="dropdown-item" *ngFor="let ch of channels" [class.active]="activeChannel === ch.name.toLowerCase()" (click)="activeChannel = ch.name.toLowerCase(); applyFilters(); isChannelDropdownOpen = false" style="text-transform: capitalize;">{{ ch.name }}</a></li>
+        </ul>
+      </div>
+
+      <!-- Dropdown: Statuses -->
+      <div class="dropdown custom-filter-dropdown">
+        <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeStatus" type="button" (click)="toggleFilterDropdown('status', $event)" aria-expanded="false">
+          <i class="bi bi-flag me-1 text-muted"></i>
+          <span>{{ activeStatus || 'All Statuses' }}</span>
+          <i class="bi bi-chevron-down chevron-down-icon"></i>
+        </button>
+        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isStatusDropdownOpen">
+          <li><a class="dropdown-item" [class.active]="!activeStatus" (click)="activeStatus = ''; applyFilters(); isStatusDropdownOpen = false">All Statuses</a></li>
+          <ng-container *ngIf="leadStatuses && leadStatuses.length > 0; else defaultStatusList">
+            <li><a class="dropdown-item" *ngFor="let s of leadStatuses" [class.active]="activeStatus === s.name" (click)="activeStatus = s.name; applyFilters(); isStatusDropdownOpen = false">{{ s.name }}</a></li>
+          </ng-container>
+          <ng-template #defaultStatusList>
+            <li><a class="dropdown-item" [class.active]="activeStatus === 'New'" (click)="activeStatus = 'New'; applyFilters(); isStatusDropdownOpen = false">New</a></li>
+            <li><a class="dropdown-item" [class.active]="activeStatus === 'Contacted'" (click)="activeStatus = 'Contacted'; applyFilters(); isStatusDropdownOpen = false">Contacted</a></li>
+            <li><a class="dropdown-item" [class.active]="activeStatus === 'Interested'" (click)="activeStatus = 'Interested'; applyFilters(); isStatusDropdownOpen = false">Interested</a></li>
+            <li><a class="dropdown-item" [class.active]="activeStatus === 'Not Interested'" (click)="activeStatus = 'Not Interested'; applyFilters(); isStatusDropdownOpen = false">Not Interested</a></li>
+            <li><a class="dropdown-item" [class.active]="activeStatus === 'Converted'" (click)="activeStatus = 'Converted'; applyFilters(); isStatusDropdownOpen = false">Converted</a></li>
+          </ng-template>
+          <li><a class="dropdown-item" [class.active]="activeStatus === 'No Follow Up'" (click)="activeStatus = 'No Follow Up'; applyFilters(); isStatusDropdownOpen = false">No Follow Up</a></li>
+        </ul>
+      </div>
+
+      <!-- Dropdown: Agents -->
+      <div class="dropdown custom-filter-dropdown" *ngIf="isAdmin">
+        <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeAgent" type="button" (click)="toggleFilterDropdown('agent', $event)" aria-expanded="false">
+          <i class="bi bi-person me-1 text-muted"></i>
+          <span>{{ activeAgent ? getEmployeeName(activeAgent) : 'All Agents' }}</span>
+          <i class="bi bi-chevron-down chevron-down-icon"></i>
+        </button>
+        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isAgentDropdownOpen">
+          <li><a class="dropdown-item" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false">All Agents</a></li>
+          <li><a class="dropdown-item" *ngFor="let agent of agents" [class.active]="activeAgent === agent.id" (click)="activeAgent = agent.id; applyFilters(); isAgentDropdownOpen = false">{{ agent.name }}</a></li>
+        </ul>
+      </div>
+
+      <!-- Dropdown: Tags -->
+      <div class="dropdown custom-filter-dropdown">
+        <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeTag" type="button" (click)="toggleFilterDropdown('tag', $event)" aria-expanded="false">
+          <i class="bi bi-tag me-1 text-muted"></i>
+          <span>{{ activeTag || 'All Tags' }}</span>
+          <i class="bi bi-chevron-down chevron-down-icon"></i>
+        </button>
+        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isTagDropdownOpen">
+          <li><a class="dropdown-item" [class.active]="!activeTag" (click)="activeTag = ''; applyFilters(); isTagDropdownOpen = false">All Tags</a></li>
+          <li><a class="dropdown-item" *ngFor="let tag of allTags" [class.active]="activeTag === tag" (click)="activeTag = tag; applyFilters(); isTagDropdownOpen = false">{{ tag }}</a></li>
+        </ul>
+      </div>
+
+      <!-- Transferred Leads Button -->
+      <button class="leads-transferred-btn" 
+              [class.active]="transferredOnly"
+              (click)="toggleTransferredOnly()"
+              title="Filter Transferred Leads">
+        <i class="bi bi-arrow-left-right me-1"></i>
+        <span>Transferred Leads</span>
+      </button>
+
+      <!-- Clear all filters button (shown when any filter active) -->
+      <button *ngIf="hasActiveFilters()" 
+              class="leads-reset-filters-btn" 
+              (click)="resetAllFilters()" 
+              title="Reset All Filters">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>
+        <span>Reset Filters</span>
+      </button>
     </div>
-    <div class="pagination-controls">
-      <button class="page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First page">
-        <i class="bi bi-chevron-double-left"></i>
-      </button>
-      <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1" title="Previous page">
-        <i class="bi bi-chevron-left"></i>
-      </button>
-      <button *ngFor="let p of pageNumbers"
-              class="page-btn page-num"
-              [class.active]="p === currentPage"
-              (click)="goToPage(p)">
-        {{ p }}
-      </button>
-      <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages" title="Next page">
-        <i class="bi bi-chevron-right"></i>
-      </button>
-      <button class="page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last page">
-        <i class="bi bi-chevron-double-right"></i>
-      </button>
+
+    <!-- 4.b: Selection Bar (only when selectedContactIds.size > 0) -->
+    <div class="leads-selection-bar" *ngIf="selectedContactIds.size > 0">
+      <div class="selection-left">
+        <span class="selection-count-pill">{{ selectedContactIds.size }}</span>
+        <span class="selection-text">of {{ totalContacts }} leads selected</span>
+        <button class="selection-clear-btn" (click)="clearSelection()">Clear selection</button>
+      </div>
+
+      <div class="selection-right">
+        <button class="selection-email-btn" (click)="openBulkEmailModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <span>Email {{ selectedContactIds.size }} leads</span>
+        </button>
+      </div>
     </div>
-  </div>
-</div>
+
+    <!-- 4.c: Table Container (Scrolls horizontally inside card min-width ~1060px) -->
+    <div class="leads-table-wrapper" *ngIf="viewMode === 'list'">
+      <table class="leads-styled-table">
+        <thead>
+          <tr>
+            <th class="col-checkbox">
+              <input type="checkbox" class="leads-checkbox" [checked]="isAllSelected" (change)="toggleSelectAll()" title="Select All On Page">
+            </th>
+            <th class="col-lead">LEAD</th>
+            <th class="col-employee">EMPLOYEE</th>
+            <th class="col-email">EMAIL</th>
+            <th class="col-status">STATUS</th>
+            <th class="col-followup">FOLLOW UP</th>
+            <th class="col-remark">REMARK</th>
+            <th class="col-actions">ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading Spinner -->
+          <tr *ngIf="loading">
+            <td colspan="8" class="text-center py-5">
+              <div class="spinner-border text-primary"></div>
+            </td>
+          </tr>
+
+          <!-- Empty Pipeline State -->
+          <tr *ngIf="!loading && contacts.length === 0">
+            <td colspan="8" class="text-center py-5">
+              <div class="empty-state-wrapper">
+                <div class="empty-state-illustration">
+                  <svg width="140" height="140" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect class="doc-back" x="40" y="30" width="100" height="130" rx="12" fill="#E2E8F0"/>
+                    <rect class="doc-front" x="60" y="50" width="100" height="130" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="4"/>
+                    <path class="doc-line" d="M80 80h60M80 100h60M80 120h40" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+                    <circle class="badge-float" cx="160" cy="140" r="24" fill="#0b8a68"/>
+                    <path class="badge-float" d="M152 140l5 5 11-11" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h4 class="empty-state-title">Your Pipeline is Empty</h4>
+                <p class="empty-state-desc">Start building your success story by adding your very first lead.</p>
+                <button class="leads-btn leads-btn-green mt-2" (click)="openAddModal()">
+                  <svg class="leads-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Add First Lead</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Lead Data Rows -->
+          <tr *ngFor="let contact of contacts; let i = index" 
+              class="leads-table-row"
+              [class.leads-row-selected]="isContactSelected(contact.id)"
+              (click)="openQuickStatusModal(contact)"
+              title="Click to update follow-up">
+            
+            <!-- Checkbox -->
+            <td class="col-checkbox" (click)="$event.stopPropagation()">
+              <input type="checkbox" 
+                     class="leads-checkbox" 
+                     [checked]="isContactSelected(contact.id)" 
+                     (change)="toggleSelectContact(contact.id, $event)">
+            </td>
+
+            <!-- Lead (Avatar Initials + Name in bold + Phone muted below) -->
+            <td class="col-lead" (click)="$event.stopPropagation()">
+              <div class="lead-info-cell" (click)="openDetailPanel(contact)" title="Click to view details">
+                <div class="lead-avatar" [ngClass]="getAvatarTintClass(contact.id || i)">
+                  {{ getLeadInitials(contact.name) }}
+                </div>
+                <div class="lead-text-group">
+                  <span class="lead-name">{{ contact.name || 'Unnamed Lead' }}</span>
+                  <span class="lead-phone">{{ contact.phone || 'No phone' }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Employee -->
+            <td class="col-employee">
+              <span class="employee-name-text">
+                {{ contact.assigned_employee_name || getEmployeeName(contact.assigned_to) || 'Unassigned' }}
+              </span>
+            </td>
+
+            <!-- Email: Contact email or Amber 'No email' chip -->
+            <td class="col-email">
+              <span *ngIf="contact.email && contact.email.trim()" class="lead-email-text">
+                {{ contact.email }}
+              </span>
+              <span *ngIf="!contact.email || !contact.email.trim()" class="no-email-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>No email</span>
+              </span>
+            </td>
+
+            <!-- Status Badge: Pending = #eceeff / #3f3fc4, Won = #dcf7ec / #0a6b4d -->
+            <td class="col-status">
+              <span class="status-pill"
+                    [class.status-pending]="(contact.status_name || '').toUpperCase() === 'PENDING' || (contact.status_name || '').toUpperCase() === 'NEW'"
+                    [class.status-won]="(contact.status_name || '').toUpperCase() === 'WON' || (contact.status_name || '').toUpperCase() === 'CONVERTED'"
+                    [style.backgroundColor]="((contact.status_name || '').toUpperCase() !== 'PENDING' && (contact.status_name || '').toUpperCase() !== 'NEW' && (contact.status_name || '').toUpperCase() !== 'WON' && (contact.status_name || '').toUpperCase() !== 'CONVERTED') ? (getStatusColor(contact.status_name) + '18') : null"
+                    [style.color]="((contact.status_name || '').toUpperCase() !== 'PENDING' && (contact.status_name || '').toUpperCase() !== 'NEW' && (contact.status_name || '').toUpperCase() !== 'WON' && (contact.status_name || '').toUpperCase() !== 'CONVERTED') ? getStatusColor(contact.status_name) : null">
+                {{ contact.status_name || 'PENDING' }}
+              </span>
+            </td>
+
+            <!-- Follow Up: Green outlined chip with calendar icon -->
+            <td class="col-followup">
+              <span *ngIf="contact.follow_up_date" class="followup-green-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>{{ contact.follow_up_date | date:'dd MMM yyyy' }}</span>
+              </span>
+              <span *ngIf="!contact.follow_up_date" class="followup-empty-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <line x1="12" y1="14" x2="12" y2="18"/>
+                  <line x1="10" y1="16" x2="14" y2="16"/>
+                </svg>
+                <span>Set Follow Up</span>
+              </span>
+            </td>
+
+            <!-- Remark: Single line with ellipsis; keep Read More -->
+            <td class="col-remark">
+              <div class="remark-cell-content">
+                <span class="remark-text">
+                  <ng-container *ngIf="!contact.isRemarkExpanded && contact.latest_remark && contact.latest_remark.length > 35">
+                    {{ contact.latest_remark | slice:0:35 }}...
+                  </ng-container>
+                  <ng-container *ngIf="contact.isRemarkExpanded || !contact.latest_remark || contact.latest_remark.length <= 35">
+                    {{ contact.latest_remark || '' }}
+                  </ng-container>
+                </span>
+                <a href="javascript:void(0)" 
+                   *ngIf="contact.latest_remark && contact.latest_remark.length > 35"
+                   (click)="contact.isRemarkExpanded = !contact.isRemarkExpanded; $event.stopPropagation()" 
+                   class="remark-toggle-link">
+                  {{ contact.isRemarkExpanded ? 'Show Less' : 'Read More' }}
+                </a>
+              </div>
+            </td>
+
+            <!-- Actions: WhatsApp and Email icon buttons, 38px, bordered -->
+            <td class="col-actions" (click)="$event.stopPropagation()">
+              <div class="action-buttons-group">
+                <a *ngIf="contact.phone" 
+                   [href]="'https://wa.me/' + contact.phone" 
+                   target="_blank" 
+                   class="leads-action-icon-btn whatsapp-action-btn" 
+                   aria-label="Chat on WhatsApp"
+                   title="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                  </svg>
+                </a>
+
+                <button class="leads-action-icon-btn email-action-btn"
+                        (click)="selectedContactIds.clear(); selectedContactIds.add(contact.id); openBulkEmailModal()"
+                        aria-label="Send Email"
+                        title="Send Email">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4.e: Table Footer (Showing X - Y of Z leads, per-page selector, 40px square pagination buttons) -->
+    <div class="leads-table-footer" *ngIf="viewMode === 'list' && totalContacts > 0">
+      <div class="footer-left-info">
+        <span>Showing <strong>{{ paginationStart }} - {{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads</span>
+        <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="leads-per-page-select">
+          <option [ngValue]="10">10 per page</option>
+          <option [ngValue]="20">20 per page</option>
+          <option [ngValue]="50">50 per page</option>
+          <option [ngValue]="100">100 per page</option>
+        </select>
+      </div>
+
+      <div class="footer-pagination-controls">
+        <button class="square-page-btn nav-arrow" (click)="prevPage()" [disabled]="currentPage === 1" aria-label="Previous page" title="Previous page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+
+        <button *ngFor="let p of pageNumbers"
+                class="square-page-btn"
+                [class.active-page]="p === currentPage"
+                (click)="goToPage(p)">
+          {{ p }}
+        </button>
+
+        <button class="square-page-btn nav-arrow" (click)="nextPage()" [disabled]="currentPage === totalPages" aria-label="Next page" title="Next page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 4.d: MODERN CALENDAR SCHEDULE VIEW (when viewMode === 'calendar') -->
+    <div class="calendar-section" *ngIf="viewMode === 'calendar'">
+      
+      <!-- Calendar Toolbar -->
+      <div class="calendar-toolbar">
+        <div class="calendar-toolbar-left">
+          <div class="calendar-month-badge">
+            <i class="bi bi-calendar4-week"></i>
+          </div>
+          <div class="calendar-title-group">
+            <h3 class="calendar-month-title">{{ calendarCurrentDate | date:'MMMM yyyy' }}</h3>
+            <span class="calendar-month-sub">{{ getCalendarMonthTotal() }} follow-up leads in {{ calendarCurrentDate | date:'MMMM' }}</span>
+          </div>
+          <div class="calendar-nav-group">
+            <button type="button" class="cal-nav-btn" (click)="prevCalendarMonth()" title="Previous Month">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button type="button" class="cal-today-btn" (click)="goToToday()" title="Jump to Today">
+              Today
+            </button>
+            <button type="button" class="cal-nav-btn" (click)="nextCalendarMonth()" title="Next Month">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="calendar-toolbar-right">
+          <div class="calendar-legend-item">
+            <span class="legend-dot dot-leads"></span>
+            <span>Follow-up Scheduled</span>
+          </div>
+          <div class="calendar-legend-item">
+            <span class="legend-dot dot-today"></span>
+            <span>Current Day</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Loading -->
+      <div class="calendar-loading-state" *ngIf="calendarLoading">
+        <div class="spinner-border text-primary"></div>
+        <p>Loading follow-up schedule...</p>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div class="calendar-grid-wrapper" *ngIf="!calendarLoading">
+        <div class="calendar-days-header">
+          <div class="day-label weekend">Sun</div>
+          <div class="day-label">Mon</div>
+          <div class="day-label">Tue</div>
+          <div class="day-label">Wed</div>
+          <div class="day-label">Thu</div>
+          <div class="day-label">Fri</div>
+          <div class="day-label weekend">Sat</div>
+        </div>
+        
+        <div class="calendar-weeks-container">
+          <div class="calendar-week-row" *ngFor="let week of calendarWeeks">
+            <div class="calendar-day-cell" 
+                 *ngFor="let day of week" 
+                 [class.inactive-month]="!day.isCurrentMonth"
+                 [class.has-leads]="day.count > 0"
+                 [class.is-today]="day.isToday"
+                 (click)="day.count > 0 ? openDailyLeadsModal(day) : null">
+              
+              <div class="day-cell-top">
+                <span class="day-number-pill" [class.today-pill]="day.isToday">
+                  {{ day.date | date:'d' }}
+                </span>
+                <span class="today-micro-badge" *ngIf="day.isToday">TODAY</span>
+              </div>
+
+              <div class="day-cell-body" *ngIf="day.count > 0">
+                <div class="calendar-lead-chip" title="Click to view {{ day.count }} lead{{ day.count > 1 ? 's' : '' }}">
+                  <div class="lead-chip-icon">
+                    <i class="bi bi-people-fill"></i>
+                  </div>
+                  <span class="lead-chip-count">{{ day.count }} Lead{{ day.count > 1 ? 's' : '' }}</span>
+                  <i class="bi bi-arrow-right-short lead-chip-arrow"></i>
+                </div>
+              </div>
+
+              <div class="day-empty-hint" *ngIf="day.count === 0 && day.isCurrentMonth && !day.isToday">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div> <!-- end leads-table-card -->
+
+</div> <!-- end contacts-page -->
 <!-- ═══════════════════════════════════ LEAD DETAIL PANEL ════════════════════════════════════ -->
 <div class="custom-modal detail-modal-wrapper" *ngIf="showDetailPanel">
   <div class="modal-backdrop" (click)="closeDetailPanel()"></div>
@@ -391,6 +573,9 @@
           <button class="btn btn-outline-secondary btn-sm" (click)="goToChatFromDetail()">
             <i class="bi bi-chat-dots"></i> Message
           </button>
+          <button class="btn detail-btn-email ms-2" (click)="sendEmailFromDetail()" title="Send email to this lead">
+            <i class="bi bi-envelope"></i> Send Mail
+          </button>
           <button class="btn btn-primary btn-sm ms-2" (click)="openEditFromDetail()">
             <i class="bi bi-pencil-square"></i> Edit
           </button>
@@ -409,6 +594,11 @@
         <!-- <button class="tab-btn" [class.active]="detailActiveTab === 'Quotation'" (click)="detailActiveTab = 'Quotation'">Quotation</button> -->
         <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
+        
+        <!-- Individual Send Mail Action Button -->
+        <button type="button" class="tab-action-email-btn" (click)="sendEmailFromDetail()" title="Send email to {{ selectedContact.name || 'this lead' }}">
+          <i class="bi bi-envelope-fill"></i> Send Mail
+        </button>
       </div>
       <!-- Tab Content Area -->
       <div class="detail-modal-body">
@@ -828,200 +1018,331 @@
   </div>
 </div>
 
-<!-- ═══════════════ ADD/EDIT LEAD MODAL ═══════════════ -->
-<div class="custom-modal" *ngIf="showModal">
+<!-- ═══════════════ ADD/EDIT LEAD MODAL (CLEAN POPUP) ═══════════════ -->
+<div class="custom-modal lead-popup-dialog" *ngIf="showModal">
   <div class="modal-backdrop" (click)="showModal = false"></div>
-  <div class="modal-card">
-
+  <div class="modal-card lead-modal-card">
 
     <!-- Header -->
-    <div class="modal-header-fs" style="padding-top: 16px;">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
-          <i class="bi bi-person-vcard" style="color:#fff;font-size:1.3rem;"></i>
+    <div class="modal-header-fs lead-popup-header">
+      <div class="lead-header-left">
+        <div class="lead-header-icon">
+          <i class="bi bi-person-vcard"></i>
         </div>
-        <div>
-          <h4 style="margin:0;font-weight:800;font-size:1.35rem;color:#0f172a;letter-spacing:-0.02em;">{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
-          <p style="margin:2px 0 0;font-size:0.82rem;color:#64748b;font-weight:500;">Fill in the lead details below</p>
+        <div class="lead-header-text">
+          <div class="lead-header-title-row">
+            <h4>{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
+            <span class="lead-badge">{{ editingContactId ? 'Update Record' : 'Quick Lead Entry' }}</span>
+          </div>
+          <p>Fill in the lead details and background information below</p>
         </div>
       </div>
-      <button class="close-btn" (click)="showModal = false" style="font-size:1.4rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition:all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">&times;</button>
+      <button class="lead-popup-close-btn" (click)="showModal = false" title="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
 
     <!-- Scrollable Body -->
-    <div class="modal-body-scroll">
+    <div class="modal-body-scroll lead-popup-body">
+      <div class="lead-modal-layout" [class.has-side-col]="groupedLeadFields && groupedLeadFields.length > 0">
+        
+        <!-- Left Column: Primary Details & Status -->
+        <div class="lead-modal-col-main">
+          
+          <!-- ── Lead Information ── -->
+          <div class="modal-section-card main-section-card">
+            <div class="section-header-modern">
+              <div class="sec-icon-pill sec-primary">
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div>
+                <span class="sec-title">Lead Information</span>
+                <span class="sec-subtitle">Contact and inquiry essentials</span>
+              </div>
+            </div>
 
-      <!-- ── Lead Information ── -->
-      <div class="modal-section-card">
-        <div class="section-divider"><i class="bi bi-person-fill"></i> Lead Information</div>
-        <div class="fields-grid">
-          <div class="field-row">
-            <label>Full Name <span class="required">*</span></label>
-            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.name" placeholder="Enter full name">
-          </div>
+            <div class="fields-grid" [class.grid-4-col]="!groupedLeadFields || groupedLeadFields.length === 0">
+              <div class="field-row">
+                <label>Full Name <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <i class="bi bi-person input-icon"></i>
+                  <input type="text" class="form-control premium-input with-icon" [(ngModel)]="newContact.name" placeholder="Enter full name">
+                </div>
+              </div>
 
-          <div class="field-row">
-            <label>Phone <span class="required">*</span></label>
-            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.phone" placeholder="+91 XXXXX XXXXX">
-          </div>
+              <div class="field-row">
+                <label>Phone <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <i class="bi bi-telephone input-icon"></i>
+                  <input type="text" class="form-control premium-input with-icon" [(ngModel)]="newContact.phone" placeholder="+91 XXXXX XXXXX">
+                </div>
+              </div>
 
-          <div class="field-row">
-            <label>Email</label>
-            <input type="email" class="form-control premium-input" [(ngModel)]="newContact.email" placeholder="email@example.com">
-          </div>
+              <div class="field-row">
+                <label>Email</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-envelope input-icon"></i>
+                  <input type="email" class="form-control premium-input with-icon" [(ngModel)]="newContact.email" placeholder="email@example.com">
+                </div>
+              </div>
 
-          <div class="field-row">
-            <label>Tags <span style="font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;">(comma sep.)</span></label>
-            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.tags" placeholder="e.g. lead, vip, warm">
-          </div>
+              <div class="field-row">
+                <label>Channel</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-chat-dots input-icon"></i>
+                  <select class="form-select premium-input with-icon" [(ngModel)]="newContact.channel_preference">
+                    <option value="">-- Select Channel --</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="website">Website</option>
+                    <option value="referral">Referral</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
 
-          <div class="field-row">
-            <label>Enquiry For</label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.enquiry_for_id" style="display:block;">
-              <option [ngValue]="null">-- Select Enquiry For --</option>
-              <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
-            </select>
-          </div>
+              <div class="field-row">
+                <label>Enquiry For</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-bookmark-check input-icon"></i>
+                  <select class="form-select premium-input with-icon" [(ngModel)]="newContact.enquiry_for_id">
+                    <option [ngValue]="null">-- Select Enquiry For --</option>
+                    <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
+                  </select>
+                </div>
+              </div>
 
-          <div class="field-row">
-            <label>Channel</label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
-              <option value="">-- Select Channel --</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="website">Website</option>
-              <option value="referral">Referral</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+              <div class="field-row">
+                <label>Tags <span class="label-hint">(comma sep.)</span></label>
+                <div class="input-with-icon">
+                  <i class="bi bi-tag input-icon"></i>
+                  <input type="text" class="form-control premium-input with-icon" [(ngModel)]="newContact.tags" placeholder="e.g. lead, vip, warm">
+                </div>
+              </div>
 
-          <div class="field-row full-width">
-            <label>Address</label>
-            <textarea class="form-control premium-input" rows="1" [(ngModel)]="newContact.address" placeholder="Enter address..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Additional Details ── -->
-      <div *ngIf="groupedLeadFields.length > 0">
-        <div *ngFor="let group of groupedLeadFields" class="modal-section-card">
-          <div class="section-divider"><i class="bi bi-folder2-open"></i> {{ group.categoryName }}</div>
-          <div class="fields-grid">
-            <div *ngFor="let field of group.fields" class="field-row">
-              <label>
-                {{ field.label }}
-                <span class="required" *ngIf="field.is_required">*</span>
-              </label>
-
-              <input *ngIf="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'phone'"
-                [type]="field.field_type === 'email' ? 'email' : field.field_type === 'phone' ? 'tel' : 'text'"
-                class="form-control premium-input"
-                [(ngModel)]="newContact.custom_field_values[field.id]">
-
-              <input *ngIf="field.field_type === 'number'"
-                type="number" class="form-control premium-input"
-                [(ngModel)]="newContact.custom_field_values[field.id]">
-
-              <textarea *ngIf="field.field_type === 'textarea'"
-                class="form-control premium-input" rows="2"
-                [(ngModel)]="newContact.custom_field_values[field.id]"></textarea>
-
-              <input *ngIf="field.field_type === 'date'" type="date"
-                class="form-control premium-input"
-                [(ngModel)]="newContact.custom_field_values[field.id]">
-
-              <input *ngIf="field.field_type === 'dob'" type="date"
-                class="form-control premium-input"
-                [(ngModel)]="newContact.custom_field_values[field.id]" [max]="today">
-
-              <select *ngIf="field.field_type === 'dropdown'"
-                class="form-select premium-input"
-                [(ngModel)]="newContact.custom_field_values[field.id]">
-                <option value="">Select option...</option>
-                <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
-              </select>
+              <div class="field-row full-width">
+                <label>Address</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-geo-alt input-icon text-area-icon"></i>
+                  <textarea class="form-control premium-input with-icon" rows="2" [(ngModel)]="newContact.address" placeholder="Enter street address, city, etc..."></textarea>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ── Status & Assignment ── -->
-      <ng-container *ngIf="!editingContactId">
-        <div class="modal-section-card">
-          <div class="section-divider"><i class="bi bi-arrow-right-circle-fill"></i> Status &amp; Assignment</div>
-          <div class="fields-grid">
+          <!-- ── Status & Assignment ── -->
+          <ng-container *ngIf="!editingContactId">
+            <div class="modal-section-card main-section-card">
+              <div class="section-header-modern">
+                <div class="sec-icon-pill sec-warning">
+                  <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <div>
+                  <span class="sec-title">Status &amp; Assignment</span>
+                  <span class="sec-subtitle">Lifecycle stage and routing</span>
+                </div>
+              </div>
 
-          <!-- Status Dropdown (dynamic from DB) -->
-          <div class="field-row">
-            <label>Status <span class="required">*</span></label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
-              <option value="">-- Select --</option>
-              <ng-container *ngFor="let s of leadStatuses">
-                <option *ngIf="s.name.trim() !== 'NO DATE'" [value]="s.name">{{ s.name }}</option>
-              </ng-container>
-            </select>
-          </div>
+              <div class="fields-grid" [class.grid-4-col]="!groupedLeadFields || groupedLeadFields.length === 0">
 
-          <!-- Transfer For Department fields -->
-          <ng-container *ngIf="isTransferStatus(newContact.status)">
-            <div class="field-row">
-              <label>Branch <span class="required">*</span></label>
-              <select class="form-select premium-input" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''" style="display:block;">
-                <option value="">-- Select Branch --</option>
-                <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
-              </select>
-            </div>
-            <div class="field-row">
-              <label>Department <span class="required">*</span></label>
-              <select class="form-select premium-input" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''" style="display:block;">
-                <option value="">-- Select Department --</option>
-                <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
-              </select>
-            </div>
-            <div class="field-row" *ngIf="newContact.department">
-              <label>Employee <span class="required">*</span></label>
-              <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
-                <option value="">-- Select Employee --</option>
-                <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
-              </select>
-            </div>
-            
-            <div class="field-row full-width">
-              <label>Remark / Note <span class="required">*</span></label>
-              <textarea class="form-control premium-input" [(ngModel)]="newContact.remark" rows="3" style="resize: vertical;" placeholder="Add a remark or note..."></textarea>
+                <!-- Status Dropdown (dynamic from DB) -->
+                <div class="field-row">
+                  <label>Status <span class="required">*</span></label>
+                  <div class="input-with-icon">
+                    <i class="bi bi-flag input-icon"></i>
+                    <select class="form-select premium-input with-icon" [(ngModel)]="newContact.status">
+                      <option value="">-- Select Status --</option>
+                      <ng-container *ngFor="let s of leadStatuses">
+                        <option *ngIf="s.name.trim() !== 'NO DATE'" [value]="s.name">{{ s.name }}</option>
+                      </ng-container>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Follow-up Date: shown if status has follow_needed = Yes -->
+                <div class="field-row" *ngIf="isFollowupStatus(newContact.status)">
+                  <label>Follow Up Date</label>
+                  <div class="input-with-icon">
+                    <i class="bi bi-calendar-event input-icon"></i>
+                    <input type="date" class="form-control premium-input with-icon" [(ngModel)]="newContact.follow_up_date" [min]="today">
+                  </div>
+                </div>
+                
+                <!-- Sales Loss: show reason -->
+                <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
+                  <label>Loss Reason</label>
+                  <div class="input-with-icon">
+                    <i class="bi bi-x-circle input-icon"></i>
+                    <select class="form-select premium-input with-icon" [(ngModel)]="newContact.loss_reason">
+                      <option value="">-- Select Reason --</option>
+                      <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Transfer For Department fields -->
+                <ng-container *ngIf="isTransferStatus(newContact.status)">
+                  <div class="field-row">
+                    <label>Branch <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                      <i class="bi bi-building input-icon"></i>
+                      <select class="form-select premium-input with-icon" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''">
+                        <option value="">-- Select Branch --</option>
+                        <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <label>Department <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                      <i class="bi bi-diagram-2 input-icon"></i>
+                      <select class="form-select premium-input with-icon" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''">
+                        <option value="">-- Select Department --</option>
+                        <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field-row" *ngIf="newContact.department">
+                    <label>Employee <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                      <i class="bi bi-person-check input-icon"></i>
+                      <select class="form-select premium-input with-icon" [(ngModel)]="newContact.assigned_employee">
+                        <option value="">-- Select Employee --</option>
+                        <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="field-row full-width">
+                    <label>Remark / Note <span class="required">*</span></label>
+                    <textarea class="form-control premium-input" [(ngModel)]="newContact.remark" rows="2" style="resize: vertical;" placeholder="Add a remark or note..."></textarea>
+                  </div>
+                </ng-container>
+
+              </div>
             </div>
           </ng-container>
 
-          <!-- Follow-up Date: shown if status has follow_needed = Yes -->
-          <div class="field-row" *ngIf="isFollowupStatus(newContact.status)">
-            <label>Follow Up Date</label>
-            <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
-          </div>
-          
-          <!-- Sales Loss: show reason -->
-          <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
-            <label>Loss Reason</label>
-            <select class="form-select premium-input" [(ngModel)]="newContact.loss_reason" style="display:block;">
-              <option value="">-- Select Reason --</option>
-              <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
-            </select>
-          </div>
+        </div>
 
+        <!-- Right Column: Additional Custom Categories (ABOUT, EDUCATIONS, etc.) -->
+        <div class="lead-modal-col-side" *ngIf="groupedLeadFields && groupedLeadFields.length > 0">
+          <div class="side-custom-fields-wrapper">
+            
+            <!-- Side Top Bar with Category Filter Pills -->
+            <div class="side-panel-header-bar">
+              <div class="side-panel-title-group">
+                <span class="side-panel-title"><i class="bi bi-grid-1x2-fill"></i> Profile &amp; Custom Details</span>
+                <span class="side-panel-badge">{{ getTotalCustomFields() }} Fields</span>
+              </div>
+              
+              <!-- Quick Filter Tabs / Pills -->
+              <div class="side-category-pills">
+                <button type="button" class="side-cat-pill" 
+                  [class.active]="activeCategoryTab === 'all'" 
+                  (click)="activeCategoryTab = 'all'">
+                  All ({{ groupedLeadFields.length }})
+                </button>
+                <button type="button" *ngFor="let group of groupedLeadFields" 
+                  class="side-cat-pill" 
+                  [class.active]="activeCategoryTab === group.categoryName" 
+                  (click)="activeCategoryTab = group.categoryName">
+                  <i class="bi" [ngClass]="getCategoryMeta(group.categoryName).icon"></i>
+                  <span>{{ group.categoryName }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Categories Container -->
+            <div class="side-categories-content">
+              <ng-container *ngFor="let group of groupedLeadFields">
+                <div class="modal-section-card side-section-card" 
+                     *ngIf="activeCategoryTab === 'all' || activeCategoryTab === group.categoryName">
+                  
+                  <!-- Dynamic Styled Section Header -->
+                  <div class="side-cat-header" [style.border-left-color]="getCategoryMeta(group.categoryName).color">
+                    <div class="side-cat-icon-badge" 
+                         [style.background]="getCategoryMeta(group.categoryName).bg" 
+                         [style.color]="getCategoryMeta(group.categoryName).color">
+                      <i class="bi" [ngClass]="getCategoryMeta(group.categoryName).icon"></i>
+                    </div>
+                    <div class="side-cat-info">
+                      <span class="side-cat-title">{{ group.categoryName }}</span>
+                      <span class="side-cat-subtitle">{{ group.fields.length }} {{ group.fields.length === 1 ? 'field' : 'fields' }}</span>
+                    </div>
+                    <span class="side-cat-pill-count" 
+                          [style.color]="getCategoryMeta(group.categoryName).color" 
+                          [style.background]="getCategoryMeta(group.categoryName).bg">
+                      {{ getFilledCustomFieldsCount(group) }}/{{ group.fields.length }} filled
+                    </span>
+                  </div>
+
+                  <div class="fields-grid side-fields-grid" [class.single-item-grid]="group.fields.length === 1">
+                    <div *ngFor="let field of group.fields" class="field-row side-field-item">
+                      <label>
+                        {{ field.label }}
+                        <span class="required" *ngIf="field.is_required">*</span>
+                      </label>
+
+                      <input *ngIf="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'phone'"
+                        [type]="field.field_type === 'email' ? 'email' : field.field_type === 'phone' ? 'tel' : 'text'"
+                        class="form-control premium-input custom-lead-input"
+                        [placeholder]="'Enter ' + field.label"
+                        [(ngModel)]="newContact.custom_field_values[field.id]">
+
+                      <input *ngIf="field.field_type === 'number'"
+                        type="number" class="form-control premium-input custom-lead-input"
+                        [placeholder]="'Enter ' + field.label"
+                        [(ngModel)]="newContact.custom_field_values[field.id]">
+
+                      <textarea *ngIf="field.field_type === 'textarea'"
+                        class="form-control premium-input custom-lead-input" rows="1"
+                        [placeholder]="'Enter ' + field.label"
+                        [(ngModel)]="newContact.custom_field_values[field.id]"></textarea>
+
+                      <input *ngIf="field.field_type === 'date'" type="date"
+                        class="form-control premium-input custom-lead-input"
+                        [(ngModel)]="newContact.custom_field_values[field.id]">
+
+                      <input *ngIf="field.field_type === 'dob'" type="date"
+                        class="form-control premium-input custom-lead-input"
+                        [(ngModel)]="newContact.custom_field_values[field.id]" [max]="today">
+
+                      <select *ngIf="field.field_type === 'dropdown'"
+                        class="form-select premium-input custom-lead-input"
+                        [(ngModel)]="newContact.custom_field_values[field.id]">
+                        <option value="">Select option...</option>
+                        <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                </div>
+              </ng-container>
+            </div>
+
+          </div>
         </div>
-        </div>
-      </ng-container>
+
+      </div>
     </div>
 
     <!-- Footer -->
-    <div class="modal-footer-fs">
-      <button class="btn btn-light px-5 py-2" (click)="showModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;color:#475569;font-size:0.9rem;transition:all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">Cancel</button>
-      <button class="btn px-5 py-2" (click)="saveContact()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-size:0.9rem;box-shadow:0 4px 12px rgba(16,185,129,0.35);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(16,185,129,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(16,185,129,0.35)'">
-        <i class="bi bi-check2-circle me-2"></i>
-        {{ editingContactId ? 'Update Lead' : 'Save Lead' }}
-      </button>
+    <div class="modal-footer-fs lead-popup-footer">
+      <div class="lead-footer-left">
+        <span class="required-indicator"><i class="bi bi-info-circle me-1"></i>Fields with <strong class="text-danger">*</strong> are required</span>
+      </div>
+      <div class="lead-footer-actions">
+        <button class="lead-cancel-btn" (click)="showModal = false">Cancel</button>
+        <button class="lead-submit-btn" (click)="saveContact()">
+          <i class="bi bi-check2-circle"></i>
+          <span>{{ editingContactId ? 'Update Lead' : 'Save Lead' }}</span>
+        </button>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -1857,192 +2178,369 @@
 </div> <!-- end contacts-page -->
 
 <!-- ============================================================== -->
-<!-- BULK EMAIL MODAL (BREVO INTEGRATION) -->
+<!-- BULK EMAIL MODAL (BREVO INTEGRATION) RESTYLED -->
 <!-- ============================================================== -->
-<div class="modal-backdrop fade show" *ngIf="showBulkEmailModal" (click)="closeBulkEmailModal()" style="z-index: 1055; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);"></div>
+<div class="custom-modal center-modal leads-bulk-email-modal-overlay" *ngIf="showBulkEmailModal">
+  <!-- Backdrop -->
+  <div class="modal-backdrop" (click)="closeBulkEmailModal()"></div>
 
-<div class="modal fade show d-block" *ngIf="showBulkEmailModal" tabindex="-1" style="z-index: 1060;" (click)="closeBulkEmailModal()">
-  <div class="modal-dialog modal-lg modal-dialog-centered" (click)="$event.stopPropagation()">
-    <div class="modal-content shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
-      
-      <!-- Modal Header -->
-      <div class="modal-header text-white" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); padding: 20px 28px; border-bottom: none;">
-        <div class="d-flex align-items-center gap-3">
-          <div style="background: rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
-            <i class="bi bi-envelope-paper-fill"></i>
+  <!-- Modal Dialog / Card (1060px max-width, modern pro dashboard styling) -->
+  <div class="modal-card leads-bulk-email-dialog" (click)="$event.stopPropagation()">
+    
+    <!-- Top Accent Gradient Ribbon -->
+    <div class="modal-top-accent-bar"></div>
+
+    <!-- ═══ MODAL HEADER: EXECUTIVE PRO COCKPIT ═══ -->
+    <div class="bulk-email-dashboard-header">
+      <div class="header-main-left">
+        <div class="dashboard-icon-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M22 2L11 13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </div>
+        <div class="header-identity">
+          <div class="identity-top-row">
+            <h3 class="dashboard-header-title">Send Email Campaign</h3>
+            <span class="brevo-verified-badge">
+              <span class="badge-pulse-dot"></span>
+              Brevo Verified
+            </span>
           </div>
-          <div>
-            <h5 class="modal-title fw-bold mb-0">Send Bulk Email via Brevo</h5>
-            <small style="opacity: 0.9;">Target filtered students with personalized communications</small>
+          <div class="identity-sub-row">
+            <span class="sender-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="meta-inline-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              From: <strong class="sender-email">worksufs&#64;gmail.com</strong>
+            </span>
+            <span class="meta-separator">&bull;</span>
+            <span class="protocol-tag">Personalized Cloud Delivery via Brevo API</span>
           </div>
         </div>
-        <button type="button" class="btn-close btn-close-white" (click)="closeBulkEmailModal()" [disabled]="bulkEmailSending"></button>
       </div>
 
-      <!-- Modal Body -->
-      <div class="modal-body p-4" style="background: #f8fafc; max-height: calc(85vh - 140px); overflow-y: auto;">
-        
-        <!-- Recipient Metrics / Preview Card -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4" style="background: #ffffff; border: 1px solid #e2e8f0;">
-          <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                <i class="bi bi-people-fill text-primary"></i> Target Recipient Filter Breakdown
-              </h6>
-              <span class="badge bg-light text-secondary border px-3 py-1" *ngIf="!bulkEmailLoadingPreview">
-                Filters: {{ activeChannel || 'All Channels' }} &bull; {{ activeStatus || 'All Statuses' }} &bull; {{ activeTag || 'All Tags' }}
-              </span>
-            </div>
+      <div class="header-main-right">
+        <div class="header-gateway-status">
+          <span class="gateway-live-dot"></span>
+          <span class="gateway-status-text">Relay Active</span>
+        </div>
+        <!-- Close Button -->
+        <button type="button" class="dashboard-close-btn" (click)="closeBulkEmailModal()" [disabled]="bulkEmailSending" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
 
-            <!-- Loading Spinner -->
-            <div *ngIf="bulkEmailLoadingPreview" class="text-center py-4">
-              <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-              <span class="ms-2 text-muted small">Calculating matched leads &amp; validating emails...</span>
-            </div>
+    <!-- ═══ DASHBOARD KPI METRICS STRIP (4-CARD GRID) ═══ -->
+    <div class="dashboard-kpi-strip" *ngIf="!bulkEmailResultsView">
+      <!-- Card 1: Target Audience -->
+      <div class="dashboard-kpi-card" [class.clickable]="bulkEmailPreview.validCount > 0" (click)="bulkEmailPreview.validCount > 0 ? (showInvalidEmailDetails = !showInvalidEmailDetails) : null" title="Click to view recipient list">
+        <div class="kpi-card-icon icon-indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-label">Target Audience</div>
+          <div class="kpi-card-value">
+            {{ (bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0) }}
+            <span class="kpi-unit">Lead{{ ((bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0)) === 1 ? '' : 's' }}</span>
+          </div>
+        </div>
+        <button type="button" class="kpi-toggle-link" *ngIf="bulkEmailPreview.validCount > 0" (click)="$event.stopPropagation(); showInvalidEmailDetails = !showInvalidEmailDetails">
+          <span>{{ showInvalidEmailDetails ? 'Hide' : 'View' }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="kpi-arrow-icon" [class.rotated]="showInvalidEmailDetails"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
 
-            <!-- Metrics Grid -->
-            <div *ngIf="!bulkEmailLoadingPreview" class="row g-2 text-center">
-              <div class="col-2">
-                <div class="p-2 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                  <div class="text-secondary small fw-semibold" style="font-size: 0.75rem;">Total Leads</div>
-                  <div class="fs-5 fw-bold text-dark mt-1">{{ overallTotalContacts }}</div>
-                </div>
-              </div>
-              <div class="col-2">
-                <div class="p-2 rounded-3" style="background: #f1f5f9; border: 1px solid #cbd5e1;">
-                  <div class="text-primary small fw-semibold" style="font-size: 0.75rem;">Filtered</div>
-                  <div class="fs-5 fw-bold text-primary mt-1">{{ totalContacts }}</div>
-                </div>
-              </div>
-              <div class="col-2">
-                <div class="p-2 rounded-3" style="background: #eef2ff; border: 1px solid #c7d2fe;">
-                  <div class="text-indigo small fw-semibold" style="font-size: 0.75rem; color: #4338ca;">Target Mode</div>
-                  <div class="fs-5 fw-bold text-dark mt-1" style="font-size: 0.95rem !important;">
-                    {{ selectedContactIds.size > 0 ? (selectedContactIds.size + ' Sel') : 'All Filtered' }}
-                  </div>
-                </div>
-              </div>
-              <div class="col-2">
-                <div class="p-2 rounded-3" style="background: #ecfdf5; border: 1px solid #a7f3d0;">
-                  <div class="text-success small fw-semibold" style="font-size: 0.75rem;">Valid Emails</div>
-                  <div class="fs-5 fw-bold text-success mt-1">{{ bulkEmailPreview.validCount }}</div>
-                </div>
-              </div>
-              <div class="col-2">
-                <div class="p-2 rounded-3" style="background: #fef2f2; border: 1px solid #fecaca;">
-                  <div class="text-danger small fw-semibold" style="font-size: 0.75rem;">Invalid</div>
-                  <div class="fs-5 fw-bold text-danger mt-1">{{ bulkEmailPreview.invalidCount }}</div>
-                </div>
-              </div>
-              <div class="col-2">
-                <div class="p-2 rounded-3" style="background: #fffbeb; border: 1px solid #fef3c7;">
-                  <div class="text-warning small fw-semibold" style="font-size: 0.75rem;">Missing</div>
-                  <div class="fs-5 fw-bold text-warning mt-1">{{ bulkEmailPreview.missingCount }}</div>
-                </div>
-              </div>
-            </div>
+      <!-- Card 2: Deliverability Health -->
+      <div class="dashboard-kpi-card">
+        <div class="kpi-card-icon icon-emerald">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-label">Deliverability Health</div>
+          <div class="kpi-card-value text-emerald">
+            {{ bulkEmailPreview.validCount || 0 }} Ready
+          </div>
+        </div>
+        <div class="kpi-card-pill pill-emerald" *ngIf="bulkEmailPreview.missingCount === 0">
+          <span class="mini-status-dot"></span> 100% Valid
+        </div>
+        <div class="kpi-card-pill pill-amber" *ngIf="bulkEmailPreview.missingCount > 0">
+          {{ bulkEmailPreview.missingCount }} Skipped
+        </div>
+      </div>
 
-            <!-- Action to View Invalid & Missing Emails -->
-            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center" *ngIf="!bulkEmailLoadingPreview">
-              <div class="small text-muted">
-                <i class="bi bi-info-circle me-1"></i> Final Recipients: <strong>{{ bulkEmailPreview.validCount }}</strong> valid emails will be sent. Leads with missing or invalid emails are automatically excluded.
-              </div>
-              <button class="btn btn-sm btn-outline-danger" *ngIf="bulkEmailPreview.invalidCount > 0 || bulkEmailPreview.missingCount > 0" (click)="toggleInvalidEmailDetails()">
-                <i class="bi" [ngClass]="showInvalidEmailDetails ? 'bi-chevron-up' : 'bi-eye-fill'"></i>
-                {{ showInvalidEmailDetails ? 'Hide Excluded Leads' : 'View Excluded Leads (' + (bulkEmailPreview.invalidCount + bulkEmailPreview.missingCount) + ')' }}
+      <!-- Card 3: Brevo Relay -->
+      <div class="dashboard-kpi-card">
+        <div class="kpi-card-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        </div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-label">Dispatch Relay</div>
+          <div class="kpi-card-value mono-text">Brevo REST API</div>
+        </div>
+        <div class="kpi-card-pill pill-blue">
+          <span>SMTP Active</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Dynamic Personalization -->
+      <div class="dashboard-kpi-card">
+        <div class="kpi-card-icon icon-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-label">Personalization</div>
+          <div class="kpi-card-value">Dynamic Tags</div>
+        </div>
+        <div class="kpi-card-pill pill-purple">
+          <span>First Name &bull; Full Name</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EXPANDABLE AUDIENCE DRAWER ═══ -->
+    <div class="header-audience-drawer" *ngIf="showInvalidEmailDetails && !bulkEmailResultsView">
+      <div class="drawer-header-bar">
+        <div class="drawer-header-left">
+          <span class="drawer-title">Target Delivery List ({{ bulkEmailPreview.validCount || 0 }} Leads)</span>
+          <span class="drawer-note">Personalized variables resolve dynamically per recipient from CRM records</span>
+        </div>
+        <button type="button" class="drawer-close-link" (click)="showInvalidEmailDetails = false">
+          Close List &times;
+        </button>
+      </div>
+      <div class="drawer-chips-grid">
+        <div class="drawer-recipient-card" *ngFor="let vr of bulkEmailPreview.validRecipients">
+          <div class="recipient-avatar-badge">{{ vr.name ? (vr.name[0] | uppercase) : 'L' }}</div>
+          <div class="recipient-details">
+            <span class="r-name">{{ vr.name }}</span>
+            <span class="r-email">{{ vr.email }}</span>
+          </div>
+          <span class="r-status-tag ready">Valid</span>
+        </div>
+        <div class="drawer-recipient-card skipped" *ngFor="let m of bulkEmailPreview.missingRecipients">
+          <div class="recipient-avatar-badge muted">{{ m.name ? (m.name[0] | uppercase) : 'L' }}</div>
+          <div class="recipient-details">
+            <span class="r-name">{{ m.name }}</span>
+            <span class="r-email text-muted">{{ m.phone || 'No email on record' }}</span>
+          </div>
+          <span class="r-status-tag skipped">Skipped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD WORKFLOW TOOLBAR (TEMPLATES + DYNAMIC MERGE TAGS) ═══ -->
+    <div class="dashboard-workflow-bar" *ngIf="!bulkEmailResultsView">
+      <div class="workflow-left">
+        <span class="workflow-heading-label">Campaign Template:</span>
+        <div class="template-segmented-control">
+          <button type="button" 
+                  class="segment-tab-btn" 
+                  [class.active]="!selectedTemplateId"
+                  (click)="selectedTemplateId = null">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="tab-icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Custom Draft</span>
+          </button>
+          <button type="button" 
+                  *ngFor="let t of emailTemplates"
+                  class="segment-tab-btn" 
+                  [class.active]="selectedTemplateId === t.id"
+                  (click)="onEmailTemplateSelected({ target: { value: t.id } })"
+                  [title]="t.name">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="tab-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>{{ getCleanTemplateName(t.name) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="workflow-right">
+        <span class="workflow-heading-label">Insert Dynamic Tag:</span>
+        <button type="button" class="quick-variable-pill" (click)="insertVariableTag('{{first_name}}')" title="Click to insert first name tag">
+          + {{ '{' + '{first_name}' + '}' }}
+        </button>
+        <button type="button" class="quick-variable-pill" (click)="insertVariableTag('{{name}}')" title="Click to insert full name tag">
+          + {{ '{' + '{name}' + '}' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Body (Two-Column Layout: Left Compose / Right Interactive Live Preview) -->
+    <div class="bulk-email-body" *ngIf="!bulkEmailResultsView">
+      
+      <!-- Left Column: Subject, Message Body -->
+      <div class="bulk-email-compose-col">
+        <!-- Subject Field -->
+        <div class="compose-field-group">
+          <label class="compose-field-label">Subject Line <span class="required-star">*</span></label>
+          <div class="input-with-icon-wrapper">
+            <svg class="input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="text" 
+                   class="compose-text-input" 
+                   [(ngModel)]="bulkEmailSubject" 
+                   placeholder="e.g. {{ '{' + '{first_name}' + '}' }}, let's discuss your next career step!">
+          </div>
+        </div>
+
+        <!-- Message Field -->
+        <div class="compose-field-group">
+          <div class="compose-field-header">
+            <label class="compose-field-label">Message Body <span class="required-star">*</span></label>
+            <div class="variable-tags-group">
+              <button type="button" class="tag-pill-btn" (click)="insertVariableTag('{{first_name}}')" title="Click to insert first name tag">
+                + {{ '{' + '{first_name}' + '}' }}
+              </button>
+              <button type="button" class="tag-pill-btn" (click)="insertVariableTag('{{name}}')" title="Click to insert full name tag">
+                + {{ '{' + '{name}' + '}' }}
               </button>
             </div>
-
-            <!-- Invalid/Missing Email Collapsible Table -->
-            <div *ngIf="showInvalidEmailDetails" class="mt-3 table-responsive border rounded-3 bg-white" style="max-height: 220px;">
-              <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>Lead Name</th>
-                    <th>Email Found</th>
-                    <th>Phone</th>
-                    <th>Reason Excluded</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let inv of bulkEmailPreview.invalidRecipients">
-                    <td class="fw-semibold">{{ inv.name }}</td>
-                    <td class="text-danger font-monospace">{{ inv.email }}</td>
-                    <td>{{ inv.phone || '—' }}</td>
-                    <td><span class="badge bg-danger-subtle text-danger">Invalid Email Format</span></td>
-                  </tr>
-                  <tr *ngFor="let mis of bulkEmailPreview.missingRecipients">
-                    <td class="fw-semibold">{{ mis.name }}</td>
-                    <td class="text-muted font-italic">(Empty)</td>
-                    <td>{{ mis.phone || '—' }}</td>
-                    <td><span class="badge bg-warning-subtle text-warning">Missing Email Address</span></td>
-                  </tr>
-                </tbody>
-              </table>
+          </div>
+          <div class="textarea-card-wrapper">
+            <textarea class="compose-textarea-input" 
+                      rows="8" 
+                      [(ngModel)]="bulkEmailBody" 
+                      placeholder="Type your message here..."></textarea>
+            <div class="textarea-footer-strip">
+              <span class="variables-info-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="info-note-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Variables resolve dynamically per recipient from CRM lead records
+              </span>
+              <span class="body-char-counter">{{ bulkEmailBody ? bulkEmailBody.length : 0 }} chars</span>
             </div>
-
           </div>
         </div>
-
-        <!-- Compose Email Form -->
-        <div class="card border-0 shadow-sm rounded-4" style="background: #ffffff; border: 1px solid #e2e8f0;">
-          <div class="card-body p-4">
-            <h6 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
-              <i class="bi bi-pen-fill text-primary"></i> Compose Email / Select Template
-            </h6>
-
-            <!-- Template Picker -->
-            <div class="mb-3" *ngIf="emailTemplates && emailTemplates.length > 0">
-              <label class="form-label fw-semibold text-secondary small">Apply Saved Email Template (Optional)</label>
-              <select class="form-select" (change)="onEmailTemplateSelected($event)" style="border-radius: 10px; padding: 10px 14px;">
-                <option value="">-- Choose an Email Template or Compose Custom --</option>
-                <option *ngFor="let t of emailTemplates" [value]="t.id">{{ t.name }} ({{ t.category || 'general' }})</option>
-              </select>
-            </div>
-
-            <!-- Subject -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold text-secondary small">Email Subject <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" [(ngModel)]="bulkEmailSubject" placeholder="e.g. Application Status Update & Next Steps" style="border-radius: 10px; padding: 10px 14px;">
-            </div>
-
-            <!-- Body -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <label class="form-label fw-semibold text-secondary small mb-0">Message Content <span class="text-danger">*</span></label>
-                <small class="text-primary fw-semibold">Placeholders: <code>{{"{{"}}first_name{{"}}"}}</code>, <code>{{"{{"}}name{{"}}"}}</code></small>
-              </div>
-              <textarea class="form-control" rows="6" [(ngModel)]="bulkEmailBody" placeholder="Type your message here..." style="border-radius: 10px; font-size: 0.92rem;"></textarea>
-              <small class="text-muted mt-1 d-block">
-                Personalized variables will automatically resolve for each recipient and the final rendered copy will be logged in their CRM timeline.
-              </small>
-            </div>
-
-            <!-- Sender & Delivery Notice -->
-            <div class="p-3 rounded-3" style="background: #eff6ff; border: 1px solid #bfdbfe; font-size: 0.85rem; color: #1e40af;">
-              <i class="bi bi-send-check-fill me-2 text-primary"></i>
-              Sent from verified mailbox <strong>worksufs&#64;gmail.com</strong>. Delivery, open, bounce, and blocked status will sync back directly to the student timeline.
-            </div>
-
-          </div>
-        </div>
-
       </div>
 
-      <!-- Modal Footer -->
-      <div class="modal-footer bg-white px-4 py-3 border-top d-flex justify-content-between">
-        <button type="button" class="btn btn-light px-4 py-2" (click)="closeBulkEmailModal()" [disabled]="bulkEmailSending" style="border-radius: 10px; font-weight: 600;">
-          Cancel
-        </button>
+      <!-- Right Column: Live Inbox Preview (Starts at matching top baseline) -->
+      <div class="bulk-email-preview-col">
+        
+        <!-- Loading State -->
+        <div *ngIf="bulkEmailLoadingPreview" class="recipients-loading-box">
+          <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+          <span>Validating recipients with Brevo...</span>
+        </div>
 
-        <button type="button" class="btn btn-primary px-4 py-2 d-flex align-items-center gap-2" (click)="sendBulkEmailViaBrevo()" [disabled]="bulkEmailSending || bulkEmailLoadingPreview || bulkEmailPreview.validCount === 0 || !bulkEmailSubject.trim()" style="border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #3b82f6); border: none;">
-          <span *ngIf="bulkEmailSending" class="spinner-border spinner-border-sm" role="status"></span>
-          <i class="bi bi-send-fill" *ngIf="!bulkEmailSending"></i>
-          <span>{{ bulkEmailSending ? 'Sending Emails via Brevo...' : 'Send to ' + bulkEmailPreview.validCount + ' Valid Recipients' }}</span>
-        </button>
+        <!-- Live Email Preview Mockup Window -->
+        <div class="live-email-preview-container" *ngIf="!bulkEmailLoadingPreview">
+          <div class="preview-mockup-header">
+            <div class="mockup-window-controls">
+              <span class="window-dot red"></span>
+              <span class="window-dot yellow"></span>
+              <span class="window-dot green"></span>
+            </div>
+            <div class="mockup-header-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span>Live Inbox Preview</span>
+            </div>
+            <span class="preview-mode-tag">Personalized</span>
+          </div>
+
+          <div class="preview-email-envelope">
+            <!-- Email Meta Header -->
+            <div class="email-meta-section">
+              <div class="meta-row">
+                <span class="meta-label">From:</span>
+                <span class="meta-value"><strong>Trackbox Admissions</strong> &lt;worksufs&#64;gmail.com&gt;</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">To:</span>
+                <span class="meta-value recipient-target">
+                  <strong>{{ getLivePreviewRecipientName() }}</strong> &lt;{{ getLivePreviewRecipientEmail() }}&gt;
+                </span>
+              </div>
+              <div class="meta-row subject-row">
+                <span class="meta-label">Subject:</span>
+                <span class="meta-value subject-value">{{ getLivePreviewSubject() }}</span>
+              </div>
+            </div>
+
+            <!-- Email Body Preview Canvas -->
+            <div class="email-canvas-body">
+              <div class="email-canvas-letter">
+                <div class="email-rendered-text">{{ getLivePreviewBody() }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
+
+    <!-- Modal Body (Results View: After Sending) -->
+    <div class="bulk-email-body results-view-body" *ngIf="bulkEmailResultsView">
+      <div class="results-summary-card">
+        <div class="results-summary-header">
+          <div>
+            <h4 class="results-title">Brevo Dispatch Status</h4>
+            <p class="results-subtitle">{{ getDeliverySummaryText() }}</p>
+          </div>
+          <button type="button" class="leads-btn leads-btn-secondary" (click)="refreshEmailStatusFromBrevo()" [disabled]="bulkEmailRefreshing">
+            <span *ngIf="bulkEmailRefreshing" class="spinner-border spinner-border-sm me-1"></span>
+            <svg *ngIf="!bulkEmailRefreshing" class="leads-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <span>{{ bulkEmailRefreshing ? 'Updating...' : 'Refresh Status' }}</span>
+          </button>
+        </div>
+
+        <div class="results-table-wrapper">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Lead Name</th>
+                <th>Recipient Email</th>
+                <th>Brevo Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of bulkEmailResults">
+                <td class="lead-cell-name">{{ item.name || 'Lead' }}</td>
+                <td class="lead-cell-email">{{ item.email }}</td>
+                <td>
+                  <span class="status-pill" [ngClass]="getStatusBadgeClass(item.status)">
+                    {{ item.status === 'queued' ? 'Accepted by Brevo' : (item.status | titlecase) }}
+                  </span>
+                </td>
+                <td class="lead-cell-details">
+                  <span *ngIf="item.reason" class="text-danger fw-semibold">{{ item.reason }}</span>
+                  <span *ngIf="!item.reason && item.status === 'delivered'" class="text-success">Delivered to inbox</span>
+                  <span *ngIf="!item.reason && item.status === 'opened'" class="text-primary">Opened by lead</span>
+                  <span *ngIf="!item.reason && item.status === 'queued'" class="text-muted">Accepted by Brevo, pending relay</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="bulk-email-footer">
+      <button type="button" class="leads-btn leads-btn-secondary" (click)="closeBulkEmailModal()" [disabled]="bulkEmailSending">
+        {{ bulkEmailResultsView ? 'Close Window' : 'Cancel' }}
+      </button>
+
+      <div class="footer-actions-right" *ngIf="!bulkEmailResultsView">
+        <span class="footer-warning-hint" *ngIf="!bulkEmailSubject.trim()">* Subject is required</span>
+        <button type="button" 
+                class="leads-btn leads-btn-accent" 
+                (click)="sendBulkEmailViaBrevo()" 
+                [disabled]="bulkEmailSending || bulkEmailLoadingPreview || bulkEmailPreview.validCount === 0 || !bulkEmailSubject.trim()">
+          <span *ngIf="bulkEmailSending" class="spinner-border spinner-border-sm me-2"></span>
+          <svg *ngIf="!bulkEmailSending" class="leads-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          <span>{{ bulkEmailSending ? 'Sending via Brevo...' : 'Send to ' + (bulkEmailPreview.validCount || 0) + ' recipients' }}</span>
+        </button>
+      </div>
+
+      <div class="footer-actions-right" *ngIf="bulkEmailResultsView">
+        <button type="button" class="leads-btn leads-btn-accent" (click)="closeBulkEmailModal()">
+          Done
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 

@@ -1227,7 +1227,7 @@ const previewBulkEmail = async (req, res) => {
         missingRecipients.push({
           id: contact.id,
           name: contact.name || 'Unnamed Lead',
-          phone: contact.phone,
+          phone: contact.phone || null,
           error: 'Missing email address'
         });
       } else if (!emailRegex.test(rawEmail)) {
@@ -1235,14 +1235,15 @@ const previewBulkEmail = async (req, res) => {
           id: contact.id,
           name: contact.name || 'Unnamed Lead',
           email: rawEmail,
-          phone: contact.phone,
+          phone: contact.phone || null,
           error: 'Invalid email format'
         });
       } else {
         validRecipients.push({
           id: contact.id,
           name: contact.name || 'Unnamed Lead',
-          email: rawEmail
+          email: rawEmail,
+          phone: contact.phone || null
         });
       }
     });
@@ -1254,8 +1255,9 @@ const previewBulkEmail = async (req, res) => {
         validCount: validRecipients.length,
         invalidCount: invalidRecipients.length,
         missingCount: missingRecipients.length,
+        validRecipients: validRecipients,
         invalidRecipients: invalidRecipients,
-        missingRecipients: missingRecipients.slice(0, 50)
+        missingRecipients: missingRecipients // Full list of missing
       }
     });
   } catch (err) {
@@ -1266,12 +1268,18 @@ const previewBulkEmail = async (req, res) => {
 
 /**
  * Send bulk email via Brevo to valid recipients matching filters or selected IDs
- * Saves rendered email record per recipient in lead_emails
+ * Saves rendered email record per recipient in lead_emails with initial status 'queued'
  */
 const sendBulkEmail = async (req, res) => {
   try {
     const bizId = req.user.businessId;
     const { channel, status, tag, search, agent, transferred_only, selected_contact_ids, template_id, subject, body } = req.body;
+
+    console.log('[sendBulkEmail] Invocation started:', {
+      businessId: bizId,
+      selected_contact_ids,
+      subject
+    });
 
     if (!subject || !subject.trim()) {
       return res.status(400).json({ success: false, message: 'Subject is required' });
@@ -1296,32 +1304,49 @@ const sendBulkEmail = async (req, res) => {
 
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const validRecipients = [];
+    const skippedMissing = [];
+    const skippedInvalid = [];
 
     rows.forEach(c => {
       const em = c.email ? String(c.email).trim() : '';
-      if (em && emailRegex.test(em)) {
+      if (!em) {
+        skippedMissing.push({ id: c.id, name: c.name || 'Unnamed Lead', phone: c.phone });
+      } else if (!emailRegex.test(em)) {
+        skippedInvalid.push({ id: c.id, name: c.name || 'Unnamed Lead', email: em, phone: c.phone });
+      } else {
         validRecipients.push({
           id: c.id,
           name: c.name || 'Valued Customer',
-          email: em
+          email: em,
+          phone: c.phone
         });
       }
     });
 
+    console.log(`[sendBulkEmail] Total matched contacts: ${rows.length}. validRecipients.length: ${validRecipients.length}, skippedMissing: ${skippedMissing.length}, skippedInvalid: ${skippedInvalid.length}`);
+
     if (validRecipients.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No valid email recipients found matching the selected filters/leads.'
+        message: 'No valid email recipients found matching the selected filters/leads.',
+        data: {
+          skippedMissing,
+          skippedInvalid
+        }
       });
     }
 
     const campaignId = `CAMP-${Date.now()}`;
-    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'worksufs@gmail.com';
+    const sender = brevoService.getSender();
     let sentCount = 0;
     let failedCount = 0;
     const sendResults = [];
 
     for (const recipient of validRecipients) {
+      if (recipient.email.toLowerCase() === sender.email.toLowerCase()) {
+        console.warn(`[sendBulkEmail] WARNING: Lead email ${recipient.email} is identical to BREVO_SENDER_EMAIL ${sender.email}. Proceeding with send.`);
+      }
+
       const firstName = (recipient.name || '').split(' ')[0] || 'there';
       const personalizedSubject = subject
         .replace(/\{\{first_name\}\}/gi, firstName)
@@ -1331,11 +1356,12 @@ const sendBulkEmail = async (req, res) => {
         .replace(/\{\{first_name\}\}/gi, firstName)
         .replace(/\{\{name\}\}/gi, recipient.name);
 
-      let initialStatus = 'sent';
+      let initialStatus = 'queued'; // Status is 'queued' until Brevo confirms delivery via webhook or polling
       let brevoMsgId = null;
       let failureReason = null;
 
       try {
+        console.log(`[sendBulkEmail] Sending email to contact ${recipient.id} (${recipient.email}) from ${sender.email}...`);
         const brevoRes = await brevoService.sendEmail({
           toEmail: recipient.email,
           toName: recipient.name,
@@ -1343,40 +1369,44 @@ const sendBulkEmail = async (req, res) => {
           htmlContent: personalizedBody.replace(/\n/g, '<br/>'),
           textContent: personalizedBody
         });
-        brevoMsgId = brevoRes.messageId;
+        // Normalize messageId by trimming angle brackets < >
+        brevoMsgId = brevoRes.messageId ? brevoRes.messageId.replace(/[<>]/g, '').trim() : null;
+        console.log(`[sendBulkEmail] Brevo accepted email for contact ${recipient.id} (${recipient.email}), messageId: ${brevoMsgId}`);
         sentCount++;
       } catch (sendErr) {
         initialStatus = 'failed';
         failureReason = sendErr.message;
         failedCount++;
-        console.error(`[sendBulkEmail] Failed sending to ${recipient.email}:`, sendErr.message);
+        console.error(`[sendBulkEmail] Failed sending to contact ${recipient.id} (${recipient.email}):`, sendErr.message);
       }
 
       // Save email record into lead_emails linked to student/lead
       try {
-        await pool.query(`
+        const [insertRes] = await pool.query(`
           INSERT INTO lead_emails (
             business_id, contact_id, campaign_id, brevo_message_id, 
-            sender_email, to_email, subject, content, status, bounce_reason
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            sender_email, to_email, subject, content, status, bounce_reason, sent_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         `, [
           bizId,
           recipient.id,
           campaignId,
           brevoMsgId,
-          senderEmail,
+          sender.email,
           recipient.email,
           personalizedSubject,
           personalizedBody,
           initialStatus,
           failureReason
         ]);
+        console.log(`[sendBulkEmail] Inserted into lead_emails for contact ${recipient.id} (id: ${insertRes.insertId}, status: ${initialStatus}, brevo_id: ${brevoMsgId})`);
       } catch (dbErr) {
-        console.error(`[sendBulkEmail] Error saving email history for contact ${recipient.id}:`, dbErr);
+        console.error(`[sendBulkEmail] FATAL: Error inserting into lead_emails for contact ${recipient.id}:`, dbErr);
       }
 
       sendResults.push({
         contactId: recipient.id,
+        name: recipient.name,
         email: recipient.email,
         status: initialStatus,
         messageId: brevoMsgId,
@@ -1388,19 +1418,146 @@ const sendBulkEmail = async (req, res) => {
     return res.json({
       success: isSuccess,
       message: isSuccess
-        ? `Bulk email process finished. ${sentCount} email(s) sent successfully${failedCount > 0 ? `, ${failedCount} failed` : ''}.`
+        ? `${sentCount} email(s) accepted by Brevo, ${failedCount} failed. Delivery status will update shortly.`
         : `Email delivery failed: ${sendResults[0]?.error || 'Unable to deliver emails via Brevo.'}`,
       data: {
         campaignId,
         totalRecipients: validRecipients.length,
         sentCount,
         failedCount,
+        skippedMissing,
+        skippedInvalid,
         results: sendResults
       }
     });
 
   } catch (err) {
     console.error('[sendBulkEmail] error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * Fallback Refresh Endpoint: Poll Brevo directly for delivery statuses
+ * POST /api/contacts/email-status/refresh { campaign_id }
+ */
+const refreshEmailStatus = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { campaign_id } = req.body;
+
+    if (!campaign_id) {
+      return res.status(400).json({ success: false, message: 'campaign_id is required' });
+    }
+
+    const [rows] = await pool.query(`
+      SELECT le.*, c.name as contact_name 
+      FROM lead_emails le
+      LEFT JOIN contacts c ON le.contact_id = c.id
+      WHERE le.campaign_id = ? AND le.business_id = ?
+    `, [campaign_id, bizId]);
+
+    if (rows.length === 0) {
+      return res.json({ success: true, data: { updatedRows: [] } });
+    }
+
+    const updatedRows = [];
+
+    for (const record of rows) {
+      // Check if candidate for refresh (still in queued or deferred)
+      if (record.brevo_message_id && (record.status === 'queued' || record.status === 'deferred')) {
+        const eventsData = await brevoService.getEmailEventsByMessageId(record.brevo_message_id);
+
+        if (eventsData && Array.isArray(eventsData.events) && eventsData.events.length > 0) {
+          // Sort events by date ascending
+          const sortedEvents = eventsData.events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          
+          let resolvedStatus = record.status;
+          let bounceReason = record.bounce_reason;
+          let deliveredAt = record.delivered_at;
+          let openedAt = record.opened_at;
+          let clickedAt = record.clicked_at;
+          let lastEvent = record.last_event;
+
+          for (const ev of sortedEvents) {
+            const evName = (ev.name || '').toLowerCase();
+            lastEvent = evName;
+            if (evName === 'delivered') {
+              resolvedStatus = 'delivered';
+              deliveredAt = ev.date ? new Date(ev.date) : new Date();
+            } else if (evName === 'opened' || evName === 'unique_opened') {
+              resolvedStatus = 'opened';
+              openedAt = ev.date ? new Date(ev.date) : new Date();
+            } else if (evName === 'clicks') {
+              resolvedStatus = 'clicked';
+              clickedAt = ev.date ? new Date(ev.date) : new Date();
+            } else if (evName === 'soft_bounces') {
+              resolvedStatus = 'soft_bounce';
+              bounceReason = ev.reason || 'Soft bounce';
+            } else if (evName === 'hard_bounces') {
+              resolvedStatus = 'hard_bounce';
+              bounceReason = ev.reason || 'Hard bounce';
+            } else if (evName === 'blocked') {
+              resolvedStatus = 'blocked';
+              bounceReason = ev.reason || 'Mailbox or domain blocked';
+            } else if (evName === 'spam') {
+              resolvedStatus = 'spam';
+              bounceReason = 'Marked as spam';
+            } else if (evName === 'invalid_email') {
+              resolvedStatus = 'invalid_email';
+              bounceReason = 'Invalid email address';
+            } else if (evName === 'deferred') {
+              resolvedStatus = 'deferred';
+              bounceReason = ev.reason || 'Deferred by recipient server';
+            }
+          }
+
+          if (resolvedStatus !== record.status || bounceReason !== record.bounce_reason) {
+            await pool.query(`
+              UPDATE lead_emails
+              SET status = ?,
+                  bounce_reason = ?,
+                  delivered_at = ?,
+                  opened_at = ?,
+                  clicked_at = ?,
+                  last_event = ?,
+                  last_event_at = NOW(),
+                  updated_at = NOW()
+              WHERE id = ?
+            `, [resolvedStatus, bounceReason, deliveredAt, openedAt, clickedAt, lastEvent, record.id]);
+
+            record.status = resolvedStatus;
+            record.bounce_reason = bounceReason;
+            record.delivered_at = deliveredAt;
+            record.opened_at = openedAt;
+            record.clicked_at = clickedAt;
+            record.last_event = lastEvent;
+          }
+        }
+      }
+
+      updatedRows.push({
+        id: record.id,
+        contactId: record.contact_id,
+        name: record.contact_name || 'Valued Customer',
+        email: record.to_email,
+        status: record.status,
+        reason: record.bounce_reason,
+        deliveredAt: record.delivered_at,
+        openedAt: record.opened_at,
+        sentAt: record.sent_at
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        updatedRows
+      }
+    });
+
+  } catch (err) {
+    console.error('[refreshEmailStatus] error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -1423,6 +1580,7 @@ module.exports = {
   uploadContactDocument, 
   importExcelContacts,
   previewBulkEmail,
-  sendBulkEmail
+  sendBulkEmail,
+  refreshEmailStatus
 };
 

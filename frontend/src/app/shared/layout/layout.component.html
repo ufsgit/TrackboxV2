@@ -5,35 +5,23 @@
     <div class="top-bar-main">
       <!-- Brand Column: Trackbox Logo and CRM Dropdown in a row -->
       <div class="brand-column">
-        <!-- Logo Icon -->
+        <!-- Logo Icon: Compact accent square with white T -->
         <div class="logo-icon-wrapper" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer;">
-          <div class="logo-icon">
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width: 100%; height: 100%; display: block;">
-              <path d="M25 32 L75 32 M50 32 L50 68" stroke="url(#logo-glow-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="25" cy="32" r="7" fill="#ffffff" />
-              <circle cx="50" cy="68" r="7" fill="#818cf8" />
-              <circle cx="75" cy="32" r="7" fill="#38bdf8" />
-              <defs>
-                <linearGradient id="logo-glow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="50%" stop-color="#818cf8" />
-                  <stop offset="100%" stop-color="#38bdf8" />
-                </linearGradient>
-              </defs>
-            </svg>
+          <div class="logo-icon" style="width: 36px; height: 36px; background: #5b5bf0; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(91, 91, 240, 0.25);">
+            <span style="color: #ffffff; font-weight: 800; font-size: 1.25rem; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1;">T</span>
           </div>
         </div>
 
         <div class="brand-text-column" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;">
-          <div class="logo-text" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer; line-height: 1;">Trackbox</div>
+          <div class="logo-text" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer; line-height: 1; font-size: 1.15rem;">Trackbox</div>
           
           <!-- Department Switcher (under Trackbox logo text) -->
           <div class="department-switcher" *ngIf="!isSettingsRoute">
-            <button class="dept-btn" (click)="toggleDepartmentDropdown($event)" style="height: 22px; padding: 0 10px; background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            <button class="dept-btn" (click)="toggleDepartmentDropdown($event)" style="height: 20px; padding: 0 8px; background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
               <div class="dept-info">
-                <span style="font-size: 0.75rem;">{{ activeDepartment }}</span>
+                <span style="font-size: 0.72rem;">{{ activeDepartment }}</span>
               </div>
-              <i class="bi bi-chevron-down dept-chevron" [class.rotated]="isDepartmentDropdownOpen" style="font-size: 0.65rem; margin-left: 4px;"></i>
+              <i class="bi bi-chevron-down dept-chevron" [class.rotated]="isDepartmentDropdownOpen" style="font-size: 0.6rem; margin-left: 3px;"></i>
             </button>
             
             <div class="dept-dropdown" *ngIf="isDepartmentDropdownOpen" (click)="$event.stopPropagation()">

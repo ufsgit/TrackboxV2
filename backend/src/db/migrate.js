@@ -669,6 +669,54 @@ async function runMigrations() {
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
   )`);
 
+  // Create lead_emails table for tracking emails and Brevo delivery status
+  await pool.query(`CREATE TABLE IF NOT EXISTS lead_emails (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    contact_id INT NULL,
+    campaign_id VARCHAR(50) NULL,
+    brevo_message_id VARCHAR(255) NULL,
+    sender_email VARCHAR(255) NOT NULL,
+    to_email VARCHAR(255) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    content LONGTEXT NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'queued',
+    bounce_reason TEXT NULL,
+    last_event VARCHAR(50) NULL,
+    last_event_at TIMESTAMP NULL,
+    delivered_at TIMESTAMP NULL,
+    opened_at TIMESTAMP NULL,
+    clicked_at TIMESTAMP NULL,
+    sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_contact (contact_id),
+    INDEX idx_msg (brevo_message_id),
+    INDEX idx_biz (business_id),
+    INDEX idx_status (status),
+    INDEX idx_campaign (campaign_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+  // Ensure all tracking columns exist in lead_emails
+  const safeAddColumn = async (table, colName, colDef) => {
+    try {
+      const [cols] = await pool.query(`SHOW COLUMNS FROM ${table} LIKE ?`, [colName]);
+      if (cols.length === 0) {
+        await pool.query(`ALTER TABLE ${table} ADD COLUMN ${colName} ${colDef}`);
+      }
+    } catch (e) {
+      console.warn(`[Migration Warning] Error checking/adding column ${colName}:`, e.message);
+    }
+  };
+
+  await safeAddColumn('lead_emails', 'delivered_at', 'TIMESTAMP NULL');
+  await safeAddColumn('lead_emails', 'opened_at', 'TIMESTAMP NULL');
+  await safeAddColumn('lead_emails', 'clicked_at', 'TIMESTAMP NULL');
+  await safeAddColumn('lead_emails', 'last_event', 'VARCHAR(50) NULL');
+  await safeAddColumn('lead_emails', 'last_event_at', 'TIMESTAMP NULL');
+  await safeAddColumn('lead_emails', 'sent_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP');
+  await safeAddColumn('lead_emails', 'campaign_id', 'VARCHAR(50) NULL');
+
   console.log('✅ Database migrations completed');
 
   await seedData();

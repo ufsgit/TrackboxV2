@@ -1,4 +1,14 @@
-import { showImpressiveSuccess } from '../../core/utils/impressive-alert';
+
+import { 
+  showImpressiveSuccess, 
+  showLeadCreatedSuccess, 
+  showLeadUpdatedSuccess, 
+  showLeadDeletedSuccess, 
+  showStatusUpdatedSuccess, 
+  showConfirmDelete, 
+  showPremiumError, 
+  showPremiumWarning 
+} from '../../core/utils/impressive-alert';
 import { Component, OnInit, HostListener, Inject } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +25,7 @@ import { CourseService, Course } from '../../core/services/course.service';
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { UpdateLeadStatusModalComponent } from '../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
+import { SocketService } from '../../core/services/socket.service';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -285,6 +296,70 @@ export class ContactsComponent implements OnInit {
   
   leadFields: any[] = [];
   groupedLeadFields: { categoryName: string, fields: any[] }[] = [];
+  activeCategoryTab: string = 'all';
+
+  getCategoryMeta(categoryName: string) {
+    const name = (categoryName || '').toLowerCase();
+    if (name.includes('educat') || name.includes('study') || name.includes('degree') || name.includes('course') || name.includes('acad')) {
+      return {
+        icon: 'bi-mortarboard-fill',
+        color: '#2563eb',
+        bg: '#eff6ff',
+        label: categoryName
+      };
+    }
+    if (name.includes('person') || name.includes('identity') || name.includes('profile') || name.includes('bio') || name.includes('passport')) {
+      return {
+        icon: 'bi-person-badge-fill',
+        color: '#059669',
+        bg: '#ecfdf5',
+        label: categoryName
+      };
+    }
+    if (name.includes('visa') || name.includes('travel') || name.includes('immigrat')) {
+      return {
+        icon: 'bi-airplane-fill',
+        color: '#d97706',
+        bg: '#fffbeb',
+        label: categoryName
+      };
+    }
+    if (name.includes('pte') || name.includes('ielts') || name.includes('toefl') || name.includes('test') || name.includes('exam') || name.includes('score') || name.includes('tutor')) {
+      return {
+        icon: 'bi-patch-check-fill',
+        color: '#7c3aed',
+        bg: '#f5f3ff',
+        label: categoryName
+      };
+    }
+    if (name.includes('about') || name.includes('hobby') || name.includes('hobbies') || name.includes('interest')) {
+      return {
+        icon: 'bi-stars',
+        color: '#e11d48',
+        bg: '#fff1f2',
+        label: categoryName
+      };
+    }
+    return {
+      icon: 'bi-folder2-open',
+      color: '#4f46e5',
+      bg: '#eef2ff',
+      label: categoryName
+    };
+  }
+
+  getTotalCustomFields(): number {
+    return this.groupedLeadFields ? this.groupedLeadFields.reduce((acc, g) => acc + (g.fields ? g.fields.length : 0), 0) : 0;
+  }
+
+  getFilledCustomFieldsCount(group?: any): number {
+    if (!this.newContact || !this.newContact.custom_field_values) return 0;
+    const fields = group ? group.fields : (this.leadFields || []);
+    return fields.filter((f: any) => {
+      const v = this.newContact.custom_field_values[f.id];
+      return v !== null && v !== undefined && v !== '';
+    }).length;
+  }
 
   // Application Settings Data
   intakes: any[] = [];
@@ -548,11 +623,13 @@ export class ContactsComponent implements OnInit {
     private animationService: AnimationService,
     private confettiService: ConfettiService,
     private courseService: CourseService,
+    private socketService: SocketService,
     @Inject(DOCUMENT) private document: Document
   ) {}
 
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin');
+    this.initEmailStatusSocket();
     this.loadContacts();
     this.loadTags();
     this.loadLeadFields();
@@ -1108,16 +1185,16 @@ export class ContactsComponent implements OnInit {
   }
 
   deleteApplication(id: number) {
-    Swal.fire({ title: 'Are you sure?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!' })
-    .then((result) => {
-      if (result.isConfirmed) {
+    showConfirmDelete('Delete Application?', 'Are you sure you want to delete this application record? This action cannot be undone.').then((confirmed) => {
+      if (confirmed) {
         this.appsService.deleteApplication(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              showImpressiveSuccess('Application deleted');
+              showLeadDeletedSuccess('Application');
               this.loadApplications(this.selectedContact.id);
             }
-          }
+          },
+          error: (err) => showPremiumError('Error', err.error?.message || 'Error deleting application')
         });
       }
     });
@@ -1162,6 +1239,18 @@ export class ContactsComponent implements OnInit {
       this.closeDetailPanel();
       this.goToChat(contact);
     }
+  }
+
+  sendEmailFromDetail() {
+    if (!this.selectedContact) return;
+    const contact = this.selectedContact;
+    if (!contact.email || !contact.email.trim() || contact.email.trim() === '—' || contact.email.trim() === '-') {
+      showPremiumWarning('No Email Address', `${contact.name || 'This lead'} does not have a valid email address recorded. Please edit the lead to add an email address.`);
+      return;
+    }
+    this.selectedContactIds.clear();
+    this.selectedContactIds.add(contact.id);
+    this.openBulkEmailModal();
   }
 
   // ── Leads Management ────────────────────────────────────────────────────────
@@ -1256,38 +1345,38 @@ export class ContactsComponent implements OnInit {
       this.api.put(`/leads/${payload.id}`, payload).subscribe({
         next: (res: any) => {
           if (res.success) {
-            showImpressiveSuccess('Lead updated');
+            showLeadUpdatedSuccess('Lead updated successfully');
             this.loadLeads(this.selectedContact.id);
             this.showAddLeadModal = false;
           }
         },
-        error: (err: any) => Swal.fire('Error', err.error.message || 'Error updating lead', 'error')
+        error: (err: any) => showPremiumError('Error', err.error?.message || 'Error updating lead')
       });
     } else {
       this.api.post(`/contacts/${this.selectedContact.id}/leads`, payload).subscribe({
         next: (res: any) => {
           if (res.success) {
-            showImpressiveSuccess('Lead created');
+            showLeadCreatedSuccess('Lead created successfully');
             this.loadLeads(this.selectedContact.id);
             this.showAddLeadModal = false;
           }
         },
-        error: (err: any) => Swal.fire('Error', err.error.message || 'Error creating lead', 'error')
+        error: (err: any) => showPremiumError('Error', err.error?.message || 'Error creating lead')
       });
     }
   }
 
   deleteLead(id: number) {
-    Swal.fire({ title: 'Are you sure?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete it!' })
-    .then((result) => {
-      if (result.isConfirmed) {
+    showConfirmDelete('Delete Lead Record?', 'Are you sure you want to delete this lead record? This action cannot be undone.').then((confirmed) => {
+      if (confirmed) {
         this.api.delete(`/leads/${id}`).subscribe({
           next: (res: any) => {
             if (res.success) {
-              showImpressiveSuccess('Lead deleted');
+              showLeadDeletedSuccess('Lead record');
               this.loadLeads(this.selectedContact.id);
             }
-          }
+          },
+          error: (err: any) => showPremiumError('Delete Failed', err.error?.message || 'Failed to delete lead')
         });
       }
     });
@@ -1359,6 +1448,7 @@ export class ContactsComponent implements OnInit {
     this.leadFields.forEach(f => {
       this.newContact.custom_field_values[f.id] = '';
     });
+    this.activeCategoryTab = 'all';
     this.showModal = true;
   }
 
@@ -1407,39 +1497,25 @@ export class ContactsComponent implements OnInit {
       });
     }
 
+    this.activeCategoryTab = 'all';
     this.showModal = true;
   }
 
   saveContact() {
     if (!this.newContact.name || !this.newContact.phone) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Missing Fields',
-        text: 'Name and Phone are required',
-        confirmButtonColor: '#10B981'
-      });
+      showPremiumWarning('Missing Fields', 'Name and Phone are required.');
       return;
     }
 
     if (!this.editingContactId) {
       if (!this.newContact.status) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Missing Fields',
-          text: 'Status is required',
-          confirmButtonColor: '#10B981'
-        });
+        showPremiumWarning('Missing Fields', 'Status is required.');
         return;
       }
 
       if (this.isTransferStatus(this.newContact.status)) {
         if (!this.newContact.branch || !this.newContact.department || !this.newContact.assigned_employee) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Missing Fields',
-            text: 'Branch, Department, and Employee are required for this status.',
-            confirmButtonColor: '#10B981'
-          });
+          showPremiumWarning('Missing Fields', 'Branch, Department, and Employee are required for this status.');
           return;
         }
       }
@@ -1448,18 +1524,11 @@ export class ContactsComponent implements OnInit {
     // Phone validation for exactly 12 digits
     const numericPhone = this.newContact.phone.replace(/\D/g, '');
     if (numericPhone.length !== 12) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Invalid Phone Number',
-        text: 'Phone number must be exactly 12 digits (including country code).',
-        confirmButtonColor: '#10B981'
-      });
+      showPremiumWarning('Invalid Phone Number', 'Phone number must be exactly 12 digits (including country code).');
       return;
     }
     // Optionally update the phone to be the numeric one, or keep user formatting
     this.newContact.phone = numericPhone;
-
-
 
     const selStatus = this.leadStatuses?.find((s: any) => s.name === this.newContact.status);
     if (selStatus) {
@@ -1495,7 +1564,10 @@ export class ContactsComponent implements OnInit {
       custom_field_values: this.newContact.custom_field_values
     };
 
-    const request = this.editingContactId 
+    const isEditing = !!this.editingContactId;
+    const leadName = this.newContact.name || 'Lead';
+
+    const request = isEditing 
       ? this.api.put(`/contacts/${this.editingContactId}`, payload)
       : this.api.post('/contacts', payload);
 
@@ -1505,17 +1577,19 @@ export class ContactsComponent implements OnInit {
           this.loadContacts();
           this.loadTags();
           this.showModal = false;
-          this.triggerSaveAnimation();
+          if (isEditing) {
+            showLeadUpdatedSuccess(leadName);
+          } else {
+            showLeadCreatedSuccess(leadName);
+          }
         }
       },
       error: (err: any) => {
         const isDuplicate = err.status === 409;
-        Swal.fire({
-          icon: isDuplicate ? 'warning' : 'error',
-          title: isDuplicate ? 'Duplicate Contact' : 'Error',
-          text: err.error?.message || 'Error saving contact',
-          confirmButtonColor: isDuplicate ? '#f59e0b' : '#ef4444'
-        });
+        showPremiumError(
+          isDuplicate ? 'Duplicate Contact' : 'Failed to Save Lead',
+          err.error?.message || 'Error saving contact'
+        );
       }
     });
   }
@@ -1525,17 +1599,14 @@ export class ContactsComponent implements OnInit {
   }
 
   deleteContact(id: number) {
-    Swal.fire({
-      title: 'Are you sure you want to delete this lead?',
-      text: 'This action cannot be undone.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Delete',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
+    const found = this.contacts.find(c => c.id === id);
+    const leadName = found?.name || 'this lead';
+
+    showConfirmDelete(
+      'Delete Lead?',
+      `Are you sure you want to delete <strong>${leadName}</strong>? This action cannot be undone.`
+    ).then((confirmed) => {
+      if (confirmed) {
         this.api.delete(`/contacts/${id}`).subscribe({
           next: () => {
             // Remove it from the list immediately without requiring a page refresh
@@ -1547,12 +1618,10 @@ export class ContactsComponent implements OnInit {
               this.closeDetailPanel();
             }
 
-            showImpressiveSuccess('Lead deleted successfully.');
-            
-            // Optionally reload tags or pagination if needed, but the list is updated.
+            showLeadDeletedSuccess(leadName);
           },
           error: (err: any) => {
-            Swal.fire('Error', err.error?.message || 'Failed to delete lead', 'error');
+            showPremiumError('Delete Failed', err.error?.message || 'Failed to delete lead');
           }
         });
       }
@@ -1746,15 +1815,10 @@ export class ContactsComponent implements OnInit {
     this.api.put(`/contacts/${this.quickStatusContactId}`, updateData).subscribe({
       next: (res: any) => {
         this.quickStatusLoading = false;
-          if (res.success) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Status Updated',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 500
-          });
+        if (res.success) {
+          const statusName = this.quickStatusData.status_name || this.quickStatusData.status || 'Updated';
+          const leadName = this.quickStatusContactName || '';
+          showStatusUpdatedSuccess(statusName, leadName);
           
           // Trigger gamification if status is a "success" state
           const gamifiedStatuses = ['sales won', 'converted', 'admitted', 'payment received', 'enrolled', 'visa approved'];
@@ -1765,12 +1829,12 @@ export class ContactsComponent implements OnInit {
           this.closeQuickStatusModal();
           this.loadContacts();
         } else {
-          Swal.fire('Error', res.message || 'Failed to update status', 'error');
+          showPremiumError('Update Failed', res.message || 'Failed to update status');
         }
       },
       error: () => {
         this.quickStatusLoading = false;
-        Swal.fire('Error', 'Failed to update status', 'error');
+        showPremiumError('Update Failed', 'Failed to update status');
       }
     });
   }
@@ -1783,6 +1847,39 @@ export class ContactsComponent implements OnInit {
       this.calendarCurrentDate = new Date();
       this.loadCalendarData(true);
     }
+  }
+
+  setViewMode(mode: 'list' | 'calendar') {
+    if (this.viewMode === mode) return;
+    this.viewMode = mode;
+    if (this.viewMode === 'calendar') {
+      this.calendarCurrentDate = new Date();
+      this.loadCalendarData(true);
+    }
+  }
+
+  getCalendarMonthTotal(): number {
+    if (!this.calendarWeeks || this.calendarWeeks.length === 0) return 0;
+    return this.calendarWeeks.reduce((total, week) => {
+      return total + week.reduce((wTotal: number, day: any) => {
+        return wTotal + (day.isCurrentMonth ? (day.count || 0) : 0);
+      }, 0);
+    }, 0);
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.transferredOnly);
+  }
+
+  resetAllFilters() {
+    this.searchQuery = '';
+    this.activeChannel = '';
+    this.activeStatus = '';
+    this.activeAgent = '';
+    this.activeTag = '';
+    this.transferredOnly = false;
+    this.currentPage = 1;
+    this.applyFilters();
   }
 
   prevCalendarMonth() {
@@ -1892,8 +1989,20 @@ export class ContactsComponent implements OnInit {
   bulkEmailLoadingPreview = false;
   bulkEmailSending = false;
   showInvalidEmailDetails = false;
-  bulkEmailSubject = '';
-  bulkEmailBody = 'Hello {{first_name}},\n\nWe have an important update regarding your application and enquiry.\nPlease feel free to contact us if you have any questions.\n\nBest regards,\nAdmissions Team';
+  bulkEmailSubject = "{{first_name}}, let's discuss your next career step!";
+  bulkEmailBody = `Hi {{first_name}},
+
+We are excited to connect with you!
+
+Whether you're looking to upskill, explore new certifications, or kickstart your career with our hands-on industry programs, our team is here to support you at every milestone.
+
+We invite you to schedule a free 1-on-1 counseling session with one of our academic mentors this week to map out the best path forward for your goals.
+
+If you're interested, simply reply to this email with "YES" or share your preferred call time.
+
+Best regards,
+Student Admissions & Relations
+Trackbox CRM Team`;
   emailTemplates: any[] = [];
   selectedTemplateId: any = '';
   bulkEmailPreview: any = {
@@ -1901,9 +2010,41 @@ export class ContactsComponent implements OnInit {
     validCount: 0,
     invalidCount: 0,
     missingCount: 0,
+    validRecipients: [],
     invalidRecipients: [],
     missingRecipients: []
   };
+
+  // Live Bulk Email Result Tracking State
+  bulkEmailCampaignId: string | null = null;
+  bulkEmailResultsView = false;
+  bulkEmailResults: any[] = [];
+  bulkEmailRefreshing = false;
+  bulkEmailRefreshTimer: any = null;
+
+  initEmailStatusSocket() {
+    this.socketService.connect();
+    const stored = localStorage.getItem('uc_user');
+    const user = stored ? JSON.parse(stored) : null;
+    const bizId = user?.business_id || user?.businessId;
+    if (bizId) {
+      this.socketService.joinBusiness(bizId);
+    }
+    this.socketService.on('email_status_updated').subscribe((data: any) => {
+      console.log('[Socket] email_status_updated received:', data);
+      if (this.bulkEmailResults && this.bulkEmailResults.length > 0) {
+        const found = this.bulkEmailResults.find(r => 
+          (data.messageId && r.messageId && r.messageId.includes(data.messageId)) ||
+          (data.contactId && String(r.contactId) === String(data.contactId)) ||
+          (data.email && r.email?.toLowerCase() === data.email?.toLowerCase())
+        );
+        if (found) {
+          found.status = data.status || found.status;
+          if (data.reason) found.reason = data.reason;
+        }
+      }
+    });
+  }
 
   loadEmailTemplates() {
     this.api.get('/templates').subscribe({
@@ -1933,25 +2074,95 @@ export class ContactsComponent implements OnInit {
   }
 
   openBulkEmailModal() {
+    if (this.bulkEmailLoadingPreview) return;
+    this.bulkEmailResultsView = false;
+    this.bulkEmailCampaignId = null;
+    this.bulkEmailResults = [];
     this.showBulkEmailModal = true;
     this.showInvalidEmailDetails = false;
-    if (!this.emailTemplates || this.emailTemplates.length === 0) {
-      this.loadEmailTemplates();
-    }
+    this.bulkEmailSubject = "{{first_name}}, let's discuss your next career step!";
+    this.bulkEmailBody = `Hi {{first_name}},
+
+We are excited to connect with you!
+
+Whether you're looking to upskill, explore new certifications, or kickstart your career with our hands-on industry programs, our team is here to support you at every milestone.
+
+We invite you to schedule a free 1-on-1 counseling session with one of our academic mentors this week to map out the best path forward for your goals.
+
+If you're interested, simply reply to this email with "YES" or share your preferred call time.
+
+Best regards,
+Student Admissions & Relations
+Trackbox CRM Team`;
+    this.selectedTemplateId = '';
+    this.loadEmailTemplates();
     this.fetchBulkEmailPreview();
   }
 
   closeBulkEmailModal() {
     if (this.bulkEmailSending) return;
+    if (this.bulkEmailRefreshTimer) {
+      clearTimeout(this.bulkEmailRefreshTimer);
+      this.bulkEmailRefreshTimer = null;
+    }
     this.showBulkEmailModal = false;
     this.showInvalidEmailDetails = false;
+    this.bulkEmailResultsView = false;
   }
 
   toggleInvalidEmailDetails() {
     this.showInvalidEmailDetails = !this.showInvalidEmailDetails;
   }
 
+  getLivePreviewRecipientName(): string {
+    if (this.bulkEmailPreview?.validRecipients && this.bulkEmailPreview.validRecipients.length > 0) {
+      return this.bulkEmailPreview.validRecipients[0].name || 'Recipient';
+    }
+    return 'Recipient';
+  }
+
+  getLivePreviewRecipientEmail(): string {
+    if (this.bulkEmailPreview?.validRecipients && this.bulkEmailPreview.validRecipients.length > 0) {
+      return this.bulkEmailPreview.validRecipients[0].email || 'lead@example.com';
+    }
+    return 'lead@example.com';
+  }
+
+  getLivePreviewSubject(): string {
+    if (!this.bulkEmailSubject) return 'No subject entered';
+    const name = this.getLivePreviewRecipientName();
+    const firstName = name.split(' ')[0] || name;
+    return this.bulkEmailSubject
+      .replace(/\{\{first_name\}\}/gi, firstName)
+      .replace(/\{\{name\}\}/gi, name);
+  }
+
+  getLivePreviewBody(): string {
+    if (!this.bulkEmailBody) return 'Type your message to see the live preview...';
+    const name = this.getLivePreviewRecipientName();
+    const firstName = name.split(' ')[0] || name;
+    return this.bulkEmailBody
+      .replace(/\{\{first_name\}\}/gi, firstName)
+      .replace(/\{\{name\}\}/gi, name);
+  }
+
+  insertVariableTag(tag: string) {
+    if (!this.bulkEmailBody) {
+      this.bulkEmailBody = tag;
+    } else {
+      this.bulkEmailBody += ' ' + tag;
+    }
+  }
+
+  getCleanTemplateName(name: string): string {
+    if (!name) return 'Template';
+    let clean = name.replace(/\{\{[^}]+\}\},?\s*/gi, '').trim();
+    if (!clean) clean = name;
+    return clean.length > 32 ? clean.slice(0, 32) + '...' : clean;
+  }
+
   fetchBulkEmailPreview() {
+    if (this.bulkEmailLoadingPreview) return;
     this.bulkEmailLoadingPreview = true;
     const filterPayload: any = {
       channel: this.activeChannel || null,
@@ -1970,7 +2181,12 @@ export class ContactsComponent implements OnInit {
       next: (res: any) => {
         this.bulkEmailLoadingPreview = false;
         if (res.success && res.data) {
-          this.bulkEmailPreview = res.data;
+          this.bulkEmailPreview = {
+            ...res.data,
+            validRecipients: res.data.validRecipients || [],
+            invalidRecipients: res.data.invalidRecipients || [],
+            missingRecipients: res.data.missingRecipients || []
+          };
         }
       },
       error: (err: any) => {
@@ -1981,15 +2197,29 @@ export class ContactsComponent implements OnInit {
   }
 
   sendBulkEmailViaBrevo() {
+    console.log('[sendBulkEmailViaBrevo] Initiated:', {
+      subject: this.bulkEmailSubject,
+      subjectTrimmedLength: this.bulkEmailSubject?.trim()?.length,
+      bodyLength: this.bulkEmailBody?.length,
+      bodyTrimmedLength: this.bulkEmailBody?.trim()?.length,
+      validCount: this.bulkEmailPreview?.validCount,
+      selectedContactIdsCount: this.selectedContactIds.size,
+      bulkEmailSending: this.bulkEmailSending,
+      bulkEmailLoadingPreview: this.bulkEmailLoadingPreview
+    });
+
     if (!this.bulkEmailSubject.trim()) {
+      console.warn('[sendBulkEmailViaBrevo] Validation failed: Subject Required');
       Swal.fire('Subject Required', 'Please enter an email subject line before sending.', 'warning');
       return;
     }
     if (!this.bulkEmailBody.trim()) {
+      console.warn('[sendBulkEmailViaBrevo] Validation failed: Message Body Required');
       Swal.fire('Message Required', 'Please enter your email message body before sending.', 'warning');
       return;
     }
     if (this.bulkEmailPreview.validCount === 0) {
+      console.warn('[sendBulkEmailViaBrevo] Validation failed: No Valid Recipients (validCount is 0)');
       Swal.fire('No Valid Recipients', 'There are no recipients with valid email addresses matching the selected filters/leads.', 'info');
       return;
     }
@@ -2002,13 +2232,13 @@ export class ContactsComponent implements OnInit {
       title: 'Confirm Bulk Email Dispatch',
       html: `
         <div style="text-align: left; font-size: 0.95rem;">
-          <p>You are about to send personalized emails via Brevo to ${targetDesc}.</p>
+          <p>You are about to dispatch personalized emails via Brevo to ${targetDesc}.</p>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px;">
             <div><strong>Subject:</strong> ${this.bulkEmailSubject}</div>
             <div style="margin-top: 4px; color: #64748b; font-size: 0.85rem;">Sender: worksufs@gmail.com</div>
           </div>
           <p style="margin-top: 12px; font-size: 0.85rem; color: #059669;">
-            <i class="bi bi-shield-check me-1"></i> Each email will be logged in the student's individual CRM timeline.
+            <i class="bi bi-shield-check me-1"></i> Each email will be logged in the lead's timeline with real Brevo delivery tracking.
           </p>
         </div>
       `,
@@ -2018,6 +2248,8 @@ export class ContactsComponent implements OnInit {
       confirmButtonColor: '#4f46e5',
       cancelButtonText: 'Cancel'
     }).then((result) => {
+      console.log('[sendBulkEmailViaBrevo] Swal.fire confirmation result:', result);
+
       if (result.isConfirmed) {
         this.bulkEmailSending = true;
         const sendPayload: any = {
@@ -2027,8 +2259,8 @@ export class ContactsComponent implements OnInit {
           search: this.searchQuery ? this.searchQuery.trim() : null,
           agent: this.activeAgent || null,
           transferred_only: this.transferredOnly ? 'true' : 'false',
-          subject: this.bulkEmailSubject,
-          body: this.bulkEmailBody,
+          subject: this.bulkEmailSubject.trim(),
+          body: this.bulkEmailBody.trim(),
           template_id: this.selectedTemplateId || null
         };
 
@@ -2036,38 +2268,147 @@ export class ContactsComponent implements OnInit {
           sendPayload.selected_contact_ids = Array.from(this.selectedContactIds);
         }
 
+        console.log('[sendBulkEmailViaBrevo] Dispatching POST /contacts/send-bulk-email with payload:', sendPayload);
+
         this.api.post('/contacts/send-bulk-email', sendPayload).subscribe({
           next: (res: any) => {
+            console.log('[sendBulkEmailViaBrevo] API Response received (next):', res);
             this.bulkEmailSending = false;
-            this.closeBulkEmailModal();
             if (res.success) {
               const d = res.data || {};
-              Swal.fire({
-                title: 'Emails Sent Successfully!',
-                html: `
-                  <div style="text-align: left;">
-                    <p>${res.message}</p>
-                    <ul style="font-size: 0.9rem; color: #475569;">
-                      <li>Total Valid Recipients: <strong>${d.totalRecipients || 0}</strong></li>
-                      <li>Successfully Dispatched: <strong>${d.sentCount || 0}</strong></li>
-                      ${d.failedCount ? `<li style="color: #ef4444;">Failed: <strong>${d.failedCount}</strong></li>` : ''}
-                    </ul>
-                    <small class="text-muted">Delivery and bounce statuses will update automatically via Brevo webhooks.</small>
-                  </div>
-                `,
-                icon: 'success'
-              });
+              this.bulkEmailCampaignId = d.campaignId;
+              this.bulkEmailResults = d.results || [];
+              this.bulkEmailResultsView = true;
+
+              // Clear lead checkboxes on success
+              this.clearSelection();
+
+              // Auto-refresh once after 10 seconds to catch early Brevo delivery events
+              if (this.bulkEmailRefreshTimer) clearTimeout(this.bulkEmailRefreshTimer);
+              this.bulkEmailRefreshTimer = setTimeout(() => {
+                this.refreshEmailStatusFromBrevo();
+              }, 10000);
             } else {
-              Swal.fire('Email Dispatch Warning', res.message || 'Something went wrong', 'warning');
+              const errorMessage = res.message || 'Something went wrong';
+              console.warn('[sendBulkEmailViaBrevo] Response indicated unsuccess:', res);
+              Swal.fire('Email Dispatch Warning', errorMessage, 'warning');
             }
           },
           error: (err: any) => {
+            console.error('[sendBulkEmailViaBrevo] API Error callback (error):', err);
             this.bulkEmailSending = false;
-            Swal.fire('Send Failed', err.error?.message || 'Failed to dispatch emails via Brevo.', 'error');
+            const apiMessage = err.error?.message || err.message || 'Failed to dispatch emails via Brevo.';
+            Swal.fire('Send Failed', apiMessage, 'error');
           }
         });
+      } else {
+        console.log('[sendBulkEmailViaBrevo] User cancelled or dismissed confirmation dialog');
       }
     });
+  }
+
+  refreshEmailStatusFromBrevo() {
+    if (!this.bulkEmailCampaignId || this.bulkEmailRefreshing) return;
+    this.bulkEmailRefreshing = true;
+
+    this.api.post('/contacts/email-status/refresh', { campaign_id: this.bulkEmailCampaignId }).subscribe({
+      next: (res: any) => {
+        this.bulkEmailRefreshing = false;
+        if (res.success && res.data?.updatedRows) {
+          const updated = res.data.updatedRows;
+          updated.forEach((u: any) => {
+            const found = this.bulkEmailResults.find(r => 
+              (u.id && r.id === u.id) ||
+              (u.contactId && String(r.contactId) === String(u.contactId)) ||
+              (u.email && r.email?.toLowerCase() === u.email?.toLowerCase())
+            );
+            if (found) {
+              found.status = u.status;
+              found.reason = u.reason;
+              found.deliveredAt = u.deliveredAt;
+              found.openedAt = u.openedAt;
+            }
+          });
+        }
+      },
+      error: (err: any) => {
+        this.bulkEmailRefreshing = false;
+        console.error('Failed to refresh status from Brevo', err);
+      }
+    });
+  }
+
+  getStatusBadgeClass(status: string): string {
+    const s = (status || '').toLowerCase();
+    switch (s) {
+      case 'delivered': return 'bg-success text-white';
+      case 'opened':
+      case 'clicked': return 'bg-primary text-white';
+      case 'queued': return 'bg-secondary text-white';
+      case 'deferred':
+      case 'soft_bounce': return 'bg-warning text-dark';
+      case 'hard_bounce':
+      case 'blocked':
+      case 'spam':
+      case 'invalid_email':
+      case 'failed': return 'bg-danger text-white';
+      default: return 'bg-light text-dark border';
+    }
+  }
+
+  getDeliverySummaryText(): string {
+    if (!this.bulkEmailResults || this.bulkEmailResults.length === 0) return '';
+    const counts: any = {};
+    this.bulkEmailResults.forEach(r => {
+      const st = r.status || 'queued';
+      counts[st] = (counts[st] || 0) + 1;
+    });
+
+    const parts = [];
+    if (counts['delivered']) parts.push(`${counts['delivered']} delivered`);
+    if (counts['opened']) parts.push(`${counts['opened']} opened`);
+    if (counts['clicked']) parts.push(`${counts['clicked']} clicked`);
+    if (counts['deferred']) parts.push(`${counts['deferred']} deferred`);
+    if (counts['soft_bounce']) parts.push(`${counts['soft_bounce']} soft bounce`);
+    if (counts['hard_bounce']) parts.push(`${counts['hard_bounce']} hard bounce`);
+    if (counts['blocked']) parts.push(`${counts['blocked']} blocked`);
+    if (counts['failed']) parts.push(`${counts['failed']} failed`);
+
+    if (parts.length === 0) {
+      return `Accepted by Brevo, waiting for delivery confirmation (${this.bulkEmailResults.length} queued)`;
+    }
+
+    const failedItemWithReason = this.bulkEmailResults.find(r => r.reason && (r.status === 'hard_bounce' || r.status === 'blocked' || r.status === 'failed'));
+    if (failedItemWithReason) {
+      parts.push(`(${failedItemWithReason.email}: ${failedItemWithReason.reason})`);
+    }
+
+    return parts.join(', ');
+  }
+
+  get selectedWithEmailCount(): number {
+    if (!this.contacts || this.selectedContactIds.size === 0) return 0;
+    return this.contacts.filter(c => this.selectedContactIds.has(c.id) && c.email && c.email.trim().length > 0).length;
+  }
+
+  get selectedMissingEmailCount(): number {
+    if (!this.contacts || this.selectedContactIds.size === 0) return 0;
+    return this.contacts.filter(c => this.selectedContactIds.has(c.id) && (!c.email || c.email.trim().length === 0)).length;
+  }
+
+  getLeadInitials(name: string): string {
+    if (!name) return 'L';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  getAvatarTintClass(idOrIndex: number): string {
+    const tints = ['avatar-tint-orange', 'avatar-tint-green', 'avatar-tint-pink', 'avatar-tint-blue', 'avatar-tint-purple'];
+    const idx = Math.abs(Number(idOrIndex) || 0) % tints.length;
+    return tints[idx];
   }
 
 }

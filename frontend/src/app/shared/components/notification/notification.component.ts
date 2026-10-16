@@ -73,47 +73,46 @@ import { Subscription } from 'rxjs';
 
     .toast-card {
       pointer-events: auto;
-      background: #17161B;
+      background: #ffffff;
       padding: 12px 18px;
-      border-radius: 999px;
-      box-shadow: 0 20px 40px -18px rgba(0,0,0,0.6);
+      border-radius: 14px;
+      box-shadow: 0 16px 36px -10px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.04);
       display: flex;
       align-items: center;
       gap: 12px;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      border-left: 1px solid rgba(16, 185, 129, 0.35);
-      animation: v2ToastIn 0.5s cubic-bezier(.2,.8,.2,1) forwards;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      animation: v2ToastIn 0.35s cubic-bezier(.16, 1, .3, 1) forwards;
       cursor: pointer;
       position: relative;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       opacity: 0;
       transform: translateY(10px);
+      min-width: 300px;
+      max-width: 420px;
     }
 
-    .toast-card.success { border-color: rgba(16, 185, 129, 0.4); }
-    .toast-card.error { border-color: rgba(239, 68, 68, 0.4); }
-    .toast-card.info { border-color: rgba(59, 130, 246, 0.4); }
+    .toast-card.success { border-left: 4px solid #10b981; }
+    .toast-card.error { border-left: 4px solid #ef4444; }
+    .toast-card.info { border-left: 4px solid #4f46e5; }
 
     .toast-icon {
       margin: 0;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
       flex: none;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .toast-card.success .toast-icon { background: #10b981; }
-    .toast-card.error .toast-icon { background: #ef4444; }
-    .toast-card.info .toast-icon { background: #3b82f6; }
+    .toast-card.success .toast-icon { background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .toast-card.error .toast-icon { background: #fef2f2; border: 1px solid #fecaca; }
+    .toast-card.info .toast-icon { background: #eef2ff; border: 1px solid #c7d2fe; }
 
     .toast-icon i {
-      font-size: 13px;
-      color: #17161B;
-      animation: v2IconDraw .4s ease forwards .2s;
-      opacity: 0;
+      font-size: 16px;
+      line-height: 1;
     }
 
     .toast-content {
@@ -122,27 +121,27 @@ import { Subscription } from 'rxjs';
 
     .toast-title {
       margin: 0;
-      font-family: 'Fraunces', serif;
-      font-style: italic;
-      font-size: 15px;
-      font-weight: 500;
-      color: #F3EFE7;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      font-style: normal;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0f172a;
       letter-spacing: -0.01em;
-      line-height: 1.2;
+      line-height: 1.3;
     }
 
     .toast-message {
-      margin: 1px 0 0;
-      font-size: 10.5px;
-      color: #9C968E;
-      letter-spacing: 0.02em;
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.35;
     }
 
     .toast-close {
       background: transparent;
       border: none;
-      font-size: 1rem;
-      color: #9C968E;
+      font-size: 1.25rem;
+      color: #94a3b8;
       cursor: pointer;
       padding: 0;
       line-height: 1;
@@ -151,7 +150,7 @@ import { Subscription } from 'rxjs';
       justify-content: center;
     }
     
-    .toast-close:hover { color: #F3EFE7; }
+    .toast-close:hover { color: #0f172a; }
 
     /* ── Confirm Modal ── */
     .notification-backdrop {

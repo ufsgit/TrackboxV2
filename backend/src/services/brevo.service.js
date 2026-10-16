@@ -5,10 +5,19 @@
  */
 class BrevoService {
   constructor() {
-    this.apiKey = process.env.BREVO_API_KEY || '';
-    this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'worksufs@gmail.com';
-    this.senderName = process.env.BREVO_SENDER_NAME || 'Brifni';
     this.apiUrl = 'https://api.brevo.com/v3/smtp/email';
+    this.smtpEmailsUrl = 'https://api.brevo.com/v3/smtp/emails';
+  }
+
+  getApiKey() {
+    return (process.env.BREVO_API_KEY || '').trim();
+  }
+
+  getSender() {
+    return {
+      email: (process.env.BREVO_SENDER_EMAIL || 'worksufs@gmail.com').trim(),
+      name: (process.env.BREVO_SENDER_NAME || 'Trackbox CRM').trim()
+    };
   }
 
   /**
@@ -23,17 +32,16 @@ class BrevoService {
    * @returns {Promise<{ messageId: string }>}
    */
   async sendEmail({ toEmail, toName, subject, htmlContent, textContent, params }) {
-    if (!this.apiKey) {
-      this.apiKey = process.env.BREVO_API_KEY || '';
-    }
-    if (!this.apiKey) {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
       throw new Error('BREVO_API_KEY is not configured in environment variables');
     }
 
+    const sender = this.getSender();
     const payload = {
       sender: {
-        name: this.senderName,
-        email: this.senderEmail
+        name: sender.name,
+        email: sender.email
       },
       to: [
         {
@@ -57,7 +65,7 @@ class BrevoService {
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
-          'api-key': this.apiKey,
+          'api-key': apiKey,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -68,13 +76,14 @@ class BrevoService {
 
       if (!response.ok) {
         console.error('[BrevoService.sendEmail] API Error Response:', response.status, responseBody);
-        const err = new Error(responseBody.message || `Brevo returned HTTP ${response.status}`);
+        const errMessage = responseBody.message || JSON.stringify(responseBody) || `Brevo returned HTTP ${response.status}`;
+        const err = new Error(errMessage);
         err.status = response.status;
         err.brevoData = responseBody;
         throw err;
       }
 
-      console.log('[BrevoService.sendEmail] Email dispatched successfully:', responseBody.messageId);
+      console.log('[BrevoService.sendEmail] Brevo Response:', response.status, responseBody);
 
       return {
         messageId: responseBody.messageId || null
@@ -82,6 +91,44 @@ class BrevoService {
     } catch (error) {
       console.error('[BrevoService.sendEmail] Request failure:', error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Query Brevo for transactional email status events by messageId
+   * GET https://api.brevo.com/v3/smtp/emails?messageId=<id>
+   * @param {string} messageId
+   */
+  async getEmailEventsByMessageId(messageId) {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      throw new Error('BREVO_API_KEY is not configured in environment variables');
+    }
+
+    // Clean angle brackets if present
+    const cleanId = (messageId || '').replace(/[<>]/g, '').trim();
+    if (!cleanId) return null;
+
+    try {
+      const url = `${this.smtpEmailsUrl}?messageId=${encodeURIComponent(cleanId)}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'api-key': apiKey,
+          'Accept': 'application/json'
+        }
+      });
+
+      const responseBody = await response.json();
+      if (!response.ok) {
+        console.warn(`[BrevoService.getEmailEvents] HTTP ${response.status}:`, responseBody);
+        return null;
+      }
+
+      return responseBody;
+    } catch (err) {
+      console.error(`[BrevoService.getEmailEvents] Failed for ${cleanId}:`, err.message);
+      return null;
     }
   }
 }

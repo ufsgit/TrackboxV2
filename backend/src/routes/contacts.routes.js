@@ -12,6 +12,7 @@ router.post('/import', upload.single('file'), c.importContacts);
 router.post('/import-excel', c.importExcelContacts);
 router.post('/preview-bulk-email', c.previewBulkEmail);
 router.post('/send-bulk-email', c.sendBulkEmail);
+router.post('/email-status/refresh', c.refreshEmailStatus);
 router.post('/optin-link', c.createOptInLink);
 router.get('/:id/history', c.getContactHistory);
 router.get('/:id', c.getContact);

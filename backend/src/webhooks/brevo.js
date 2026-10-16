@@ -3,13 +3,33 @@ const pool = require('../db/pool');
 /**
  * Handle Brevo transactional email webhooks
  * Supported Brevo events:
- * - 'delivered' -> CRM status: 'delivered'
- * - 'opened' / 'unique_opened' -> CRM status: 'opened'
- * - 'click' -> CRM status: 'clicked'
- * - 'soft_bounce' / 'hard_bounce' -> CRM status: 'bounced'
- * - 'blocked' / 'spam' / 'invalid_email' -> CRM status: 'blocked'
- * - 'error' -> CRM status: 'failed'
+ * - 'request' / 'sent' -> status: 'queued', last_event
+ * - 'delivered' -> status: 'delivered', delivered_at
+ * - 'unique_opened' / 'opened' -> status: 'opened', opened_at
+ * - 'click' -> status: 'clicked', clicked_at
+ * - 'soft_bounce' -> status: 'soft_bounce', bounce_reason
+ * - 'hard_bounce' -> status: 'hard_bounce', bounce_reason
+ * - 'blocked' -> status: 'blocked', bounce_reason
+ * - 'spam' -> status: 'spam'
+ * - 'invalid_email' -> status: 'invalid_email'
+ * - 'deferred' -> status: 'deferred', bounce_reason
+ * - 'unsubscribed' -> status: 'unsubscribed'
  */
+const STATUS_PRIORITY = {
+  'queued': 1,
+  'deferred': 2,
+  'delivered': 3,
+  'opened': 4,
+  'clicked': 5,
+  'soft_bounce': 3,
+  'hard_bounce': 4,
+  'blocked': 4,
+  'spam': 4,
+  'invalid_email': 4,
+  'unsubscribed': 4,
+  'failed': 4
+};
+
 const handleBrevoWebhook = async (req, res, io) => {
   try {
     const payload = req.body;
@@ -24,74 +44,142 @@ const handleBrevoWebhook = async (req, res, io) => {
 
     for (const item of events) {
       const eventType = (item.event || '').toLowerCase();
-      // Brevo message-id can appear as 'message-id', 'messageId', or 'msg_id'
-      const messageId = item['message-id'] || item.messageId || item.msg_id;
-      const email = item.email;
+      const rawMessageId = item['message-id'] || item.messageId || item.msg_id;
+      const email = item.email ? String(item.email).trim() : null;
       const reason = item.reason || item.description || item.error || null;
 
-      if (!messageId && !email) {
+      // Normalize Brevo message ID: strip angle brackets < > and whitespace
+      const cleanMessageId = rawMessageId ? String(rawMessageId).replace(/[<>]/g, '').trim() : null;
+
+      if (!cleanMessageId && !email) {
         continue;
       }
 
-      let crmStatus = null;
-      if (eventType === 'delivered') {
-        crmStatus = 'delivered';
-      } else if (eventType === 'opened' || eventType === 'unique_opened') {
-        crmStatus = 'opened';
-      } else if (eventType === 'click') {
-        crmStatus = 'clicked';
-      } else if (eventType === 'soft_bounce' || eventType === 'hard_bounce' || eventType === 'bounce') {
-        crmStatus = 'bounced';
-      } else if (eventType === 'blocked' || eventType === 'spam' || eventType === 'invalid_email') {
-        crmStatus = 'blocked';
-      } else if (eventType === 'error') {
-        crmStatus = 'failed';
+      let newStatus = null;
+      let timestampCol = null;
+
+      switch (eventType) {
+        case 'request':
+        case 'sent':
+          newStatus = 'queued';
+          break;
+        case 'delivered':
+          newStatus = 'delivered';
+          timestampCol = 'delivered_at';
+          break;
+        case 'opened':
+        case 'unique_opened':
+          newStatus = 'opened';
+          timestampCol = 'opened_at';
+          break;
+        case 'click':
+          newStatus = 'clicked';
+          timestampCol = 'clicked_at';
+          break;
+        case 'soft_bounce':
+          newStatus = 'soft_bounce';
+          break;
+        case 'hard_bounce':
+        case 'bounce':
+          newStatus = 'hard_bounce';
+          break;
+        case 'blocked':
+          newStatus = 'blocked';
+          break;
+        case 'spam':
+          newStatus = 'spam';
+          break;
+        case 'invalid_email':
+          newStatus = 'invalid_email';
+          break;
+        case 'deferred':
+          newStatus = 'deferred';
+          break;
+        case 'unsubscribed':
+          newStatus = 'unsubscribed';
+          break;
+        case 'error':
+        case 'failed':
+          newStatus = 'failed';
+          break;
+        default:
+          break;
       }
 
-      if (!crmStatus) {
-        continue;
-      }
-
-      // Update lead_emails record by brevo_message_id
-      // Clean messageId (strip angle brackets < > if present)
-      const cleanMessageId = messageId ? messageId.replace(/[<>]/g, '').trim() : null;
-
-      let updateResult;
+      // Fetch matching record to check status hierarchy (prevent downgrade e.g. opened overwritten by delivered)
+      let matchedRows = [];
       if (cleanMessageId) {
-        [updateResult] = await pool.query(
-          `UPDATE lead_emails 
-           SET status = ?, bounce_reason = COALESCE(?, bounce_reason), updated_at = NOW() 
-           WHERE brevo_message_id LIKE ? OR brevo_message_id = ?`,
-          [crmStatus, reason, `%${cleanMessageId}%`, cleanMessageId]
+        [matchedRows] = await pool.query(
+          `SELECT id, business_id, contact_id, status FROM lead_emails 
+           WHERE brevo_message_id LIKE ? OR brevo_message_id = ? 
+           ORDER BY id DESC LIMIT 1`,
+          [`%${cleanMessageId}%`, cleanMessageId]
         );
       }
 
-      // Fallback by email and most recent record if messageId did not match
-      if ((!updateResult || updateResult.affectedRows === 0) && email) {
-        await pool.query(
-          `UPDATE lead_emails 
-           SET status = ?, bounce_reason = COALESCE(?, bounce_reason), updated_at = NOW() 
+      if ((!matchedRows || matchedRows.length === 0) && email) {
+        [matchedRows] = await pool.query(
+          `SELECT id, business_id, contact_id, status FROM lead_emails 
            WHERE to_email = ? 
            ORDER BY id DESC LIMIT 1`,
-          [crmStatus, reason, email.trim()]
+          [email]
         );
       }
 
-      // Notify clients via socket.io if initialized
-      if (io) {
-        io.emit('email_status_updated', {
-          messageId: cleanMessageId,
-          email,
-          status: crmStatus,
-          reason
-        });
+      if (matchedRows && matchedRows.length > 0) {
+        const currentRecord = matchedRows[0];
+        const currentStatus = currentRecord.status || 'queued';
+
+        let targetStatus = currentStatus;
+        if (newStatus) {
+          const currentRank = STATUS_PRIORITY[currentStatus] || 0;
+          const newRank = STATUS_PRIORITY[newStatus] || 0;
+          // Only upgrade or maintain terminal status
+          if (newRank >= currentRank || currentStatus === 'queued' || currentStatus === 'deferred') {
+            targetStatus = newStatus;
+          }
+        }
+
+        let updateSql = `
+          UPDATE lead_emails 
+          SET status = ?,
+              last_event = ?,
+              last_event_at = NOW(),
+              bounce_reason = COALESCE(?, bounce_reason),
+              updated_at = NOW()
+        `;
+        const updateParams = [targetStatus, eventType, reason];
+
+        if (timestampCol) {
+          updateSql += `, ${timestampCol} = COALESCE(${timestampCol}, NOW())`;
+        }
+
+        updateSql += ` WHERE id = ?`;
+        updateParams.push(currentRecord.id);
+
+        await pool.query(updateSql, updateParams);
+
+        // Emit socket event to business room and global listeners
+        if (io) {
+          const payloadData = {
+            contactId: currentRecord.contact_id,
+            email,
+            status: targetStatus,
+            lastEvent: eventType,
+            reason: reason || null,
+            messageId: cleanMessageId
+          };
+          if (currentRecord.business_id) {
+            io.to(`biz_${currentRecord.business_id}`).emit('email_status_updated', payloadData);
+          }
+          io.emit('email_status_updated', payloadData);
+        }
       }
     }
 
     return res.status(200).json({ success: true, message: 'Brevo webhook processed' });
   } catch (error) {
     console.error('[Brevo Webhook] Error processing event:', error);
-    // Return 200 so Brevo doesn't infinitely retry failed webhooks
     return res.status(200).json({ success: false, error: error.message });
   }
 };

@@ -25,13 +25,14 @@
 
 /* Row 1: Brand & Actions */
 .top-bar-main {
-  min-height: 68px;
-  padding: 8px 24px;
+  min-height: 52px;
+  height: 52px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(241, 245, 249, 0.9);
-  gap: 20px;
+  gap: 16px;
 }
 
 .brand-column {
@@ -226,40 +227,102 @@
 .top-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
-/* User Profile Chip */
+.checkin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 34px;
+  background: #0b8a68;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(11, 138, 104, 0.2);
+}
+
+.checkin-btn:hover {
+  background: #097255;
+  transform: translateY(-1px);
+}
+
+.checkin-btn.checked-in {
+  background: #ef4444;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+}
+
+.checkin-btn.checked-in:hover {
+  background: #dc2626;
+}
+
+.notification-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notification-trigger {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e3e5f2;
+  border-radius: 8px;
+  color: #1c1d3a;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-trigger:hover {
+  background: #f8f9ff;
+  border-color: #5b5bf0;
+  color: #5b5bf0;
+}
+
+.user-profile-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .user-chip-clickable {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
-  padding: 4px 10px 4px 4px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  padding: 0 6px 0 0;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .user-chip-clickable:hover {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  opacity: 0.9;
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #6366F1, #4F46E5);
+  background: #5b5bf0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: 800;
+  font-size: 0.92rem;
   flex-shrink: 0;
 }
 
@@ -271,15 +334,16 @@
 .user-name {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #0f172a;
-  line-height: 1.2;
+  color: #1c1d3a;
+  line-height: 1.15;
   white-space: nowrap;
 }
 
 .user-role {
   font-size: 0.7rem;
-  color: #64748b;
-  line-height: 1;
+  color: #62668a;
+  line-height: 1.1;
+  font-weight: 500;
 }
 
 .logout-btn {
@@ -363,13 +427,14 @@
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  background: #eceeff;
+  color: #3636b8;
+  font-weight: 700;
+  box-shadow: none;
 }
 
 .nav-item.active i {
-  color: #ffffff;
+  color: #5b5bf0;
 }
 
 /* Reports Popover Dropdown */
@@ -1019,7 +1084,7 @@
 
 .content-area {
   flex: 1;
-  padding: 16px;
+  padding: 8px 14px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
