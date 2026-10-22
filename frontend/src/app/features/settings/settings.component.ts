@@ -1,10 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { CourseManagementComponent } from './course-management/course-management.component';
 import { TeamsManagementComponent } from "../system-settings/components/teams-management/teams-management.component";
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-settings',
@@ -16,8 +19,12 @@ import { TeamsManagementComponent } from "../system-settings/components/teams-ma
 export class SettingsComponent implements OnInit {
   activeModule = 'leads'; // default
   activeTab = localStorage.getItem('activeSettingsTab') || 'whatsapp';
+  isUfsUser = false;
 
   setActiveTab(tab: string) {
+    if (tab === 'help-video' && !this.isUfsUser) {
+      tab = 'whatsapp';
+    }
     this.activeTab = tab;
     localStorage.setItem('activeSettingsTab', tab);
     if (tab === 'whatsapp') {
@@ -31,6 +38,8 @@ export class SettingsComponent implements OnInit {
       this.loadFieldCategories();
     } else if (tab === 'source-categories') {
       this.loadSourceCategories();
+    } else if (tab === 'help-video' && this.isUfsUser) {
+      this.loadHelpVideo();
     }
   }
   showToken = false;
@@ -83,6 +92,16 @@ export class SettingsComponent implements OnInit {
   showFieldCategoryModal = false;
   editingFieldCategory: any = null;
   newFieldCategory: any = { name: ''  }
+
+  // ── Help Video Management (All Videos List & Modal) ─
+  helpVideos: any[] = [];
+  helpVideoLoading = false;
+  helpVideoSaving = false;
+  showVideoModal = false;
+  editingVideo: any = null;
+  videoModalForm = { title: '', description: '', url: '' };
+  safeModalPreviewUrl: SafeResourceUrl | null = null;
+  videoSearchTerm = '';
 
   // ── Source Categories Methods ──────────────────────
   openAddSourceCategory() {
@@ -219,9 +238,24 @@ export class SettingsComponent implements OnInit {
     { key: 'shopify', name: 'Shopify', desc: 'Import your Shopify catalog', icon: 'bi-bag', color: '#95BF47' },
   ];
 
-  constructor(private api: ApiService, private route: ActivatedRoute) {}
+  constructor(
+    private api: ApiService,
+    private authService: AuthService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private sanitizer: DomSanitizer
+  ) {}
 
   ngOnInit() {
+    this.authService.currentUser$.subscribe(user => {
+      const username = (user?.username || '').toLowerCase().trim();
+      const email = (user?.email || '').toLowerCase().trim();
+      this.isUfsUser = username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
+      if (!this.isUfsUser && this.activeTab === 'help-video') {
+        this.setActiveTab('whatsapp');
+      }
+    });
+
     this.route.queryParams.subscribe(params => {
       if (params['module']) {
         this.activeModule = params['module'];
@@ -782,5 +816,208 @@ export class SettingsComponent implements OnInit {
   getFieldTypeIcon(type: string): string {
     return this.FIELD_TYPES.find(t => t.value === type)?.icon || 'bi-type';
   }
-}
 
+  // ── Help Video Methods (All Videos List & Modal) ─────
+  loadHelpVideo() {
+    this.helpVideoLoading = true;
+    this.api.get('/help-video').subscribe({
+      next: (res: any) => {
+        this.helpVideoLoading = false;
+        if (res.success) {
+          this.helpVideos = res.videos || (res.data ? [res.data] : []);
+        } else {
+          this.helpVideos = [];
+        }
+      },
+      error: (err: any) => {
+        this.helpVideoLoading = false;
+        console.error('Failed to load help videos', err);
+      }
+    });
+  }
+
+  get filteredHelpVideosList(): any[] {
+    if (!this.videoSearchTerm.trim()) return this.helpVideos;
+    const q = this.videoSearchTerm.toLowerCase().trim();
+    return this.helpVideos.filter(v =>
+      (v.title && v.title.toLowerCase().includes(q)) ||
+      (v.description && v.description.toLowerCase().includes(q))
+    );
+  }
+
+  extractYouTubeId(url: string): string | null {
+    if (!url) return null;
+    const str = String(url).trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = str.match(regExp);
+    return match ? match[1] : null;
+  }
+
+  getYouTubeThumbnail(url: string): string {
+    const id = this.extractYouTubeId(url);
+    return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : '';
+  }
+
+  openAddVideoModal() {
+    this.editingVideo = null;
+    this.videoModalForm = { title: '', description: '', url: '' };
+    this.safeModalPreviewUrl = null;
+    this.showVideoModal = true;
+  }
+
+  openEditVideoModal(v: any) {
+    this.editingVideo = v;
+    this.videoModalForm = {
+      title: v.title || '',
+      description: v.description || '',
+      url: v.video_url || ''
+    };
+    this.onModalUrlChange();
+    this.showVideoModal = true;
+  }
+
+  closeVideoModal() {
+    this.showVideoModal = false;
+    this.editingVideo = null;
+    this.safeModalPreviewUrl = null;
+  }
+
+  onModalUrlChange() {
+    const id = this.extractYouTubeId(this.videoModalForm.url);
+    if (id) {
+      this.safeModalPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube-nocookie.com/embed/${id}?rel=0`);
+      if (!this.videoModalForm.title) {
+        this.videoModalForm.title = 'Trackbox CRM Tutorial - ' + id;
+      }
+    } else {
+      this.safeModalPreviewUrl = null;
+    }
+  }
+
+  saveVideoFromModal() {
+    if (!this.videoModalForm.url || !this.videoModalForm.url.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'YouTube Link Required',
+        text: 'Please paste a valid YouTube video link.'
+      });
+      return;
+    }
+
+    if (!this.videoModalForm.title || !this.videoModalForm.title.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Title Required',
+        text: 'Please enter a title for the tutorial video.'
+      });
+      return;
+    }
+
+    this.helpVideoSaving = true;
+
+    if (this.editingVideo && this.editingVideo.id) {
+      // Update existing video
+      this.api.put('/help-video', {
+        id: this.editingVideo.id,
+        title: this.videoModalForm.title.trim(),
+        description: (this.videoModalForm.description || '').trim(),
+        video_url: this.videoModalForm.url.trim()
+      }).subscribe({
+        next: (res: any) => {
+          this.helpVideoSaving = false;
+          if (res.success) {
+            this.closeVideoModal();
+            Swal.fire({
+              icon: 'success',
+              title: 'Updated Successfully!',
+              text: 'Tutorial video has been updated.',
+              timer: 1800,
+              showConfirmButton: false
+            });
+            this.loadHelpVideo();
+          } else {
+            Swal.fire('Error', res.message || 'Failed to update video', 'error');
+          }
+        },
+        error: (err: any) => {
+          this.helpVideoSaving = false;
+          Swal.fire('Error', err.error?.message || 'Server error updating video', 'error');
+        }
+      });
+    } else {
+      // Add brand new video
+      this.api.post('/help-video', {
+        title: this.videoModalForm.title.trim(),
+        description: (this.videoModalForm.description || '').trim(),
+        video_url: this.videoModalForm.url.trim(),
+        is_new: true
+      }).subscribe({
+        next: (res: any) => {
+          this.helpVideoSaving = false;
+          if (res.success) {
+            this.closeVideoModal();
+            Swal.fire({
+              icon: 'success',
+              title: 'Added Successfully!',
+              text: 'New tutorial video has been added to your library.',
+              timer: 1800,
+              showConfirmButton: false
+            });
+            this.loadHelpVideo();
+          } else {
+            Swal.fire('Error', res.message || 'Failed to add video', 'error');
+          }
+        },
+        error: (err: any) => {
+          this.helpVideoSaving = false;
+          Swal.fire('Error', err.error?.message || 'Server error adding video', 'error');
+        }
+      });
+    }
+  }
+
+  deleteVideoItem(v: any) {
+    if (!v?.id) return;
+
+    Swal.fire({
+      title: 'Delete Tutorial Video?',
+      text: `Are you sure you want to remove "${v.title || 'this tutorial'}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`/help-video/${v.id}`).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Deleted!',
+                text: 'Tutorial video has been removed.',
+                timer: 1800,
+                showConfirmButton: false
+              });
+              this.loadHelpVideo();
+            } else {
+              Swal.fire('Error', res.message || 'Failed to delete video', 'error');
+            }
+          },
+          error: (err: any) => {
+            Swal.fire('Error', err.error?.message || 'Server error deleting video', 'error');
+          }
+        });
+      }
+    });
+  }
+
+  navigateToTutorialPage(videoId?: any) {
+    if (videoId) {
+      this.router.navigate(['/help'], { queryParams: { id: videoId } });
+    } else {
+      this.router.navigate(['/help']);
+    }
+  }
+}

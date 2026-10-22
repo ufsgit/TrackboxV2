@@ -16,6 +16,7 @@ const { v4: uuidv4 } = require('crypto');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const r2Service = require('../services/r2.service');
 
 const paginate = (page, limit) => {
   const p = Math.max(1, parseInt(page) || 1);
@@ -25,12 +26,39 @@ const paginate = (page, limit) => {
 
 const getContacts = async (req, res) => {
   try {
-    const { page, limit, tags, channel, search, status, agent, has_followup } = req.query;
+    const { page, limit, tags, channel, search, status, agent, has_followup, has_applications, app_status, receipt_type } = req.query;
     const { offset, limit: lim, page: p } = paginate(page, limit);
     const bizId = req.user.businessId;
 
     let where = 'WHERE c.business_id = ?';
     const params = [bizId];
+
+    if (has_applications === '1' || has_applications === 'true') {
+      where += ' AND EXISTS (SELECT 1 FROM applications a WHERE a.contact_id = c.id)';
+    }
+
+    if (app_status) {
+      where += ` AND EXISTS (
+        SELECT 1 FROM applications a 
+        LEFT JOIN application_statuses s ON a.status_id = s.id 
+        WHERE a.contact_id = c.id 
+          AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE LOWER(CONCAT('%', ?, '%')) OR a.status_id = ?)
+      )`;
+      params.push(app_status.trim(), app_status.trim());
+    }
+
+    if (receipt_type) {
+      where += ` AND EXISTS (
+        SELECT 1 FROM receipts r
+        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+        WHERE r.contact_id = c.id
+          AND (
+            LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE LOWER(CONCAT('%', ?, '%'))
+            OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE LOWER(CONCAT('%', ?, '%'))
+          )
+      )`;
+      params.push(receipt_type.trim(), receipt_type.trim());
+    }
 
     if (req.user.role === 'agent') {
       const selfId = Number(req.user.userId);
@@ -921,7 +949,28 @@ const uploadContactDocument = async (req, res) => {
     
     let folder = 'media';
     if (req.file.mimetype === 'text/csv' || req.file.originalname.endsWith('.csv')) folder = 'csv';
-    const fileUrl = `/uploads/${folder}/${req.file.filename}`;
+    let fileUrl = `/uploads/${folder}/${req.file.filename}`;
+
+    // Upload to Cloudflare R2 if configured
+    if (r2Service.isConfigured()) {
+      try {
+        const r2Key = `${folder}/${req.file.filename}`;
+        await r2Service.uploadFile({
+          key: r2Key,
+          filePath: req.file.path,
+          contentType: req.file.mimetype || 'application/octet-stream',
+          metadata: {
+            contactId: String(contactId),
+            originalName: encodeURIComponent(req.file.originalname)
+          }
+        });
+        if (r2Service.publicUrl) {
+          fileUrl = `${r2Service.publicUrl}/${r2Key}`;
+        }
+      } catch (r2Err) {
+        console.error('Error uploading contact document to Cloudflare R2:', r2Err);
+      }
+    }
     let fileSizeStr = '';
     if (req.file.size < 1024 * 1024) {
       fileSizeStr = (req.file.size / 1024).toFixed(1) + ' KB';
@@ -948,6 +997,46 @@ const uploadContactDocument = async (req, res) => {
     res.json({ success: true, data: docs[0], message: 'Document uploaded' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteContactDocument = async (req, res) => {
+  try {
+    const { id, docId } = req.params;
+    const bizId = req.user.businessId;
+
+    const [docs] = await pool.query(
+      'SELECT * FROM user_document_upload WHERE id = ? AND contact_id = ? AND business_id = ?',
+      [docId, id, bizId]
+    );
+    if (!docs || docs.length === 0) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    const doc = docs[0];
+    if (r2Service.isConfigured() && doc.file_url) {
+      let r2Key;
+      if (doc.file_url.startsWith('http')) {
+        try {
+          const u = new URL(doc.file_url);
+          r2Key = u.pathname.replace(/^\/+/, '');
+        } catch (e) {
+          const filename = path.basename(doc.file_url);
+          const folder = doc.file_url.includes('/csv/') ? 'csv' : 'media';
+          r2Key = `${folder}/${filename}`;
+        }
+      } else {
+        const filename = path.basename(doc.file_url);
+        const folder = doc.file_url.includes('/csv/') ? 'csv' : 'media';
+        r2Key = `${folder}/${filename}`;
+      }
+      await r2Service.deleteFile(r2Key);
+    }
+
+    await pool.query('DELETE FROM user_document_upload WHERE id = ?', [docId]);
+    res.json({ success: true, message: 'Document deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -1578,6 +1667,7 @@ module.exports = {
   getContactHistory, 
   getContactDocuments, 
   uploadContactDocument, 
+  deleteContactDocument,
   importExcelContacts,
   previewBulkEmail,
   sendBulkEmail,

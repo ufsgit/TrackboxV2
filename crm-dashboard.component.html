@@ -1,0 +1,153 @@
+<div class="shell">
+  <aside class="side">
+    <a class="logo" routerLink="/crm-dashboard"><span class="logo-m">T</span><span><b>TRACKBOX</b><small>CRM</small></span></a>
+    <nav class="menu" aria-label="Main">
+      <a *ngFor="let m of menu" [routerLink]="m.link" routerLinkActive="active" [attr.aria-current]="m.active ? 'page' : null">
+        <svg class="ico"><use [attr.href]="'#' + m.icon"/></svg>{{ m.label }}
+      </a>
+    </nav>
+    <div class="promo">
+      <svg viewBox="0 0 170 120" aria-hidden="true">
+        <circle cx="85" cy="72" r="46" fill="none" stroke="#3B8BFF" stroke-opacity=".35" stroke-width="1.5"/>
+        <circle cx="85" cy="72" r="32" fill="none" stroke="#3B8BFF" stroke-opacity=".3" stroke-width="1.5"/>
+        <ellipse cx="85" cy="72" rx="46" ry="16" fill="none" stroke="#3B8BFF" stroke-opacity=".3" stroke-width="1.5"/>
+        <rect x="38" y="70" width="14" height="30" rx="2" fill="#3B8BFF" opacity=".9"/>
+        <rect x="58" y="56" width="14" height="44" rx="2" fill="#5BA0FF" opacity=".95"/>
+        <rect x="78" y="40" width="14" height="60" rx="2" fill="#7DB4FF"/>
+        <path d="M30 62l32-18 24-10 40-18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+        <path d="M122 16l-10 2 6 7z" fill="#fff"/>
+      </svg>
+      <b>Track every lead.<br>Close more deals.</b>
+      <p>Smarter follow-ups<br>Better results</p>
+      <i></i>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="head rise">
+      <div class="head-t"><h1>{{ greeting }}, {{ userName }} 👋</h1><p>Here's what's happening at Trackbox today.</p></div>
+      <span class="syn"><i class="live"></i><span>{{ syncedLabel }}</span></span>
+      <button class="btn blue" type="button" [class.spin]="syncing" [disabled]="syncing" (click)="syncData()">
+        <svg class="ico"><use href="#i-sync"/></svg><span class="t">Sync Data</span>
+      </button>
+      <label class="sel">
+        <select [ngModel]="range" (ngModelChange)="onRange($event)" aria-label="Date range"><option *ngFor="let r of ranges" [value]="r">{{ r }}</option></select>
+        <svg class="ico"><use href="#i-chev"/></svg>
+      </label>
+      <button class="btn green" type="button" [class.on]="checkedIn" (click)="toggleCheckIn()">
+        <svg class="ico"><use href="#i-login"/></svg><span class="t">{{ checkedIn ? 'Check Out · ' + elapsed : 'Check In' }}</span>
+      </button>
+      <button class="ib" type="button" aria-label="Notifications"><svg class="ico"><use href="#i-bell"/></svg><span class="pip"></span></button>
+      <div class="who"><span class="av">AU</span><div><b>Admin User</b><small>Admin</small></div></div>
+    </div>
+
+    <!-- KPI cards -->
+    <section class="kpis" aria-label="Key numbers">
+      <article class="kpi rise" *ngFor="let k of kpis; let i = index" [style.--c]="k.color" [style.--tint]="k.tint" [style.--r]="i + 1">
+        <div class="kpi-l"><svg class="ico"><use [attr.href]="'#' + k.icon"/></svg>{{ k.label }}</div>
+        <div class="kpi-b">
+          <span class="kpi-n num">{{ k.display }}</span>
+          <span class="spark"><i *ngFor="let h of k.spark; let j = index" [style.--h]="(h * 100) + '%'" [style.--k]="j"></i></span>
+        </div>
+        <div class="kpi-d"><b [class.flat]="!k.delta">{{ k.delta ? '▲ ' + k.delta : '– 0%' }}</b> vs last month</div>
+      </article>
+    </section>
+
+    <div class="row2">
+      <!-- Funnel -->
+      <section class="card rise" style="--r:3">
+        <div class="card-h"><svg class="ico"><use href="#i-funnel"/></svg><h2>Lead Status Pipeline</h2></div>
+        <div class="fun">
+          <svg [attr.viewBox]="'0 0 200 ' + funnelH" role="img" aria-label="Lead status funnel">
+            <defs>
+              <linearGradient *ngFor="let f of funnel; let i = index" [id]="'fg' + i" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" [attr.stop-color]="f.a"/><stop offset="1" [attr.stop-color]="f.b"/>
+              </linearGradient>
+            </defs>
+            <polygon *ngFor="let f of funnel; let i = index" class="stage" [style.--k]="i" [attr.fill]="'url(#fg' + i + ')'" [attr.points]="f.points"/>
+          </svg>
+          <div class="fl">
+            <div *ngFor="let f of funnel"><span><b class="num">{{ f.shown | number }}</b>{{ f.label }}</span><em>{{ f.pct }}</em></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grouped bars -->
+      <section class="card wide rise" style="--r:4">
+        <div class="card-h"><svg class="ico"><use href="#i-chart"/></svg><h2>Monthly Performance</h2><span class="smp">Sample data</span></div>
+        <div class="leg"><span *ngFor="let s of series" [style.--c]="s.color"><i></i>{{ s.name }}</span></div>
+        <div class="gb-wrap">
+          <div class="gy"><span *ngFor="let t of ticks" [style.bottom.%]="t / chartMax * 100">{{ t }}</span></div>
+          <div class="gp">
+            <i class="gl" *ngFor="let t of ticks" [style.bottom.%]="t / chartMax * 100"></i>
+            <div class="grp" *ngFor="let m of months; let mi = index" [title]="m">
+              <div class="gb num" *ngFor="let s of series; let si = index"
+                   [style.--h]="(s.values[mi] / chartMax * 100) + '%'" [style.--c]="s.color" [style.--k]="mi * series.length + si">
+                <em>{{ s.values[mi] }}</em>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gx"><span *ngFor="let m of months">{{ m }}</span></div>
+      </section>
+
+      <!-- Source donut -->
+      <section class="card rise" style="--r:5">
+        <div class="card-h"><svg class="ico"><use href="#i-pie"/></svg><h2>Lead Source Analysis</h2><span class="smp">Sample data</span></div>
+        <div class="dn">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Leads by source">
+            <circle cx="100" cy="100" r="70" fill="none" stroke="var(--surface-2)" stroke-width="36"/>
+            <circle *ngFor="let s of sourceRing.segs; let k = index" class="seg" [style.--k]="k" [style.stroke-dasharray]="s.dash"
+                    cx="100" cy="100" r="70" fill="none" [attr.stroke]="s.color" stroke-width="36" [attr.stroke-dashoffset]="s.offset" transform="rotate(-90 100 100)"/>
+            <ng-container *ngFor="let s of sourceRing.segs"><text *ngIf="s.label" [attr.x]="s.lx" [attr.y]="s.ly">{{ s.label }}</text></ng-container>
+            <text class="ct num" x="100" y="94">{{ sourceRing.total }}</text><text class="cs" x="100" y="114">Total Leads</text>
+          </svg>
+          <div class="dl"><div *ngFor="let s of sources" [style.--c]="s.color"><i></i><span>{{ s.name }}</span><b class="num">{{ s.value }}</b></div></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="row3">
+      <section class="card rise" style="--r:6">
+        <div class="card-h"><svg class="ico"><use href="#i-users"/></svg><h2>Team Performance</h2><span class="smp">Sample data</span><a routerLink="/team">View All</a></div>
+        <div class="tw"><table>
+          <thead><tr><th>#</th><th>Executive</th><th class="c">Leads</th><th class="c">Pending</th><th class="c">Today</th><th class="c">Won</th><th class="c">Conversion</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let t of team; let i = index" [style.--k]="i">
+              <td>{{ i + 1 }}</td>
+              <td><span class="nm"><span class="ini" [style.color]="t.color">{{ t.initials }}</span>{{ t.name }}</span></td>
+              <td class="c num">{{ t.leads }}</td><td class="c num">{{ t.pending }}</td><td class="c num">{{ t.today }}</td><td class="c num">{{ t.won }}</td>
+              <td class="c" [ngClass]="t.won ? 'pos' : 'zero'">{{ t.conversion | number: '1.1-1' }}%</td>
+            </tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section class="card rise" style="--r:7">
+        <div class="card-h"><svg class="ico"><use href="#i-target"/></svg><h2>Lead Status Overview</h2></div>
+        <div class="dn side-by">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Leads by status">
+            <circle cx="100" cy="100" r="68" fill="none" stroke="var(--surface-2)" stroke-width="46"/>
+            <circle *ngFor="let s of statusRing.segs; let k = index" class="seg" [style.--k]="k" [style.stroke-dasharray]="s.dash"
+                    cx="100" cy="100" r="68" fill="none" [attr.stroke]="s.color" stroke-width="46" [attr.stroke-dashoffset]="s.offset" transform="rotate(-90 100 100)"/>
+            <text class="ct num" x="100" y="94">{{ statusRing.total }}</text><text class="cs" x="100" y="114">Total Leads</text>
+          </svg>
+          <div class="st"><div *ngFor="let s of statusLegend" [style.--c]="s.color"><i></i><span>{{ s.name }}</span><em>{{ s.pct }}</em><b class="num">{{ s.value }}</b></div></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card rise" style="--r:8">
+      <div class="card-h"><svg class="ico"><use href="#i-clock"/></svg><h2>Recent Leads</h2><span class="smp">Sample data</span><a routerLink="/leads">View All</a></div>
+      <div class="tw"><table>
+        <thead><tr><th>Date</th><th>Name</th><th>Source</th><th>Interested In</th><th>Next Follow-up</th><th>Status</th><th>Assigned To</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of recent; let i = index" [style.--k]="i">
+            <td>{{ r.date }}</td><td><b style="font-weight:600">{{ r.name }}</b></td><td>{{ r.source }}</td><td>{{ r.interest }}</td><td>{{ r.next }}</td>
+            <td><span class="pill" [style.--c]="r.color">{{ r.status }}</span></td><td>{{ r.owner }}</td>
+          </tr>
+        </tbody>
+      </table></div>
+    </section>
+  </main>
+</div>

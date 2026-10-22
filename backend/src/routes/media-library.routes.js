@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const pool = require('../db/pool');
 const authenticate = require('../middleware/authenticate');
+const r2Service = require('../services/r2.service');
 
 const uploadDir = path.join(__dirname, '../../uploads/media');
 if (!fs.existsSync(uploadDir)) {
@@ -56,7 +57,24 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     else if (mime.startsWith('video/')) fileType = 'video';
     else if (mime.startsWith('audio/')) fileType = 'audio';
 
-    const relativeUrl = `/uploads/media/${req.file.filename}`;
+    let relativeUrl = `/uploads/media/${req.file.filename}`;
+
+    // Upload to Cloudflare R2 if configured
+    if (r2Service.isConfigured()) {
+      try {
+        const r2Key = `media/${req.file.filename}`;
+        await r2Service.uploadFile({
+          key: r2Key,
+          filePath: req.file.path,
+          contentType: req.file.mimetype || 'application/octet-stream'
+        });
+        if (r2Service.publicUrl) {
+          relativeUrl = `${r2Service.publicUrl}/${r2Key}`;
+        }
+      } catch (r2Err) {
+        console.error('Error uploading media to Cloudflare R2:', r2Err);
+      }
+    }
 
     const [result] = await pool.query(
       `INSERT INTO shared_media_library (business_id, name, file_url, file_type, file_size, uploaded_by)
@@ -96,10 +114,16 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     const fileRecord = rows[0];
 
-    // Delete physical file
+    // Delete from Cloudflare R2 if configured
+    if (r2Service.isConfigured()) {
+      const filename = path.basename(fileRecord.file_url);
+      await r2Service.deleteFile(`media/${filename}`);
+    }
+
+    // Delete physical local file if exists
     const filePath = path.join(__dirname, '../../', fileRecord.file_url);
     if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+      try { fs.unlinkSync(filePath); } catch (e) {}
     }
 
     // Delete DB record

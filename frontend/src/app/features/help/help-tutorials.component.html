@@ -1,0 +1,220 @@
+<div class="tutorials-page-wrapper">
+
+  
+
+  <!-- ================= LOADING STATE ================= -->
+  <div *ngIf="loading" class="tutorials-loading-state">
+    <div class="spinner-border text-danger" role="status">
+      <span class="visually-hidden">Loading tutorials...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading YouTube video tutorials...</p>
+  </div>
+
+  <!-- ================= EMPTY STATE (NO VIDEOS) ================= -->
+  <div *ngIf="!loading && helpVideos.length === 0" class="tutorials-empty-card">
+    <div class="empty-yt-icon">
+      <i class="bi bi-youtube"></i>
+    </div>
+    <h2>No Tutorial Videos Available Yet</h2>
+    <p>Admins haven't added any YouTube tutorial links yet. Check back soon or visit CRM Settings to paste tutorial links.</p>
+    <a 
+      *ngIf="isUfsUser" 
+      routerLink="/settings" 
+      [queryParams]="{tab: 'help-video'}" 
+      class="btn btn-primary px-4 py-2 mt-2">
+      <i class="bi bi-plus-circle me-1"></i> Add YouTube Tutorial Link
+    </a>
+  </div>
+
+  <!-- ================= MAIN CONTENT LAYOUT ================= -->
+  <main *ngIf="!loading && helpVideos.length > 0" class="tutorials-main-grid">
+
+    <!-- LEFT / MAIN: VIDEO THEATER & DETAILS -->
+    <section class="player-column">
+
+      <!-- THEATER IFRAME PLAYER FRAME -->
+      <div class="video-theater-frame">
+        <div class="video-aspect-ratio" *ngIf="safeEmbedUrl">
+          <iframe 
+            [src]="safeEmbedUrl" 
+            title="CRM Tutorial Video Player"
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
+        </div>
+
+        <!-- No video selected placeholder -->
+        <div class="no-player-selected" *ngIf="!safeEmbedUrl">
+          <i class="bi bi-play-circle"></i>
+          <span>Select a tutorial from the playlist to start playing</span>
+        </div>
+      </div>
+
+      <!-- VIDEO METADATA & ACTIONS -->
+      <div class="video-details-card" *ngIf="selectedVideo">
+        <div class="video-details-header">
+          <h2 class="video-primary-title">{{ selectedVideo.title }}</h2>
+
+          <div class="video-actions-strip">
+            <button 
+              type="button" 
+              class="action-btn copy-btn" 
+              (click)="copyShareLink()" 
+              title="Copy share link">
+              <i class="bi" [class.bi-link-45deg]="!copied" [class.bi-check-lg]="copied"></i>
+              <span>{{ copied ? 'Link Copied' : 'Share' }}</span>
+            </button>
+
+            <button 
+              type="button" 
+              class="action-btn yt-direct-btn" 
+              (click)="openOnYouTube(selectedVideo.video_url)" 
+              title="Watch directly on YouTube">
+              <i class="bi bi-youtube text-danger"></i>
+              <span>Watch on YouTube</span>
+              <i class="bi bi-box-arrow-up-right ms-1 small-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Meta badges strip -->
+        <div class="video-meta-strip">
+          <div class="author-badge">
+            <div class="author-avatar">
+              <i class="bi bi-person-workspace"></i>
+            </div>
+            <div>
+              <div class="author-name">{{ selectedVideo.uploaded_by_name || 'Trackbox CRM Admin' }}</div>
+              <div class="author-role">Tutorial Publisher</div>
+            </div>
+          </div>
+
+          <div class="meta-tags-group">
+            <span class="meta-tag">
+              <i class="bi bi-calendar3"></i>
+              {{ (selectedVideo.updated_at || selectedVideo.created_at) | date:'mediumDate' }}
+            </span>
+            <span class="meta-tag yt-tag">
+              <i class="bi bi-badge-hd-fill text-danger"></i>
+              YouTube Stream
+            </span>
+          </div>
+        </div>
+
+        <!-- Description & Guide Notes -->
+        <div class="video-description-box" *ngIf="selectedVideo.description">
+          <div class="description-heading">
+            <i class="bi bi-info-circle-fill text-primary"></i>
+            <span>Guide Notes & Instructions</span>
+          </div>
+          <div class="description-body">
+            {{ selectedVideo.description }}
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT: TUTORIAL PLAYLIST & OTHER VIDEOS -->
+    <aside class="playlist-column">
+      <div class="playlist-card">
+        
+        <div class="playlist-card-header">
+          <div class="d-flex align-items-center justify-content-between w-100">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-collection-play-fill text-danger fs-5"></i>
+              <h3 class="playlist-title">All Tutorials</h3>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="playlist-counter-badge">{{ filteredVideos.length }} {{ filteredVideos.length === 1 ? 'Video' : 'Videos' }}</span>
+              <a 
+                *ngIf="isUfsUser" 
+                routerLink="/settings" 
+                [queryParams]="{tab: 'help-video'}" 
+                class="btn-manage-sm"
+                title="Manage Videos">
+                <i class="bi bi-gear-fill"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Search Box -->
+          <div class="search-input-wrap mt-2" *ngIf="helpVideos.length > 0">
+            <i class="bi bi-search search-icon"></i>
+            <input 
+              type="text" 
+              class="form-control tutorial-search" 
+              placeholder="Search tutorials..." 
+              [(ngModel)]="searchQuery">
+            <button 
+              *ngIf="searchQuery" 
+              type="button" 
+              class="clear-search-btn" 
+              (click)="searchQuery = ''" 
+              title="Clear search">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Playlist Items List -->
+        <div class="playlist-items-container">
+          <div 
+            *ngFor="let vid of filteredVideos; let i = index" 
+            class="playlist-item" 
+            [class.active]="vid.id === selectedVideo?.id"
+            (click)="selectVideo(vid)">
+
+            <!-- Thumbnail with overlay -->
+            <div class="playlist-thumb-box">
+              <img 
+                *ngIf="getYouTubeThumbnail(vid.video_url)" 
+                [src]="getYouTubeThumbnail(vid.video_url)" 
+                [alt]="vid.title" 
+                class="playlist-thumb-img" 
+                loading="lazy">
+              
+              <div *ngIf="!getYouTubeThumbnail(vid.video_url)" class="playlist-thumb-fallback">
+                <i class="bi bi-play-circle-fill text-danger"></i>
+              </div>
+
+              <!-- Overlay / Playing Indicator -->
+              <div class="playlist-thumb-overlay" *ngIf="vid.id === selectedVideo?.id">
+                <span class="playing-pulse"><i class="bi bi-soundwave"></i> Playing</span>
+              </div>
+              <div class="playlist-thumb-overlay not-active" *ngIf="vid.id !== selectedVideo?.id">
+                <i class="bi bi-play-fill"></i>
+              </div>
+
+              <!-- Index tag -->
+              <span class="playlist-index-badge">#{{ i + 1 }}</span>
+            </div>
+
+            <!-- Content -->
+            <div class="playlist-item-info">
+              <h4 class="playlist-item-title text-truncate-2" [title]="vid.title">{{ vid.title }}</h4>
+              <p class="playlist-item-desc text-truncate" *ngIf="vid.description">{{ vid.description }}</p>
+              <div class="playlist-item-footer">
+                <span class="item-date">{{ (vid.updated_at || vid.created_at) | date:'shortDate' }}</span>
+                <span *ngIf="vid.id === selectedVideo?.id" class="now-playing-pill">Now Playing</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Filter empty state -->
+          <div *ngIf="filteredVideos.length === 0" class="playlist-filter-empty">
+            <i class="bi bi-search"></i>
+            <p>No tutorials found matching "{{ searchQuery }}"</p>
+            <button type="button" class="btn btn-sm btn-link" (click)="searchQuery = ''">Clear filter</button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </main>
+
+</div>

@@ -5,6 +5,7 @@ const fs = require('fs');
 const authenticate = require('../middleware/authenticate');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegStatic = require('ffmpeg-static');
+const r2Service = require('../services/r2.service');
 
 // Set ffmpeg path
 ffmpeg.setFfmpegPath(ffmpegStatic);
@@ -25,20 +26,52 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.post('/', authenticate, upload.single('file'), (req, res) => {
+router.post('/', authenticate, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
-  const processResponse = (filename) => {
-    const host = req.get('host');
-    const protocol = req.protocol;
-    const url = `${protocol}://${host}/uploads/${filename}`;
-    res.json({ success: true, url, message: 'File uploaded' });
+  const processResponse = async (filename, finalPath) => {
+    try {
+      let finalUrl;
+      if (r2Service.isConfigured()) {
+        const ext = path.extname(filename).toLowerCase();
+        let mimeType = req.file.mimetype || 'application/octet-stream';
+        if (ext === '.mp3') mimeType = 'audio/mp3';
+        else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+        else if (ext === '.png') mimeType = 'image/png';
+        else if (ext === '.mp4') mimeType = 'video/mp4';
+        else if (ext === '.pdf') mimeType = 'application/pdf';
+
+        const r2Result = await r2Service.uploadFile({
+          key: filename,
+          filePath: finalPath,
+          contentType: mimeType
+        });
+
+        if (r2Service.publicUrl) {
+          finalUrl = r2Result.url;
+        } else {
+          const host = req.get('host');
+          const protocol = req.protocol;
+          finalUrl = `${protocol}://${host}/uploads/${filename}`;
+        }
+      } else {
+        const host = req.get('host');
+        const protocol = req.protocol;
+        finalUrl = `${protocol}://${host}/uploads/${filename}`;
+      }
+
+      res.json({ success: true, url: finalUrl, message: 'File uploaded' });
+    } catch (err) {
+      console.error('Error uploading to Cloudflare R2:', err);
+      const host = req.get('host');
+      const protocol = req.protocol;
+      res.json({ success: true, url: `${protocol}://${host}/uploads/${filename}`, message: 'File uploaded (local fallback)' });
+    }
   };
 
   const ext = path.extname(req.file.filename).toLowerCase();
   
   // Transcode .webm (which Chrome/Safari use for voice notes) to .mp3 for WhatsApp
-  // WhatsApp Cloud API is much more reliable with MP3 files than browser-generated Ogg or M4A files
   if (ext === '.webm' || ext === '.ogg' || ext === '.m4a') {
     const inputPath = req.file.path;
     const outputFilename = req.file.filename.replace(ext, '.mp3');
@@ -47,19 +80,17 @@ router.post('/', authenticate, upload.single('file'), (req, res) => {
     ffmpeg(inputPath)
       .toFormat('mp3')
       .audioCodec('libmp3lame')
-      .on('end', () => {
-        // Delete original file to save space
+      .on('end', async () => {
         fs.unlink(inputPath, () => {});
-        processResponse(outputFilename);
+        await processResponse(outputFilename, outputPath);
       })
-      .on('error', (err) => {
+      .on('error', async (err) => {
         console.error('FFmpeg transcoding error:', err);
-        // Fallback to original file on error
-        processResponse(req.file.filename);
+        await processResponse(req.file.filename, req.file.path);
       })
       .save(outputPath);
   } else {
-    processResponse(req.file.filename);
+    await processResponse(req.file.filename, req.file.path);
   }
 });
 

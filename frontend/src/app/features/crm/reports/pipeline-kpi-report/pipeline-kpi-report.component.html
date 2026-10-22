@@ -1,0 +1,549 @@
+<div class="kpi-report-page">
+  <!-- Top Bar Navigation & Actions -->
+  <header class="report-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()" title="Back to CRM Dashboard">
+        <i class="bi bi-arrow-left"></i>
+        <span>Dashboard</span>
+      </button>
+      <div class="header-titles">
+        <div class="breadcrumb">
+          <span>CRM</span>
+          <i class="bi bi-chevron-right"></i>
+          <span>Reports</span>
+          <i class="bi bi-chevron-right"></i>
+          <span class="active-crumb">{{ getActiveTabInfo().label }}</span>
+        </div>
+        <div class="title-row">
+          <div class="title-icon" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
+            <i class="bi" [ngClass]="getActiveTabInfo().icon"></i>
+          </div>
+          <div>
+            <h1>{{ getActiveTabInfo().label }} Report</h1>
+            <p *ngIf="activeType === 'applications'">Showing newly created student applications and submission dates</p>
+            <p *ngIf="activeType === 'offer-letters'">Applications that have received university offer letters</p>
+            <p *ngIf="activeType === 'fees-paid'">Application fee payment receipts and financial transactions</p>
+            <p *ngIf="activeType === 'visa-submitted'">Student applications with visa submitted for embassy processing</p>
+            <p *ngIf="activeType === 'visa-approved'">Visas successfully granted and approved</p>
+            <p *ngIf="activeType === 'enrolled'">Students successfully enrolled or departed for overseas studies</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="action-btn refresh-btn" (click)="fetchData(true)" [disabled]="loading || refreshing" title="Refresh Report">
+        <i class="bi bi-arrow-clockwise" [class.spin]="refreshing"></i>
+        <span>Refresh</span>
+      </button>
+      <button class="action-btn export-btn" (click)="exportToExcel()" [disabled]="items.length === 0" title="Export to Excel">
+        <i class="bi bi-file-earmark-excel"></i>
+        <span>Export .XLSX</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI Switcher Summary Cards Strip -->
+  <section class="kpi-strip">
+    <div class="kpi-nav-card" 
+         *ngFor="let tab of tabs" 
+         [class.active]="activeType === tab.type"
+         (click)="switchTab(tab.type)">
+      <div class="card-icon" [style.background]="tab.tint" [style.color]="tab.color">
+        <i class="bi" [ngClass]="tab.icon"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">{{ tab.label }}</span>
+        <div class="card-val-row">
+          <span class="card-val">{{ getTabBadgeCount(tab.type) | number }}</span>
+          <span class="card-sub-badge" *ngIf="tab.type === 'fees-paid' && summary.feesPaidAmount > 0">
+            ₹{{ summary.feesPaidAmount | number }}
+          </span>
+        </div>
+      </div>
+      <div class="active-indicator" [style.background]="tab.color"></div>
+    </div>
+  </section>
+
+  <!-- Filter & Controls Toolbar -->
+  <section class="toolbar-card">
+    <div class="search-box">
+      <i class="bi bi-search search-icon"></i>
+      <input type="text" 
+             [(ngModel)]="searchQuery" 
+             (keyup.enter)="onSearch()" 
+             [placeholder]="activeType === 'fees-paid' ? 'Search by student name, phone, receipt type...' : 'Search by student, phone, university, country, course...'"/>
+      <button class="clear-btn" *ngIf="searchQuery" (click)="clearSearch()" title="Clear search">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      <!-- Date Filter Dropdown -->
+      <div class="date-dropdown-wrapper">
+        <button class="filter-dropdown-btn" (click)="isDateDropdownOpen = !isDateDropdownOpen">
+          <i class="bi bi-calendar3"></i>
+          <span>{{ getDateRangeLabel() }}</span>
+          <i class="bi bi-chevron-down caret"></i>
+        </button>
+
+        <div class="date-dropdown-menu" *ngIf="isDateDropdownOpen">
+          <button (click)="selectDateRange('all')" [class.selected]="dateRange === 'all'">All Time</button>
+          <button (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">Today</button>
+          <button (click)="selectDateRange('this_week')" [class.selected]="dateRange === 'this_week'">This Week</button>
+          <button (click)="selectDateRange('this_month')" [class.selected]="dateRange === 'this_month'">This Month</button>
+          <button (click)="selectDateRange('last_30_days')" [class.selected]="dateRange === 'last_30_days'">Last 30 Days</button>
+          <button (click)="selectDateRange('this_year')" [class.selected]="dateRange === 'this_year'">This Year</button>
+          <div class="divider"></div>
+          <div class="custom-date-box">
+            <span class="custom-label">Custom Range:</span>
+            <input type="date" [(ngModel)]="customStartDate" placeholder="Start"/>
+            <input type="date" [(ngModel)]="customEndDate" placeholder="End"/>
+            <button class="apply-custom-btn" (click)="applyCustomDate()">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Count Badge -->
+      <div class="total-badge">
+        <span>Total: <strong>{{ totalCount }}</strong> {{ totalCount === 1 ? 'Record' : 'Records' }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Table Card -->
+  <main class="table-card">
+    <div class="table-loading-bar" *ngIf="loading">
+      <div class="indeterminate-bar"></div>
+    </div>
+
+    <!-- 1. Applications Report Table (Newly Created Focus) -->
+    <div class="table-responsive" *ngIf="activeType === 'applications'">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Applicant / Student</th>
+            <th>Contact Details</th>
+            <th>University</th>
+            <th>Course</th>
+            <th>Country</th>
+            <th>Status</th>
+            <th>Newly Created Date</th>
+            <th>Assigned Counselor</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of items; let idx = index" class="data-row">
+            <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
+                  {{ getInitials(it.applicant_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
+                  <small class="lead-sub">App ID: #{{ it.application_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.applicant_phone"><i class="bi bi-telephone"></i> {{ it.applicant_phone }}</span>
+                <span *ngIf="it.applicant_email"><i class="bi bi-envelope"></i> {{ it.applicant_email }}</span>
+                <span *ngIf="!it.applicant_phone && !it.applicant_email" class="text-muted">—</span>
+              </div>
+            </td>
+            <td>
+              <span class="uni-name">{{ it.university || '—' }}</span>
+            </td>
+            <td>
+              <span class="course-name">{{ it.course || '—' }}</span>
+            </td>
+            <td>
+              <span class="country-pill" *ngIf="it.country">{{ it.country }}</span>
+              <span *ngIf="!it.country" class="text-muted">—</span>
+            </td>
+            <td>
+              <span class="status-badge" [style.background]="it.status_color + '20'" [style.color]="it.status_color" [style.border-color]="it.status_color + '40'">
+                {{ it.status_name }}
+              </span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary">{{ it.application_created_at | date:'dd MMM yyyy' }}</span>
+                <span class="time-secondary">{{ it.application_created_at | date:'hh:mm a' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span>
+            </td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead" title="View Lead Details">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. Offer Letters Report Table -->
+    <div class="table-responsive" *ngIf="activeType === 'offer-letters'">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Applicant / Student</th>
+            <th>Contact Details</th>
+            <th>Offering University</th>
+            <th>Course</th>
+            <th>Country</th>
+            <th>Offer Status</th>
+            <th>Updated / Offer Date</th>
+            <th>Counselor</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of items; let idx = index" class="data-row">
+            <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
+                  {{ getInitials(it.applicant_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
+                  <small class="lead-sub">App #{{ it.application_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.applicant_phone"><i class="bi bi-telephone"></i> {{ it.applicant_phone }}</span>
+                <span *ngIf="it.applicant_email"><i class="bi bi-envelope"></i> {{ it.applicant_email }}</span>
+              </div>
+            </td>
+            <td><strong class="text-ink">{{ it.university || '—' }}</strong></td>
+            <td>{{ it.course || '—' }}</td>
+            <td><span class="country-pill">{{ it.country || '—' }}</span></td>
+            <td>
+              <span class="status-badge offer-badge">
+                <i class="bi bi-patch-check-fill me-1"></i> Offer Received
+              </span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary">{{ (it.application_updated_at || it.application_created_at) | date:'dd MMM yyyy' }}</span>
+                <span class="time-secondary">{{ (it.application_updated_at || it.application_created_at) | date:'hh:mm a' }}</span>
+              </div>
+            </td>
+            <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. Fees Paid Report Table -->
+    <div class="table-responsive" *ngIf="activeType === 'fees-paid'">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Receipt #</th>
+            <th>Student / Payer</th>
+            <th>Contact</th>
+            <th>Receipt Type</th>
+            <th>Amount Paid</th>
+            <th>Receipt / Payment Date</th>
+            <th>Recorded On</th>
+            <th>Received By</th>
+            <th>Counselor</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of items; let idx = index" class="data-row">
+            <td>
+              <span class="receipt-id-badge">#RCP-{{ it.receipt_id }}</span>
+            </td>
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">
+                  {{ getInitials(it.applicant_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
+                  <small class="lead-sub">Contact ID: #{{ it.contact_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.applicant_phone"><i class="bi bi-telephone"></i> {{ it.applicant_phone }}</span>
+                <span *ngIf="it.applicant_email"><i class="bi bi-envelope"></i> {{ it.applicant_email }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="fee-type-badge">
+                <i class="bi bi-check-circle-fill me-1"></i> {{ it.receipt_type_name }}
+              </span>
+            </td>
+            <td>
+              <span class="amount-badge">₹{{ it.amount | number:'1.2-2' }}</span>
+            </td>
+            <td>
+              <span class="date-primary">{{ it.receipt_date | date:'dd MMM yyyy' }}</span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary">{{ it.created_at | date:'dd MMM yyyy' }}</span>
+                <span class="time-secondary">{{ it.created_at | date:'hh:mm a' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="counselor-pill">{{ it.received_by_name || 'System' }}</span>
+            </td>
+            <td>
+              <span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span>
+            </td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. Visa Submitted Report Table -->
+    <div class="table-responsive" *ngIf="activeType === 'visa-submitted'">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Applicant / Student</th>
+            <th>Contact Details</th>
+            <th>Destination Country</th>
+            <th>University</th>
+            <th>Course</th>
+            <th>Status</th>
+            <th>Submission / Lodged Date</th>
+            <th>Counselor</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of items; let idx = index" class="data-row">
+            <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
+                  {{ getInitials(it.applicant_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
+                  <small class="lead-sub">App #{{ it.application_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.applicant_phone"><i class="bi bi-telephone"></i> {{ it.applicant_phone }}</span>
+                <span *ngIf="it.applicant_email"><i class="bi bi-envelope"></i> {{ it.applicant_email }}</span>
+              </div>
+            </td>
+            <td><span class="country-pill country-blue">{{ it.country || '—' }}</span></td>
+            <td>{{ it.university || '—' }}</td>
+            <td>{{ it.course || '—' }}</td>
+            <td>
+              <span class="status-badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.3);">
+                <i class="bi bi-send-fill me-1"></i> Visa Applied
+              </span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary">{{ (it.application_updated_at || it.application_created_at) | date:'dd MMM yyyy' }}</span>
+                <span class="time-secondary">{{ (it.application_updated_at || it.application_created_at) | date:'hh:mm a' }}</span>
+              </div>
+            </td>
+            <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 5. Visa Approved Report Table -->
+    <div class="table-responsive" *ngIf="activeType === 'visa-approved'">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Applicant / Student</th>
+            <th>Contact Details</th>
+            <th>Destination Country</th>
+            <th>University</th>
+            <th>Course</th>
+            <th>Status</th>
+            <th>Visa Approval Date</th>
+            <th>Counselor</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of items; let idx = index" class="data-row">
+            <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" style="background: rgba(16, 185, 129, 0.15); color: #059669;">
+                  {{ getInitials(it.applicant_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
+                  <small class="lead-sub">App #{{ it.application_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.applicant_phone"><i class="bi bi-telephone"></i> {{ it.applicant_phone }}</span>
+                <span *ngIf="it.applicant_email"><i class="bi bi-envelope"></i> {{ it.applicant_email }}</span>
+              </div>
+            </td>
+            <td><span class="country-pill country-green">{{ it.country || '—' }}</span></td>
+            <td>{{ it.university || '—' }}</td>
+            <td>{{ it.course || '—' }}</td>
+            <td>
+              <span class="status-badge" style="background: rgba(16, 185, 129, 0.18); color: #047857; border: 1px solid rgba(16, 185, 129, 0.35);">
+                <i class="bi bi-check-circle-fill me-1"></i> Visa Received / Approved
+              </span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary">{{ (it.application_updated_at || it.application_created_at) | date:'dd MMM yyyy' }}</span>
+                <span class="time-secondary">{{ (it.application_updated_at || it.application_created_at) | date:'hh:mm a' }}</span>
+              </div>
+            </td>
+            <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 6. Enrolled / Travelled Report Table -->
+    <div class="table-responsive" *ngIf="activeType === 'enrolled'">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Student Name</th>
+            <th>Contact Details</th>
+            <th>Destination Country</th>
+            <th>University</th>
+            <th>Course</th>
+            <th>Status</th>
+            <th>Enrollment / Travel Date</th>
+            <th>Counselor</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of items; let idx = index" class="data-row">
+            <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td>
+              <div class="lead-cell">
+                <div class="lead-avatar" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5;">
+                  {{ getInitials(it.applicant_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
+                  <small class="lead-sub">App #{{ it.application_id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.applicant_phone"><i class="bi bi-telephone"></i> {{ it.applicant_phone }}</span>
+                <span *ngIf="it.applicant_email"><i class="bi bi-envelope"></i> {{ it.applicant_email }}</span>
+              </div>
+            </td>
+            <td><span class="country-pill country-purple">{{ it.country || '—' }}</span></td>
+            <td>{{ it.university || '—' }}</td>
+            <td>{{ it.course || '—' }}</td>
+            <td>
+              <span class="status-badge" style="background: rgba(99, 102, 241, 0.18); color: #4338ca; border: 1px solid rgba(99, 102, 241, 0.35);">
+                <i class="bi bi-mortarboard-fill me-1"></i> Enrolled / Travelled
+              </span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary">{{ (it.application_updated_at || it.application_created_at) | date:'dd MMM yyyy' }}</span>
+                <span class="time-secondary">{{ (it.application_updated_at || it.application_created_at) | date:'hh:mm a' }}</span>
+              </div>
+            </td>
+            <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+                <i class="bi bi-person-lines-fill"></i>
+                <span>Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!loading && items.length === 0">
+      <div class="empty-icon" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
+        <i class="bi" [ngClass]="getActiveTabInfo().icon"></i>
+      </div>
+      <h3>No {{ getActiveTabInfo().label }} records found</h3>
+      <p>There are no records matching your current filter criteria or date range.</p>
+      <button class="btn-reset-filter" (click)="clearSearch(); selectDateRange('all')">Reset Filters</button>
+    </div>
+
+    <!-- Pagination Footer -->
+    <footer class="table-pagination" *ngIf="totalCount > 0">
+      <div class="pagination-info">
+        Showing <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> to <strong>{{ (currentPage - 1) * pageSize + items.length }}</strong> of <strong>{{ totalCount }}</strong> entries
+      </div>
+      <div class="pagination-buttons">
+        <button class="pg-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+          <i class="bi bi-chevron-left"></i> Previous
+        </button>
+        <button class="pg-page-btn" 
+                *ngFor="let p of [].constructor(totalPages); let i = index" 
+                [class.active]="currentPage === (i + 1)"
+                (click)="goToPage(i + 1)">
+          {{ i + 1 }}
+        </button>
+        <button class="pg-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+          Next <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </footer>
+  </main>
+</div>

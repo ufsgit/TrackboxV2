@@ -157,13 +157,18 @@
 
           <div *ngIf="!loadingDocuments && contactDocuments.length > 0" class="row g-3">
             <div class="col-md-6" *ngFor="let doc of contactDocuments">
-              <a [href]="baseUrl + doc.file_url" target="_blank" class="d-flex align-items-center gap-3 p-3 bg-white rounded-3 border text-decoration-none text-dark shadow-sm">
-                <i class="bi bi-file-earmark-pdf text-danger fs-2"></i>
-                <div>
-                  <h6 class="mb-0 fw-bold">{{ doc.file_name }}</h6>
-                  <span class="text-muted small">{{ doc.file_size }} &bull; {{ doc.document_type }}</span>
-                </div>
-              </a>
+              <div class="d-flex align-items-center justify-content-between p-3 bg-white rounded-3 border shadow-sm">
+                <a [href]="doc.file_url.startsWith('http') ? doc.file_url : (baseUrl + doc.file_url)" target="_blank" class="d-flex align-items-center gap-3 text-decoration-none text-dark flex-grow-1 overflow-hidden me-2">
+                  <i class="bi bi-file-earmark-pdf text-danger fs-2 flex-shrink-0"></i>
+                  <div class="text-truncate">
+                    <h6 class="mb-0 fw-bold text-truncate" [title]="doc.file_name">{{ doc.file_name }}</h6>
+                    <span class="text-muted small">{{ doc.file_size }} &bull; {{ doc.document_type }}</span>
+                  </div>
+                </a>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteDocument(doc, $event)" title="Delete Document" style="width: 32px; height: 32px;">
+                  <i class="bi bi-trash3" style="font-size: 0.85rem;"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>

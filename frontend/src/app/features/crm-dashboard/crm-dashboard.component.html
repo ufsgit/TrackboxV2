@@ -1,0 +1,384 @@
+<div class="shell full-width">
+  <!-- Main Content Dashboard Area -->
+  <main class="main">
+    
+    <!-- Header -->
+    <div class="head rise">
+      <div class="head-t">
+        <h1>{{ greeting }}, {{ userName }} 👋</h1>
+        <p>Here's what's happening at Trackbox today.</p>
+      </div>
+
+      <span class="syn" title="Status of background telemetry">
+        <i class="live"></i>
+        <span>{{ syncedLabel }}</span>
+      </span>
+
+      <button class="btn blue" type="button" [class.spin]="syncing" [disabled]="syncing" (click)="syncData()" title="Refresh live analytics">
+        <svg class="ico"><use href="#i-sync"/></svg>
+        <span class="t">Sync Data</span>
+      </button>
+
+      <!-- Custom Premium Range Dropdown -->
+      <div class="custom-range-picker" [class.open]="rangeMenuOpen">
+        <button type="button" class="range-trigger" (click)="toggleRangeMenu()" title="Filter by date range" aria-haspopup="listbox" [attr.aria-expanded]="rangeMenuOpen">
+          <svg class="cal-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="range-val">{{ currentRangeLabel }}</span>
+          <svg class="chevron-ico" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
+        </button>
+
+        <div class="range-menu" *ngIf="rangeMenuOpen" role="listbox">
+          <div class="menu-head">Filter Period</div>
+          <button type="button" 
+                  class="range-item" 
+                  *ngFor="let r of ranges" 
+                  [class.active]="r.value === range"
+                  (click)="selectRange(r.value)"
+                  role="option" 
+                  [attr.aria-selected]="r.value === range">
+            <div class="item-text">
+              <span class="item-title">{{ r.label }}</span>
+              <span class="item-desc">{{ r.desc }}</span>
+            </div>
+            <svg class="check-ico" *ngIf="r.value === range" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7 Tinted KPI Cards -->
+    <section class="kpis" aria-label="Key numbers">
+      <article class="kpi rise" *ngFor="let k of kpis; let i = index" 
+               [style.--c]="k.color" 
+               [style.--tint]="k.tint" 
+               [style.--r]="i + 1"
+               [routerLink]="k.link ? k.link : null" [queryParams]="k.queryParams || null"
+               [style.cursor]="k.link ? 'pointer' : 'default'"
+               [title]="k.link ? ('View ' + k.label) : ''">
+        <div class="kpi-l">
+          <svg class="ico"><use [attr.href]="'#' + k.icon"/></svg>
+          <span>{{ k.label }}</span>
+        </div>
+        <div class="kpi-b">
+          <span class="kpi-n num">{{ k.display }}</span>
+          <span class="spark" aria-hidden="true">
+            <i *ngFor="let h of k.spark; let j = index" [style.--h]="(h * 100) + '%'" [style.--k]="j"></i>
+          </span>
+        </div>
+        <div class="kpi-d">
+          <b [class.flat]="!k.delta">{{ k.delta ? '▲ ' + k.delta : '– 0%' }}</b>
+          <span>vs last month</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- 3-Up Analytics Row: Lead Status Pipeline, Monthly Performance, Lead Source Analysis -->
+    <div class="row2">
+      <!-- Funnel: Lead Status Pipeline -->
+      <section class="card rise" style="--r:3">
+        <div class="card-h">
+          <svg class="ico"><use href="#i-funnel"/></svg>
+          <h2>Lead Status Pipeline</h2>
+        </div>
+        <div class="fun" [style.height.px]="funnelH">
+          <div class="fun-chart">
+            <svg preserveAspectRatio="none" [attr.viewBox]="'0 0 200 ' + funnelH" role="img" aria-label="Lead status funnel">
+              <defs>
+                <linearGradient *ngFor="let f of funnel; let i = index" [id]="'fg' + i" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" [attr.stop-color]="f.a"/>
+                  <stop offset="100%" [attr.stop-color]="f.b"/>
+                </linearGradient>
+              </defs>
+              <polygon *ngFor="let f of funnel; let i = index" 
+                       class="stage" 
+                       [class.active]="hoveredStage === i"
+                       [style.--k]="i" 
+                       [attr.fill]="'url(#fg' + i + ')'" 
+                       [attr.points]="f.points"
+                       (mouseenter)="hoveredStage = i"
+                       (mouseleave)="hoveredStage = null"
+                       (click)="navigateToFunnel(f)"/>
+            </svg>
+          </div>
+          <div class="fl">
+            <div *ngFor="let f of funnel; let i = index" 
+                 class="fl-row"
+                 [class.active]="hoveredStage === i"
+                 (mouseenter)="hoveredStage = i"
+                 (mouseleave)="hoveredStage = null"
+                 (click)="navigateToFunnel(f)">
+              <div class="fl-lead">
+                <span class="fl-dot" 
+                      [style.background]="'linear-gradient(135deg, ' + f.a + ', ' + f.b + ')'"
+                      [style.box-shadow]="'0 2px 5px ' + f.a + '55'">
+                </span>
+                <div class="fl-text">
+                  <b class="fl-val num">{{ f.shown | number }}</b>
+                  <span class="fl-name">{{ f.label }}</span>
+                </div>
+              </div>
+              <div class="fl-rate">
+                <span class="fl-pct" 
+                      [style.color]="f.b" 
+                      [style.background]="f.a + '16'" 
+                      [style.border-color]="f.a + '35'">
+                  {{ f.pct }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grouped Bars: Monthly Performance -->
+      <section class="card wide rise" style="--r:4">
+        <div class="card-h">
+          <svg class="ico"><use href="#i-chart"/></svg>
+          <h2>Monthly Performance</h2>
+        </div>
+        <div class="leg">
+          <span *ngFor="let s of series" [style.--c]="s.color">
+            <i></i>{{ s.name }}
+          </span>
+        </div>
+        <div class="gb-wrap">
+          <div class="gy">
+            <span *ngFor="let t of ticks" [style.bottom.%]="t / chartMax * 100">{{ t }}</span>
+          </div>
+          <div class="gp">
+            <i class="gl" *ngFor="let t of ticks" [style.bottom.%]="t / chartMax * 100"></i>
+            <div class="grp" *ngFor="let m of months; let mi = index" [title]="m">
+              <div class="gb num" *ngFor="let s of series; let si = index"
+                   [style.--h]="(s.values[mi] / chartMax * 100) + '%'" 
+                   [style.--c]="s.color" 
+                   [style.--k]="mi * series.length + si">
+                <em>{{ s.values[mi] }}</em>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gx">
+          <span *ngFor="let m of months">{{ m }}</span>
+        </div>
+      </section>
+
+      <!-- Source Donut: Lead Source Analysis -->
+      <section class="card rise" style="--r:5">
+        <div class="card-h">
+          <svg class="ico"><use href="#i-pie"/></svg>
+          <h2>Lead Source Analysis</h2>
+        </div>
+        <div class="dn">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Leads by source">
+            <circle cx="100" cy="100" r="70" fill="none" stroke="var(--surface-2)" stroke-width="36"/>
+            <circle *ngFor="let s of sourceRing.segs; let k = index" 
+                    class="seg" 
+                    [style.--k]="k" 
+                    [style.stroke-dasharray]="s.dash"
+                    cx="100" cy="100" r="70" fill="none" 
+                    [attr.stroke]="s.color" stroke-width="36" 
+                    [attr.stroke-dashoffset]="s.offset" 
+                    transform="rotate(-90 100 100)"/>
+            <ng-container *ngFor="let s of sourceRing.segs">
+              <text *ngIf="s.label" [attr.x]="s.lx" [attr.y]="s.ly">{{ s.label }}</text>
+            </ng-container>
+            <text class="ct num" x="100" y="94">{{ sourceRing.total }}</text>
+            <text class="cs" x="100" y="114">Total Leads</text>
+          </svg>
+          <div class="dl">
+            <div *ngFor="let s of sources" [style.--c]="s.color">
+              <i></i>
+              <span>{{ s.name }}</span>
+              <b class="num">{{ s.value }}</b>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Table / Donut Row: Team Performance + Lead Status Overview -->
+    <div class="row3">
+      <!-- Team Performance Table -->
+      <section class="card rise" style="--r:6">
+        <div class="card-h">
+          <svg class="ico"><use href="#i-users"/></svg>
+          <h2>Team Performance</h2>
+          <button type="button" class="view-all-btn" (click)="openTeamModal()">View All</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Executive</th>
+                <th class="c">Leads</th>
+                <th class="c">Pending</th>
+                <th class="c">Today</th>
+                <th class="c">Won</th>
+                <th class="c">Conversion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let t of topTeam; let i = index" [style.--k]="i">
+                <td>{{ i + 1 }}</td>
+                <td>
+                  <span class="nm">
+                    <span class="ini" [style.color]="t.color">{{ t.initials }}</span>
+                    {{ t.name }}
+                  </span>
+                </td>
+                <td class="c num">{{ t.leads }}</td>
+                <td class="c num">{{ t.pending }}</td>
+                <td class="c num">{{ t.today }}</td>
+                <td class="c num">{{ t.won }}</td>
+                <td class="c" [ngClass]="t.won ? 'pos' : 'zero'">{{ t.conversion | number: '1.1-1' }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Lead Status Overview Donut -->
+      <section class="card rise" style="--r:7">
+        <div class="card-h">
+          <svg class="ico"><use href="#i-target"/></svg>
+          <h2>Lead Status Overview</h2>
+        </div>
+        <div class="dn side-by">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Leads by status">
+            <circle cx="100" cy="100" r="68" fill="none" stroke="var(--surface-2)" stroke-width="46"/>
+            <circle *ngFor="let s of statusRing.segs; let k = index" 
+                    class="seg" 
+                    [style.--k]="k" 
+                    [style.stroke-dasharray]="s.dash"
+                    cx="100" cy="100" r="68" fill="none" 
+                    [attr.stroke]="s.color" stroke-width="46" 
+                    [attr.stroke-dashoffset]="s.offset" 
+                    transform="rotate(-90 100 100)"/>
+            <text class="ct num" x="100" y="94">{{ statusRing.total }}</text>
+            <text class="cs" x="100" y="114">Total Leads</text>
+          </svg>
+          <div class="st">
+            <div *ngFor="let s of statusLegend" [style.--c]="s.color">
+              <i></i>
+              <span>{{ s.name }}</span>
+              <em>{{ s.pct }}</em>
+              <b class="num">{{ s.value }}</b>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Recent Leads Table -->
+    <section class="card rise" style="--r:8">
+      <div class="card-h">
+        <svg class="ico"><use href="#i-clock"/></svg>
+        <h2>Recent Leads</h2>
+        <a routerLink="/contacts">View All</a>
+      </div>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Name</th>
+              <th>Source</th>
+              <th>Interested In</th>
+              <th>Next Follow-up</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of recent; let i = index" [style.--k]="i">
+              <td>{{ r.date }}</td>
+              <td><b style="font-weight:600">{{ r.name }}</b></td>
+              <td>{{ r.source }}</td>
+              <td>{{ r.interest }}</td>
+              <td>{{ r.next }}</td>
+              <td><span class="pill" [style.--c]="r.color">{{ r.status }}</span></td>
+              <td>{{ r.owner }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer Note -->
+    <footer class="foot">
+      Totals, status counts and follow-up numbers come from your Trackbox database. Trends, monthly figures, sources, team rows and recent leads reflect connected workspace metrics.
+    </footer>
+
+  </main>
+</div>
+
+<!-- Team Members Modal -->
+<div class="tb-modal-backdrop" *ngIf="showTeamModal" (click)="closeTeamModal()">
+  <div class="tb-modal" (click)="$event.stopPropagation()">
+    <div class="tb-modal-header">
+      <div class="tb-modal-title">
+        <div class="tb-modal-icon">
+          <svg class="ico"><use href="#i-users"/></svg>
+        </div>
+        <div>
+          <h3>All Team Performance</h3>
+          <p class="tb-modal-sub">Performance metrics & conversion rates for all team members ({{ team.length }})</p>
+        </div>
+      </div>
+      <button type="button" class="tb-modal-close" (click)="closeTeamModal()" aria-label="Close modal">
+        ✕
+      </button>
+    </div>
+
+    <div class="tb-modal-body">
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Executive</th>
+              <th class="c">Leads</th>
+              <th class="c">Pending</th>
+              <th class="c">Today</th>
+              <th class="c">Won</th>
+              <th class="c">Conversion</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of team; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>
+                <span class="nm">
+                  <span class="ini" [style.color]="t.color">{{ t.initials }}</span>
+                  <span style="font-weight: 600;">{{ t.name }}</span>
+                </span>
+              </td>
+              <td class="c num" style="font-weight: 600;">{{ t.leads }}</td>
+              <td class="c num">{{ t.pending }}</td>
+              <td class="c num">{{ t.today }}</td>
+              <td class="c num" style="color: var(--green); font-weight: 600;">{{ t.won }}</td>
+              <td class="c" [ngClass]="t.won ? 'pos' : 'zero'">
+                <b>{{ t.conversion | number: '1.1-1' }}%</b>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tb-modal-footer">
+      <span class="tb-modal-counter">Total <b>{{ team.length }}</b> members</span>
+      <button type="button" class="tb-modal-btn-close" (click)="closeTeamModal()">Close</button>
+    </div>
+  </div>
+</div>

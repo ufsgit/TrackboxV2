@@ -1,0 +1,25 @@
+// Paste into src/styles.scss (global): light/dark theme tokens
+/* Layout: fixed navy sidebar + main column. Header, 7 tinted KPI cards, 3-up analytics row, table/donut row, recent leads table. */
+:root{
+  --font:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+  --bg:#EDF2FB; --surface:#FFFFFF; --surface-2:#F3F6FC; --ink:#0F2347; --muted:#667593; --line:#E2E9F5;
+  --brand:#1A6FF0; --brand-soft:#E3EEFF;
+  --blue:#2F7BF5; --green:#1FB874; --orange:#F59B2B; --purple:#8B5CF6; --pink:#F0568C; --teal:#17B3C4; --red:#EF4B5B; --yellow:#F2C230;
+  --t-blue:#E8F1FF; --t-green:#E5F8EE; --t-purple:#F0EAFF; --t-orange:#FFF0E0; --t-sky:#E3F1FF; --t-red:#FFE9EC; --t-lav:#EEE9FF;
+  --side-1:#0D3F9C; --side-2:#092C6E; --side-3:#06214F;
+  --shadow:0 1px 2px rgba(15,35,71,.04),0 6px 18px -10px rgba(15,35,71,.16);
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#08122B; --surface:#0F1D3F; --surface-2:#142750; --ink:#E8EEFF; --muted:#8FA0C6; --line:#1E3160;
+  --brand:#4C94FF; --brand-soft:#16315F;
+  --t-blue:#112A52; --t-green:#0F3329; --t-purple:#271E52; --t-orange:#3A2A14; --t-sky:#0F2D4F; --t-red:#3F1A25; --t-lav:#231B4D;
+  --side-1:#0B2F73; --side-2:#081F52; --side-3:#051438;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#08122B; --surface:#0F1D3F; --surface-2:#142750; --ink:#E8EEFF; --muted:#8FA0C6; --line:#1E3160;
+  --brand:#4C94FF; --brand-soft:#16315F;
+  --t-blue:#112A52; --t-green:#0F3329; --t-purple:#271E52; --t-orange:#3A2A14; --t-sky:#0F2D4F; --t-red:#3F1A25; --t-lav:#231B4D;
+  --side-1:#0B2F73; --side-2:#081F52; --side-3:#051438;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.6); color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:13.5px/1.45 var(--font);-webkit-font-smoothing:antialiased}

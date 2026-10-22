@@ -5,11 +5,9 @@
     <div class="top-bar-main">
       <!-- Brand Column: Trackbox Logo and CRM Dropdown in a row -->
       <div class="brand-column">
-        <!-- Logo Icon: Compact accent square with white T -->
-        <div class="logo-icon-wrapper" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer;">
-          <div class="logo-icon" style="width: 36px; height: 36px; background: #5b5bf0; border-radius: 9px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(91, 91, 240, 0.25);">
-            <span style="color: #ffffff; font-weight: 800; font-size: 1.25rem; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1;">T</span>
-          </div>
+        <!-- Logo Icon: Official Trackbox Hexagon Icon -->
+        <div class="logo-icon-wrapper" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer; display: flex; align-items: center;">
+          <img src="assets/images/trackbox-icon.png" alt="Trackbox Logo" style="height: 34px; width: auto; object-fit: contain;">
         </div>
 
         <div class="brand-text-column" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;">
@@ -129,6 +127,10 @@
                 <i class="bi bi-circle-fill"></i>
                 <span>Conversation report</span>
               </a>
+              <a routerLink="/reports/receipt-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-receipt"></i>
+                <span>Receipts Report</span>
+              </a>
             </div>
           </div>
         </div>
@@ -238,6 +240,10 @@
               <a routerLink="/reports/lead-creation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
                 <i class="bi bi-person-plus"></i>
                 <span>Lead Creation Report</span>
+              </a>
+              <a routerLink="/reports/receipt-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-receipt"></i>
+                <span>Receipts Report</span>
               </a>
             </div>
           </div>
@@ -390,10 +396,22 @@
 
   <!-- Right Side Actions -->
   <div class="top-actions" *ngIf="user$ | async as user">
+    <!-- Help Button -->
+    <button class="help-btn" routerLink="/help" title="Watch CRM Tutorial Videos">
+      <i class="bi bi-play-circle-fill"></i>
+      <span>Help</span>
+    </button>
+
     <!-- Check In / Check Out -->
     <button class="checkin-btn" [class.checked-in]="isCheckedIn" (click)="toggleCheckIn()">
       <i class="bi" [class.bi-box-arrow-in-right]="!isCheckedIn" [class.bi-box-arrow-left]="isCheckedIn"></i>
       <span>{{ isCheckedIn ? 'Check Out' : 'Check In' }}</span>
+    </button>
+
+    <!-- Add Lead Button -->
+    <button class="add-lead-btn" (click)="navigateToAddLead()" title="Add New Lead">
+      <i class="bi bi-plus-lg"></i>
+      <span>Add Lead</span>
     </button>
 
     <!-- Notification Bell & Dropdown Wrapper -->
@@ -492,6 +510,9 @@
         <a *ngIf="authService.hasPermission('Document Type', 'view')" routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-file-earmark-text"></i> Document Type
         </a>
+        <a routerLink="/system-settings/receipt-types" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-receipt-cutoff"></i> Receipt Type
+        </a>
         <a *ngIf="authService.hasPermission('Channel', 'view')" routerLink="/system-settings/channels" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-chat-left-dots"></i> Channels
         </a>
@@ -499,6 +520,9 @@
 
         <ng-container *ngIf="hasAnyGeneralSetting()">
         <div class="popup-section-header">General & Lead Settings</div>
+        <a *ngIf="isUfsUser" routerLink="/settings" [queryParams]="{tab: 'help-video'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-camera-video"></i> Help Video Management
+        </a>
         <a *ngIf="authService.hasPermission('Channels Manager', 'view')" routerLink="/settings" [queryParams]="{tab: 'whatsapp'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-cpu"></i> Channels Manager
         </a>
@@ -577,6 +601,9 @@
         </a>
         <a routerLink="/system-settings/document-type" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-file-earmark-text"></i> Document Type
+        </a>
+        <a routerLink="/system-settings/receipt-types" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-receipt-cutoff"></i> Receipt Type
         </a>
 
         <div class="popup-section-header">General & Lead Settings</div>
@@ -701,3 +728,265 @@
     </div>
   </div>
 </div>
+
+<!-- ===================== CRM HELP VIDEO MODAL (YOUTUBE STYLE) ===================== -->
+<div class="help-video-modal-backdrop" *ngIf="showHelpVideoModal" (click)="closeHelpVideoModal()">
+  <div class="help-video-modal-card yt-modal-container" (click)="$event.stopPropagation()" [class.theater-mode]="!!selectedTutorialVideo">
+    
+    <!-- ─────────────────────────────────────────────────────────────
+         VIEW 1: YOUTUBE VIDEO LISTING (WHEN NO VIDEO ACTIVE)
+         ───────────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="!selectedTutorialVideo">
+      <!-- Modal Header -->
+      <div class="yt-modal-header">
+        <div class="yt-header-left">
+          <div class="yt-brand-badge">
+            <i class="bi bi-play-btn-fill text-danger"></i>
+            <span>CRM Tutorial Hub</span>
+          </div>
+          <h3 class="yt-modal-title">Help & Video Tutorials</h3>
+          <p class="yt-modal-subtitle">Watch step-by-step walkthroughs to master your Trackbox CRM workflows.</p>
+        </div>
+
+        <div class="yt-header-right">
+          <!-- Search Input -->
+          <div class="yt-search-box">
+            <i class="bi bi-search"></i>
+            <input 
+              type="text" 
+              class="form-control yt-search-input" 
+              placeholder="Search tutorials..." 
+              [(ngModel)]="tutorialSearchQuery">
+            <button 
+              *ngIf="tutorialSearchQuery" 
+              type="button" 
+              class="btn-clear-search" 
+              (click)="tutorialSearchQuery = ''">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <button class="help-video-modal-close" (click)="closeHelpVideoModal()" title="Close">&times;</button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="yt-modal-body">
+        <!-- Loading State -->
+        <div *ngIf="helpVideoLoading" class="yt-loading-box">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 text-muted">Loading tutorial videos...</p>
+        </div>
+
+        <!-- Video Listing Grid -->
+        <ng-container *ngIf="!helpVideoLoading">
+          <div *ngIf="filteredHelpVideos.length > 0" class="yt-videos-grid">
+            <div 
+              class="yt-video-card" 
+              *ngFor="let video of filteredHelpVideos" 
+              (click)="playTutorialVideo(video)">
+              
+              <!-- Card Thumbnail Frame -->
+              <div class="yt-thumbnail-box">
+                <!-- Video snapshot / preview poster -->
+                <video 
+                  [src]="video.video_url" 
+                  preload="metadata" 
+                  class="yt-thumb-video" 
+                  muted 
+                  playsinline></video>
+                <div class="yt-thumb-overlay"></div>
+                
+                <!-- Play Button Center Overlay -->
+                <div class="yt-play-button-overlay">
+                  <div class="yt-play-circle">
+                    <i class="bi bi-play-fill"></i>
+                  </div>
+                </div>
+
+                <!-- Badges -->
+                <div class="yt-badge-top">
+                  <span class="badge-pill-pill">Tutorial</span>
+                </div>
+                <div class="yt-badge-bottom">
+                  <span class="badge-duration">{{ video.file_size || 'HD Video' }}</span>
+                </div>
+              </div>
+
+              <!-- Card Details -->
+              <div class="yt-card-content">
+                <div class="yt-card-header-row">
+                  <div class="yt-avatar-icon">
+                    <i class="bi bi-person-workspace"></i>
+                  </div>
+                  <div class="yt-card-text">
+                    <h4 class="yt-card-title text-truncate-2" [title]="video.title">{{ video.title }}</h4>
+                    <p class="yt-card-desc text-truncate-2">{{ video.description || 'Complete walkthrough covering key actions and best practices.' }}</p>
+                  </div>
+                </div>
+
+                <div class="yt-card-footer">
+                  <div class="yt-author-meta">
+                    <span class="author-name">{{ video.uploaded_by_name || 'Trackbox CRM' }}</span>
+                    <span class="bullet">•</span>
+                    <span class="date">{{ (video.updated_at || video.created_at) | date:'mediumDate' }}</span>
+                  </div>
+                  <button type="button" class="btn btn-sm yt-watch-btn">
+                    <i class="bi bi-play-circle-fill me-1"></i> Watch
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Empty State (No videos match search or no video uploaded) -->
+          <div *ngIf="filteredHelpVideos.length === 0" class="yt-empty-state">
+            <div class="yt-empty-circle">
+              <i class="bi bi-camera-video-off"></i>
+            </div>
+            <h4>{{ tutorialSearchQuery ? 'No matching tutorials found' : 'No Tutorial Videos Available Yet' }}</h4>
+            <p>{{ tutorialSearchQuery ? 'Try searching for another keyword or clear the search bar.' : 'The CRM tutorial video library has not been uploaded yet. Check back soon!' }}</p>
+            <button *ngIf="tutorialSearchQuery" type="button" class="btn btn-sm btn-outline-primary mt-2" (click)="tutorialSearchQuery = ''">
+              Clear Search
+            </button>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="yt-modal-footer">
+        <div class="yt-footer-count text-muted small">
+          <i class="bi bi-collection-play me-1"></i>
+          <span>{{ filteredHelpVideos.length }} {{ filteredHelpVideos.length === 1 ? 'Tutorial' : 'Tutorials' }} Available</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm px-4" (click)="closeHelpVideoModal()">Close</button>
+      </div>
+    </ng-container>
+
+
+    <!-- ─────────────────────────────────────────────────────────────
+         VIEW 2: POP-UP VIDEO THEATER PLAYER (WHEN A VIDEO IS CLICKED)
+         ───────────────────────────────────────────────────────────── -->
+    <ng-container *ngIf="selectedTutorialVideo">
+      <!-- Player Header -->
+      <div class="yt-player-modal-header">
+        <div class="yt-player-header-left">
+          <button type="button" class="btn yt-btn-back" (click)="backToVideoListing()">
+            <i class="bi bi-arrow-left"></i>
+            <span>All Tutorials</span>
+          </button>
+          <div class="header-divider"></div>
+          <div class="yt-playing-info">
+            <span class="yt-now-playing-label">Now Playing</span>
+            <h4 class="yt-playing-title text-truncate" [title]="selectedTutorialVideo.title">{{ selectedTutorialVideo.title }}</h4>
+          </div>
+        </div>
+        <button class="help-video-modal-close" (click)="closeHelpVideoModal()" title="Close">&times;</button>
+      </div>
+
+      <!-- Player Body -->
+      <div class="yt-player-modal-body">
+        <div class="yt-theater-grid">
+          <!-- Main Player Column -->
+          <div class="yt-main-player-col">
+            <!-- Video Player Frame -->
+            <div class="yt-video-player-frame">
+              <video 
+                controls 
+                autoplay 
+                class="yt-video-element" 
+                [src]="selectedTutorialVideo.video_url" 
+                playsinline>
+                Your browser does not support HTML5 video playback.
+              </video>
+            </div>
+
+            <!-- Video Details Header -->
+            <div class="yt-player-meta-box">
+              <h3 class="yt-player-title">{{ selectedTutorialVideo.title }}</h3>
+              
+              <div class="yt-player-info-bar">
+                <div class="yt-channel-badge">
+                  <div class="yt-channel-avatar">
+                    <i class="bi bi-patch-check-fill text-primary"></i>
+                  </div>
+                  <div>
+                    <div class="yt-channel-name">{{ selectedTutorialVideo.uploaded_by_name || 'Trackbox CRM' }}</div>
+                    <div class="yt-channel-sub">Official CRM Tutorial</div>
+                  </div>
+                </div>
+
+                <div class="yt-player-meta-pills">
+                  <span class="yt-pill">
+                    <i class="bi bi-clock-history"></i> {{ (selectedTutorialVideo.updated_at || selectedTutorialVideo.created_at) | date:'mediumDate' }}
+                  </span>
+                  <span class="yt-pill" *ngIf="selectedTutorialVideo.file_size">
+                    <i class="bi bi-hdd"></i> {{ selectedTutorialVideo.file_size }}
+                  </span>
+                  <span class="yt-pill text-primary">
+                    <i class="bi bi-lightning-charge-fill"></i> Cloudflare R2
+                  </span>
+                </div>
+              </div>
+
+              <!-- About this Tutorial Notes Box -->
+              <div *ngIf="selectedTutorialVideo.description" class="yt-guide-notes-card">
+                <div class="notes-header">
+                  <i class="bi bi-info-circle-fill text-primary"></i>
+                  <span>About this Tutorial & Guide Notes</span>
+                </div>
+                <div class="notes-content">
+                  {{ selectedTutorialVideo.description }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side Playlist Column (shown if more than 1 video) -->
+          <div *ngIf="helpVideos.length > 1" class="yt-sidebar-playlist-col">
+            <div class="playlist-header">
+              <div class="playlist-title">
+                <i class="bi bi-collection-play text-primary"></i>
+                <span>More Tutorials ({{ helpVideos.length }})</span>
+              </div>
+            </div>
+
+            <div class="playlist-items-list">
+              <div 
+                *ngFor="let v of helpVideos; let i = index" 
+                class="playlist-item" 
+                [class.active]="v.id === selectedTutorialVideo.id"
+                (click)="playTutorialVideo(v)">
+                
+                <div class="playlist-thumb">
+                  <video [src]="v.video_url" preload="metadata" class="playlist-thumb-video" muted playsinline></video>
+                  <div class="playlist-thumb-overlay" *ngIf="v.id === selectedTutorialVideo.id">
+                    <i class="bi bi-soundwave text-primary"></i>
+                  </div>
+                </div>
+
+                <div class="playlist-info">
+                  <div class="playlist-item-title text-truncate-2">{{ v.title }}</div>
+                  <div class="playlist-item-meta">{{ v.file_size || 'Video' }} • {{ (v.updated_at || v.created_at) | date:'shortDate' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Footer -->
+      <div class="yt-modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="backToVideoListing()">
+          <i class="bi bi-arrow-left me-1"></i> Back to all videos
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm px-4" (click)="closeHelpVideoModal()">Close</button>
+      </div>
+    </ng-container>
+
+  </div>
+</div>
+
+

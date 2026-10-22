@@ -2848,6 +2848,511 @@ const getLeadFlowReport = async (req, res) => {
   }
 };
 
+const getPipelineKpiReport = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const userId = Number(req.user.userId || req.user.id);
+    const role = req.user.role || 'admin';
+    const {
+      type = 'applications',
+      dateRange = 'all',
+      startDate,
+      endDate,
+      search = '',
+      page = 1,
+      limit = 25
+    } = req.query;
+
+    // 1. Role / Agent scoping
+    let agentScopeClause = '';
+    const agentScopeParams = [];
+    if (role === 'agent') {
+      const [teamRows] = await pool.query(
+        `SELECT user_id FROM team_members WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
+        [userId, bizId]
+      );
+      const scopedIds = teamRows.map(r => Number(r.user_id));
+      if (!scopedIds.includes(userId)) scopedIds.push(userId);
+      agentScopeClause = `AND c.assigned_to IN (${scopedIds.map(() => '?').join(',')})`;
+      agentScopeParams.push(...scopedIds);
+    }
+
+    // 2. Date filter builder
+    const buildDateFilter = (field) => {
+      let clause = '';
+      const params = [];
+      if (dateRange === 'today') {
+        clause = `AND DATE(${field}) = CURDATE()`;
+      } else if (dateRange === 'this_week') {
+        clause = `AND YEARWEEK(${field}, 1) = YEARWEEK(CURDATE(), 1)`;
+      } else if (dateRange === 'this_month') {
+        clause = `AND MONTH(${field}) = MONTH(CURDATE()) AND YEAR(${field}) = YEAR(CURDATE())`;
+      } else if (dateRange === 'last_30_days') {
+        clause = `AND ${field} >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`;
+      } else if (dateRange === 'this_year') {
+        clause = `AND YEAR(${field}) = YEAR(CURDATE())`;
+      } else if (dateRange === 'custom' && startDate && endDate) {
+        clause = `AND DATE(${field}) BETWEEN ? AND ?`;
+        params.push(startDate, endDate);
+      }
+      return { clause, params };
+    };
+
+    const appDateFilter = buildDateFilter('a.created_at');
+    const recDateFilter = buildDateFilter('COALESCE(r.receipt_date, r.created_at)');
+
+    // 3. Summary Counts
+    const [[appCountRow]] = await pool.query(
+      `SELECT COUNT(a.id) as cnt FROM applications a LEFT JOIN contacts c ON a.contact_id = c.id WHERE a.business_id = ? ${agentScopeClause} ${appDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...appDateFilter.params]
+    );
+
+    const [[offerCountRow]] = await pool.query(
+      `SELECT COUNT(a.id) as cnt FROM applications a 
+       LEFT JOIN contacts c ON a.contact_id = c.id 
+       LEFT JOIN application_statuses s ON a.status_id = s.id 
+       WHERE a.business_id = ? AND LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%offer%'
+       ${agentScopeClause} ${appDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...appDateFilter.params]
+    );
+
+    const [[feesCountRow]] = await pool.query(
+      `SELECT COUNT(r.id) as cnt, COALESCE(SUM(r.amount), 0) as totalAmount 
+       FROM receipts r 
+       LEFT JOIN contacts c ON r.contact_id = c.id 
+       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+       WHERE r.business_id = ? AND (LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%' OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%')
+       ${agentScopeClause} ${recDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...recDateFilter.params]
+    );
+
+    const [[visaSubCountRow]] = await pool.query(
+      `SELECT COUNT(a.id) as cnt FROM applications a 
+       LEFT JOIN contacts c ON a.contact_id = c.id 
+       LEFT JOIN application_statuses s ON a.status_id = s.id 
+       WHERE a.business_id = ? AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa applied%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa submit%')
+       ${agentScopeClause} ${appDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...appDateFilter.params]
+    );
+
+    const [[visaAppCountRow]] = await pool.query(
+      `SELECT COUNT(a.id) as cnt FROM applications a 
+       LEFT JOIN contacts c ON a.contact_id = c.id 
+       LEFT JOIN application_statuses s ON a.status_id = s.id 
+       WHERE a.business_id = ? AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa received%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa approv%')
+       ${agentScopeClause} ${appDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...appDateFilter.params]
+    );
+
+    const [[enrolledCountRow]] = await pool.query(
+      `SELECT COUNT(a.id) as cnt FROM applications a 
+       LEFT JOIN contacts c ON a.contact_id = c.id 
+       LEFT JOIN application_statuses s ON a.status_id = s.id 
+       WHERE a.business_id = ? AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%enrolled%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%travel%')
+       ${agentScopeClause} ${appDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...appDateFilter.params]
+    );
+
+    const summary = {
+      applications: Number(appCountRow?.cnt || 0),
+      offerLetters: Number(offerCountRow?.cnt || 0),
+      feesPaid: Number(feesCountRow?.cnt || 0),
+      feesPaidAmount: Number(feesCountRow?.totalAmount || 0),
+      visaSubmitted: Number(visaSubCountRow?.cnt || 0),
+      visaApproved: Number(visaAppCountRow?.cnt || 0),
+      enrolled: Number(enrolledCountRow?.cnt || 0)
+    };
+
+    // 4. Detailed Data Query
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, parseInt(limit) || 25);
+    const offset = (pageNum - 1) * limitNum;
+
+    let items = [];
+    let totalCount = 0;
+
+    if (type === 'fees-paid') {
+      let searchClause = '';
+      const searchParams = [];
+      if (search && search.trim()) {
+        const term = '%' + search.trim() + '%';
+        searchClause = `AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR r.receipt_type_name LIKE ? OR r.description LIKE ?)`;
+        searchParams.push(term, term, term, term, term);
+      }
+
+      const whereBase = `
+        WHERE r.business_id = ?
+        AND (LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%' OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%')
+        ${agentScopeClause}
+        ${recDateFilter.clause}
+        ${searchClause}
+      `;
+      const baseParams = [bizId, ...agentScopeParams, ...recDateFilter.params, ...searchParams];
+
+      const [[{ total }]] = await pool.query(
+        `SELECT COUNT(r.id) as total FROM receipts r 
+         LEFT JOIN contacts c ON r.contact_id = c.id 
+         LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+         ${whereBase}`,
+        baseParams
+      );
+      totalCount = Number(total || 0);
+
+      const [rows] = await pool.query(
+        `SELECT 
+           r.id as receipt_id,
+           r.amount,
+           r.receipt_date,
+           COALESCE(r.receipt_type_name, rt.name, 'Application Fees') as receipt_type_name,
+           r.description,
+           r.created_at,
+           c.id as contact_id,
+           COALESCE(c.name, CONCAT('Lead #', c.id)) as applicant_name,
+           c.phone as applicant_phone,
+           c.email as applicant_email,
+           counselor.name as assigned_counselor,
+           COALESCE(r.created_by_name, u.name) as received_by_name
+         FROM receipts r
+         LEFT JOIN contacts c ON r.contact_id = c.id
+         LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+         LEFT JOIN users counselor ON c.assigned_to = counselor.id
+         LEFT JOIN users u ON r.created_by = u.id
+         ${whereBase}
+         ORDER BY COALESCE(r.receipt_date, r.created_at) DESC
+         LIMIT ? OFFSET ?`,
+        [...baseParams, limitNum, offset]
+      );
+      items = rows;
+
+    } else {
+      // Applications & Application-Status based reports
+      let stageFilter = '';
+      if (type === 'offer-letters') {
+        stageFilter = `AND LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%offer%'`;
+      } else if (type === 'visa-submitted') {
+        stageFilter = `AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa applied%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa submit%')`;
+      } else if (type === 'visa-approved') {
+        stageFilter = `AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa received%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa approv%')`;
+      } else if (type === 'enrolled') {
+        stageFilter = `AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%enrolled%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%travel%')`;
+      }
+
+      let searchClause = '';
+      const searchParams = [];
+      if (search && search.trim()) {
+        const term = '%' + search.trim() + '%';
+        searchClause = `AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR a.university LIKE ? OR a.country LIKE ? OR a.course LIKE ? OR s.name LIKE ?)`;
+        searchParams.push(term, term, term, term, term, term, term);
+      }
+
+      const whereBase = `
+        WHERE a.business_id = ?
+        ${stageFilter}
+        ${agentScopeClause}
+        ${appDateFilter.clause}
+        ${searchClause}
+      `;
+      const baseParams = [bizId, ...agentScopeParams, ...appDateFilter.params, ...searchParams];
+
+      const [[{ total }]] = await pool.query(
+        `SELECT COUNT(a.id) as total FROM applications a
+         LEFT JOIN contacts c ON a.contact_id = c.id
+         LEFT JOIN application_statuses s ON a.status_id = s.id
+         ${whereBase}`,
+        baseParams
+      );
+      totalCount = Number(total || 0);
+
+      const [rows] = await pool.query(
+        `SELECT 
+           a.id as application_id,
+           a.country,
+           a.university,
+           a.course,
+           a.description,
+           a.created_at as application_created_at,
+           a.updated_at as application_updated_at,
+           COALESCE(TRIM(s.name), 'Unassigned') as status_name,
+           COALESCE(s.color, '#6366f1') as status_color,
+           y.year as year_name,
+           c.id as contact_id,
+           COALESCE(c.name, CONCAT('Applicant #', a.id)) as applicant_name,
+           c.phone as applicant_phone,
+           c.email as applicant_email,
+           counselor.name as assigned_counselor,
+           u.name as created_by_name
+         FROM applications a
+         LEFT JOIN contacts c ON a.contact_id = c.id
+         LEFT JOIN application_statuses s ON a.status_id = s.id
+         LEFT JOIN application_years y ON a.year_id = y.id
+         LEFT JOIN users counselor ON c.assigned_to = counselor.id
+         LEFT JOIN users u ON a.created_by = u.id
+         ${whereBase}
+         ORDER BY a.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...baseParams, limitNum, offset]
+      );
+      items = rows;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        type,
+        summary,
+        items,
+        totalCount,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(totalCount / limitNum) || 1
+      }
+    });
+
+  } catch (error) {
+    console.error('getPipelineKpiReport error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getReceiptsReport = async (req, res) => {
+  try {
+    const businessId = req.user?.businessId || req.user?.business_id || 1;
+    const {
+      dateRange = 'this_month',
+      startDate,
+      endDate,
+      userId,
+      receiptTypeId,
+      search = '',
+      page = 1,
+      limit = 25
+    } = req.query;
+
+    // Build date filter for receipts based on COALESCE(r.receipt_date, r.created_at)
+    let dateFilter = '';
+    const dateParams = [];
+    if (dateRange === 'today') {
+      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) = CURDATE()';
+    } else if (dateRange === 'yesterday') {
+      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) = SUBDATE(CURDATE(), 1)';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(COALESCE(r.receipt_date, r.created_at), 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE() - INTERVAL 1 MONTH)';
+    } else if (dateRange === 'last_30_days') {
+      dateFilter = 'AND COALESCE(r.receipt_date, r.created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+    } else if (dateRange === 'ytd') {
+      dateFilter = 'AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) BETWEEN ? AND ?';
+      dateParams.push(startDate, endDate);
+    } // 'all' leaves dateFilter empty
+
+    // 1. Overall KPIs
+    const [[allTimeStats]] = await pool.query(
+      `SELECT COUNT(id) as totalCount, COALESCE(SUM(amount), 0) as totalAmount FROM receipts WHERE business_id = ?`,
+      [businessId]
+    );
+
+    const [[todayStats]] = await pool.query(
+      `SELECT COUNT(id) as todayCount, COALESCE(SUM(amount), 0) as todayAmount 
+       FROM receipts 
+       WHERE business_id = ? AND DATE(COALESCE(receipt_date, created_at)) = CURDATE()`,
+      [businessId]
+    );
+
+    const [[monthStats]] = await pool.query(
+      `SELECT COUNT(id) as monthCount, COALESCE(SUM(amount), 0) as monthAmount 
+       FROM receipts 
+       WHERE business_id = ? AND MONTH(COALESCE(receipt_date, created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(receipt_date, created_at)) = YEAR(CURDATE())`,
+      [businessId]
+    );
+
+    const [[rangeStats]] = await pool.query(
+      `SELECT COUNT(r.id) as rangeCount, COALESCE(SUM(r.amount), 0) as rangeAmount 
+       FROM receipts r 
+       WHERE r.business_id = ? ${dateFilter}`,
+      [businessId, ...dateParams]
+    );
+
+    const rangeCount = Number(rangeStats?.rangeCount || 0);
+    const rangeAmount = Number(rangeStats?.rangeAmount || 0);
+    const avgAmount = rangeCount > 0 ? Math.round(rangeAmount / rangeCount) : 0;
+
+    // 2. Employee breakdown for selected date range
+    const [employeeBreakdown] = await pool.query(
+      `SELECT 
+         r.created_by as user_id,
+         COALESCE(r.created_by_name, u.name, 'Unknown Staff') as employee_name,
+         u.email as employee_email,
+         u.role as employee_role,
+         COUNT(r.id) as receipts_count,
+         COALESCE(SUM(r.amount), 0) as total_amount,
+         ROUND(AVG(r.amount), 2) as avg_amount,
+         MAX(COALESCE(r.receipt_date, r.created_at)) as last_receipt_date
+       FROM receipts r
+       LEFT JOIN users u ON r.created_by = u.id
+       WHERE r.business_id = ? ${dateFilter}
+       GROUP BY r.created_by, COALESCE(r.created_by_name, u.name, 'Unknown Staff'), u.email, u.role
+       ORDER BY receipts_count DESC, total_amount DESC`,
+      [businessId, ...dateParams]
+    );
+
+    const breakdownWithShare = employeeBreakdown.map(emp => ({
+      ...emp,
+      receipts_count: Number(emp.receipts_count || 0),
+      total_amount: Number(emp.total_amount || 0),
+      avg_amount: Number(emp.avg_amount || 0),
+      percentage: rangeCount > 0 ? Math.round((Number(emp.receipts_count || 0) / rangeCount) * 100) : 0
+    }));
+
+    // 3. Receipt Types Breakdown for selected date range
+    const [typeBreakdown] = await pool.query(
+      `SELECT 
+         COALESCE(r.receipt_type_name, rt.name, 'General Receipt') as type_name,
+         COUNT(r.id) as count,
+         COALESCE(SUM(r.amount), 0) as total_amount
+       FROM receipts r
+       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+       WHERE r.business_id = ? ${dateFilter}
+       GROUP BY COALESCE(r.receipt_type_name, rt.name, 'General Receipt')
+       ORDER BY count DESC`,
+      [businessId, ...dateParams]
+    );
+
+    // 4. Timeline Graph data: daily or monthly
+    let timelineGroupFormat = '%Y-%m-%d';
+    let timelineLabelFormat = '%d %b';
+    if (dateRange === 'ytd' || dateRange === 'all') {
+      timelineGroupFormat = '%Y-%m';
+      timelineLabelFormat = '%b %Y';
+    }
+
+    const [timelineData] = await pool.query(
+      `SELECT 
+         DATE_FORMAT(COALESCE(r.receipt_date, r.created_at), '${timelineGroupFormat}') as period_key,
+         DATE_FORMAT(COALESCE(r.receipt_date, r.created_at), '${timelineLabelFormat}') as label,
+         COUNT(r.id) as count,
+         COALESCE(SUM(r.amount), 0) as total_amount
+       FROM receipts r
+       WHERE r.business_id = ? ${dateFilter}
+       GROUP BY period_key, label
+       ORDER BY period_key ASC`,
+      [businessId, ...dateParams]
+    );
+
+    // 5. Detailed Receipts Query with Search & Filtering
+    let extraFilters = '';
+    const extraParams = [];
+
+    if (userId && userId !== 'all') {
+      if (userId === '0' || userId === 'null') {
+        extraFilters += ' AND (r.created_by IS NULL OR r.created_by = 0)';
+      } else {
+        extraFilters += ' AND r.created_by = ?';
+        extraParams.push(userId);
+      }
+    }
+
+    if (receiptTypeId && receiptTypeId !== 'all') {
+      extraFilters += ' AND (r.receipt_type_id = ? OR r.receipt_type_name = ?)';
+      extraParams.push(receiptTypeId, receiptTypeId);
+    }
+
+    if (search && search.trim()) {
+      const term = `%${search.trim()}%`;
+      extraFilters += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR r.receipt_type_name LIKE ? OR r.created_by_name LIKE ? OR u.name LIKE ? OR r.description LIKE ? OR CAST(r.id AS CHAR) LIKE ?)';
+      extraParams.push(term, term, term, term, term, term, term, term);
+    }
+
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, parseInt(limit) || 25);
+    const offset = (pageNum - 1) * limitNum;
+
+    const [[{ totalRows }]] = await pool.query(
+      `SELECT COUNT(r.id) as totalRows
+       FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
+       LEFT JOIN users u ON r.created_by = u.id
+       WHERE r.business_id = ? ${dateFilter} ${extraFilters}`,
+      [businessId, ...dateParams, ...extraParams]
+    );
+
+    const [receipts] = await pool.query(
+      `SELECT 
+         r.id as receipt_id,
+         r.contact_id,
+         r.business_id,
+         r.receipt_type_id,
+         COALESCE(r.receipt_type_name, rt.name, 'Application Fees') as receipt_type_name,
+         r.amount,
+         r.receipt_date,
+         r.description,
+         r.created_by,
+         COALESCE(r.created_by_name, u.name, 'Unknown Staff') as created_by_name,
+         r.created_at,
+         c.name as contact_name,
+         c.phone as contact_phone,
+         c.email as contact_email,
+         c_assignee.name as assigned_to_name
+       FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
+       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+       LEFT JOIN users u ON r.created_by = u.id
+       LEFT JOIN users c_assignee ON c.assigned_to = c_assignee.id
+       WHERE r.business_id = ? ${dateFilter} ${extraFilters}
+       ORDER BY COALESCE(r.receipt_date, r.created_at) DESC, r.id DESC
+       LIMIT ? OFFSET ?`,
+      [businessId, ...dateParams, ...extraParams, limitNum, offset]
+    );
+
+    // List of staff members for creator filter
+    const [staffList] = await pool.query(
+      `SELECT DISTINCT r.created_by as id, COALESCE(r.created_by_name, u.name, 'Unknown Staff') as name
+       FROM receipts r
+       LEFT JOIN users u ON r.created_by = u.id
+       WHERE r.business_id = ? AND r.created_by IS NOT NULL
+       ORDER BY name ASC`,
+      [businessId]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        kpis: {
+          totalCount: Number(allTimeStats?.totalCount || 0),
+          totalAmount: Number(allTimeStats?.totalAmount || 0),
+          todayCount: Number(todayStats?.todayCount || 0),
+          todayAmount: Number(todayStats?.todayAmount || 0),
+          monthCount: Number(monthStats?.monthCount || 0),
+          monthAmount: Number(monthStats?.monthAmount || 0),
+          rangeCount,
+          rangeAmount,
+          avgAmount,
+          activeEmployeesCount: employeeBreakdown.length
+        },
+        employeeBreakdown: breakdownWithShare,
+        typeBreakdown,
+        timelineData,
+        staffList,
+        receipts,
+        pagination: {
+          total: Number(totalRows || 0),
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil((Number(totalRows) || 0) / limitNum) || 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('getReceiptsReport Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate receipts report', error: error.message });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -2868,7 +3373,9 @@ module.exports = {
   getApplicationStatusSummaryReport,
   getConversationReport,
   getDailyReport,
-  getLeadFlowReport
+  getLeadFlowReport,
+  getPipelineKpiReport,
+  getReceiptsReport
 };
 
 

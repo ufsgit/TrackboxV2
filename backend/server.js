@@ -19,6 +19,7 @@ const { handleOptInLink } = require('./src/controllers/contacts.controller');
 const { startBroadcastJob } = require('./src/jobs/broadcastJob');
 const { startDripJob } = require('./src/jobs/dripJob');
 const { startSmsJob } = require('./src/jobs/smsJob');
+const r2Service = require('./src/services/r2.service');
 
 const app = express();
 const server = http.createServer(app);
@@ -59,6 +60,47 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     }
   }
 }));
+
+// Cloudflare R2 streaming fallback for /uploads/*
+app.use('/uploads', async (req, res, next) => {
+  if (!r2Service.isConfigured()) return next();
+  try {
+    const rawKey = req.path.replace(/^\/+/, '');
+    if (!rawKey) return next();
+
+    // Check if file exists in R2
+    let targetKey = null;
+    if (await r2Service.exists(rawKey)) {
+      targetKey = rawKey;
+    } else if (await r2Service.exists(`uploads/${rawKey}`)) {
+      targetKey = `uploads/${rawKey}`;
+    }
+
+    if (!targetKey) {
+      return res.status(404).send('File not found in storage');
+    }
+
+    const { body, contentType, contentLength, lastModified } = await r2Service.getObjectStream(targetKey);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Type');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    if (contentType) res.setHeader('Content-Type', contentType);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    if (lastModified) res.setHeader('Last-Modified', new Date(lastModified).toUTCString());
+
+    // Fix for WhatsApp API MIME types
+    if (targetKey.endsWith('.ogg')) res.setHeader('Content-Type', 'audio/ogg; codecs=opus');
+    else if (targetKey.endsWith('.webm')) res.setHeader('Content-Type', 'audio/webm; codecs=opus');
+    else if (targetKey.endsWith('.mp3')) res.setHeader('Content-Type', 'audio/mp3');
+    else if (targetKey.endsWith('.m4a') || targetKey.endsWith('.mp4')) res.setHeader('Content-Type', 'audio/mp4');
+
+    body.pipe(res);
+  } catch (streamErr) {
+    console.error('Cloudflare R2 stream error:', streamErr);
+    next();
+  }
+});
 
 // Public routes
 app.get('/c/:shortCode', redirect);
@@ -106,6 +148,9 @@ app.use('/api/applications', require('./src/routes/applications.routes'));
 app.use('/api/reports', require('./src/routes/reports.routes'));
 app.use('/api/timeline', require('./src/routes/timeline.routes'));
 app.use('/api/notifications', require('./src/routes/notifications.routes'));
+app.use('/api/receipts', require('./src/routes/receipts.routes'));
+app.use('/api/visas', require('./src/routes/visas.routes'));
+app.use('/api/help-video', require('./src/routes/help-video.routes'));
 
 // Socket.IO
 io.on('connection', (socket) => {

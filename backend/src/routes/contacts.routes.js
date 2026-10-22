@@ -24,5 +24,6 @@ router.post('/:id/optout', c.optOut);
 // User Document Uploads
 router.get('/:id/documents', c.getContactDocuments);
 router.post('/:id/documents', upload.single('file'), c.uploadContactDocument);
+router.delete('/:id/documents/:docId', c.deleteContactDocument);
 
 module.exports = router;

@@ -1,743 +1,587 @@
-import { Component, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, Output, EventEmitter, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { Chart, registerables } from 'chart.js';
+import { RouterModule, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
+import { AttendanceService } from '../../core/services/attendance.service';
+import Swal from 'sweetalert2';
 
-Chart.register(...registerables);
+export interface DashboardStats {
+  total: number;
+  pending: number;
+  today: number;
+  upcoming: number;
+  won: number;
+  lost: number;
+}
+
+interface Ring {
+  total: number;
+  segs: {
+    color: string;
+    dash: string;
+    offset: number;
+    label: string;
+    lx: number;
+    ly: number;
+  }[];
+}
 
 @Component({
   selector: 'app-crm-dashboard',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  template: `
-    <div class="report-container" style="display: flex; flex-direction: column; gap: 32px;">
-      
-      <!-- Header -->
-      <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 16px;">
-        <div *ngIf="false">
-          <h2 class="fw-black mb-1" style="font-size: 2.2rem; letter-spacing: -0.04em; background: linear-gradient(135deg, #1E1B4B 0%, #4F46E5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.15));">CRM Dashboard</h2>
-          <p class="text-muted mb-0" style="font-size: 1rem; font-weight: 500; letter-spacing: -0.01em;">Overview of leads, deals, and pipeline health</p>
-        </div>
-        
-        <div class="flex items-center" style="gap: 16px; flex-wrap: wrap;">
-          <div style="position: relative;">
-            <select class="form-select" style="appearance: none; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 40px 10px 16px; font-weight: 600; color: #475569; font-size: 0.95rem; cursor: pointer; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;" onmouseover="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#f1f5f9';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#f8fafc';" [(ngModel)]="dateRange" (change)="onFilterChange()">
-              <option value="all_time">All Time</option>
-              <option value="today">Today</option>
-              <option value="this_week">This Week</option>
-              <option value="this_month">This Month</option>
-            </select>
-            <i class="bi bi-chevron-down" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; font-size: 0.85rem; font-weight: bold;"></i>
-          </div>
-          <button class="btn btn-primary" style="padding: 10px 20px; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); border: none; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);" (click)="onFilterChange()">
-            <i class="bi bi-arrow-clockwise me-2"></i> Sync Data
-          </button>
-        </div>
-      </div>
-
-      <!-- KPI Cards (8 Cards) -->
-      <div class="stats-grid">
-        <div class="stat-card clickable" routerLink="/all-leads" style="cursor: pointer;" title="View All Leads">
-          <div class="stat-icon icon-blue"><i class="bi bi-people-fill"></i></div>
-          <div class="stat-info">
-            <label>Total Leads</label>
-            <h3>{{ totalLeads | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" routerLink="/pending-followup" style="cursor: pointer;" title="View Pending Followups">
-          <div class="stat-icon icon-red"><i class="bi bi-exclamation-circle-fill"></i></div>
-          <div class="stat-info">
-            <label>Pending Followups</label>
-            <h3>{{ pendingFollowUps | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" routerLink="/todays-leads" style="cursor: pointer;" title="View Today's Followups">
-          <div class="stat-icon icon-orange"><i class="bi bi-calendar-day-fill"></i></div>
-          <div class="stat-info">
-            <label>Today's Followups</label>
-            <h3>{{ todaysFollowUps | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" [routerLink]="['/pending-followup']" [queryParams]="{filter: 'upcoming'}" style="cursor: pointer;" title="View Upcoming Followups">
-          <div class="stat-icon icon-green"><i class="bi bi-calendar-week-fill"></i></div>
-          <div class="stat-info">
-            <label>Upcoming Followups</label>
-            <h3>{{ upcomingFollowUps | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Won Deals" *ngIf="false">
-          <div class="stat-icon icon-green2"><i class="bi bi-trophy-fill"></i></div>
-          <div class="stat-info">
-            <label>Won Deals</label>
-            <h3>{{ wonDeals | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" routerLink="/won-lost-report" style="cursor: pointer;" title="View Lost Deals" *ngIf="false">
-          <div class="stat-icon icon-slate"><i class="bi bi-x-circle-fill"></i></div>
-          <div class="stat-info">
-            <label>Lost Deals</label>
-            <h3>{{ lostDeals | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" routerLink="/quotations" *ngIf="!hideMarkedItems" style="cursor: pointer;" title="View Quotations">
-          <div class="stat-icon icon-purple"><i class="bi bi-file-earmark-text-fill"></i></div>
-          <div class="stat-info">
-            <label>Quotations</label>
-            <h3>{{ quotations | number }}</h3>
-          </div>
-        </div>
-
-        <div class="stat-card clickable" routerLink="/purchase-orders" *ngIf="!hideMarkedItems" style="cursor: pointer;" title="View Purchase Orders">
-          <div class="stat-icon icon-pink"><i class="bi bi-receipt"></i></div>
-          <div class="stat-info">
-            <label>Purchase Orders</label>
-            <h3>{{ purchaseOrders | number }}</h3>
-          </div>
-        </div>
-      </div>
-
-      <!-- Charts & Visuals Row -->
-      <div class="grid" style="grid-template-columns: 1.2fr 2fr; gap: 24px;">
-        
-        <!-- Elegant Lead Funnel -->
-        <div class="chart-container h-100">
-          <div class="chart-header" style="padding-bottom: 20px; border-bottom: 1px solid rgba(196, 181, 253, 0.25);">
-            <h5 class="fw-bold m-0" style="color: var(--text-primary); font-size: 1.15rem;">Status Wise Count</h5>
-            <span style="font-size: 0.85rem; color: var(--text-secondary);">Count of leads by current status</span>
-          </div>
-          
-          <div class="chart-body flex flex-col items-center py-5 px-4" style="min-height: 480px;">
-
-            <div *ngIf="!isLoading" style="width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center;">
-              <ng-container *ngFor="let stage of funnelStages; let i = index">
-                <div class="funnel-stage build-up" [ngStyle]="{'background': stage.gradient, 'width': (100 - i * 5) + '%', 'animation-delay': (i * 0.15) + 's'}">
-                  <span class="stage-name">{{ stage.name }}</span>
-                  <span class="stage-count">{{ (stage.displayCount !== undefined ? stage.displayCount : stage.count) | number }}</span>
-                </div>
-                <div class="funnel-arrow arrow-pop" *ngIf="i < funnelStages.length - 1" [style.animation-delay]="(i * 0.15 + 0.1) + 's'">
-                  <i class="bi bi-chevron-down"></i>
-                </div>
-              </ng-container>
-            </div>
-
-          </div>
-        </div>
-        
-        <!-- Area Chart -->
-        <div class="chart-container h-100" style="display: flex; flex-direction: column;">
-          <div class="chart-header" style="padding-bottom: 20px; border-bottom: 1px solid rgba(196, 181, 253, 0.25);">
-            <h5 class="fw-bold m-0" style="color: var(--text-primary); font-size: 1.15rem;">Upcoming Follow-up Distribution</h5>
-            <span style="font-size: 0.85rem; color: var(--text-secondary);">Scheduled activities over the next 7 days</span>
-          </div>
-          <div class="chart-body" style="position: relative; flex-grow: 1; padding-top: 20px; min-height: 450px; overflow: hidden;">
-            <div [class.chart-grow-up]="!isLoading" [class.chart-hidden]="isLoading">
-              <canvas #followUpCanvas id="followUpChart" style="display: block; width: 100%; height: 100%;"></canvas>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Gamification / Achievements Row -->
-      <div *ngIf="false" class="gamification-container mt-2">
-        <h4 class="fw-bold mb-3" style="font-size: 1.25rem; color: #1e293b;">Your Achievements</h4>
-        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-          
-          <!-- Achievement 1: 10 Admissions -->
-          <div class="achievement-card">
-            <div class="achievement-icon icon-gold trophy-anim">
-              <i class="bi bi-trophy-fill"></i>
-            </div>
-            <div class="achievement-info">
-              <div class="achievement-title">10 Admissions</div>
-              <div class="achievement-desc">Completed this month</div>
-              <div class="progress-container mt-2">
-                <div class="progress-bar-bg">
-                  <div class="progress-bar-fill gold-fill" style="width: 100%;"></div>
-                </div>
-                <div class="progress-text">10/10</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Achievement 2: Streak -->
-          <div class="achievement-card">
-            <div class="achievement-icon icon-flame flame-anim">
-              <i class="bi bi-fire"></i>
-            </div>
-            <div class="achievement-info">
-              <div class="achievement-title">7-Day Follow-up Streak</div>
-              <div class="achievement-desc">You are on fire!</div>
-              <div class="progress-container mt-2">
-                <div class="progress-bar-bg">
-                  <div class="progress-bar-fill orange-fill" style="width: 100%;"></div>
-                </div>
-                <div class="progress-text">Level 2</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Achievement 3: Top Performer -->
-          <div class="achievement-card">
-            <div class="achievement-icon icon-star star-anim">
-              <i class="bi bi-star-fill"></i>
-            </div>
-            <div class="achievement-info">
-              <div class="achievement-title">Top Performer</div>
-              <div class="achievement-desc">Ranked #1 in branch</div>
-              <div class="progress-container mt-2">
-                <div class="progress-bar-bg">
-                  <div class="progress-bar-fill purple-fill" style="width: 100%;"></div>
-                </div>
-                <div class="progress-text">Elite Status</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-  `,
-  styles: [`
-    /* ── Funnel Entrance Animations ── */
-    .funnel-stage.build-up {
-      animation: growAndSlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    }
-    
-    .funnel-arrow.arrow-pop {
-      animation: arrowPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
-    }
-
-    @keyframes growAndSlide {
-      0% {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
-        border-width: 0;
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        max-height: 100px;
-      }
-    }
-
-    @keyframes arrowPopIn {
-      0% {
-        opacity: 0;
-        transform: scale(0);
-        max-height: 0;
-        margin-top: 0;
-        margin-bottom: 0;
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1);
-        max-height: 50px;
-      }
-    }
-
-    /* ── Chart Grow Up ── */
-    .chart-hidden {
-      opacity: 0;
-      transform: scaleY(0);
-      transform-origin: bottom center;
-      height: 100%;
-    }
-    .chart-grow-up {
-      height: 100%;
-      animation: chartReveal 0.8s cubic-bezier(0.34, 1.3, 0.64, 1) 0.3s both;
-    }
-    @keyframes chartReveal {
-      0% {
-        opacity: 0;
-        transform: scaleY(0);
-        transform-origin: bottom center;
-      }
-      100% {
-        opacity: 1;
-        transform: scaleY(1);
-        transform-origin: bottom center;
-      }
-    }
-    /* 3D Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 24px;
-      perspective: 1200px;
-    }
-    .stat-card {
-      position: relative;
-      background: rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(28px) saturate(160%);
-      -webkit-backdrop-filter: blur(28px) saturate(160%);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      border-radius: 20px;
-      padding: 32px 28px;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
-      overflow: hidden;
-      box-shadow:
-        0 4px 24px rgba(139, 92, 246, 0.06),
-        0 1px 2px rgba(139, 92, 246, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-      animation: cardEntrance 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) backwards;
-    }
-    .stat-card:hover {
-      transform: translateY(-4px);
-      box-shadow:
-        0 12px 40px rgba(139, 92, 246, 0.12),
-        0 4px 12px rgba(139, 92, 246, 0.06),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-      border-color: rgba(196, 181, 253, 0.5);
-    }
-    .stat-card > * { position: relative; z-index: 1; }
-    
-    .stat-card:nth-child(1) { background: rgba(230, 245, 230, 0.65); border-color: rgba(255,255,255,1); animation-delay: 0ms; }
-    .stat-card:nth-child(2) { background: rgba(230, 240, 255, 0.65); border-color: rgba(255,255,255,1); animation-delay: 60ms; }
-    .stat-card:nth-child(3) { background: rgba(240, 230, 255, 0.65); border-color: rgba(255,255,255,1); animation-delay: 120ms; }
-    .stat-card:nth-child(4) { background: rgba(240, 235, 250, 0.65); border-color: rgba(255,255,255,1); animation-delay: 180ms; }
-    .stat-card:nth-child(5) { background: rgba(255, 245, 230, 0.65); border-color: rgba(255,255,255,1); animation-delay: 240ms; }
-    .stat-card:nth-child(6) { background: rgba(225, 245, 240, 0.65); border-color: rgba(255,255,255,1); animation-delay: 300ms; }
-    .stat-card:nth-child(7) { background: rgba(245, 235, 250, 0.65); border-color: rgba(255,255,255,1); animation-delay: 360ms; }
-    .stat-card:nth-child(8) { background: rgba(255, 240, 245, 0.65); border-color: rgba(255,255,255,1); animation-delay: 420ms; }
-
-    .stat-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      box-shadow: inset 0 2px 4px rgba(255,255,255,0.1);
-      transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
-      transform: translateZ(0px);
-      flex-shrink: 0;
-    }
-    .stat-card:hover .stat-icon {
-      transform: translateZ(42px) scale(1.08);
-      box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.2);
-    }
-    
-    /* Icon Gradients */
-    .icon-blue { background: linear-gradient(135deg, #74B9FF 0%, #0984E3 100%); color: #fff; }
-    .icon-red { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); color: #e11d48; }
-    .icon-orange { background: linear-gradient(135deg, #FFEAA7 0%, #FDCB6E 100%); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-    .icon-green { background: linear-gradient(135deg, #55EFC4 0%, #00B894 100%); color: #fff; }
-    .icon-green2 { background: linear-gradient(135deg, #86efac 0%, #22c55e 100%); color: #fff; }
-    .icon-slate { background: linear-gradient(135deg, #cbd5e1 0%, #64748b 100%); color: #fff; }
-    .icon-purple { background: linear-gradient(135deg, #A29BFE 0%, #6C5CE7 100%); color: #fff; }
-    .icon-pink { background: linear-gradient(135deg, #fbcfe8 0%, #ec4899 100%); color: #fff; }
-
-    .stat-info {
-      transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
-      transform: translateZ(0px);
-    }
-    .stat-card:hover .stat-info {
-      transform: translateZ(28px);
-    }
-    .stat-info label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-    .stat-info h3 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: #1e293b;
-      line-height: 1.1;
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* Funnel specific styling */
-    .funnel-stage {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 24px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      cursor: default;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .funnel-stage::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 50%;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.15), rgba(255,255,255,0));
-      pointer-events: none;
-    }
-
-    .funnel-stage:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 15px rgba(0,0,0,0.15);
-    }
-
-    .stage-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #ffffff;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-      letter-spacing: 0.5px;
-    }
-
-    .stage-count {
-      padding: 4px 14px;
-      border-radius: 20px;
-      font-size: 1rem;
-      font-weight: 700;
-      background-color: #ffffff;
-      color: #1e293b;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .funnel-arrow {
-      color: #cbd5e1;
-      font-size: 1.8rem;
-      line-height: 1;
-      margin: 6px 0;
-      animation: pulse-down 2s infinite;
-    }
-
-    @keyframes pulse-down {
-      0%, 100% { transform: translateY(0); opacity: 0.5; }
-      50% { transform: translateY(6px); opacity: 1; }
-    }
-
-    /* ── Gamification Achievements ── */
-    .gamification-container {
-      margin-top: 2rem;
-      padding-top: 1rem;
-      border-top: 1px dashed #e2e8f0;
-    }
-
-    .achievement-card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid #f1f5f9;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .achievement-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-      border-color: #e2e8f0;
-    }
-
-    .achievement-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.8rem;
-      flex-shrink: 0;
-    }
-
-    .icon-gold { background: linear-gradient(135deg, #fef08a, #eab308); color: #854d0e; }
-    .icon-flame { background: linear-gradient(135deg, #fed7aa, #f97316); color: #9a3412; }
-    .icon-star { background: linear-gradient(135deg, #e9d5ff, #a855f7); color: #581c87; }
-
-    .trophy-anim { animation: float 3s ease-in-out infinite; }
-    .flame-anim { animation: flicker 2s infinite alternate; }
-    .star-anim { animation: pulse-star 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-    @keyframes flicker {
-      0% { transform: scale(1); opacity: 0.9; }
-      100% { transform: scale(1.05); opacity: 1; }
-    }
-    @keyframes pulse-star {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(0.9); }
-    }
-
-    .achievement-info { flex: 1; }
-    .achievement-title { font-weight: 700; font-size: 1.05rem; color: #1e293b; margin-bottom: 2px; }
-    .achievement-desc { font-size: 0.85rem; color: #64748b; }
-
-    .progress-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .progress-bar-bg {
-      flex: 1;
-      height: 8px;
-      background: #f1f5f9;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 1s ease-in-out;
-    }
-    .gold-fill { background: linear-gradient(90deg, #facc15, #eab308); }
-    .orange-fill { background: linear-gradient(90deg, #fb923c, #ea580c); }
-    .purple-fill { background: linear-gradient(90deg, #c084fc, #9333ea); }
-    .progress-text { font-size: 0.8rem; font-weight: 700; color: #475569; }
-  `]
+  templateUrl: './crm-dashboard.component.html',
+  styleUrls: ['./crm-dashboard.component.scss'],
 })
-export class CrmDashboardComponent implements OnInit, AfterViewInit {
-  @ViewChild('followUpCanvas') followUpCanvas!: ElementRef<HTMLCanvasElement>;
-  
-  hideMarkedItems = true; // Added variable to hide marked items
-  // hideMarkedItems = false; 
-  dateRange: string = 'all_time';
-  isLoading = true;
+export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
+  /** Stats input or state */
+  @Input() stats: DashboardStats = { total: 0, pending: 0, today: 0, upcoming: 0, won: 0, lost: 0 };
+  @Input() userName = 'Admin';
+  @Output() rangeChange = new EventEmitter<string>();
+  @Output() sync = new EventEmitter<void>();
 
-  // KPI Data
-  totalLeads = 1250;
-  pendingFollowUps = 45;
-  todaysFollowUps = 120;
-  upcomingFollowUps = 340;
-  wonDeals = 10;
-  lostDeals = 7;
-  quotations = 25;
-  purchaseOrders = 12;
+  userRole = 'Admin';
+  userInitials = 'AU';
+  unreadCount = 0;
 
-  upcomingChartData: number[] = [0, 0, 0, 0, 0, 0, 0];
-  followUpChart: any;
-  // Funnel Data with premium gradients
-  funnelStages: any[] = [];
+  menu = [
+    { label: 'Dashboard', icon: 'i-dash', link: '/crm-dashboard', active: true },
+    { label: 'Leads', icon: 'i-users', link: '/contacts', active: false },
+    { label: 'Follow-ups', icon: 'i-cal', link: '/pending-followup', active: false },
+    { label: 'Reports', icon: 'i-chart', link: '/all-leads', active: false },
+    { label: 'Team Management', icon: 'i-target', link: '/targets', active: false },
+    { label: 'Settings', icon: 'i-gear', link: '/settings', active: false },
+  ];
 
-  constructor(private api: ApiService) {}
+  ranges = [
+    { label: 'All Time', value: 'all_time', desc: 'Complete historical data' },
+    { label: 'Today', value: 'today', desc: 'Happening today' },
+    { label: 'This Week', value: 'this_week', desc: 'Current calendar week' },
+    { label: 'This Month', value: 'this_month', desc: 'Current calendar month' }
+  ];
+  range = 'all_time';
+  rangeMenuOpen = false;
 
-  ngOnInit() {
+  get currentRangeLabel(): string {
+    const f = this.ranges.find(r => r.value === this.range);
+    return f ? f.label : 'All Time';
   }
 
-  animateValue(propName: any, start: number, end: number, duration: number) {
-    if (start === 0 && end > 50) {
-      start = Math.floor(end * 0.6);
+  toggleRangeMenu(): void {
+    this.rangeMenuOpen = !this.rangeMenuOpen;
+  }
+
+  selectRange(val: string): void {
+    this.rangeMenuOpen = false;
+    this.onRange(val);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.custom-range-picker')) {
+      this.rangeMenuOpen = false;
     }
-    
-    let startTimestamp: number | null = null;
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 2);
-      (this as any)[propName] = Math.floor(easeProgress * (end - start) + start);
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      } else {
-        (this as any)[propName] = end;
+  }
+
+  syncing = false;
+  syncedLabel = 'Synced just now';
+  greeting = 'Good Morning';
+
+  checkedIn = false;
+  elapsed = '00:00';
+  private timer: any;
+  private t0 = 0;
+
+  kpis: any[] = [];
+  funnel: any[] = [];
+  funnelH = 0;
+  hoveredStage: number | null = null;
+
+  // Monthly Performance Graph Data (Sample with realistic trends)
+  months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
+  series = [
+    { name: 'Leads', color: '#2F7BF5', values: [12, 18, 22, 25, 30, 30] },
+    { name: 'Contacted', color: '#1FB874', values: [10, 15, 19, 22, 27, 28] },
+    { name: 'Follow-ups Done', color: '#F59B2B', values: [9, 14, 18, 21, 24, 26] },
+    { name: 'Won', color: '#8B5CF6', values: [0, 0, 0, 0, 0, 1] },
+  ];
+  chartMax = 40;
+  ticks = [0, 10, 20, 30, 40];
+
+  sources = [
+    { name: 'Website', value: 38, color: '#2F7BF5' },
+    { name: 'Instagram / Meta', value: 32, color: '#F0568C' },
+    { name: 'Google Ads', value: 24, color: '#1FB874' },
+    { name: 'WhatsApp', value: 18, color: '#F2C230' },
+    { name: 'Referral', value: 15, color: '#8B5CF6' },
+    { name: 'Walk-in', value: 10, color: '#9AA7BD' },
+  ];
+
+  team = [
+    ['Rohan Sharma', 38, 38, 0, 0],
+    ['Aisha Patel', 32, 31, 0, 1],
+    ['Mohit Kumar', 28, 28, 0, 0],
+    ['Sneha Nair', 22, 22, 0, 0],
+    ['David Thomas', 17, 17, 0, 0],
+  ].map(([name, leads, pending, today, won], i) => ({
+    name: name as string,
+    leads: leads as number,
+    pending: pending as number,
+    today: today as number,
+    won: won as number,
+    initials: (name as string).split(' ').map(w => w[0]).join(''),
+    color: ['#2F7BF5', '#1FB874', '#F59B2B', '#8B5CF6', '#F0568C'][i % 5],
+    conversion: (leads as number) ? ((won as number) / (leads as number)) * 100 : 0,
+  }));
+
+  showTeamModal = false;
+
+  get topTeam() {
+    return (this.team || []).slice(0, 5);
+  }
+
+  openTeamModal(): void {
+    this.showTeamModal = true;
+  }
+
+  closeTeamModal(): void {
+    this.showTeamModal = false;
+  }
+
+  recent = [
+    { date: '19 Oct 2026', name: 'Priya Menon', source: 'Instagram', interest: 'Enterprise plan', next: '22 Oct 2026', status: 'Pending', color: 'var(--orange)', owner: 'Rohan Sharma' },
+    { date: '19 Oct 2026', name: 'Arjun Verma', source: 'Google Ads', interest: 'Starter plan', next: 'Not scheduled', status: 'Pending', color: 'var(--orange)', owner: 'Aisha Patel' },
+    { date: '18 Oct 2026', name: 'Neha Singh', source: 'Website', interest: 'Team plan', next: 'Not scheduled', status: 'Pending', color: 'var(--orange)', owner: 'Mohit Kumar' },
+    { date: '17 Oct 2026', name: 'Karan Patel', source: 'WhatsApp', interest: 'Enterprise plan', next: 'Not scheduled', status: 'Pending', color: 'var(--orange)', owner: 'Sneha Nair' },
+    { date: '16 Oct 2026', name: 'Simran Kaur', source: 'Referral', interest: 'Team plan', next: 'Closed', status: 'Won', color: 'var(--green)', owner: 'Aisha Patel' },
+  ];
+
+  sourceRing: Ring = { total: 0, segs: [] };
+  statusRing: Ring = { total: 0, segs: [] };
+  statusLegend: any[] = [];
+
+  constructor(
+    private api: ApiService,
+    private authService: AuthService,
+    private attendanceService: AttendanceService,
+    private router: Router
+  ) {
+    this.build();
+  }
+
+  navigateToFunnel(f: any): void {
+    if (!f) return;
+    if (f.label === 'Total Leads') {
+      this.router.navigate(['/contacts']);
+    } else if (f.label === 'Pending') {
+      this.router.navigate(['/contacts'], { queryParams: { status: 'Pending' } });
+    } else if (f.label === 'Won') {
+      this.router.navigate(['/contacts'], { queryParams: { status: 'Won' } });
+    } else if (f.label === 'Lost') {
+      this.router.navigate(['/contacts'], { queryParams: { status: 'Lost' } });
+    } else {
+      this.router.navigate(['/contacts']);
+    }
+  }
+
+  ngOnInit(): void {
+    this.build();
+    this.initUserProfile();
+    this.loadDashboardData();
+  }
+
+  ngOnChanges(c: SimpleChanges): void {
+    if (c['stats'] && !c['stats'].firstChange) {
+      this.build();
+      this.countUp();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+  }
+
+  private initUserProfile(): void {
+    this.authService.currentUser$.subscribe((u: any) => {
+      if (u) {
+        this.userName = u.name || 'Admin User';
+        this.userRole = u.role ? (u.role.charAt(0).toUpperCase() + u.role.slice(1)) : 'Admin';
+        const parts = this.userName.trim().split(' ');
+        this.userInitials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
       }
-    };
-    window.requestAnimationFrame(step);
+    });
   }
 
-  ngAfterViewInit() {
-    this.onFilterChange(true);
-  }
-
-  onFilterChange(isInitial = false) {
-    this.isLoading = true;
-    if (this.followUpChart) {
-      this.followUpChart.destroy();
-      this.followUpChart = null;
-    }
-
-    this.api.get('/analytics/crm-dashboard', { range: this.dateRange }).subscribe({
+  private checkAttendanceStatus(): void {
+    this.attendanceService.getStatus('CRM').subscribe({
       next: (res: any) => {
-        if (res.success && res.data) {
-          this.isLoading = false;
-          
-          if (isInitial) {
-            this.animateValue('totalLeads', 0, res.data.totalLeads, 1200);
-            this.animateValue('pendingFollowUps', 0, res.data.pendingFollowUps, 1200);
-            this.animateValue('todaysFollowUps', 0, res.data.todaysFollowUps, 1200);
-            this.animateValue('upcomingFollowUps', 0, res.data.upcomingFollowUps, 1200);
-            this.animateValue('wonDeals', 0, res.data.wonDeals, 1200);
-            this.animateValue('lostDeals', 0, res.data.lostDeals, 1200);
-            this.animateValue('quotations', 0, 0, 1200); // Unused for now
-            this.animateValue('purchaseOrders', 0, 0, 1200); // Unused for now
-          } else {
-            this.animateValue('totalLeads', this.totalLeads, res.data.totalLeads, 1000);
-            this.animateValue('pendingFollowUps', this.pendingFollowUps, res.data.pendingFollowUps, 1000);
-            this.animateValue('todaysFollowUps', this.todaysFollowUps, res.data.todaysFollowUps, 1000);
-            this.animateValue('upcomingFollowUps', this.upcomingFollowUps, res.data.upcomingFollowUps, 1000);
-            this.animateValue('wonDeals', this.wonDeals, res.data.wonDeals, 1000);
-            this.animateValue('lostDeals', this.lostDeals, res.data.lostDeals, 1000);
-          }
-
-          if (res.data.funnelData && res.data.funnelData.length > 0) {
-            // Mapping dynamic data from backend
-            this.funnelStages = res.data.funnelData.map((item: any) => {
-              // Convert hex color to gradient for premium look
-              const color = item.color || '#4f46e5';
-              const gradient = `linear-gradient(135deg, ${this.adjustColorBrightness(color, 20)} 0%, ${color} 100%)`;
-              return {
-                name: item.name,
-                count: item.count,
-                displayCount: 0,
-                gradient: gradient
-              };
-            });
-          } else {
-            // Initialize displayCount for dummy data if no API data
-            this.funnelStages = this.funnelStages.map(s => ({ ...s, count: 0, displayCount: 0 }));
-          }
-
-          // Animate funnel counts staggered
-          this.funnelStages.forEach((stage: any, i: number) => {
-            const duration = 1200;
-            const end = stage.count;
-            stage.displayCount = 0;
-            
-            let startTimestamp: number | null = null;
-            const step = (timestamp: number) => {
-              if (!startTimestamp) startTimestamp = timestamp;
-              const delay = i * 150; // Stagger start
-              const elapsed = timestamp - startTimestamp - delay;
-              
-              if (elapsed < 0) {
-                window.requestAnimationFrame(step);
-                return;
-              }
-              
-              const progress = Math.min(elapsed / duration, 1);
-              const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease out
-              stage.displayCount = Math.floor(easeProgress * end);
-              
-              if (progress < 1) {
-                window.requestAnimationFrame(step);
-              } else {
-                stage.displayCount = end;
-              }
-            };
-            window.requestAnimationFrame(step);
-          });
-
-          this.upcomingChartData = res.data.upcomingChartData || [0, 0, 0, 0, 0, 0, 0];
-          setTimeout(() => this.initFollowUpChart(), 50);
+        if (res.success && res.isCheckedIn) {
+          this.checkedIn = true;
+          this.t0 = Date.now() - (res.elapsedSeconds ? res.elapsedSeconds * 1000 : 0);
+          this.startElapsedTimer();
         } else {
-          this.isLoading = false;
+          this.checkedIn = false;
+        }
+      },
+      error: () => {
+        this.checkedIn = false;
+      }
+    });
+  }
+
+  rawPipelineStages: any[] = [];
+
+  public loadDashboardData(): void {
+    this.syncing = true;
+    this.api.get('/analytics/crm-dashboard', { range: this.range }).subscribe({
+      next: (res: any) => {
+        this.syncing = false;
+        if (res.success && res.data) {
+          this.stats = {
+            total: res.data.totalLeads || 0,
+            pending: res.data.pendingFollowUps || 0,
+            today: res.data.todaysFollowUps || 0,
+            upcoming: res.data.upcomingFollowUps || 0,
+            won: res.data.wonDeals || 0,
+            lost: res.data.lostDeals || 0,
+            edu: {
+              applications: res.data.totalApplications !== undefined ? Number(res.data.totalApplications) : 0,
+              offerLetters: res.data.offerLetters !== undefined ? Number(res.data.offerLetters) : 0,
+              feesPaid: res.data.feesPaid !== undefined ? Number(res.data.feesPaid) : 0,
+              visaSubmitted: res.data.visaSubmitted !== undefined ? Number(res.data.visaSubmitted) : 0,
+              visaApproved: res.data.visaApproved !== undefined ? Number(res.data.visaApproved) : 0,
+              enrolled: res.data.enrolled !== undefined ? Number(res.data.enrolled) : 0
+            }
+          } as any;
+
+          if (res.data.pipelineStages) {
+            this.rawPipelineStages = res.data.pipelineStages;
+          }
+
+          if (res.data.monthlyPerformance) {
+            if (res.data.monthlyPerformance.months) {
+              this.months = res.data.monthlyPerformance.months;
+            }
+            if (res.data.monthlyPerformance.series) {
+              this.series = res.data.monthlyPerformance.series;
+            }
+            if (res.data.monthlyPerformance.chartMax) {
+              this.chartMax = res.data.monthlyPerformance.chartMax;
+            }
+            if (res.data.monthlyPerformance.ticks) {
+              this.ticks = res.data.monthlyPerformance.ticks;
+            }
+          }
+
+          if (res.data.sources && Array.isArray(res.data.sources)) {
+            this.sources = res.data.sources;
+          }
+
+          if (res.data.team && Array.isArray(res.data.team)) {
+            this.team = res.data.team;
+          }
+
+          if (res.data.recent && Array.isArray(res.data.recent)) {
+            this.recent = res.data.recent;
+          }
+
+          if (res.data.deltaTotal !== undefined) {
+            this.deltas = {
+              total: res.data.deltaTotal,
+              pending: res.data.deltaPending,
+              today: res.data.deltaToday,
+              upcoming: res.data.deltaUpcoming,
+              won: res.data.deltaWon,
+              lost: res.data.deltaLost,
+              conversion: res.data.deltaConversion
+            };
+          }
+
+          this.build();
+          this.countUp();
+          this.syncedLabel = 'Synced at ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        } else {
+          this.build();
+          this.countUp();
         }
       },
       error: (err) => {
         console.error('Error fetching CRM dashboard stats', err);
-        this.isLoading = false;
+        this.syncing = false;
+        this.build();
+        this.countUp();
       }
     });
   }
 
-  initFollowUpChart() {
-    if (!this.followUpCanvas) return;
-    const ctx = this.followUpCanvas.nativeElement.getContext('2d');
-    if (!ctx) return;
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, 450);
-    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-    gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+  private pct(v: number, t: number): string {
+    return (t ? Math.round((v / t) * 1000) / 10 : 0) + '%';
+  }
 
-    this.followUpChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Tomorrow', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
-        datasets: [{
-          label: 'Scheduled Follow-ups',
-          data: this.upcomingChartData,
-          borderColor: '#6366f1',
-          backgroundColor: gradient,
-          borderWidth: 3,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: '#6366f1',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          fill: true,
-          tension: 0.4
-        }]
+  private ring(items: { value: number; color: string }[], total: number, r: number): Ring {
+    const C = 2 * Math.PI * r;
+    let cum = 0;
+    const segs: Ring['segs'] = [];
+    for (const it of items) {
+      const f = total ? it.value / total : 0;
+      if (!f) continue;
+      const len = Math.max(0, f * C - (items.length > 1 ? 2 : 0));
+      const a = (cum + f / 2) * 2 * Math.PI - Math.PI / 2;
+      segs.push({
+        color: it.color,
+        dash: `${len} ${C - len}`,
+        offset: -cum * C,
+        label: f >= 0.07 ? Math.round(f * 100) + '%' : '',
+        lx: +(100 + r * Math.cos(a)).toFixed(1),
+        ly: +(100 + r * Math.sin(a)).toFixed(1),
+      });
+      cum += f;
+    }
+    return { total, segs };
+  }
+
+  deltas: any = {
+    total: '12%',
+    pending: '18%',
+    today: '0%',
+    upcoming: '0%',
+    won: '100%',
+    lost: '0%',
+    conversion: '0.7%'
+  };
+
+  private build(): void {
+    const s = this.stats;
+    const h = new Date().getHours();
+    this.greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+    const rate = s.total ? Math.round((s.won / s.total) * 1000) / 10 : 0;
+
+    // KPI Data from Image 1: Applications, Offer Letters, Fees Paid, Visa Submitted, Visa Approved, Enrolled / Travelled
+    const eduStats: any = (s as any).edu || {
+      applications: 0,
+      offerLetters: 245,
+      feesPaid: 180,
+      visaSubmitted: 180,
+      visaApproved: 154,
+      enrolled: 148
+    };
+
+    this.kpis = [
+      { 
+        label: 'Total Leads', 
+        value: s.total, 
+        icon: 'i-users', 
+        color: 'var(--blue)', 
+        tint: 'var(--t-blue)', 
+        delta: this.deltas.total, 
+        spark: [.4, .5, .55, .8, 1], 
+        link: '/all-leads' 
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-          padding: 10
+      { 
+        label: 'Applications', 
+        value: eduStats.applications ?? 0, 
+        icon: 'i-doc', 
+        color: '#10B981', 
+        tint: 'rgba(16, 185, 129, 0.08)', 
+        delta: '18%', 
+        spark: [.4, .5, .6, .8, 1], 
+        link: '/reports/applications'
+      },
+      { 
+        label: 'Offer Letters', 
+        value: eduStats.offerLetters ?? 0, 
+        icon: 'i-letter', 
+        color: '#8B5CF6', 
+        tint: 'rgba(139, 92, 246, 0.08)', 
+        delta: '15%', 
+        spark: [.3, .4, .65, .75, 1], 
+        link: '/reports/offer-letters'
+      },
+      { 
+        label: 'Fees Paid', 
+        value: eduStats.feesPaid ?? 0, 
+        icon: 'i-coin', 
+        color: '#F59E0B', 
+        tint: 'rgba(245, 158, 11, 0.08)', 
+        delta: '20%', 
+        spark: [.35, .5, .6, .7, 1], 
+        link: '/reports/fees-paid'
+      },
+      { 
+        label: 'Visa Submitted', 
+        value: eduStats.visaSubmitted ?? 0, 
+        icon: 'i-plane', 
+        color: '#0EA5E9', 
+        tint: 'rgba(14, 165, 233, 0.08)', 
+        delta: '22%', 
+        spark: [.4, .55, .65, .8, 1], 
+        link: '/reports/visa-submitted'
+      },
+      { 
+        label: 'Visa Approved', 
+        value: eduStats.visaApproved ?? 0, 
+        icon: 'i-check-circle', 
+        color: '#10B981', 
+        tint: 'rgba(16, 185, 129, 0.08)', 
+        delta: '19%', 
+        spark: [.45, .5, .6, .75, 1], 
+        link: '/reports/visa-approved'
+      },
+      { 
+        label: 'Enrolled / Travelled', 
+        value: eduStats.enrolled ?? 0, 
+        icon: 'i-grad', 
+        color: '#6366F1', 
+        tint: 'rgba(99, 102, 241, 0.08)', 
+        delta: '17%', 
+        spark: [.3, .45, .55, .7, 1], 
+        link: '/reports/enrolled'
+      },
+    ].map(k => ({ ...k, display: String(k.value) }));
+
+    // Build Lead Status Pipeline Funnel from backend SP stages (or fallback)
+    const stages = (this.rawPipelineStages && this.rawPipelineStages.length > 0)
+      ? this.rawPipelineStages.map((ps: any) => ({
+          value: Number(ps.value) || 0,
+          label: ps.label,
+          pct: ps.pct,
+          a: ps.colorA || '#3B82F6',
+          b: ps.colorB || '#2563EB'
+        }))
+      : [
+          { value: s.total, label: 'Total Leads', pct: '100%', a: '#3B82F6', b: '#2563EB' },
+          { value: s.pending, label: 'Pending', pct: this.pct(s.pending, s.total), a: '#22B8CF', b: '#0E9FB5' },
+          { value: s.upcoming, label: 'Upcoming', pct: this.pct(s.upcoming, s.total), a: '#3DD598', b: '#1FB874' },
+          { value: s.won, label: 'Won', pct: this.pct(s.won, s.total), a: '#F8B84E', b: '#F59B2B' },
+          { value: s.lost, label: 'Lost', pct: this.pct(s.lost, s.total), a: '#F472A0', b: '#E8508A' },
+        ];
+
+    const rowH = 44, gap = 3, W = 200, step = 26;
+    this.funnelH = rowH * stages.length;
+    this.funnel = stages.map((st: any, i: number) => {
+      const tw = W - i * step, bw = W - (i + 1) * step, y = i * rowH + gap / 2, y2 = y + rowH - gap;
+      const tx = (W - tw) / 2, bx = (W - bw) / 2;
+      return {
+        ...st,
+        shown: st.value,
+        pct: st.pct || this.pct(st.value, s.total),
+        points: `${tx},${y} ${tx + tw},${y} ${bx + bw},${y2} ${bx},${y2}`
+      };
+    });
+
+    const srcTotal = this.sources.reduce((a, x) => a + x.value, 0);
+    this.sourceRing = this.ring(this.sources, srcTotal, 70);
+
+    const status = [
+      { name: 'Won', value: s.won, color: '#1FB874' },
+      { name: 'Lost', value: s.lost, color: '#EF4B5B' },
+      { name: 'Pending', value: s.pending, color: '#F59B2B' },
+    ];
+    this.statusRing = this.ring(status, s.total || 0, 68);
+    this.statusLegend = [...status].reverse().map(x => ({ ...x, pct: this.pct(x.value, s.total) }));
+  }
+
+  /** Count-up for KPI and funnel numbers */
+  private countUp(): void {
+    if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const nums = [...this.kpis.filter(k => !k.suffix), ...this.funnel];
+    const t0 = performance.now(), dur = 1100;
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      nums.forEach(n => {
+        const v = Math.round((n.value) * e);
+        if (n.display !== undefined) n.display = String(v);
+        else n.shown = v;
+      });
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  onRange(r: string): void {
+    this.range = r;
+    this.rangeChange.emit(r);
+    this.loadDashboardData();
+  }
+
+  syncData(): void {
+    this.sync.emit();
+    this.loadDashboardData();
+  }
+
+  triggerNotifications(): void {
+    Swal.fire({
+      title: 'Notifications',
+      text: this.unreadCount > 0 ? `You have ${this.unreadCount} unread notification(s).` : 'No new notifications.',
+      icon: 'info',
+      confirmButtonText: 'OK',
+      customClass: { confirmButton: 'btn blue' },
+      buttonsStyling: false
+    });
+  }
+
+  private startElapsedTimer(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      const s = Math.floor((Date.now() - this.t0) / 1000);
+      this.elapsed = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    }, 1000);
+  }
+
+  toggleCheckIn(): void {
+    if (this.checkedIn) {
+      this.attendanceService.addCheckOut('CRM').subscribe({
+        next: (res: any) => {
+          clearInterval(this.timer);
+          this.checkedIn = false;
+          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: res.message || 'Checked out successfully' });
         },
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false,
-            },
-            ticks: {
-              color: '#64748b',
-            },
-            border: { display: false }
-          },
-          y: {
-            beginAtZero: true,
-            suggestedMax: 100,
-            grid: {
-              color: '#f1f5f9', // subtle grid
-            },
-            ticks: {
-              color: '#94a3b8',
-              padding: 10
-            },
-            border: { display: false }
+        error: (err: any) => {
+          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'warning', title: err.error?.message || 'Error checking out' });
+        }
+      });
+      return;
+    }
+
+    this.attendanceService.addCheckIn('CRM').subscribe({
+      next: (res: any) => {
+        this.checkedIn = true;
+        this.t0 = Date.now();
+        this.elapsed = '00:00';
+        this.startElapsedTimer();
+        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: res.message || 'Checked in successfully' });
+      },
+      error: async (err: any) => {
+        if (err.error?.is_late) {
+          const { value: reason } = await Swal.fire({
+            title: 'Late Check In',
+            text: err.error.message,
+            input: 'text',
+            inputPlaceholder: 'Type your reason here...',
+            showCancelButton: true,
+            confirmButtonText: 'Check In',
+            cancelButtonText: 'Cancel'
+          });
+          if (reason) {
+            this.attendanceService.addCheckIn('CRM', reason).subscribe({
+              next: (res: any) => {
+                this.checkedIn = true;
+                this.t0 = Date.now();
+                this.elapsed = '00:00';
+                this.startElapsedTimer();
+                Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success', title: res.message });
+              }
+            });
           }
+        } else {
+          Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'info', title: err.error?.message || 'Check in' });
         }
       }
     });
   }
-
-  // Utility to lighten/darken hex color
-  adjustColorBrightness(col: string, amt: number) {
-    let usePound = false;
-    if (col[0] == "#") {
-        col = col.slice(1);
-        usePound = true;
-    }
-    const num = parseInt(col, 16);
-    let r = (num >> 16) + amt;
-    if (r > 255) r = 255;
-    else if (r < 0) r = 0;
-    let b = ((num >> 8) & 0x00FF) + amt;
-    if (b > 255) b = 255;
-    else if (b < 0) b = 0;
-    let g = (num & 0x0000FF) + amt;
-    if (g > 255) g = 255;
-    else if (g < 0) g = 0;
-    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-  }
 }
-

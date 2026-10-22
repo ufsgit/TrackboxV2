@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class LoginComponent {
   email = '';
   password = '';
+  showPassword = false;
   loading = false;
   error = '';
 
@@ -37,7 +38,10 @@ export class LoginComponent {
   }
 
   onSubmit() {
-    if (!this.email || !this.password) {
+    const cleanEmail = (this.email || '').trim();
+    const cleanPassword = (this.password || '').trim();
+
+    if (!cleanEmail || !cleanPassword) {
       this.error = 'Please fill in all fields';
       return;
     }
@@ -45,7 +49,7 @@ export class LoginComponent {
     this.loading = true;
     this.error = '';
 
-    this.authService.login(this.email, this.password).subscribe({
+    this.authService.login(cleanEmail, cleanPassword).subscribe({
       next: () => {
         this.navigateToDashboard();
       },

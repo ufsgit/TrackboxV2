@@ -113,6 +113,34 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     });
   }
 
+  deleteDocument(doc: any, event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!this.contactId || !doc) return;
+
+    Swal.fire({
+      title: 'Delete Document?',
+      text: `Are you sure you want to delete "${doc.file_name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`/contacts/${this.contactId}/documents/${doc.id}`).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              this.contactDocuments = this.contactDocuments.filter((d: any) => d.id !== doc.id);
+            }
+          }
+        });
+      }
+    });
+  }
+
   loadLeads(contactId: number) {
     this.api.get(`/contacts/${contactId}/leads`).subscribe({
       next: (res: any) => {

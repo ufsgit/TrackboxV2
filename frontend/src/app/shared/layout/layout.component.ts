@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 import { SocketService } from '../../core/services/socket.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { FormsModule } from '@angular/forms';
 import { Observable, filter } from 'rxjs';
 import Swal from 'sweetalert2';
 
@@ -38,7 +39,7 @@ export const routeTransitionAnimations = trigger('triggerName', [
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css'],
   animations: [routeTransitionAnimations]
@@ -70,6 +71,14 @@ export class LayoutComponent implements OnInit {
   // Check-In State
   isCheckedIn = false;
   currentEmployeeName = 'Current User';
+
+  // Help Video Modal State
+  showHelpVideoModal = false;
+  helpVideoLoading = false;
+  helpVideo: any = null;
+  helpVideos: any[] = [];
+  selectedTutorialVideo: any = null;
+  tutorialSearchQuery: string = '';
 
   ngOnInit() {
     this.setupSocketNotifications();
@@ -167,6 +176,14 @@ export class LayoutComponent implements OnInit {
       },
       error: () => this.isCheckedIn = false
     });
+  }
+
+  navigateToAddLead(): void {
+    if (this.router.url.includes('/leads-list')) {
+      this.router.navigate(['/leads-list'], { queryParams: { action: 'new', t: Date.now() } });
+    } else {
+      this.router.navigate(['/leads-list'], { queryParams: { action: 'new' } });
+    }
   }
 
   toggleCheckIn() {
@@ -358,6 +375,34 @@ export class LayoutComponent implements OnInit {
   }
 
   showSupportModal = false;
+
+  openHelpModal() {
+    this.router.navigate(['/help']);
+  }
+
+  playTutorialVideo(video: any) {
+    this.selectedTutorialVideo = video;
+  }
+
+  backToVideoListing() {
+    this.selectedTutorialVideo = null;
+  }
+
+  get filteredHelpVideos(): any[] {
+    if (!this.tutorialSearchQuery || !this.tutorialSearchQuery.trim()) {
+      return this.helpVideos;
+    }
+    const q = this.tutorialSearchQuery.toLowerCase().trim();
+    return this.helpVideos.filter(v => 
+      (v.title && v.title.toLowerCase().includes(q)) || 
+      (v.description && v.description.toLowerCase().includes(q))
+    );
+  }
+
+  closeHelpVideoModal() {
+    this.showHelpVideoModal = false;
+    this.selectedTutorialVideo = null;
+  }
 
   toggleSupportModal() {
     this.showSupportModal = !this.showSupportModal;
@@ -591,7 +636,8 @@ export class LayoutComponent implements OnInit {
       'employee-conversion-report', 'reports/employee-productivity', 'reports/student-pipeline',
       'reports/application-status', 'reports/follow-up-report', 'reports/team-productivity',
       'reports/lead-creation', 'quotation-report', 'purchase-order-report', 'sales-funnel-report',
-      'lead-conversion-report', 'agent-performance-report', 'salesperson-report'
+      'lead-conversion-report', 'agent-performance-report', 'salesperson-report',
+      'reports/receipt-report', 'receipt-report', 'reports/receipts'
     ];
     return crmReportList.some(r => url.includes(r));
   }
@@ -603,6 +649,7 @@ export class LayoutComponent implements OnInit {
     if (last === 'crm-dashboard') return 'CRM Dashboard';
     if (last === 'daily-report') return 'Daily Follow-Up Report';
     if (last === 'lead-flow') return 'Lead Flow & Conversion Report';
+    if (last === 'receipt-report') return 'Receipts & Collections Report';
     if (last === 'quotations') return 'Quotations';
     if (last === 'purchase-orders') return 'Purchase Orders';
     if (last === 'delivery-management') return 'Delivery Management';
@@ -653,6 +700,13 @@ export class LayoutComponent implements OnInit {
            this.authService.hasPermission('Enquiry For', 'view') || 
            this.authService.hasPermission('Document Type', 'view') || 
            this.authService.hasPermission('Channel', 'view');
+  }
+
+  get isUfsUser(): boolean {
+    const u = this.currentUser;
+    const username = (u?.username || '').toLowerCase().trim();
+    const email = (u?.email || '').toLowerCase().trim();
+    return username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
   }
 
   hasAnyGeneralSetting(): boolean {

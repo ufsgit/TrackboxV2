@@ -16,6 +16,8 @@ import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ApplicationsService } from '../../core/services/applications.service';
+import { ReceiptsService } from '../../core/services/receipts.service';
+import { VisasService } from '../../core/services/visas.service';
 import { SystemSettingsService } from '../../core/services/system-settings.service';
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
@@ -47,6 +49,9 @@ export class ContactsComponent implements OnInit {
   activeAgent = '';
   allTags: string[] = [];
   transferredOnly: boolean = false;
+  filterWithApplications: boolean = false;
+  activeAppStatusFilter: string = '';
+  activeReceiptTypeFilter: string = '';
   statuses: any[] = [];
   editingContactId: number | null = null;
   agents: any[] = [];
@@ -406,6 +411,37 @@ export class ContactsComponent implements OnInit {
     description: ''
   };
 
+  // Receipts State
+  selectedContactReceipts: any[] = [];
+  receiptTypes: any[] = [];
+  loadingReceipts = false;
+  totalReceiptAmount = 0;
+  showAddReceiptModal = false;
+  currentReceipt: any = {
+    receipt_type_id: '',
+    receipt_type_name: '',
+    amount: '',
+    receipt_date: new Date().toISOString().split('T')[0],
+    description: ''
+  };
+
+  // Visa State
+  currentVisa: any = {
+    status: 'Submitted',
+    visa_date: new Date().toISOString().split('T')[0],
+    description: ''
+  };
+  loadingVisa = false;
+  visaCounts = {
+    submitted_count: 0,
+    approved_count: 0,
+    total_history_count: 0
+  };
+  visaHistoryList: any[] = [];
+  loadingVisaHistory = false;
+  selectedVisaHistoryFilter: string = ''; // '' | 'Submitted' | 'Approved'
+  showVisaHistoryModal = false;
+
   showAddLeadModal = false;
   currentLead: any = {
     enquiry_for_id: '',
@@ -619,6 +655,8 @@ export class ContactsComponent implements OnInit {
     private route: ActivatedRoute,
     private auth: AuthService,
     private appsService: ApplicationsService,
+    private receiptsService: ReceiptsService,
+    private visasService: VisasService,
     private settingsService: SystemSettingsService,
     private animationService: AnimationService,
     private confettiService: ConfettiService,
@@ -645,8 +683,34 @@ export class ContactsComponent implements OnInit {
 
     // Handle deep-link from report pages: ?contactId=X&action=profile|followup
     this.route.queryParams.subscribe(params => {
+      let shouldFilter = false;
+      if (params['has_applications'] === '1' || params['has_applications'] === 'true') {
+        this.filterWithApplications = true;
+        shouldFilter = true;
+      }
+      if (params['app_status']) {
+        this.activeAppStatusFilter = params['app_status'];
+        shouldFilter = true;
+      }
+      if (params['receipt_type']) {
+        this.activeReceiptTypeFilter = params['receipt_type'];
+        shouldFilter = true;
+      }
+      if (params['status']) {
+        this.activeStatus = params['status'];
+        shouldFilter = true;
+      }
+      if (shouldFilter) {
+        this.applyFilters();
+      }
       const contactId = params['contactId'];
       const action = params['action'];
+      if (action === 'new' || action === 'add' || params['openAdd'] === 'true') {
+        setTimeout(() => {
+          this.openAddModal();
+          this.router.navigate([], { queryParams: {}, replaceUrl: true });
+        }, 150);
+      }
       if (params['returnUrl']) {
         this.returnUrl = params['returnUrl'];
       }
@@ -821,6 +885,9 @@ export class ContactsComponent implements OnInit {
     if (this.activeStatus) params.status = this.activeStatus;
     if (this.activeAgent) params.agent = this.activeAgent;
     if (this.transferredOnly) params.transferred_only = true;
+    if (this.filterWithApplications) params.has_applications = 1;
+    if (this.activeAppStatusFilter) params.app_status = this.activeAppStatusFilter;
+    if (this.activeReceiptTypeFilter) params.receipt_type = this.activeReceiptTypeFilter;
     
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {
@@ -853,6 +920,11 @@ export class ContactsComponent implements OnInit {
     } else {
       this.loadContacts();
     }
+  }
+
+  toggleApplicationFilter() {
+    this.filterWithApplications = !this.filterWithApplications;
+    this.applyFilters();
   }
 
   toggleTransferredOnly() {
@@ -925,6 +997,9 @@ export class ContactsComponent implements OnInit {
           this.loadLeads(contact.id);
           this.loadDocuments(contact.id);
           this.loadContactHistory(contact.id);
+          this.loadReceiptTypes();
+          this.loadReceipts(contact.id);
+          this.loadVisa(contact.id);
         }
         this.detailLoading = false;
       },
@@ -945,6 +1020,8 @@ export class ContactsComponent implements OnInit {
     this.showDetailPanel = false;
     this.selectedContact = null;
     this.selectedContactApplications = [];
+    this.selectedContactReceipts = [];
+    this.visaHistoryList = [];
     if (this.returnUrl) {
       const target = this.returnUrl;
       this.returnUrl = null;
@@ -971,6 +1048,40 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  deleteDocument(doc: any, event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!this.selectedContact || !doc) return;
+
+    Swal.fire({
+      title: 'Delete Document?',
+      text: `Are you sure you want to delete "${doc.file_name}"? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`/contacts/${this.selectedContact.id}/documents/${doc.id}`).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              this.contactDocuments = this.contactDocuments.filter((d: any) => d.id !== doc.id);
+              this.showAction('Document deleted successfully');
+            } else {
+              Swal.fire('Error', res.message || 'Failed to delete document', 'error');
+            }
+          },
+          error: (err: any) => {
+            Swal.fire('Error', err.error?.message || 'Error deleting document', 'error');
+          }
+        });
+      }
+    });
+  }
+
   loadContactHistory(contactId: number) {
     this.historyLoading = true;
     this.contactHistory = [];
@@ -988,6 +1099,11 @@ export class ContactsComponent implements OnInit {
   }
 
   openAddApplicationModal() {
+    // If an application already exists for this contact, open in Edit mode using existing application
+    if (this.selectedContactApplications && this.selectedContactApplications.length > 0) {
+      this.openEditApplicationModal(this.selectedContactApplications[0]);
+      return;
+    }
     this.currentApplication = { contact_id: this.selectedContact.id, country: '', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
     this.selectedCourseDetails = null;
     this.showAddApplicationModal = true;
@@ -1222,6 +1338,162 @@ export class ContactsComponent implements OnInit {
           this.showAppHistoryModal = true;
         }
       }
+    });
+  }
+
+  // --- RECEIPTS LOGIC ---
+  loadReceiptTypes() {
+    this.receiptsService.getReceiptTypes().subscribe({
+      next: (res: any) => {
+        if (res.success) this.receiptTypes = res.data;
+      }
+    });
+  }
+
+  loadReceipts(contactId: number) {
+    this.loadingReceipts = true;
+    this.receiptsService.getContactReceipts(contactId).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.selectedContactReceipts = res.data;
+          this.totalReceiptAmount = res.totalAmount || 0;
+        }
+        this.loadingReceipts = false;
+      },
+      error: () => this.loadingReceipts = false
+    });
+  }
+
+  openAddReceiptModal() {
+    this.currentReceipt = {
+      receipt_type_id: this.receiptTypes.length > 0 ? this.receiptTypes[0].id : '',
+      receipt_type_name: '',
+      amount: '',
+      receipt_date: new Date().toISOString().split('T')[0],
+      description: ''
+    };
+    this.showAddReceiptModal = true;
+  }
+
+  saveReceipt() {
+    if (!this.currentReceipt.amount || Number(this.currentReceipt.amount) <= 0) {
+      Swal.fire('Error', 'Please enter a valid receipt amount.', 'warning');
+      return;
+    }
+    if (!this.currentReceipt.receipt_date) {
+      Swal.fire('Error', 'Please select a date for the receipt.', 'warning');
+      return;
+    }
+
+    const payload = {
+      contact_id: this.selectedContact.id,
+      receipt_type_id: this.currentReceipt.receipt_type_id || null,
+      receipt_type_name: this.currentReceipt.receipt_type_name || null,
+      amount: Number(this.currentReceipt.amount),
+      receipt_date: this.currentReceipt.receipt_date,
+      description: this.currentReceipt.description
+    };
+
+    this.receiptsService.createReceipt(payload).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          showImpressiveSuccess('Receipt added successfully');
+          this.showAddReceiptModal = false;
+          this.loadReceipts(this.selectedContact.id);
+        }
+      },
+      error: (err) => Swal.fire('Error', err.error?.message || 'Error saving receipt', 'error')
+    });
+  }
+
+  deleteReceipt(id: number) {
+    showConfirmDelete('Delete Receipt?', 'Are you sure you want to delete this receipt? This action cannot be undone.').then((confirmed) => {
+      if (confirmed) {
+        this.receiptsService.deleteReceipt(id).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              showLeadDeletedSuccess('Receipt');
+              this.loadReceipts(this.selectedContact.id);
+            }
+          },
+          error: (err) => showPremiumError('Error', err.error?.message || 'Error deleting receipt')
+        });
+      }
+    });
+  }
+
+  // --- VISA LOGIC ---
+  loadVisa(contactId: number) {
+    this.loadingVisa = true;
+    this.visasService.getContactVisa(contactId).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          if (res.data) {
+            this.currentVisa = {
+              ...res.data,
+              visa_date: res.data.visa_date ? res.data.visa_date.split('T')[0] : new Date().toISOString().split('T')[0]
+            };
+          } else {
+            this.currentVisa = {
+              status: 'Submitted',
+              visa_date: new Date().toISOString().split('T')[0],
+              description: ''
+            };
+          }
+          this.visaCounts = res.counts || { submitted_count: 0, approved_count: 0, total_history_count: 0 };
+        }
+        this.loadingVisa = false;
+      },
+      error: () => this.loadingVisa = false
+    });
+    this.loadVisaHistory(contactId);
+  }
+
+  loadVisaHistory(contactId: number, statusFilter: string = '') {
+    this.loadingVisaHistory = true;
+    this.selectedVisaHistoryFilter = statusFilter;
+    this.visasService.getVisaHistory(contactId, statusFilter).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.visaHistoryList = res.data;
+        }
+        this.loadingVisaHistory = false;
+      },
+      error: () => this.loadingVisaHistory = false
+    });
+  }
+
+  filterVisaHistory(status: string) {
+    if (this.selectedVisaHistoryFilter === status) {
+      this.loadVisaHistory(this.selectedContact.id, '');
+    } else {
+      this.loadVisaHistory(this.selectedContact.id, status);
+    }
+  }
+
+  saveVisaRecord() {
+    if (!this.selectedContact) return;
+
+    const payload = {
+      contact_id: this.selectedContact.id,
+      status: this.currentVisa.status || 'Submitted',
+      visa_date: this.currentVisa.visa_date || null,
+      description: this.currentVisa.description || ''
+    };
+
+    this.visasService.saveVisa(payload).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          showImpressiveSuccess('Visa details saved successfully');
+          this.currentVisa = {
+            ...res.data,
+            visa_date: res.data.visa_date ? res.data.visa_date.split('T')[0] : new Date().toISOString().split('T')[0]
+          };
+          this.visaCounts = res.counts || this.visaCounts;
+          this.loadVisaHistory(this.selectedContact.id, this.selectedVisaHistoryFilter);
+        }
+      },
+      error: (err) => Swal.fire('Error', err.error?.message || 'Error updating visa', 'error')
     });
   }
 
@@ -1868,7 +2140,7 @@ export class ContactsComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.transferredOnly);
+    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter);
   }
 
   resetAllFilters() {
@@ -1878,6 +2150,9 @@ export class ContactsComponent implements OnInit {
     this.activeAgent = '';
     this.activeTag = '';
     this.transferredOnly = false;
+    this.filterWithApplications = false;
+    this.activeAppStatusFilter = '';
+    this.activeReceiptTypeFilter = '';
     this.currentPage = 1;
     this.applyFilters();
   }
@@ -1906,6 +2181,7 @@ export class ContactsComponent implements OnInit {
     if (this.activeStatus) params.status = this.activeStatus;
     if (this.activeAgent) params.agent = this.activeAgent;
     if (this.transferredOnly) params.transferred_only = true;
+    if (this.filterWithApplications) params.has_applications = 1;
 
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {

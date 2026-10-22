@@ -997,6 +997,277 @@ Commerce"></textarea>
       </div>
     </div>
 
+    <!-- ===================== HELP VIDEO MANAGEMENT ===================== -->
+    <div *ngIf="activeTab === 'help-video' && isUfsUser" class="help-video-tab-container">
+      
+      <!-- Top Action Bar -->
+      <div class="hv-header-card">
+        <div class="hv-header-left">
+          <div class="hv-icon-badge yt-badge">
+            <i class="bi bi-youtube"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h3 class="hv-title">Help Video Management</h3>
+              <span class="hv-pill-tag yt-pill">{{ helpVideos.length }} Videos</span>
+            </div>
+            <p class="hv-subtitle">
+              All tutorial videos added here will be shown to your team on the dedicated <span class="hv-inline-help-badge"><i class="bi bi-play-circle-fill"></i> Help</span> page.
+            </p>
+          </div>
+        </div>
+
+        <div class="hv-header-right d-flex align-items-center gap-2 flex-wrap">
+          <!-- Search input -->
+          <div class="hv-search-box" *ngIf="helpVideos.length > 0">
+            <i class="bi bi-search"></i>
+            <input 
+              type="text" 
+              class="form-control hv-search-input" 
+              placeholder="Search videos..." 
+              [(ngModel)]="videoSearchTerm">
+          </div>
+
+          <!-- Add Video Button -->
+          <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-3 py-2" (click)="openAddVideoModal()">
+            <i class="bi bi-plus-lg fs-6"></i>
+            <span class="fw-semibold">Add New Video</span>
+          </button>
+
+          <!-- Watch Page Button -->
+          <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2" (click)="navigateToTutorialPage()">
+            <i class="bi bi-box-arrow-up-right"></i>
+            <span>Open Tutorial Page</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="helpVideoLoading" class="text-center py-5">
+        <div class="spinner-border text-danger" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted mt-2">Loading tutorial videos...</p>
+      </div>
+
+      <!-- MAIN VIDEOS LIST (ALL VIDEOS SHOWN ON PAGE) -->
+      <div *ngIf="!helpVideoLoading">
+        
+        <!-- Videos Grid -->
+        <div *ngIf="filteredHelpVideosList.length > 0" class="hv-videos-library-grid">
+          <div *ngFor="let vid of filteredHelpVideosList; let i = index" class="hv-video-item-card">
+            
+            <!-- Video Thumbnail with Play Button -->
+            <div class="hv-card-thumb-wrap" (click)="navigateToTutorialPage(vid.id)" title="Click to watch tutorial">
+              <img 
+                *ngIf="getYouTubeThumbnail(vid.video_url)" 
+                [src]="getYouTubeThumbnail(vid.video_url)" 
+                [alt]="vid.title" 
+                class="hv-thumb-image"
+                loading="lazy">
+              
+              <div *ngIf="!getYouTubeThumbnail(vid.video_url)" class="hv-thumb-fallback">
+                <i class="bi bi-youtube"></i>
+              </div>
+
+              <!-- Overlay Play Icon -->
+              <div class="hv-thumb-play-overlay">
+                <div class="hv-play-circle-btn">
+                  <i class="bi bi-play-fill"></i>
+                </div>
+              </div>
+
+              <span class="hv-video-number-chip">#{{ i + 1 }}</span>
+            </div>
+
+            <!-- Video Details -->
+            <div class="hv-card-info-wrap">
+              <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+                <h4 class="hv-item-title text-truncate-2" [title]="vid.title" (click)="navigateToTutorialPage(vid.id)">
+                  {{ vid.title }}
+                </h4>
+              </div>
+
+              <!-- YouTube Link Badge -->
+              <div class="hv-link-chip-wrap mb-2">
+                <a [href]="vid.video_url" target="_blank" rel="noopener noreferrer" class="hv-yt-link-chip" title="Open YouTube link">
+                  <i class="bi bi-youtube text-danger"></i>
+                  <span class="text-truncate">{{ vid.video_url }}</span>
+                  <i class="bi bi-box-arrow-up-right ms-1 small-arrow"></i>
+                </a>
+              </div>
+
+              <!-- Description -->
+              <p class="hv-item-description text-truncate-2" *ngIf="vid.description">
+                {{ vid.description }}
+              </p>
+              <p class="hv-item-description text-muted fst-italic" *ngIf="!vid.description">
+                No description notes provided.
+              </p>
+
+              <!-- Footer with date & actions -->
+              <div class="hv-item-footer mt-auto pt-3">
+                <div class="hv-date-meta">
+                  <i class="bi bi-calendar3"></i>
+                  <span>{{ (vid.updated_at || vid.created_at) | date:'mediumDate' }}</span>
+                </div>
+
+                <div class="hv-card-actions">
+                  <!-- Watch Button -->
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-outline-danger hv-action-btn" 
+                    (click)="navigateToTutorialPage(vid.id)" 
+                    title="Play on separate page">
+                    <i class="bi bi-play-circle-fill"></i>
+                    <span>Watch</span>
+                  </button>
+
+                  <!-- Edit Button -->
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-outline-primary hv-action-btn" 
+                    (click)="openEditVideoModal(vid)" 
+                    title="Edit video details">
+                    <i class="bi bi-pencil"></i>
+                    <span>Edit</span>
+                  </button>
+
+                  <!-- Delete Button -->
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-outline-danger hv-action-btn" 
+                    (click)="deleteVideoItem(vid)" 
+                    title="Delete video">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Empty State (No Videos) -->
+        <div *ngIf="filteredHelpVideosList.length === 0" class="hv-empty-library-card">
+          <div class="empty-icon-circle">
+            <i class="bi bi-youtube"></i>
+          </div>
+          <h4>{{ videoSearchTerm ? 'No videos matching search' : 'No Tutorial Videos Added Yet' }}</h4>
+          <p>{{ videoSearchTerm ? 'Try searching for another keyword or clear the search bar.' : 'Click the button below to add your first YouTube tutorial video.' }}</p>
+          <button *ngIf="!videoSearchTerm" type="button" class="btn btn-primary px-4 py-2 mt-2" (click)="openAddVideoModal()">
+            <i class="bi bi-plus-lg me-1"></i> Add First Video
+          </button>
+          <button *ngIf="videoSearchTerm" type="button" class="btn btn-outline-secondary px-3 py-1 mt-2" (click)="videoSearchTerm = ''">
+            Clear Search Filter
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ===================== ADD / EDIT TUTORIAL VIDEO MODAL ===================== -->
+    <div class="custom-modal" *ngIf="showVideoModal">
+      <div class="modal-backdrop" (click)="closeVideoModal()"></div>
+      <div class="lf-modal-card shadow-lg hv-modal-dialog">
+        
+        <!-- Modal Header -->
+        <div class="lf-modal-header">
+          <div class="d-flex align-items-center gap-2">
+            <div class="hv-modal-icon-badge">
+              <i class="bi bi-youtube text-danger"></i>
+            </div>
+            <div>
+              <h4 class="mb-0">{{ editingVideo ? 'Edit Tutorial Video' : 'Add New Tutorial Video' }}</h4>
+              <p class="text-muted small mb-0">{{ editingVideo ? 'Update YouTube link, title or guide notes' : 'Paste YouTube link to add a video to your team library' }}</p>
+            </div>
+          </div>
+          <button type="button" class="close-btn" (click)="closeVideoModal()">&times;</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="lf-modal-body">
+          
+          <!-- YouTube URL Input -->
+          <div class="form-group mb-3">
+            <label class="hv-input-label">
+              <i class="bi bi-link-45deg text-danger"></i> YouTube Video Link <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-white text-danger border-end-0">
+                <i class="bi bi-youtube"></i>
+              </span>
+              <input 
+                type="text" 
+                class="form-control hv-form-control border-start-0 ps-1" 
+                [(ngModel)]="videoModalForm.url" 
+                (ngModelChange)="onModalUrlChange()"
+                placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                maxlength="1000">
+            </div>
+            <span class="hv-form-help">Supports any YouTube video URL, short link (youtu.be), or Shorts link.</span>
+          </div>
+
+          <!-- Video Live Preview (Inside Modal) -->
+          <div *ngIf="safeModalPreviewUrl" class="mb-3">
+            <label class="hv-input-label text-success">
+              <i class="bi bi-check-circle-fill"></i> Video Detected Preview
+            </label>
+            <div class="hv-modal-preview-player">
+              <iframe 
+                [src]="safeModalPreviewUrl" 
+                title="Preview" 
+                frameborder="0" 
+                allowfullscreen>
+              </iframe>
+            </div>
+          </div>
+
+          <!-- Video Title -->
+          <div class="form-group mb-3">
+            <label class="hv-input-label">
+              <i class="bi bi-type text-primary"></i> Video Title <span class="text-danger">*</span>
+            </label>
+            <input 
+              type="text" 
+              class="form-control hv-form-control" 
+              [(ngModel)]="videoModalForm.title" 
+              placeholder="e.g. How to Create an Application in CRM"
+              maxlength="255">
+          </div>
+
+          <!-- Video Description / Guide Notes -->
+          <div class="form-group mb-0">
+            <label class="hv-input-label">
+              <i class="bi bi-card-text text-primary"></i> Guide Notes & Description (Optional)
+            </label>
+            <textarea 
+              class="form-control hv-form-control" 
+              rows="3" 
+              [(ngModel)]="videoModalForm.description" 
+              placeholder="Brief summary of steps or instructions covered in this video..."></textarea>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="lf-modal-footer">
+          <button type="button" class="btn btn-light" (click)="closeVideoModal()">Cancel</button>
+          <button 
+            type="button" 
+            class="btn btn-primary d-flex align-items-center gap-2" 
+            [disabled]="helpVideoSaving || !videoModalForm.url || !videoModalForm.title"
+            (click)="saveVideoFromModal()">
+            <span *ngIf="helpVideoSaving" class="spinner-border spinner-border-sm" role="status"></span>
+            <span>{{ editingVideo ? 'Save Changes' : 'Add Video to Library' }}</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
     <!-- SOURCE CATEGORY MODAL -->
     <div class="custom-modal" *ngIf="showSourceCategoryModal">
       <div class="modal-backdrop" (click)="closeSourceCategoryModal()"></div>

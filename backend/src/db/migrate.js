@@ -602,6 +602,20 @@ async function runMigrations() {
     FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS application_status_change (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    application_id INT NOT NULL,
+    status_change_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    old_status_id INT DEFAULT NULL,
+    old_status_name VARCHAR(255) DEFAULT NULL,
+    new_status_id INT DEFAULT NULL,
+    new_status_name VARCHAR(255) DEFAULT NULL,
+    changed_by INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
   // Create enquiry_fors table
   await pool.query(`CREATE TABLE IF NOT EXISTS enquiry_fors (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -716,6 +730,82 @@ async function runMigrations() {
   await safeAddColumn('lead_emails', 'last_event_at', 'TIMESTAMP NULL');
   await safeAddColumn('lead_emails', 'sent_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP');
   await safeAddColumn('lead_emails', 'campaign_id', 'VARCHAR(50) NULL');
+
+  // Receipts Module
+  await pool.query(`CREATE TABLE IF NOT EXISTS receipt_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS receipts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    receipt_type_id INT NULL,
+    receipt_type_name VARCHAR(255) NULL,
+    amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+    receipt_date DATE NOT NULL,
+    description TEXT,
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+    FOREIGN KEY (receipt_type_id) REFERENCES receipt_types(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  await safeAddColumn('receipts', 'created_by_name', 'VARCHAR(255) NULL');
+
+  // Visas Module
+  await pool.query(`CREATE TABLE IF NOT EXISTS visas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    status ENUM('Submitted', 'Approved') NOT NULL DEFAULT 'Submitted',
+    visa_date DATE NULL,
+    description TEXT,
+    updated_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    visa_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    changed_by INT NULL,
+    action VARCHAR(255),
+    status ENUM('Submitted', 'Approved') NOT NULL,
+    details TEXT,
+    visa_date DATE NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (visa_id) REFERENCES visas(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
+  )`);
+
+  // Help Tutorial Videos Module
+  await pool.query(`CREATE TABLE IF NOT EXISTS crm_help_videos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL DEFAULT 'CRM Workflow & Tutorial Guide',
+    description TEXT,
+    video_url VARCHAR(1000) NOT NULL,
+    file_name VARCHAR(255),
+    file_size VARCHAR(50),
+    uploaded_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_help_biz (business_id)
+  )`);
 
   console.log('✅ Database migrations completed');
 

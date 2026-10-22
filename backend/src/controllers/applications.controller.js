@@ -24,6 +24,19 @@ const getApplications = async (req, res) => {
 const createApplication = async (req, res) => {
   try {
     const { contact_id, country, university, course, intake_id, year_id, status_id, description } = req.body;
+    
+    // Check if an application already exists for this lead/contact
+    const [existing] = await pool.query(
+      'SELECT id FROM applications WHERE contact_id=? AND business_id=? ORDER BY id DESC LIMIT 1',
+      [contact_id, req.user.businessId]
+    );
+
+    if (existing.length > 0) {
+      // Forward to update logic for existing application
+      req.params = { id: existing[0].id };
+      return updateApplication(req, res);
+    }
+
     const [result] = await pool.query(
       'INSERT INTO applications (contact_id, business_id, country, university, course, intake_id, year_id, status_id, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [contact_id, req.user.businessId, country, university, course, intake_id || null, year_id || null, status_id || null, description]
@@ -34,6 +47,16 @@ const createApplication = async (req, res) => {
       'INSERT INTO application_history (application_id, changed_by, action, details) VALUES (?, ?, ?, ?)',
       [result.insertId, req.user.id, 'Application Created', 'Initial application created.']
     );
+
+    // Record initial status in application_status_change if status is assigned
+    if (status_id) {
+      const [stRows] = await pool.query('SELECT name FROM application_statuses WHERE id=?', [status_id]);
+      const statusName = stRows.length > 0 ? stRows[0].name : null;
+      await pool.query(
+        'INSERT INTO application_status_change (application_id, status_change_date, old_status_id, old_status_name, new_status_id, new_status_name, changed_by) VALUES (?, NOW(), NULL, NULL, ?, ?, ?)',
+        [result.insertId, status_id, statusName, req.user.id]
+      );
+    }
 
     const [rows] = await pool.query('SELECT * FROM applications WHERE id=?', [result.insertId]);
     res.status(201).json({ success: true, data: rows[0], message: 'Application created' });
@@ -74,6 +97,16 @@ const updateApplication = async (req, res) => {
       WHERE a.id=? AND a.business_id=?
     `, [id, req.user.businessId]);
     const newApp = newRows[0];
+
+    // Record status change into application_status_change only if status has changed
+    const oldStatusId = oldApp.status_id ? Number(oldApp.status_id) : null;
+    const newStatusId = newApp.status_id ? Number(newApp.status_id) : null;
+    if (oldStatusId !== newStatusId) {
+      await pool.query(
+        'INSERT INTO application_status_change (application_id, status_change_date, old_status_id, old_status_name, new_status_id, new_status_name, changed_by) VALUES (?, NOW(), ?, ?, ?, ?, ?)',
+        [id, oldStatusId, oldApp.status_name || null, newStatusId, newApp.status_name || null, req.user.id]
+      );
+    }
 
     // Determine what changed
     let changes = [];

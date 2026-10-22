@@ -1,0 +1,574 @@
+<div class="report-container" (click)="isDateDropdownOpen && (isDateDropdownOpen = false)">
+
+  <!-- Compact Top Header -->
+  <div class="top-header">
+    <div class="header-left">
+      <div class="header-title-row">
+        <div class="icon-cube">
+          <i class="bi bi-receipt-cutoff"></i>
+        </div>
+        <div>
+          <h1 class="page-title">Receipts & Collections</h1>
+          <p class="page-caption">Staff-wise performance & receipt audit fetched from database</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions & Date Filter -->
+    <div class="header-right">
+      <div class="date-dropdown-wrapper" (click)="$event.stopPropagation()">
+        <button type="button" class="btn-date-toggle" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
+          <i class="bi bi-calendar3"></i>
+          <span>{{ getDateRangeLabel() }}</span>
+          <i class="bi bi-chevron-down caret" [class.rotated]="isDateDropdownOpen"></i>
+        </button>
+
+        <div class="date-popover" *ngIf="isDateDropdownOpen">
+          <div class="popover-title">Date Filter</div>
+          <div class="popover-items">
+            <button type="button" class="date-opt" [class.active]="dateRange === 'today'" (click)="selectDateRange('today')">
+              <span>Today</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'today'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'yesterday'" (click)="selectDateRange('yesterday')">
+              <span>Yesterday</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'yesterday'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+              <span>This Week</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'this_week'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+              <span>This Month</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'this_month'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+              <span>Last Month</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'last_month'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+              <span>Year to Date</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'ytd'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'all'" (click)="selectDateRange('all')">
+              <span>All Time</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'all'"></i>
+            </button>
+            <button type="button" class="date-opt" [class.active]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+              <span>Custom Range</span>
+              <i class="bi bi-check2" *ngIf="dateRange === 'custom'"></i>
+            </button>
+          </div>
+
+          <div class="custom-range-inputs" *ngIf="dateRange === 'custom'">
+            <div class="input-row">
+              <label>From</label>
+              <input type="date" class="date-input" [(ngModel)]="customStartDate" />
+            </div>
+            <div class="input-row">
+              <label>To</label>
+              <input type="date" class="date-input" [(ngModel)]="customEndDate" />
+            </div>
+            <button type="button" class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn-export-csv" (click)="exportToCsv()" [disabled]="!receipts.length" title="Export CSV">
+        <i class="bi bi-download"></i>
+        <span>Export</span>
+      </button>
+
+      <button type="button" class="btn-icon-refresh" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-box" *ngIf="loading">
+    <div class="spinner-border text-primary spinner-sm"></div>
+    <span>Loading receipts data...</span>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- Compact KPI Strip (Single Slim Row) -->
+    <div class="kpi-strip">
+      <!-- 1. Today -->
+      <div class="strip-card today">
+        <div class="card-icon emerald">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+        <div class="card-body-text">
+          <div class="card-header-line">
+            <span class="label">Today's Collections</span>
+            <span class="badge-pill emerald"><span class="dot"></span> TODAY</span>
+          </div>
+          <div class="metric-row">
+            <span class="val">{{ formatCurrency(kpis.todayAmount) }}</span>
+            <span class="sub-pill">{{ kpis.todayCount }} {{ kpis.todayCount === 1 ? 'receipt' : 'receipts' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Selected Range -->
+      <div class="strip-card range">
+        <div class="card-icon blue">
+          <i class="bi bi-funnel-fill"></i>
+        </div>
+        <div class="card-body-text">
+          <div class="card-header-line">
+            <span class="label">Selected Range</span>
+            <span class="badge-pill blue">{{ getDateRangeLabel() }}</span>
+          </div>
+          <div class="metric-row">
+            <span class="val">{{ formatCurrency(kpis.rangeAmount) }}</span>
+            <span class="sub-pill">{{ kpis.rangeCount }} receipts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Current Month -->
+      <div class="strip-card month">
+        <div class="card-icon violet">
+          <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div class="card-body-text">
+          <div class="card-header-line">
+            <span class="label">This Month</span>
+            <span class="badge-pill violet">MTD</span>
+          </div>
+          <div class="metric-row">
+            <span class="val">{{ formatCurrency(kpis.monthAmount) }}</span>
+            <span class="sub-pill">{{ kpis.monthCount }} receipts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. All Time -->
+      <div class="strip-card alltime">
+        <div class="card-icon amber">
+          <i class="bi bi-wallet2"></i>
+        </div>
+        <div class="card-body-text">
+          <div class="card-header-line">
+            <span class="label">All Time Total</span>
+            <span class="badge-pill amber">{{ kpis.activeEmployeesCount }} Staff</span>
+          </div>
+          <div class="metric-row">
+            <span class="val">{{ formatCurrency(kpis.totalAmount) }}</span>
+            <span class="sub-pill">{{ kpis.totalCount }} receipts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segmented Tab Bar -->
+    <div class="tabs-bar">
+      <div class="tab-buttons">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab === 'summary'"
+          (click)="setTab('summary')"
+        >
+          <i class="bi bi-people-fill"></i>
+          <span>Staff Performance & Overview</span>
+          <span class="tab-badge">{{ employeeBreakdown.length }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab === 'transactions'"
+          (click)="setTab('transactions')"
+        >
+          <i class="bi bi-receipt"></i>
+          <span>All Receipts Log</span>
+          <span class="tab-badge">{{ totalRecords }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="activeTab === 'charts'"
+          (click)="setTab('charts')"
+        >
+          <i class="bi bi-bar-chart-line"></i>
+          <span>Full Analytics & Trends</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 1: SUMMARY (SIDE-BY-SIDE VIEW - FITS ON SCREEN) -->
+    <div class="tab-pane-content" *ngIf="activeTab === 'summary'">
+      <div class="side-by-side-grid">
+
+        <!-- Left Column: Employee-Wise Receipts Table -->
+        <div class="panel-box employee-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <span class="panel-icon-wrap indigo"><i class="bi bi-person-badge"></i></span>
+              <div>
+                <h3 class="panel-title">Employee-Wise Receipts</h3>
+                <span class="panel-sub">Receipts created count & collections per staff member</span>
+              </div>
+            </div>
+            <span class="chip-total">{{ employeeBreakdown.length }} Staff</span>
+          </div>
+
+          <div class="panel-table-wrap">
+            <table class="compact-table">
+              <thead>
+                <tr>
+                  <th>Staff Member</th>
+                  <th class="text-center">Receipts Count</th>
+                  <th>Share</th>
+                  <th class="text-end">Total Amount</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let emp of employeeBreakdown; let i = index">
+                  <!-- Staff Name & Badge -->
+                  <td>
+                    <div class="staff-identity">
+                      <div class="staff-avatar" [class.crown]="i === 0">
+                        {{ getInitials(emp.employee_name) }}
+                      </div>
+                      <div class="staff-text">
+                        <div class="name-line">
+                          <span class="emp-name">{{ emp.employee_name }}</span>
+                          <span class="top-tag" *ngIf="i === 0">👑 Top</span>
+                        </div>
+                        <span class="emp-role" *ngIf="emp.employee_role">{{ emp.employee_role }}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Count -->
+                  <td class="text-center">
+                    <span class="count-pill">{{ emp.receipts_count }}</span>
+                  </td>
+
+                  <!-- Share Progress -->
+                  <td>
+                    <div class="share-bar-wrap">
+                      <div class="share-track">
+                        <div class="share-fill" [style.width.%]="emp.percentage"></div>
+                      </div>
+                      <span class="pct">{{ emp.percentage }}%</span>
+                    </div>
+                  </td>
+
+                  <!-- Amount -->
+                  <td class="text-end font-semibold text-emerald font-mono">
+                    {{ formatCurrency(emp.total_amount) }}
+                  </td>
+
+                  <!-- Action Buttons -->
+                  <td class="text-center">
+                    <div class="action-flex">
+                      <button type="button" class="btn-micro primary" (click)="viewEmployeeTransactions(emp)" title="View in transactions table">
+                        <i class="bi bi-list-ul"></i>
+                      </button>
+                      <button type="button" class="btn-micro secondary" (click)="openEmployeeModal(emp)" title="Drilldown details modal">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr *ngIf="employeeBreakdown.length === 0">
+                  <td colspan="5" class="empty-row">
+                    <i class="bi bi-inbox"></i>
+                    <p>No staff receipts found for {{ getDateRangeLabel() }}</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right Column: Charts Stack -->
+        <div class="charts-stack">
+          <!-- Mini Trend Chart -->
+          <div class="panel-box chart-card-mini">
+            <div class="panel-header-compact">
+              <span class="chart-label"><i class="bi bi-graph-up text-primary me-1"></i> Receipts Trend</span>
+              <div class="chart-tags">
+                <span class="tag-dot blue"></span> Count
+                <span class="tag-dot green ms-2"></span> Amount (₹)
+              </div>
+            </div>
+            <div class="chart-canvas-box mini">
+              <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="trendChartType"></canvas>
+            </div>
+          </div>
+
+          <!-- Mini Staff Doughnut Chart -->
+          <div class="panel-box chart-card-mini">
+            <div class="panel-header-compact">
+              <span class="chart-label"><i class="bi bi-pie-chart text-indigo me-1"></i> Staff Share</span>
+              <span class="tag-pill">{{ employeeBreakdown.length }} Contributors</span>
+            </div>
+            <div class="chart-canvas-box mini doughnut">
+              <div class="doughnut-container" *ngIf="employeeBreakdown.length > 0; else noStaffMini">
+                <canvas baseChart [data]="staffChartData" [options]="staffChartOptions" [type]="staffChartType"></canvas>
+              </div>
+              <ng-template #noStaffMini>
+                <div class="empty-mini">No staff data in this period</div>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: TRANSACTIONS LIST -->
+    <div class="tab-pane-content" *ngIf="activeTab === 'transactions'">
+      <div class="panel-box">
+        <!-- Filter Toolbar -->
+        <div class="panel-header-toolbar">
+          <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input
+              type="text"
+              class="toolbar-search-input"
+              placeholder="Search contact, receipt #, staff..."
+              [(ngModel)]="searchQuery"
+              (ngModelChange)="onSearchChange()"
+            />
+            <button type="button" class="btn-clear" *ngIf="searchQuery" (click)="searchQuery = ''; onSearchChange()">
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          </div>
+
+          <div class="filter-controls">
+            <!-- Staff filter -->
+            <select class="form-select-sm" [(ngModel)]="selectedEmployeeFilter" (change)="onFilterChange()">
+              <option value="all">All Staff Members</option>
+              <option *ngFor="let staff of staffList" [value]="staff.id">{{ staff.name }}</option>
+            </select>
+
+            <!-- Type filter -->
+            <select class="form-select-sm" [(ngModel)]="selectedTypeFilter" (change)="onFilterChange()">
+              <option value="all">All Receipt Types</option>
+              <option *ngFor="let t of typeBreakdown" [value]="t.type_name">{{ t.type_name }}</option>
+            </select>
+
+            <button
+              type="button"
+              class="btn-reset-filters"
+              *ngIf="searchQuery || selectedEmployeeFilter !== 'all' || selectedTypeFilter !== 'all'"
+              (click)="resetFilters()"
+            >
+              <i class="bi bi-arrow-counterclockwise"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="panel-table-wrap">
+          <table class="compact-table transactions-table">
+            <thead>
+              <tr>
+                <th>Receipt #</th>
+                <th>Date</th>
+                <th>Applicant / Contact</th>
+                <th>Receipt Type</th>
+                <th class="text-end">Amount</th>
+                <th>Created By (Staff)</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of receipts">
+                <!-- ID -->
+                <td class="font-mono">
+                  <span class="id-pill">#{{ r.receipt_id }}</span>
+                </td>
+
+                <!-- Date -->
+                <td>
+                  <span class="date-main">{{ (r.receipt_date || r.created_at) | date:'mediumDate' }}</span>
+                </td>
+
+                <!-- Applicant -->
+                <td>
+                  <div class="contact-inline">
+                    <span class="contact-name">{{ r.contact_name || 'Contact #' + r.contact_id }}</span>
+                    <span class="contact-phone" *ngIf="r.contact_phone">
+                      <i class="bi bi-telephone"></i> {{ r.contact_phone }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Type -->
+                <td>
+                  <span class="type-badge">{{ r.receipt_type_name || 'Application Fee' }}</span>
+                </td>
+
+                <!-- Amount -->
+                <td class="text-end font-mono">
+                  <span class="amount-badge">{{ formatCurrency(r.amount) }}</span>
+                </td>
+
+                <!-- Created By (The crucial requirement!) -->
+                <td>
+                  <div class="creator-chip">
+                    <i class="bi bi-person-check-fill text-primary"></i>
+                    <span>{{ r.created_by_name || 'Staff User' }}</span>
+                  </div>
+                </td>
+
+                <!-- Description -->
+                <td class="text-muted small">
+                  <span class="notes-text" [title]="r.description || ''">
+                    {{ r.description || '—' }}
+                  </span>
+                </td>
+              </tr>
+
+              <tr *ngIf="receipts.length === 0">
+                <td colspan="7" class="empty-row">
+                  <i class="bi bi-receipt"></i>
+                  <p>No receipts match the search and filter criteria</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-bar" *ngIf="totalRecords > 0">
+          <div class="page-summary">
+            Showing <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong>-<strong>{{ (currentPage * pageSize) > totalRecords ? totalRecords : (currentPage * pageSize) }}</strong>
+            of <strong>{{ totalRecords }}</strong>
+          </div>
+
+          <div class="page-actions">
+            <div class="page-size">
+              <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+                <option [value]="10">10 / page</option>
+                <option [value]="25">25 / page</option>
+                <option [value]="50">50 / page</option>
+              </select>
+            </div>
+
+            <div class="nav-buttons">
+              <button type="button" class="btn-nav" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="page-text">{{ currentPage }} / {{ totalPages }}</span>
+              <button type="button" class="btn-nav" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: FULL ANALYTICS -->
+    <div class="tab-pane-content" *ngIf="activeTab === 'charts'">
+      <div class="panel-box full-chart-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon-wrap blue"><i class="bi bi-graph-up"></i></span>
+            <div>
+              <h3 class="panel-title">Total Receipts Over Time</h3>
+              <span class="panel-sub">Volume & Revenue timeline analysis for {{ getDateRangeLabel() }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-canvas-box full">
+          <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="trendChartType"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Employee Drilldown Modal -->
+  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-window" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-head-title">
+          <div class="modal-avatar">{{ getInitials(modalEmployeeName) }}</div>
+          <div>
+            <h4>{{ modalEmployeeName }}'s Receipts</h4>
+            <span class="sub">Total {{ modalTotal }} receipts created in {{ getDateRangeLabel() }}</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-x" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-search-row">
+        <div class="search-wrap full">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            class="toolbar-search-input"
+            placeholder="Search within receipts..."
+            [(ngModel)]="modalSearch"
+            (ngModelChange)="onModalSearchChange()"
+          />
+        </div>
+      </div>
+
+      <div class="modal-table-scroll">
+        <div class="loading-box" *ngIf="modalLoading">
+          <div class="spinner-border text-primary spinner-sm"></div>
+          <span>Loading...</span>
+        </div>
+
+        <table class="compact-table" *ngIf="!modalLoading">
+          <thead>
+            <tr>
+              <th>Receipt #</th>
+              <th>Date</th>
+              <th>Applicant</th>
+              <th>Type</th>
+              <th class="text-end">Amount</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of modalReceipts">
+              <td class="font-mono"><span class="id-pill">#{{ r.receipt_id }}</span></td>
+              <td>{{ (r.receipt_date || r.created_at) | date:'mediumDate' }}</td>
+              <td>
+                <strong>{{ r.contact_name || 'Contact #' + r.contact_id }}</strong>
+                <div class="text-muted small" *ngIf="r.contact_phone">{{ r.contact_phone }}</div>
+              </td>
+              <td><span class="type-badge">{{ r.receipt_type_name }}</span></td>
+              <td class="text-end font-mono text-emerald font-semibold">{{ formatCurrency(r.amount) }}</td>
+              <td class="text-muted small">{{ r.description || '—' }}</td>
+            </tr>
+            <tr *ngIf="modalReceipts.length === 0">
+              <td colspan="6" class="text-center py-4 text-muted">No receipts found for this staff member</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-foot" *ngIf="modalTotalPages > 1">
+        <span class="small text-muted">Page {{ modalPage }} of {{ modalTotalPages }}</span>
+        <div class="nav-buttons">
+          <button type="button" class="btn-nav" [disabled]="modalPage === 1" (click)="goToModalPage(modalPage - 1)">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button type="button" class="btn-nav" [disabled]="modalPage >= modalTotalPages" (click)="goToModalPage(modalPage + 1)">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

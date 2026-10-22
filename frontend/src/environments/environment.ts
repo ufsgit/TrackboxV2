@@ -4,6 +4,11 @@ export const environment = {
   apiUrl: 'http://localhost:3000/api',
   baseUrl: 'http://localhost:3000/api',
   socketUrl: 'http://localhost:3000',
+
+
+  //   apiUrl: 'http://demoapi.ufstech.co.in/api',
+  // baseUrl: 'http://demoapi.ufstech.co.in/api',
+  // socketUrl: 'http://demoapi.ufstech.co.in',
   
   // apiUrl: 'https://whatsappapi.trackbox.in/api',
   // baseUrl: 'https://whatsappapi.trackbox.in/api',

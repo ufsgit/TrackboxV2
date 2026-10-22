@@ -1,6 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
+  /* Trackbox V2 Theme Tokens */
+  --font: "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, sans-serif;
+  --bg: #EDF2FB; 
+  --surface: #FFFFFF; 
+  --surface-2: #F3F6FC; 
+  --ink: #0F2347; 
+  --muted: #667593; 
+  --line: #E2E9F5;
+  --brand: #1A6FF0; 
+  --brand-soft: #E3EEFF;
+  --blue: #2F7BF5; 
+  --green: #1FB874; 
+  --orange: #F59B2B; 
+  --purple: #8B5CF6; 
+  --pink: #F0568C; 
+  --teal: #17B3C4; 
+  --red: #EF4B5B; 
+  --yellow: #F2C230;
+  --t-blue: #E8F1FF; 
+  --t-green: #E5F8EE; 
+  --t-purple: #F0EAFF; 
+  --t-orange: #FFF0E0; 
+  --t-sky: #E3F1FF; 
+  --t-red: #FFE9EC; 
+  --t-lav: #EEE9FF;
+  --side-1: #0D3F9C; 
+  --side-2: #092C6E; 
+  --side-3: #06214F;
+  --shadow: 0 1px 2px rgba(15, 35, 71, .04), 0 6px 18px -10px rgba(15, 35, 71, .16);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+
   --primary: #8B5CF6;
   --primary-light: #C4B5FD;
   --primary-dark: #7C3AED;
@@ -1505,10 +1536,11 @@ body.swal2-toast-shown .swal2-container.swal2-top-right {
 
 /* Universal modal responsive containment */
 .modal-dialog,
-.details-modal-wrapper,
-.modal-card {
+.details-modal-wrapper {
   max-width: min(100%, 94vw) !important;
   box-sizing: border-box !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* Intermediate screen resolution tuning (1024px to 1366px) */
@@ -1554,9 +1586,10 @@ body.swal2-toast-shown .swal2-container.swal2-top-right {
   }
 }
 
-/* Ensure SweetAlert2 modals render cleanly and visibly above any custom or Bootstrap modal (z-index 1055-1060) */
-body:not(.swal2-toast-shown) .swal2-container {
-  z-index: 20000 !important;
+/* Ensure SweetAlert2 modals render cleanly and visibly above any custom or Bootstrap modal */
+body:not(.swal2-toast-shown) .swal2-container,
+.swal2-container {
+  z-index: 999999 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

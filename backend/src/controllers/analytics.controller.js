@@ -74,22 +74,27 @@ const getCrmDashboardStats = async (req, res) => {
     const userId = req.user.userId || req.user.id;
     const range = req.query.range || 'today';
 
-    // Build date filter clause
-    let dateClause = '';
-    if (range === 'today') {
-      dateClause = 'AND DATE(created_at) = CURDATE()';
-    } else if (range === 'this_week') {
-      dateClause = 'AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
-    } else if (range === 'this_month') {
-      dateClause = 'AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
-    }
+    // Call Stored Procedure with comprehensive IF conditions for all 7 KPIs
+    const [spResults] = await pool.query(
+      'CALL sp_get_crm_dashboard_kpis(?, ?, ?, ?)',
+      [bizId, Number(userId), req.user.role || 'admin', range]
+    );
 
-    // Build role filter clause — agents see their own leads + their team members' leads
+    const kpiData = (spResults && spResults[0] && spResults[0][0]) ? spResults[0][0] : {};
+
+    const totalLeads = Number(kpiData.totalLeads) || 0;
+    const pendingFollowUps = Number(kpiData.pendingFollowUps) || 0;
+    const todaysFollowUps = Number(kpiData.todaysFollowUps) || 0;
+    const upcomingFollowUps = Number(kpiData.upcomingFollowUps) || 0;
+    const wonDeals = Number(kpiData.wonDeals) || 0;
+    const lostDeals = Number(kpiData.lostDeals) || 0;
+    const conversionRate = parseFloat(kpiData.conversionRate) || 0.0;
+
+    // Build role filter clause for status funnel and charts
     let agentClause = '';
     const queryParams = [bizId];
 
     if (req.user.role === 'agent') {
-      // Fetch all user IDs sharing a team with this agent (same pattern as contacts.controller.js)
       const selfId = Number(userId);
       const [teamRows] = await pool.query(
         `SELECT user_id FROM team_members 
@@ -103,33 +108,128 @@ const getCrmDashboardStats = async (req, res) => {
       queryParams.push(...teamMemberIds);
     }
 
-    const [[{ totalLeads }]] = await pool.query(
-      `SELECT COUNT(*) as totalLeads FROM contacts WHERE business_id = ? ${agentClause} ${dateClause}`,
-      queryParams
+    let dateClause = '';
+    if (range === 'today') {
+      dateClause = 'AND DATE(created_at) = CURDATE()';
+    } else if (range === 'this_week') {
+      dateClause = 'AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (range === 'this_month') {
+      dateClause = 'AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+    } else if (range === 'last_30_days') {
+      dateClause = 'AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+    } else if (range === 'this_year') {
+      dateClause = 'AND YEAR(created_at) = YEAR(CURDATE())';
+    }
+
+    // Call Stored Procedure for Lead Status Pipeline Card
+    const [pipelineResults] = await pool.query(
+      'CALL sp_get_crm_dashboard_pipeline(?, ?, ?, ?)',
+      [bizId, Number(userId), req.user.role || 'admin', range]
     );
-    
-    // Follow-up counts are scheduling-state based, not date-filtered
-    const [[{ pendingFollowUps }]] = await pool.query(
-      `SELECT COUNT(*) as pendingFollowUps FROM contacts WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) < CURDATE()`,
-      queryParams
+
+    const pipelineStages = (pipelineResults && pipelineResults[0]) ? pipelineResults[0] : [];
+
+    // Call Stored Procedure for Monthly Performance Grouped Bar Chart
+    const [monthlyResults] = await pool.query(
+      'CALL sp_get_crm_dashboard_monthly_performance(?, ?, ?, ?)',
+      [bizId, Number(userId), req.user.role || 'admin', range]
     );
-    const [[{ todaysFollowUps }]] = await pool.query(
-      `SELECT COUNT(*) as todaysFollowUps FROM contacts WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) = CURDATE()`,
-      queryParams
+
+    const monthlyRows = (monthlyResults && monthlyResults[0]) ? monthlyResults[0] : [];
+    const monthlyMonths = monthlyRows.map(r => r.month_name);
+    const leadsValues = monthlyRows.map(r => Number(r.leads_count || 0));
+    const contactedValues = monthlyRows.map(r => Number(r.contacted_count || 0));
+    const followupsValues = monthlyRows.map(r => Number(r.followups_count || 0));
+    const wonValues = monthlyRows.map(r => Number(r.won_count || 0));
+
+    const maxVal = Math.max(...leadsValues, ...contactedValues, ...followupsValues, ...wonValues, 10);
+    // Round up maxVal to a clean step (multiple of 10 or 20)
+    const chartMax = Math.ceil((maxVal * 1.15) / 10) * 10;
+    const step = chartMax / 4;
+    const ticks = [0, Math.round(step), Math.round(step * 2), Math.round(step * 3), chartMax];
+
+    const monthlyPerformance = {
+      months: monthlyMonths,
+      series: [
+        { name: 'Leads', color: '#2F7BF5', values: leadsValues },
+        { name: 'Contacted', color: '#1FB874', values: contactedValues },
+        { name: 'Follow-ups Done', color: '#F59B2B', values: followupsValues },
+        { name: 'Won', color: '#8B5CF6', values: wonValues }
+      ],
+      chartMax,
+      ticks
+    };
+
+    // Call Stored Procedure for Lead Source Analysis
+    const [sourceResults] = await pool.query(
+      'CALL sp_get_crm_dashboard_lead_sources(?, ?, ?, ?)',
+      [bizId, Number(userId), req.user.role || 'admin', range]
     );
-    const [[{ upcomingFollowUps }]] = await pool.query(
-      `SELECT COUNT(*) as upcomingFollowUps FROM contacts WHERE business_id = ? ${agentClause} AND follow_up = 1 AND DATE(follow_up_date) > CURDATE()`,
-      queryParams
+
+    const sourceRows = (sourceResults && sourceResults[0]) ? sourceResults[0] : [];
+    const sourcePalette = ['#2F7BF5', '#F0568C', '#1FB874', '#F2C230', '#8B5CF6', '#9AA7BD', '#06B6D4', '#EC4899'];
+    const sources = sourceRows.map((s, idx) => ({
+      name: s.name,
+      value: Number(s.value || 0),
+      color: sourcePalette[idx % sourcePalette.length]
+    }));
+
+    // Call Stored Procedure for Team Performance Table
+    const [teamResults] = await pool.query(
+      'CALL sp_get_crm_dashboard_team_performance(?, ?, ?, ?)',
+      [bizId, Number(userId), req.user.role || 'admin', range]
     );
-    
-    const [[{ wonDeals }]] = await pool.query(
-      `SELECT COUNT(*) as wonDeals FROM contacts WHERE business_id = ? ${agentClause} AND status_name = 'Converted' ${dateClause}`,
-      queryParams
+
+    const teamPalette = ['#2F7BF5', '#1FB874', '#F59B2B', '#8B5CF6', '#F0568C', '#06B6D4'];
+    const teamRows = (teamResults && teamResults[0]) ? teamResults[0] : [];
+    const team = teamRows.map((t, idx) => {
+      const name = t.name || 'Executive';
+      const parts = name.trim().split(' ');
+      const initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
+      const leads = Number(t.leads || 0);
+      const pending = Number(t.pending || 0);
+      const today = Number(t.today || 0);
+      const won = Number(t.won || 0);
+      const conversion = parseFloat(t.conversion || 0.0);
+      return {
+        id: t.user_id,
+        name,
+        leads,
+        pending,
+        today,
+        won,
+        initials,
+        color: teamPalette[idx % teamPalette.length],
+        conversion
+      };
+    });
+
+    // Call Stored Procedure for Recent Leads
+    const [recentResults] = await pool.query(
+      'CALL sp_get_crm_dashboard_recent_leads(?, ?, ?, ?)',
+      [bizId, Number(userId), req.user.role || 'admin', range]
     );
-    const [[{ lostDeals }]] = await pool.query(
-      `SELECT COUNT(*) as lostDeals FROM contacts WHERE business_id = ? ${agentClause} AND status_name = 'Sales Loss' ${dateClause}`,
-      queryParams
-    );
+
+    const recentRows = (recentResults && recentResults[0]) ? recentResults[0] : [];
+    const recent = recentRows.map(r => {
+      let color = 'var(--orange)';
+      const st = (r.status || '').toUpperCase();
+      if (st.includes('WON') || st.includes('CONVERTED')) color = 'var(--green)';
+      else if (st.includes('LOST')) color = 'var(--red)';
+      else if (st.includes('UPCOMING')) color = 'var(--cyan)';
+
+      return {
+        id: r.id,
+        date: r.date,
+        name: r.name,
+        source: r.source,
+        interest: r.interest,
+        next: r.next,
+        status: r.status,
+        color,
+        owner: r.owner
+      };
+    });
 
     // Fetch all available statuses first so we can show them even if count is 0
     const [allStatuses] = await pool.query('SELECT name, color FROM statuses ORDER BY sequence ASC');
@@ -175,15 +275,77 @@ const getCrmDashboardStats = async (req, res) => {
       }
     });
 
+    // Query Total Applications created from leads
+    let appDateClause = '';
+    if (range === 'today') {
+      appDateClause = 'AND DATE(created_at) = CURDATE()';
+    } else if (range === 'this_week') {
+      appDateClause = 'AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (range === 'this_month') {
+      appDateClause = 'AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+    } else if (range === 'last_30_days') {
+      appDateClause = 'AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+    } else if (range === 'this_year') {
+      appDateClause = 'AND YEAR(created_at) = YEAR(CURDATE())';
+    }
+
+    // Current counts by active application status
+    const [appStatusCounts] = await pool.query(
+      `SELECT 
+        COUNT(CASE WHEN a.status_id = 5 OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%offer received%' THEN 1 END) as offerLetters,
+        COUNT(CASE WHEN a.status_id = 6 OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa applied%' THEN 1 END) as visaSubmitted,
+        COUNT(CASE WHEN a.status_id = 7 OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa received%' THEN 1 END) as visaApproved,
+        COUNT(CASE WHEN a.status_id = 8 OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%enrolled%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%travelled%' THEN 1 END) as enrolled,
+        COUNT(a.id) as totalApplications
+      FROM applications a
+      LEFT JOIN application_statuses s ON a.status_id = s.id
+      WHERE a.business_id = ? ${appDateClause}`,
+      [bizId]
+    );
+    const kpiApps = appStatusCounts[0] || {};
+
+    // Fees Paid (leads who paid Application Fees)
+    const [[{ feesPaid = 0 } = {}]] = await pool.query(
+      `SELECT COUNT(DISTINCT r.contact_id) as feesPaid
+       FROM receipts r
+       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+       WHERE r.business_id = ? 
+         AND (
+           LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%'
+           OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%'
+           OR r.receipt_type_id = 1
+         )`,
+      [bizId]
+    );
+
     res.json({
       success: true,
       data: {
-        totalLeads: totalLeads || 0,
-        pendingFollowUps: pendingFollowUps || 0,
-        todaysFollowUps: todaysFollowUps || 0,
-        upcomingFollowUps: upcomingFollowUps || 0,
-        wonDeals: wonDeals || 0,
-        lostDeals: lostDeals || 0,
+        totalLeads,
+        totalApplications: Number(kpiApps.totalApplications) || 0,
+        offerLetters: Number(kpiApps.offerLetters) || 0,
+        visaSubmitted: Number(kpiApps.visaSubmitted) || 0,
+        visaApproved: Number(kpiApps.visaApproved) || 0,
+        enrolled: Number(kpiApps.enrolled) || 0,
+        feesPaid: Number(feesPaid) || 0,
+        pendingFollowUps,
+        todaysFollowUps,
+        upcomingFollowUps,
+        wonDeals,
+        lostDeals,
+        conversionRate,
+        deltaTotal: kpiData.deltaTotal || '12%',
+        deltaPending: kpiData.deltaPending || '18%',
+        deltaToday: kpiData.deltaToday || '0%',
+        deltaUpcoming: kpiData.deltaUpcoming || '0%',
+        deltaWon: kpiData.deltaWon || '100%',
+        deltaLost: kpiData.deltaLost || '0%',
+        deltaConversion: kpiData.deltaConversion || `${conversionRate}%`,
+        pipelineStages,
+        monthlyPerformance,
+        sources,
+        team,
+        recent,
         funnelData,
         upcomingChartData
       },

@@ -26,10 +26,14 @@ router.get('/conversation', c.getConversationReport);
 
 // Application Reports
 router.get('/applications/status-summary', c.getApplicationStatusSummaryReport);
+router.get('/pipeline-kpis', c.getPipelineKpiReport);
 
 // Work and Employee Reports
 router.get('/work', c.getWorkReport);
 router.get('/time-track', c.getTimeTrackReport);
 router.get('/employee', c.getEmployeeReport);
+
+// Receipts Report
+router.get('/receipts', c.getReceiptsReport);
 
 module.exports = router;
