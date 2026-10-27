@@ -42,29 +42,30 @@ router.use(authenticate);
 // Publicly accessible to all logged in users
 router.get('/', c.getHelpVideo);
 
-// Only 'ufs' user can add, edit, or delete tutorial videos
-const requireUfs = (req, res, next) => {
+// Only developer user (is_dev = 1 or 'ufs') can add, edit, or delete tutorial videos
+const requireDevUser = (req, res, next) => {
+  const isDev = req.user?.is_dev === 1 || req.user?.is_dev === true;
   const username = String(req.user?.username || '').toLowerCase().trim();
   const email = String(req.user?.email || '').toLowerCase().trim();
-  if (username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in') {
+  if (isDev || username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in') {
     return next();
   }
   return res.status(403).json({
     success: false,
-    message: 'Access denied: Only the ufs video management user can manage tutorial videos.'
+    message: 'Access denied: Only developer accounts (is_dev = 1) can manage tutorial videos.'
   });
 };
 
-router.post('/', requireUfs, (req, res, next) => {
+router.post('/', requireDevUser, (req, res, next) => {
   if (req.is('multipart/form-data')) {
     upload.single('video')(req, res, next);
   } else {
     next();
   }
 }, c.saveHelpVideo);
-router.put('/', requireUfs, c.updateHelpVideoDetails);
-router.delete('/:id', requireUfs, c.deleteHelpVideo);
-router.delete('/', requireUfs, c.deleteHelpVideo);
+router.put('/', requireDevUser, c.updateHelpVideoDetails);
+router.delete('/:id', requireDevUser, c.deleteHelpVideo);
+router.delete('/', requireDevUser, c.deleteHelpVideo);
 
 module.exports = router;
 

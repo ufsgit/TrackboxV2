@@ -1637,7 +1637,7 @@ const getFollowUpReport = async (req, res) => {
         follow_ups f
         JOIN contacts c ON f.contact_id = c.id AND c.business_id = ?
       ) ON u.id = f.by_user_id ${dateFilter} ${statusFilter}
-      WHERE u.business_id = ? AND u.role IN ('agent', 'admin') ${employeeFilter} ${teamFilter}
+      WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL) AND u.role IN ('agent', 'admin') ${employeeFilter} ${teamFilter}
       GROUP BY u.id, u.name, u.employee_code
       ORDER BY follow_up_count DESC
     `;
@@ -1751,7 +1751,7 @@ const getTeamProductivityReport = async (req, res) => {
         (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 1 AND DATE(c.created_at) = ?) as converted,
         (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 0 AND c.sale_lost = 0 AND DATE(c.created_at) = ?) as pending
       FROM users u
-      WHERE u.business_id = ? AND u.role = 'agent' ${teamFilter} ${employeeFilterUsers}
+      WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL) AND u.role = 'agent' ${teamFilter} ${employeeFilterUsers}
     `;
     const [teamProductivityRows] = await pool.query(usersQuery, queryParamsUsers);
 
@@ -2528,7 +2528,7 @@ const getDailyReport = async (req, res) => {
     const [dropdownUsers] = await pool.query(
       `SELECT id, name, employee_code, role 
        FROM users 
-       WHERE business_id = ? AND is_active = 1 
+       WHERE business_id = ? AND is_active = 1 AND (is_dev = 0 OR is_dev IS NULL)
        ORDER BY name ASC`,
       [businessId]
     );
@@ -2814,7 +2814,7 @@ const getLeadFlowReport = async (req, res) => {
     const [dropdownUsers] = await pool.query(
       `SELECT id, name, employee_code, role 
        FROM users 
-       WHERE business_id = ? AND is_active = 1 
+       WHERE business_id = ? AND is_active = 1 AND (is_dev = 0 OR is_dev IS NULL)
        ORDER BY name ASC`,
       [businessId]
     );
@@ -3353,6 +3353,168 @@ const getReceiptsReport = async (req, res) => {
   }
 };
 
+/**
+ * Monthly Receipt & Collection Analysis for a selected year
+ * Returns all 12 months with receiptCount and totalAmount (0 if none)
+ * Plus summary KPIs: totalYearReceipts, totalYearAmount, bestReceiptsMonth, bestAmountMonth
+ */
+const getMonthlyReceiptAnalysis = async (req, res) => {
+  try {
+    const businessId = req.user?.businessId || req.user?.business_id || 1;
+    const yearParam = req.query.year ? parseInt(req.query.year, 10) : new Date().getFullYear();
+    const selectedYear = !isNaN(yearParam) && yearParam > 1900 && yearParam < 2100 ? yearParam : new Date().getFullYear();
+
+    // Query aggregated monthly receipts for the specified year using COALESCE(receipt_date, created_at)
+    const [rows] = await pool.query(
+      `SELECT 
+         MONTH(COALESCE(receipt_date, created_at)) as month_num,
+         COUNT(id) as receipt_count,
+         COALESCE(SUM(amount), 0) as total_amount
+       FROM receipts
+       WHERE business_id = ? 
+         AND YEAR(COALESCE(receipt_date, created_at)) = ?
+       GROUP BY MONTH(COALESCE(receipt_date, created_at))
+       ORDER BY month_num ASC`,
+      [businessId, selectedYear]
+    );
+
+    // Query breakdown specifically for Application Fee vs Registration Fee vs Other
+    const [typeRows] = await pool.query(
+      `SELECT 
+         MONTH(COALESCE(r.receipt_date, r.created_at)) as month_num,
+         CASE 
+           WHEN LOWER(COALESCE(r.receipt_type_name, rt.name, '')) LIKE '%application%' THEN 'application'
+           WHEN LOWER(COALESCE(r.receipt_type_name, rt.name, '')) LIKE '%registration%' THEN 'registration'
+           ELSE 'other'
+         END as fee_category,
+         COUNT(r.id) as count,
+         COALESCE(SUM(r.amount), 0) as total_amount
+       FROM receipts r
+       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+       WHERE r.business_id = ? 
+         AND YEAR(COALESCE(r.receipt_date, r.created_at)) = ?
+       GROUP BY month_num, fee_category`,
+      [businessId, selectedYear]
+    );
+
+    // Query distinct years available in database to provide dynamic dropdown options
+    const [yearRows] = await pool.query(
+      `SELECT DISTINCT YEAR(COALESCE(receipt_date, created_at)) as \`year\`
+       FROM receipts
+       WHERE business_id = ? AND (receipt_date IS NOT NULL OR created_at IS NOT NULL)
+       ORDER BY \`year\` DESC`,
+      [businessId]
+    );
+
+    let availableYears = yearRows.map(y => Number(y.year)).filter(y => y && !isNaN(y));
+    if (!availableYears.includes(selectedYear)) {
+      availableYears.push(selectedYear);
+    }
+    const currentYear = new Date().getFullYear();
+    if (!availableYears.includes(currentYear)) {
+      availableYears.push(currentYear);
+    }
+    availableYears.sort((a, b) => b - a);
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    const monthMap = new Map();
+    rows.forEach(r => {
+      monthMap.set(Number(r.month_num), {
+        receiptCount: Number(r.receipt_count || 0),
+        totalAmount: Number(r.total_amount || 0)
+      });
+    });
+
+    const categoryMap = new Map(); // key: `${monthNum}_${category}`
+    typeRows.forEach(r => {
+      const key = `${Number(r.month_num)}_${r.fee_category}`;
+      categoryMap.set(key, {
+        count: Number(r.count || 0),
+        amount: Number(r.total_amount || 0)
+      });
+    });
+
+    let totalYearReceipts = 0;
+    let totalYearAmount = 0;
+    let totalApplicationCount = 0;
+    let totalApplicationAmount = 0;
+    let totalRegistrationCount = 0;
+    let totalRegistrationAmount = 0;
+
+    let maxReceipts = -1;
+    let bestReceiptsMonth = '—';
+    let maxAmount = -1;
+    let bestAmountMonth = '—';
+
+    const monthlyData = [];
+
+    for (let m = 1; m <= 12; m++) {
+      const monthName = monthNames[m - 1];
+      const stats = monthMap.get(m) || { receiptCount: 0, totalAmount: 0 };
+      const receiptCount = stats.receiptCount;
+      const totalAmount = stats.totalAmount;
+
+      const appStats = categoryMap.get(`${m}_application`) || { count: 0, amount: 0 };
+      const regStats = categoryMap.get(`${m}_registration`) || { count: 0, amount: 0 };
+
+      totalYearReceipts += receiptCount;
+      totalYearAmount += totalAmount;
+      totalApplicationCount += appStats.count;
+      totalApplicationAmount += appStats.amount;
+      totalRegistrationCount += regStats.count;
+      totalRegistrationAmount += regStats.amount;
+
+      if (receiptCount > maxReceipts) {
+        maxReceipts = receiptCount;
+        bestReceiptsMonth = receiptCount > 0 ? `${monthName} (${receiptCount})` : '—';
+      }
+
+      if (totalAmount > maxAmount) {
+        maxAmount = totalAmount;
+        bestAmountMonth = totalAmount > 0 ? `${monthName} (₹${totalAmount.toLocaleString('en-IN')})` : '—';
+      }
+
+      monthlyData.push({
+        month: m,
+        monthName: monthName,
+        receiptCount: receiptCount,
+        totalAmount: totalAmount,
+        applicationCount: appStats.count,
+        applicationAmount: appStats.amount,
+        registrationCount: regStats.count,
+        registrationAmount: regStats.amount
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        year: selectedYear,
+        availableYears,
+        summary: {
+          totalYearReceipts,
+          totalYearAmount,
+          totalApplicationCount,
+          totalApplicationAmount,
+          totalRegistrationCount,
+          totalRegistrationAmount,
+          bestReceiptsMonth,
+          bestAmountMonth
+        },
+        monthlyData
+      }
+    });
+
+  } catch (error) {
+    console.error('getMonthlyReceiptAnalysis Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate monthly receipt analysis', error: error.message });
+  }
+};
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -3375,7 +3537,8 @@ module.exports = {
   getDailyReport,
   getLeadFlowReport,
   getPipelineKpiReport,
-  getReceiptsReport
+  getReceiptsReport,
+  getMonthlyReceiptAnalysis
 };
 
 

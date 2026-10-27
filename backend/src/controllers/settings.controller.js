@@ -35,7 +35,7 @@ const getTeam = async (req, res) => {
        LEFT JOIN branches b ON u.branch_id = b.id 
        LEFT JOIN departments d ON u.department_id = d.id 
        LEFT JOIN designations des ON u.designation_id = des.id
-       WHERE u.business_id=? ORDER BY u.created_at ASC`,
+       WHERE u.business_id=? AND (u.is_dev = 0 OR u.is_dev IS NULL) ORDER BY u.created_at ASC`,
       [req.user.businessId]
     );
     // For each agent, load their personal team member IDs

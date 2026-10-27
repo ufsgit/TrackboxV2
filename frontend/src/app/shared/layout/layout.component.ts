@@ -704,8 +704,10 @@ export class LayoutComponent implements OnInit {
 
   get isUfsUser(): boolean {
     const u = this.currentUser;
-    const username = (u?.username || '').toLowerCase().trim();
-    const email = (u?.email || '').toLowerCase().trim();
+    if (!u) return false;
+    if (u.is_dev === 1 || u.is_dev === true || u.isDev === true) return true;
+    const username = (u.username || '').toLowerCase().trim();
+    const email = (u.email || '').toLowerCase().trim();
     return username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
   }
 

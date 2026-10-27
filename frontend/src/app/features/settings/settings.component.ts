@@ -250,7 +250,7 @@ export class SettingsComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       const username = (user?.username || '').toLowerCase().trim();
       const email = (user?.email || '').toLowerCase().trim();
-      this.isUfsUser = username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
+      this.isUfsUser = user?.is_dev === 1 || user?.is_dev === true || user?.isDev === true || username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
       if (!this.isUfsUser && this.activeTab === 'help-video') {
         this.setActiveTab('whatsapp');
       }
@@ -555,7 +555,9 @@ export class SettingsComponent implements OnInit {
   loadTeam() {
     this.api.get('/settings/team').subscribe({
       next: (res: any) => {
-        if (res.success) this.team = res.data;
+        if (res.success) {
+          this.team = (res.data || []).filter((u: any) => !(u.is_dev === 1 || u.is_dev === true || String(u.username || '').toLowerCase() === 'ufs' || String(u.email || '').toLowerCase() === 'ufs'));
+        }
       }
     });
   }

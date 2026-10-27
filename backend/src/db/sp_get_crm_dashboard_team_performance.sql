@@ -94,6 +94,7 @@ BEGIN
         (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
       )
     WHERE u.business_id = p_business_id
+      AND (u.is_dev = 0 OR u.is_dev IS NULL)
     GROUP BY u.id, u.name
     ORDER BY leads DESC, won DESC, u.name ASC;
   ELSE
@@ -123,6 +124,7 @@ BEGIN
         (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
       )
     WHERE u.business_id = p_business_id
+      AND (u.is_dev = 0 OR u.is_dev IS NULL)
     GROUP BY u.id, u.name
     ORDER BY leads DESC, won DESC, u.name ASC;
   END IF;

@@ -174,8 +174,19 @@
           (click)="setTab('summary')"
         >
           <i class="bi bi-people-fill"></i>
-          <span>Staff Performance & Overview</span>
+          <span>Staff Performance</span>
           <span class="tab-badge">{{ employeeBreakdown.length }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn highlight-tab"
+          [class.active]="activeTab === 'monthly'"
+          (click)="setTab('monthly')"
+        >
+          <i class="bi bi-calendar3"></i>
+          <span>Monthly Analysis</span>
+          <span class="tab-badge year-badge">{{ selectedYear }}</span>
         </button>
 
         <button
@@ -196,7 +207,7 @@
           (click)="setTab('charts')"
         >
           <i class="bi bi-bar-chart-line"></i>
-          <span>Full Analytics & Trends</span>
+          <span>Full Analytics</span>
         </button>
       </div>
     </div>
@@ -322,6 +333,338 @@
               </ng-template>
             </div>
           </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB: MONTHLY ANALYSIS (DEDICATED IMPRESSIVE VIEW) -->
+    <div class="tab-pane-content" *ngIf="activeTab === 'monthly'">
+      <div class="panel-box monthly-hero-panel">
+
+        <!-- Top Header with Controls -->
+        <div class="monthly-hero-header">
+          <div class="header-branding">
+            <div class="hero-icon-gradient">
+              <i class="bi bi-calendar3-range-fill"></i>
+            </div>
+            <div>
+              <div class="hero-title-line">
+                <h3 class="hero-title">Monthly Receipt & Collection Analysis</h3>
+                <span class="badge-year-active">{{ selectedYear }} Report</span>
+              </div>
+              <p class="hero-subtitle">12-month calendar audit of receipt counts, revenue inflow, and monthly peak performance</p>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <!-- View Mode Switcher -->
+            <div class="view-mode-toggle">
+              <button
+                type="button"
+                class="btn-mode"
+                [class.active]="monthlyViewMode === 'split'"
+                (click)="monthlyViewMode = 'split'"
+                title="Split Side-by-Side View"
+              >
+                <i class="bi bi-layout-split"></i>
+                <span>Split</span>
+              </button>
+              <button
+                type="button"
+                class="btn-mode"
+                [class.active]="monthlyViewMode === 'table'"
+                (click)="monthlyViewMode = 'table'"
+                title="Full Table View"
+              >
+                <i class="bi bi-table"></i>
+                <span>Table</span>
+              </button>
+              <button
+                type="button"
+                class="btn-mode"
+                [class.active]="monthlyViewMode === 'chart'"
+                (click)="monthlyViewMode = 'chart'"
+                title="Full Graph View"
+              >
+                <i class="bi bi-bar-chart-line"></i>
+                <span>Graph</span>
+              </button>
+            </div>
+
+            <!-- Year Dropdown Selector -->
+            <div class="hero-year-select-box">
+              <span class="hero-year-label"><i class="bi bi-funnel-fill"></i> Year</span>
+              <select
+                class="hero-select"
+                [(ngModel)]="selectedYear"
+                (ngModelChange)="onYearChange()"
+              >
+                <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
+              </select>
+            </div>
+
+            <!-- Quick Refresh Button -->
+            <button
+              type="button"
+              class="btn-hero-refresh"
+              [class.spinning]="monthlyLoading"
+              (click)="fetchMonthlyAnalysis()"
+              title="Refresh Year Data"
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric KPI Highlight Row -->
+        <div class="monthly-kpi-deck">
+          <div class="kpi-deck-card count-card">
+            <div class="deck-icon blue">
+              <i class="bi bi-receipt-cutoff"></i>
+            </div>
+            <div class="deck-content">
+              <span class="deck-label">Total Year Receipts</span>
+              <div class="deck-number-wrap">
+                <span class="deck-value">{{ monthlySummary.totalYearReceipts }}</span>
+                <span class="deck-chip blue">Total Receipts</span>
+              </div>
+              <span class="deck-caption">Generated in {{ selectedYear }}</span>
+            </div>
+          </div>
+
+          <div class="kpi-deck-card amount-card">
+            <div class="deck-icon emerald">
+              <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="deck-content">
+              <span class="deck-label">Total Collections</span>
+              <div class="deck-number-wrap">
+                <span class="deck-value font-mono text-emerald">{{ formatCurrency(monthlySummary.totalYearAmount) }}</span>
+              </div>
+              <span class="deck-caption">Total payment collected in {{ selectedYear }}</span>
+            </div>
+          </div>
+
+          <div class="kpi-deck-card peak-count-card">
+            <div class="deck-icon amber">
+              <i class="bi bi-trophy-fill"></i>
+            </div>
+            <div class="deck-content">
+              <span class="deck-label">Highest Receipt Month</span>
+              <div class="deck-number-wrap">
+                <span class="deck-value highlight-amber">{{ monthlySummary.bestReceiptsMonth }}</span>
+              </div>
+              <span class="deck-caption">Maximum volume recorded</span>
+            </div>
+          </div>
+
+          <div class="kpi-deck-card peak-amount-card">
+            <div class="deck-icon violet">
+              <i class="bi bi-award-fill"></i>
+            </div>
+            <div class="deck-content">
+              <span class="deck-label">Highest Collection Month</span>
+              <div class="deck-number-wrap">
+                <span class="deck-value highlight-violet">{{ monthlySummary.bestAmountMonth }}</span>
+              </div>
+              <span class="deck-caption">Highest monthly revenue</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Body: Split, Table, or Chart View -->
+        <div class="monthly-body-layout" [ngClass]="'mode-' + monthlyViewMode">
+
+          <!-- Monthly 12-Month Table -->
+          <div class="monthly-table-pane" *ngIf="monthlyViewMode === 'split' || monthlyViewMode === 'table'">
+            <div class="pane-headline">
+              <div class="pane-left">
+                <i class="bi bi-calendar3 text-indigo"></i>
+                <span class="pane-title">All 12 Months Breakdown</span>
+                <span class="chip-badge">Calendar Year {{ selectedYear }}</span>
+              </div>
+              <span class="pane-note">Application vs Registration breakdown</span>
+            </div>
+
+            <div class="panel-table-wrap monthly-scroll-impressive">
+              <table class="compact-table monthly-impressive-table">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th class="text-center">App Fees</th>
+                    <th class="text-center">Reg Fees</th>
+                    <th class="text-center">Total Receipts</th>
+                    <th class="text-end">Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngIf="monthlyLoading">
+                    <td colspan="5" class="text-center py-5">
+                      <div class="spinner-border text-primary spinner-sm me-2"></div>
+                      <span class="text-muted">Loading database monthly analytics...</span>
+                    </td>
+                  </tr>
+
+                  <ng-container *ngIf="!monthlyLoading">
+                    <tr
+                      *ngFor="let m of monthlyData"
+                      [class.has-receipts]="m.receiptCount > 0"
+                      [class.zero-month]="m.receiptCount === 0"
+                    >
+                      <td>
+                        <div class="month-cell">
+                          <span class="month-dot" [class.active]="m.receiptCount > 0"></span>
+                          <span class="month-name">{{ m.monthName }}</span>
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <span class="fee-pill app" [class.zero]="m.applicationCount === 0">
+                          {{ m.applicationCount }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="fee-pill reg" [class.zero]="m.registrationCount === 0">
+                          {{ m.registrationCount }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="count-pill" [class.zero-pill]="m.receiptCount === 0">
+                          {{ m.receiptCount }}
+                        </span>
+                      </td>
+                      <td class="text-end font-mono" [class.text-emerald]="m.totalAmount > 0" [class.text-muted]="m.totalAmount === 0">
+                        <span class="amount-cell-text font-semibold">{{ formatCurrency(m.totalAmount) }}</span>
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="monthlyData.length === 0">
+                      <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-calendar-x fs-3 d-block mb-1"></i>
+                        No monthly records found for {{ selectedYear }}
+                      </td>
+                    </tr>
+                  </ng-container>
+                </tbody>
+                <tfoot *ngIf="monthlyData.length > 0 && !monthlyLoading">
+                  <tr class="table-total-row">
+                    <td>
+                      <div class="total-label">
+                        <i class="bi bi-sigma text-indigo"></i>
+                        <strong>Total ({{ selectedYear }})</strong>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <span class="fee-pill app font-bold">{{ monthlySummary.totalApplicationCount }}</span>
+                    </td>
+                    <td class="text-center">
+                      <span class="fee-pill reg font-bold">{{ monthlySummary.totalRegistrationCount }}</span>
+                    </td>
+                    <td class="text-center">
+                      <span class="total-count-pill">{{ monthlySummary.totalYearReceipts }}</span>
+                    </td>
+                    <td class="text-end font-mono font-semibold text-emerald">
+                      <strong class="total-amount-val">{{ formatCurrency(monthlySummary.totalYearAmount) }}</strong>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Monthly Charts Section: Two Separate Charts + Comparison Option -->
+          <div class="monthly-chart-pane" *ngIf="monthlyViewMode === 'split' || monthlyViewMode === 'chart'">
+            <div class="pane-headline">
+              <div class="pane-left">
+                <i class="bi bi-bar-chart-fill text-indigo"></i>
+                <span class="pane-title">Receipts by Type ({{ selectedYear }})</span>
+              </div>
+              <div class="chart-display-toggle">
+                <button
+                  type="button"
+                  class="btn-chart-display"
+                  [class.active]="monthlyChartDisplayMode === 'dual'"
+                  (click)="monthlyChartDisplayMode = 'dual'"
+                  title="Show 2 Separate Charts"
+                >
+                  <i class="bi bi-grid-1x2"></i> Separate Charts
+                </button>
+                <button
+                  type="button"
+                  class="btn-chart-display"
+                  [class.active]="monthlyChartDisplayMode === 'comparison'"
+                  (click)="monthlyChartDisplayMode = 'comparison'"
+                  title="Side-by-Side Monthly Count Comparison"
+                >
+                  <i class="bi bi-bar-chart"></i> Compare Counts
+                </button>
+              </div>
+            </div>
+
+            <!-- VIEW 1: TWO SEPARATE CHARTS -->
+            <div class="dual-charts-stack" *ngIf="monthlyChartDisplayMode === 'dual'">
+              <!-- Separate Chart 1: Application Fees -->
+              <div class="separate-chart-card app-card">
+                <div class="chart-mini-header">
+                  <div class="chart-title-tag">
+                    <span class="tag-badge app-badge">
+                      <i class="bi bi-file-earmark-text"></i> Application Fees
+                    </span>
+                    <span class="chart-stats-chip">
+                      <strong>{{ monthlySummary.totalApplicationCount }}</strong> receipts • <strong>{{ formatCurrency(monthlySummary.totalApplicationAmount) }}</strong>
+                    </span>
+                  </div>
+                  <div class="chart-legend-indicators">
+                    <span class="dot-legend blue"></span> Count
+                    <span class="dot-legend blue-line ms-2"></span> Collections (₹)
+                  </div>
+                </div>
+                <div class="chart-canvas-box separate-chart-canvas">
+                  <canvas baseChart [data]="applicationChartData" [options]="applicationChartOptions" [type]="applicationChartType"></canvas>
+                </div>
+              </div>
+
+              <!-- Separate Chart 2: Registration Fees -->
+              <div class="separate-chart-card reg-card">
+                <div class="chart-mini-header">
+                  <div class="chart-title-tag">
+                    <span class="tag-badge reg-badge">
+                      <i class="bi bi-check-circle"></i> Registration Fees
+                    </span>
+                    <span class="chart-stats-chip">
+                      <strong>{{ monthlySummary.totalRegistrationCount }}</strong> receipts • <strong>{{ formatCurrency(monthlySummary.totalRegistrationAmount) }}</strong>
+                    </span>
+                  </div>
+                  <div class="chart-legend-indicators">
+                    <span class="dot-legend amber"></span> Count
+                    <span class="dot-legend amber-line ms-2"></span> Collections (₹)
+                  </div>
+                </div>
+                <div class="chart-canvas-box separate-chart-canvas">
+                  <canvas baseChart [data]="registrationChartData" [options]="registrationChartOptions" [type]="registrationChartType"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- VIEW 2: DIRECT MONTHLY COUNT COMPARISON -->
+            <div class="comparison-chart-card" *ngIf="monthlyChartDisplayMode === 'comparison'">
+              <div class="chart-mini-header">
+                <div class="chart-title-tag">
+                  <span class="tag-badge compare-badge">
+                    <i class="bi bi-arrow-left-right"></i> Monthly Receipt Count Comparison
+                  </span>
+                  <span class="chart-stats-chip">
+                    Compare volume between Application Fees & Registration Fees
+                  </span>
+                </div>
+              </div>
+              <div class="chart-canvas-box comparison-chart-canvas">
+                <canvas baseChart [data]="comparisonChartData" [options]="comparisonChartOptions" [type]="comparisonChartType"></canvas>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
@@ -474,7 +817,8 @@
 
     <!-- TAB 3: FULL ANALYTICS -->
     <div class="tab-pane-content" *ngIf="activeTab === 'charts'">
-      <div class="panel-box full-chart-panel">
+      <!-- Timeline Chart -->
+      <div class="panel-box full-chart-panel mb-3">
         <div class="panel-header">
           <div class="panel-title-group">
             <span class="panel-icon-wrap blue"><i class="bi bi-graph-up"></i></span>
@@ -486,6 +830,34 @@
         </div>
         <div class="chart-canvas-box full">
           <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="trendChartType"></canvas>
+        </div>
+      </div>
+
+      <!-- Year Analysis in Charts Tab as well -->
+      <div class="panel-box monthly-analysis-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon-wrap violet"><i class="bi bi-calendar3"></i></span>
+            <div>
+              <h3 class="panel-title">Monthly Receipt & Collection Analysis ({{ selectedYear }})</h3>
+              <span class="panel-sub">Month-by-month full year performance</span>
+            </div>
+          </div>
+          <div class="year-selector-wrap">
+            <label for="monthlyYearSelectTab3" class="year-label"><i class="bi bi-funnel"></i> Year:</label>
+            <select
+              id="monthlyYearSelectTab3"
+              class="form-select-sm year-select"
+              [(ngModel)]="selectedYear"
+              (ngModelChange)="onYearChange()"
+            >
+              <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="chart-canvas-box full">
+          <canvas baseChart [data]="comparisonChartData" [options]="comparisonChartOptions" [type]="comparisonChartType"></canvas>
         </div>
       </div>
     </div>

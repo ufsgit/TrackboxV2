@@ -280,7 +280,7 @@
               *ngIf="isBrowser && months2026.length > 0"
               [data]="monthlyLeadsChartData"
               [options]="monthlyChartOptions"
-              [type]="'bar'">
+              [type]="'line'">
             </canvas>
             <div class="no-chart-data" *ngIf="!loading && months2026.length === 0">
               <i class="bi bi-bar-chart-line"></i>
@@ -313,8 +313,8 @@
             <canvas baseChart
               *ngIf="isBrowser && months2026.length > 0"
               [data]="monthlyConversionChartData"
-              [options]="monthlyChartOptions"
-              [type]="'bar'">
+              [options]="monthlyConversionChartOptions"
+              [type]="'line'">
             </canvas>
             <div class="no-chart-data" *ngIf="!loading && months2026.length === 0">
               <i class="bi bi-check-circle"></i>

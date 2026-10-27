@@ -421,7 +421,7 @@ const getTeams = async (req, res) => {
       `SELECT tm.team_id, u.id, u.name, u.email 
        FROM team_members tm 
        JOIN users u ON tm.user_id = u.id 
-       WHERE u.business_id=?`, 
+       WHERE u.business_id=? AND (u.is_dev = 0 OR u.is_dev IS NULL)`, 
       [req.user.businessId]
     );
     

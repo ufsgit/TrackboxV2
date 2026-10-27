@@ -34,6 +34,7 @@ router.get('/time-track', c.getTimeTrackReport);
 router.get('/employee', c.getEmployeeReport);
 
 // Receipts Report
+router.get('/receipts/monthly-analysis', c.getMonthlyReceiptAnalysis);
 router.get('/receipts', c.getReceiptsReport);
 
 module.exports = router;

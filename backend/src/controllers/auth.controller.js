@@ -75,7 +75,8 @@ const login = async (req, res) => {
       role: user.role,
       name: user.name,
       email: user.email,
-      username: user.username
+      username: user.username,
+      is_dev: user.is_dev || 0
     });
     let permissions = [];
     if (typeof user.permissions === 'string') {
@@ -95,7 +96,9 @@ const login = async (req, res) => {
         email: user.email,
         username: user.username,
         businessName: user.businessName,
-        permissions
+        permissions,
+        is_dev: user.is_dev || 0,
+        isDev: (user.is_dev === 1 || user.is_dev === true || String(user.username || '').toLowerCase() === 'ufs')
       },
       message: 'Login successful'
     });
@@ -116,7 +119,8 @@ const refresh = async (req, res) => {
       role: payload.role,
       name: payload.name,
       email: payload.email,
-      username: payload.username
+      username: payload.username,
+      is_dev: payload.is_dev || 0
     });
     res.json({ success: true, data: { token: newToken }, message: 'Token refreshed' });
   } catch (err) {
@@ -127,7 +131,7 @@ const refresh = async (req, res) => {
 const me = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT u.id, u.name, u.email, u.username, u.role, u.business_id, u.permissions, u.created_at, b.name as businessName, b.plan FROM users u JOIN businesses b ON u.business_id = b.id WHERE u.id = ?',
+      'SELECT u.id, u.name, u.email, u.username, u.role, u.business_id, u.permissions, u.created_at, u.is_dev, b.name as businessName, b.plan FROM users u JOIN businesses b ON u.business_id = b.id WHERE u.id = ?',
       [req.user.userId]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'User not found', data: null });
@@ -136,6 +140,7 @@ const me = async (req, res) => {
       try { user.permissions = JSON.parse(user.permissions); } catch(e) { user.permissions = []; }
     }
     user.permissions = user.permissions || [];
+    user.isDev = (user.is_dev === 1 || user.is_dev === true || String(user.username || '').toLowerCase() === 'ufs');
     res.json({ success: true, data: user, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });

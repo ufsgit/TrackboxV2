@@ -61,43 +61,114 @@ export class LeadFlowReportComponent implements OnInit {
   months2026: any[] = [];
   peakMonth: any = null;
 
-  // Chart 1 (Monthly Side): Total Leads Received (Jan to Dec 2026)
+  // Chart 1 (Monthly Side): Total Leads Received & Won Comparison (Salesforce Style Area Chart)
   public monthlyLeadsChartData: ChartConfiguration['data'] = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    datasets: [{
-      type: 'bar',
-      label: 'Leads Received',
-      data: [],
-      backgroundColor: [],
-      borderColor: [],
-      borderWidth: 2,
-      borderRadius: 8,
-      hoverBackgroundColor: '#1d4ed8',
-      maxBarThickness: 42
-    }]
+    datasets: [
+      {
+        type: 'line',
+        label: 'Leads Received',
+        data: [],
+        borderColor: '#0284c7',
+        backgroundColor: 'rgba(2, 132, 199, 0.12)',
+        pointBackgroundColor: '#0284c7',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: '#0284c7',
+        pointRadius: 4.5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+        yAxisID: 'y'
+      },
+      {
+        type: 'line',
+        label: 'Won Opportunities',
+        data: [],
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.08)',
+        pointBackgroundColor: '#f59e0b',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: '#f59e0b',
+        pointRadius: 4.5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+        yAxisID: 'y1'
+      }
+    ]
   };
 
-  // Chart 2 (Monthly Side): Leads Converted (Jan to Dec 2026)
+  // Chart 2 (Monthly Side): Won Opportunities & Win Rate (Salesforce Style Area Chart)
   public monthlyConversionChartData: ChartConfiguration['data'] = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    datasets: [{
-      type: 'bar',
-      label: 'Leads Converted (Won)',
-      data: [],
-      backgroundColor: [],
-      borderColor: [],
-      borderWidth: 2,
-      borderRadius: 8,
-      hoverBackgroundColor: '#047857',
-      maxBarThickness: 42
-    }]
+    datasets: [
+      {
+        type: 'line',
+        label: 'Won Opportunities',
+        data: [],
+        borderColor: '#0284c7',
+        backgroundColor: 'rgba(2, 132, 199, 0.12)',
+        pointBackgroundColor: '#0284c7',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: '#0284c7',
+        pointRadius: 4.5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+        yAxisID: 'y'
+      },
+      {
+        type: 'line',
+        label: 'Win Rate (%)',
+        data: [],
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.08)',
+        pointBackgroundColor: '#f59e0b',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 1.5,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: '#f59e0b',
+        pointRadius: 4.5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+        yAxisID: 'y1'
+      }
+    ]
   };
 
   public monthlyChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'center',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 16,
+          font: { family: 'Inter', size: 12, weight: 600 },
+          color: '#475569'
+        }
+      },
       tooltip: {
         backgroundColor: 'rgba(15, 23, 42, 0.95)',
         titleColor: '#ffffff',
@@ -106,7 +177,8 @@ export class LeadFlowReportComponent implements OnInit {
         bodyFont: { size: 12 },
         padding: 12,
         cornerRadius: 8,
-        displayColors: false,
+        usePointStyle: true,
+        boxPadding: 4,
         callbacks: {
           afterTitle: (tooltipItems) => {
             const index = tooltipItems[0]?.dataIndex;
@@ -116,28 +188,111 @@ export class LeadFlowReportComponent implements OnInit {
             return '';
           },
           label: (context) => {
+            const label = context.dataset.label || '';
             const val = context.parsed.y ?? 0;
-            const index = context.dataIndex;
-            const monthObj = this.months2026[index];
-            if (context.dataset.label === 'Leads Received') {
-              return `Leads Received: ${val}`;
-            } else {
-              const rate = monthObj?.conversionRate ?? 0;
-              return `Converted: ${val} (Win Rate: ${rate}%)`;
-            }
+            return ` ${label}: ${val}`;
           }
         }
       }
     },
     scales: {
       y: {
+        type: 'linear',
+        position: 'left',
         beginAtZero: true,
-        grid: { color: 'rgba(226, 232, 240, 0.6)' },
+        grid: { color: 'rgba(226, 232, 240, 0.65)' },
+        ticks: { precision: 0, color: '#64748b', font: { size: 11 } }
+      },
+      y1: {
+        type: 'linear',
+        position: 'right',
+        beginAtZero: true,
+        grid: { display: false },
         ticks: { precision: 0, color: '#64748b', font: { size: 11 } }
       },
       x: {
         grid: { display: false },
-        ticks: { color: '#64748b', font: { size: 11, weight: 'bold' } }
+        ticks: {
+          color: '#64748b',
+          font: { size: 11, weight: 'bold' },
+          maxRotation: 45,
+          minRotation: 45
+        }
+      }
+    }
+  };
+
+  public monthlyConversionChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'center',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 16,
+          font: { family: 'Inter', size: 12, weight: 600 },
+          color: '#475569'
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        titleColor: '#ffffff',
+        titleFont: { size: 13, weight: 'bold' },
+        bodyColor: '#e2e8f0',
+        bodyFont: { size: 12 },
+        padding: 12,
+        cornerRadius: 8,
+        usePointStyle: true,
+        boxPadding: 4,
+        callbacks: {
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const val = context.parsed.y ?? 0;
+            if (label.includes('Rate')) {
+              return ` ${label}: ${val}%`;
+            }
+            return ` ${label}: ${val}`;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        type: 'linear',
+        position: 'left',
+        beginAtZero: true,
+        grid: { color: 'rgba(226, 232, 240, 0.65)' },
+        ticks: { precision: 0, color: '#64748b', font: { size: 11 } }
+      },
+      y1: {
+        type: 'linear',
+        position: 'right',
+        beginAtZero: true,
+        grid: { display: false },
+        ticks: {
+          color: '#64748b',
+          font: { size: 11 },
+          callback: (val) => `${val}%`
+        }
+      },
+      x: {
+        grid: { display: false },
+        ticks: {
+          color: '#64748b',
+          font: { size: 11, weight: 'bold' },
+          maxRotation: 45,
+          minRotation: 45
+        }
       }
     }
   };
@@ -298,54 +453,104 @@ export class LeadFlowReportComponent implements OnInit {
   }
 
   updateCharts() {
-    // 1. Monthly 2026 Charts
+    // 1. Monthly Charts (Salesforce Style Area Chart)
     if (this.months2026 && this.months2026.length > 0) {
       const labels = this.months2026.map(m => m.shortName);
       const creationValues = this.months2026.map(m => Number(m.createdCount) || 0);
       const conversionValues = this.months2026.map(m => Number(m.convertedCount) || 0);
-
-      // Colors for Left Chart (Total Leads Received) - Highlight Peak Month
-      const leadsBgColors = this.months2026.map(m => 
-        m.isPeak ? '#2563eb' : (m.createdCount > 0 ? '#38bdf8' : 'rgba(203, 213, 225, 0.45)')
-      );
-      const leadsBorderColors = this.months2026.map(m => 
-        m.isPeak ? '#1d4ed8' : (m.createdCount > 0 ? '#0284c7' : 'rgba(148, 163, 184, 0.5)')
-      );
+      const winRateValues = this.months2026.map(m => Number(m.conversionRate) || 0);
 
       this.monthlyLeadsChartData = {
         labels: [...labels],
-        datasets: [{
-          type: 'bar',
-          label: 'Leads Received',
-          data: [...creationValues],
-          backgroundColor: leadsBgColors,
-          borderColor: leadsBorderColors,
-          borderWidth: 2,
-          borderRadius: 8,
-          maxBarThickness: 38
-        }]
+        datasets: [
+          {
+            type: 'line',
+            label: 'Leads Received',
+            data: [...creationValues],
+            borderColor: '#0284c7',
+            backgroundColor: 'rgba(2, 132, 199, 0.12)',
+            pointBackgroundColor: '#0284c7',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#0284c7',
+            pointRadius: 4.5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Won Opportunities',
+            data: [...conversionValues],
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+            pointBackgroundColor: '#f59e0b',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#f59e0b',
+            pointRadius: 4.5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            yAxisID: 'y1'
+          }
+        ]
       };
-
-      // Colors for Right Chart (Lead Conversions)
-      const convBgColors = this.months2026.map(m => 
-        m.convertedCount > 0 ? '#10b981' : 'rgba(203, 213, 225, 0.45)'
-      );
-      const convBorderColors = this.months2026.map(m => 
-        m.convertedCount > 0 ? '#059669' : 'rgba(148, 163, 184, 0.5)'
-      );
 
       this.monthlyConversionChartData = {
         labels: [...labels],
-        datasets: [{
-          type: 'bar',
-          label: 'Leads Converted (Won)',
-          data: [...conversionValues],
-          backgroundColor: convBgColors,
-          borderColor: convBorderColors,
-          borderWidth: 2,
-          borderRadius: 8,
-          maxBarThickness: 38
-        }]
+        datasets: [
+          {
+            type: 'line',
+            label: 'Won Opportunities',
+            data: [...conversionValues],
+            borderColor: '#0284c7',
+            backgroundColor: 'rgba(2, 132, 199, 0.12)',
+            pointBackgroundColor: '#0284c7',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#0284c7',
+            pointRadius: 4.5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Win Rate (%)',
+            data: [...winRateValues],
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+            pointBackgroundColor: '#f59e0b',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: '#f59e0b',
+            pointRadius: 4.5,
+            pointHoverRadius: 7,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            yAxisID: 'y1'
+          }
+        ]
+      };
+    } else {
+      this.monthlyLeadsChartData = {
+        labels: [],
+        datasets: []
+      };
+      this.monthlyConversionChartData = {
+        labels: [],
+        datasets: []
       };
     }
 

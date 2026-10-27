@@ -47,6 +47,28 @@ interface ReceiptTransaction {
   assigned_to_name: string;
 }
 
+export interface MonthlyReceiptItem {
+  month: number;
+  monthName: string;
+  receiptCount: number;
+  totalAmount: number;
+  applicationCount: number;
+  applicationAmount: number;
+  registrationCount: number;
+  registrationAmount: number;
+}
+
+export interface MonthlyAnalysisSummary {
+  totalYearReceipts: number;
+  totalYearAmount: number;
+  totalApplicationCount: number;
+  totalApplicationAmount: number;
+  totalRegistrationCount: number;
+  totalRegistrationAmount: number;
+  bestReceiptsMonth: string;
+  bestAmountMonth: string;
+}
+
 @Component({
   selector: 'app-receipt-report',
   standalone: true,
@@ -59,7 +81,29 @@ export class ReceiptReportComponent implements OnInit {
   refreshing: boolean = false;
 
   // View Tab State
-  activeTab: 'summary' | 'transactions' | 'charts' = 'summary';
+  activeTab: 'summary' | 'monthly' | 'transactions' | 'charts' = 'summary';
+
+  // Monthly Sub-view Mode: 'split' | 'table' | 'chart'
+  monthlyViewMode: 'split' | 'table' | 'chart' = 'split';
+
+  // Active chart display mode inside monthly: 'dual' (two separate charts) | 'comparison' (combined side-by-side)
+  monthlyChartDisplayMode: 'dual' | 'comparison' = 'dual';
+
+  // Monthly Analysis State
+  selectedYear: number = new Date().getFullYear();
+  availableYears: number[] = [new Date().getFullYear()];
+  monthlyData: MonthlyReceiptItem[] = [];
+  monthlySummary: MonthlyAnalysisSummary = {
+    totalYearReceipts: 0,
+    totalYearAmount: 0,
+    totalApplicationCount: 0,
+    totalApplicationAmount: 0,
+    totalRegistrationCount: 0,
+    totalRegistrationAmount: 0,
+    bestReceiptsMonth: '—',
+    bestAmountMonth: '—'
+  };
+  monthlyLoading: boolean = false;
 
   // Date Filter State
   dateRange: string = 'this_month';
@@ -97,6 +141,194 @@ export class ReceiptReportComponent implements OnInit {
   timelineData: any[] = [];
   staffList: { id: number; name: string }[] = [];
   receipts: ReceiptTransaction[] = [];
+
+  // 1. Application Fee Separate Chart
+  public applicationChartType: ChartType = 'bar';
+  public applicationChartData: ChartConfiguration['data'] = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    datasets: [
+      {
+        data: [],
+        label: 'Application Fee Receipts',
+        backgroundColor: 'rgba(59, 130, 246, 0.85)',
+        hoverBackgroundColor: 'rgba(29, 78, 216, 1)',
+        borderRadius: 6,
+        yAxisID: 'y'
+      },
+      {
+        data: [],
+        label: 'Amount (₹)',
+        type: 'line',
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.12)',
+        borderWidth: 2,
+        pointBackgroundColor: '#2563eb',
+        pointBorderColor: '#ffffff',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.3,
+        yAxisID: 'y1'
+      }
+    ]
+  };
+
+  public applicationChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { usePointStyle: true, boxWidth: 7, font: { family: 'Inter', size: 11, weight: 600 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const val = context.parsed.y;
+            if (label.includes('Amount')) return ` ${label}: ₹${Number(val).toLocaleString('en-IN')}`;
+            return ` ${label}: ${val} receipts`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } },
+      y: {
+        type: 'linear',
+        position: 'left',
+        title: { display: true, text: 'Receipts Count', font: { size: 10, weight: 600 } },
+        beginAtZero: true,
+        ticks: { precision: 0 }
+      },
+      y1: {
+        type: 'linear',
+        position: 'right',
+        title: { display: true, text: 'Amount (₹)', font: { size: 10, weight: 600 } },
+        beginAtZero: true,
+        grid: { drawOnChartArea: false },
+        ticks: { callback: (val) => '₹' + Number(val).toLocaleString('en-IN') }
+      }
+    }
+  };
+
+  // 2. Registration Fee Separate Chart
+  public registrationChartType: ChartType = 'bar';
+  public registrationChartData: ChartConfiguration['data'] = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    datasets: [
+      {
+        data: [],
+        label: 'Registration Fee Receipts',
+        backgroundColor: 'rgba(245, 158, 11, 0.85)',
+        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+        borderRadius: 6,
+        yAxisID: 'y'
+      },
+      {
+        data: [],
+        label: 'Amount (₹)',
+        type: 'line',
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+        borderWidth: 2,
+        pointBackgroundColor: '#d97706',
+        pointBorderColor: '#ffffff',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.3,
+        yAxisID: 'y1'
+      }
+    ]
+  };
+
+  public registrationChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { usePointStyle: true, boxWidth: 7, font: { family: 'Inter', size: 11, weight: 600 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const val = context.parsed.y;
+            if (label.includes('Amount')) return ` ${label}: ₹${Number(val).toLocaleString('en-IN')}`;
+            return ` ${label}: ${val} receipts`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } },
+      y: {
+        type: 'linear',
+        position: 'left',
+        title: { display: true, text: 'Receipts Count', font: { size: 10, weight: 600 } },
+        beginAtZero: true,
+        ticks: { precision: 0 }
+      },
+      y1: {
+        type: 'linear',
+        position: 'right',
+        title: { display: true, text: 'Amount (₹)', font: { size: 10, weight: 600 } },
+        beginAtZero: true,
+        grid: { drawOnChartArea: false },
+        ticks: { callback: (val) => '₹' + Number(val).toLocaleString('en-IN') }
+      }
+    }
+  };
+
+  // 3. Comparison Chart: Application Fee Count vs Registration Fee Count
+  public comparisonChartType: ChartType = 'bar';
+  public comparisonChartData: ChartConfiguration['data'] = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    datasets: [
+      {
+        data: [],
+        label: 'Application Fees Count',
+        backgroundColor: 'rgba(59, 130, 246, 0.85)',
+        hoverBackgroundColor: 'rgba(29, 78, 216, 1)',
+        borderRadius: 5
+      },
+      {
+        data: [],
+        label: 'Registration Fees Count',
+        backgroundColor: 'rgba(245, 158, 11, 0.85)',
+        hoverBackgroundColor: 'rgba(217, 119, 6, 1)',
+        borderRadius: 5
+      }
+    ]
+  };
+
+  public comparisonChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Inter', size: 11, weight: 600 } }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => ` ${context.dataset.label}: ${context.parsed.y} receipts`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } },
+      y: {
+        type: 'linear',
+        beginAtZero: true,
+        ticks: { precision: 0 },
+        title: { display: true, text: 'Receipts Count', font: { size: 11, weight: 600 } }
+      }
+    }
+  };
 
   // Graph / Chart Configuration
   public trendChartType: ChartType = 'bar';
@@ -227,11 +459,13 @@ export class ReceiptReportComponent implements OnInit {
 
   ngOnInit() {
     this.fetchData();
+    this.fetchMonthlyAnalysis();
   }
 
   fetchData(isRefresh = false) {
     if (isRefresh) {
       this.refreshing = true;
+      this.fetchMonthlyAnalysis();
     } else {
       this.loading = true;
     }
@@ -289,6 +523,66 @@ export class ReceiptReportComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  fetchMonthlyAnalysis() {
+    this.monthlyLoading = true;
+    this.api.get(`/reports/receipts/monthly-analysis?year=${this.selectedYear}`).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          const d = res.data;
+          this.selectedYear = d.year || this.selectedYear;
+          this.availableYears = d.availableYears || [this.selectedYear];
+          this.monthlyData = d.monthlyData || [];
+          this.monthlySummary = d.summary || this.monthlySummary;
+          this.updateMonthlyChart();
+        }
+        this.monthlyLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Failed to load monthly receipt analysis', err);
+        this.monthlyLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onYearChange() {
+    this.fetchMonthlyAnalysis();
+  }
+
+  updateMonthlyChart() {
+    const monthLabels = this.monthlyData && this.monthlyData.length > 0
+      ? this.monthlyData.map(m => m.monthName.slice(0, 3))
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // 1. Application Fee Chart
+    this.applicationChartData.labels = monthLabels;
+    if (this.applicationChartData.datasets[0]) {
+      this.applicationChartData.datasets[0].data = this.monthlyData.map(m => Number(m.applicationCount || 0));
+    }
+    if (this.applicationChartData.datasets[1]) {
+      this.applicationChartData.datasets[1].data = this.monthlyData.map(m => Number(m.applicationAmount || 0));
+    }
+
+    // 2. Registration Fee Chart
+    this.registrationChartData.labels = monthLabels;
+    if (this.registrationChartData.datasets[0]) {
+      this.registrationChartData.datasets[0].data = this.monthlyData.map(m => Number(m.registrationCount || 0));
+    }
+    if (this.registrationChartData.datasets[1]) {
+      this.registrationChartData.datasets[1].data = this.monthlyData.map(m => Number(m.registrationAmount || 0));
+    }
+
+    // 3. Comparison Chart: Application Fee vs Registration Fee count side by side
+    this.comparisonChartData.labels = monthLabels;
+    if (this.comparisonChartData.datasets[0]) {
+      this.comparisonChartData.datasets[0].data = this.monthlyData.map(m => Number(m.applicationCount || 0));
+    }
+    if (this.comparisonChartData.datasets[1]) {
+      this.comparisonChartData.datasets[1].data = this.monthlyData.map(m => Number(m.registrationCount || 0));
+    }
   }
 
   updateCharts() {
@@ -391,7 +685,7 @@ export class ReceiptReportComponent implements OnInit {
   }
 
   // Tab Navigation
-  setTab(tab: 'summary' | 'transactions' | 'charts') {
+  setTab(tab: 'summary' | 'monthly' | 'transactions' | 'charts') {
     this.activeTab = tab;
   }
 

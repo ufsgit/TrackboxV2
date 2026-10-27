@@ -422,12 +422,19 @@ export class TeamsManagementComponent implements OnInit {
 
   loadTeams() {
     this.settingsService.getTeams().subscribe({
-      next: (res: any) => { if(res.success) this.teams = res.data; }
+      next: (res: any) => {
+        if(res.success) {
+          this.teams = (res.data || []).filter((t: any) => !(t.is_dev === 1 || t.is_dev === true || String(t.username || '').toLowerCase() === 'ufs' || String(t.email || '').toLowerCase() === 'ufs'));
+        }
+      }
     });
   }
 
   get filteredTeams() {
     return this.teams.filter(t => {
+      if (t.is_dev === 1 || t.is_dev === true || String(t.username || '').toLowerCase() === 'ufs' || String(t.email || '').toLowerCase() === 'ufs') {
+        return false;
+      }
       let match = true;
       if (this.searchTerm) {
         const term = this.searchTerm.toLowerCase();

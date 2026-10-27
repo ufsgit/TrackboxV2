@@ -37,7 +37,7 @@ export class HelpTutorialsComponent implements OnInit {
       this.isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
       const username = (user?.username || '').toLowerCase().trim();
       const email = (user?.email || '').toLowerCase().trim();
-      this.isUfsUser = username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
+      this.isUfsUser = user?.is_dev === 1 || user?.is_dev === true || user?.isDev === true || username === 'ufs' || email === 'ufs' || email === 'ufs@trackbox.in';
     });
 
     this.loadVideos();
