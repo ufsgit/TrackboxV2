@@ -25,17 +25,7 @@ const createApplication = async (req, res) => {
   try {
     const { contact_id, country, university, course, intake_id, year_id, status_id, description } = req.body;
     
-    // Check if an application already exists for this lead/contact
-    const [existing] = await pool.query(
-      'SELECT id FROM applications WHERE contact_id=? AND business_id=? ORDER BY id DESC LIMIT 1',
-      [contact_id, req.user.businessId]
-    );
-
-    if (existing.length > 0) {
-      // Forward to update logic for existing application
-      req.params = { id: existing[0].id };
-      return updateApplication(req, res);
-    }
+    
 
     const [result] = await pool.query(
       'INSERT INTO applications (contact_id, business_id, country, university, course, intake_id, year_id, status_id, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',

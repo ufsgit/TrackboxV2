@@ -1,891 +1,313 @@
-<div class="report-container" (click)="isDateDropdownOpen && (isDateDropdownOpen = false)">
+<div class="viewport-dashboard fade-in-up" (click)="onDocumentClick()">
 
-  <!-- Compact Top Header -->
-  <div class="top-header">
-    <div class="header-left">
-      <div class="header-title-row">
-        <div class="icon-cube">
-          <i class="bi bi-receipt-cutoff"></i>
-        </div>
-        <div>
-          <h1 class="page-title">Receipts & Collections</h1>
-          <p class="page-caption">Staff-wise performance & receipt audit fetched from database</p>
-        </div>
+  <!-- 1. Top Control Bar (Compact Single Row, Height ~48px) -->
+  <header class="top-control-bar">
+    <div class="brand-cluster">
+      <div class="title-with-badge">
+        <h2 class="dashboard-title">Receipts & Collections</h2>
+        <span class="badge-tag">
+          <i class="bi bi-wallet2"></i> Finance
+        </span>
       </div>
+      <span class="year-indicator">
+        <i class="bi bi-calendar-event text-primary"></i> {{ selectedYear }} Overview
+      </span>
     </div>
 
-    <!-- Actions & Date Filter -->
-    <div class="header-right">
-      <div class="date-dropdown-wrapper" (click)="$event.stopPropagation()">
-        <button type="button" class="btn-date-toggle" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
-          <i class="bi bi-calendar3"></i>
-          <span>{{ getDateRangeLabel() }}</span>
-          <i class="bi bi-chevron-down caret" [class.rotated]="isDateDropdownOpen"></i>
-        </button>
-
-        <div class="date-popover" *ngIf="isDateDropdownOpen">
-          <div class="popover-title">Date Filter</div>
-          <div class="popover-items">
-            <button type="button" class="date-opt" [class.active]="dateRange === 'today'" (click)="selectDateRange('today')">
-              <span>Today</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'today'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'yesterday'" (click)="selectDateRange('yesterday')">
-              <span>Yesterday</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'yesterday'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
-              <span>This Week</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'this_week'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
-              <span>This Month</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'this_month'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
-              <span>Last Month</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'last_month'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
-              <span>Year to Date</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'ytd'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'all'" (click)="selectDateRange('all')">
-              <span>All Time</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'all'"></i>
-            </button>
-            <button type="button" class="date-opt" [class.active]="dateRange === 'custom'" (click)="selectDateRange('custom')">
-              <span>Custom Range</span>
-              <i class="bi bi-check2" *ngIf="dateRange === 'custom'"></i>
-            </button>
+    <!-- Filter Control Bar -->
+    <div class="header-actions">
+      <div class="filter-toolbar" (click)="$event.stopPropagation()">
+        
+        <!-- Year Selector Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn year-btn" (click)="toggleYearDropdown($event)" [class.active]="isYearDropdownOpen">
+            <i class="bi bi-calendar-check-fill filter-icon year-icon"></i>
+            <span class="filter-label">Year: <strong>{{ selectedYear }}</strong></span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isYearDropdownOpen"></i>
           </div>
 
-          <div class="custom-range-inputs" *ngIf="dateRange === 'custom'">
-            <div class="input-row">
-              <label>From</label>
-              <input type="date" class="date-input" [(ngModel)]="customStartDate" />
+          <div class="dropdown-panel year-panel" *ngIf="isYearDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-item" *ngFor="let y of availableYears" [class.selected]="selectedYear === y" (click)="selectYear(y)">
+                <span class="item-title">{{ y }}</span>
+                <span class="year-active-tag" *ngIf="y === 2026">Current</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedYear === y"></i>
+              </div>
             </div>
-            <div class="input-row">
-              <label>To</label>
-              <input type="date" class="date-input" [(ngModel)]="customEndDate" />
+          </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Date Range Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
+            <i class="bi bi-calendar3 filter-icon date-icon"></i>
+            <span class="filter-label">{{ getDateRangeLabel() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isDateDropdownOpen"></i>
+          </div>
+
+          <div class="dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="dropdown-list">
+              <div class="dropdown-item" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+                <span class="item-title">This Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_month'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+                <span class="item-title">Full Year {{ selectedYear }} (YTD)</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'ytd'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'all'" (click)="selectDateRange('all')">
+                <span class="item-title">All Dates</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'all'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
+                <span class="item-title">Today</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'today'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'yesterday'" (click)="selectDateRange('yesterday')">
+                <span class="item-title">Yesterday</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'yesterday'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+                <span class="item-title">This Week</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'this_week'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+                <span class="item-title">Last Month</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'last_month'"></i>
+              </div>
+              <div class="dropdown-item" [class.selected]="dateRange === 'custom'" (click)="dateRange = 'custom'">
+                <span class="item-title">Custom Date Range</span>
+                <i class="bi bi-check2 check-icon" *ngIf="dateRange === 'custom'"></i>
+              </div>
             </div>
-            <button type="button" class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
+
+            <!-- Custom Date Inputs -->
+            <div class="custom-date-box" *ngIf="dateRange === 'custom'">
+              <div class="date-input-group">
+                <label>From</label>
+                <input type="date" [(ngModel)]="customStartDate" class="clean-date-input" />
+              </div>
+              <div class="date-input-group">
+                <label>To</label>
+                <input type="date" [(ngModel)]="customEndDate" class="clean-date-input" />
+              </div>
+              <button type="button" class="btn-apply-date" (click)="applyCustomDate()">Apply Filter</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <button type="button" class="btn-export-csv" (click)="exportToCsv()" [disabled]="!receipts.length" title="Export CSV">
-        <i class="bi bi-download"></i>
-        <span>Export</span>
-      </button>
+        <div class="toolbar-divider"></div>
 
-      <button type="button" class="btn-icon-refresh" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh">
-        <i class="bi bi-arrow-clockwise"></i>
-      </button>
-    </div>
-  </div>
-
-  <!-- Loading Overlay -->
-  <div class="loading-box" *ngIf="loading">
-    <div class="spinner-border text-primary spinner-sm"></div>
-    <span>Loading receipts data...</span>
-  </div>
-
-  <ng-container *ngIf="!loading">
-
-    <!-- Compact KPI Strip (Single Slim Row) -->
-    <div class="kpi-strip">
-      <!-- 1. Today -->
-      <div class="strip-card today">
-        <div class="card-icon emerald">
-          <i class="bi bi-calendar-check-fill"></i>
-        </div>
-        <div class="card-body-text">
-          <div class="card-header-line">
-            <span class="label">Today's Collections</span>
-            <span class="badge-pill emerald"><span class="dot"></span> TODAY</span>
+        <!-- Staff / Employee Filter -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen">
+            <i class="bi bi-person-badge filter-icon user-icon"></i>
+            <span class="filter-label">{{ getSelectedEmployeeName() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isEmployeeDropdownOpen"></i>
           </div>
-          <div class="metric-row">
-            <span class="val">{{ formatCurrency(kpis.todayAmount) }}</span>
-            <span class="sub-pill">{{ kpis.todayCount }} {{ kpis.todayCount === 1 ? 'receipt' : 'receipts' }}</span>
+
+          <div class="dropdown-panel employee-panel" *ngIf="isEmployeeDropdownOpen">
+            <div class="panel-search">
+              <i class="bi bi-search search-icon"></i>
+              <input type="text" placeholder="Search staff name..." [(ngModel)]="employeeSearchQuery" (click)="$event.stopPropagation()" />
+            </div>
+            <div class="dropdown-list">
+              <div class="dropdown-item" [class.selected]="selectedEmployee === 'all'" (click)="selectEmployee('all')">
+                <div class="avatar-tag all-tag"><i class="bi bi-people-fill"></i></div>
+                <span class="item-title">All Staff</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === 'all'"></i>
+              </div>
+              <div class="dropdown-item" *ngFor="let u of filteredStaffList" [class.selected]="selectedEmployee === '' + u.id" (click)="selectEmployee('' + u.id)">
+                <div class="avatar-tag">{{ getInitials(u.name) }}</div>
+                <span class="item-title">{{ u.name }}</span>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === '' + u.id"></i>
+              </div>
+              <div class="empty-list" *ngIf="filteredStaffList.length === 0">No staff found</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 2. Selected Range -->
-      <div class="strip-card range">
-        <div class="card-icon blue">
-          <i class="bi bi-funnel-fill"></i>
-        </div>
-        <div class="card-body-text">
-          <div class="card-header-line">
-            <span class="label">Selected Range</span>
-            <span class="badge-pill blue">{{ getDateRangeLabel() }}</span>
-          </div>
-          <div class="metric-row">
-            <span class="val">{{ formatCurrency(kpis.rangeAmount) }}</span>
-            <span class="sub-pill">{{ kpis.rangeCount }} receipts</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. Current Month -->
-      <div class="strip-card month">
-        <div class="card-icon violet">
-          <i class="bi bi-graph-up-arrow"></i>
-        </div>
-        <div class="card-body-text">
-          <div class="card-header-line">
-            <span class="label">This Month</span>
-            <span class="badge-pill violet">MTD</span>
-          </div>
-          <div class="metric-row">
-            <span class="val">{{ formatCurrency(kpis.monthAmount) }}</span>
-            <span class="sub-pill">{{ kpis.monthCount }} receipts</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. All Time -->
-      <div class="strip-card alltime">
-        <div class="card-icon amber">
-          <i class="bi bi-wallet2"></i>
-        </div>
-        <div class="card-body-text">
-          <div class="card-header-line">
-            <span class="label">All Time Total</span>
-            <span class="badge-pill amber">{{ kpis.activeEmployeesCount }} Staff</span>
-          </div>
-          <div class="metric-row">
-            <span class="val">{{ formatCurrency(kpis.totalAmount) }}</span>
-            <span class="sub-pill">{{ kpis.totalCount }} receipts</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Segmented Tab Bar -->
-    <div class="tabs-bar">
-      <div class="tab-buttons">
-        <button
-          type="button"
-          class="tab-btn"
-          [class.active]="activeTab === 'summary'"
-          (click)="setTab('summary')"
-        >
-          <i class="bi bi-people-fill"></i>
-          <span>Staff Performance</span>
-          <span class="tab-badge">{{ employeeBreakdown.length }}</span>
+        <!-- Export CSV Button -->
+        <button type="button" class="btn-export-top" (click)="exportToCsv()" [disabled]="!receipts.length" title="Export CSV Report">
+          <i class="bi bi-download"></i>
+          <span>Export</span>
         </button>
 
-        <button
-          type="button"
-          class="tab-btn highlight-tab"
-          [class.active]="activeTab === 'monthly'"
-          (click)="setTab('monthly')"
-        >
-          <i class="bi bi-calendar3"></i>
-          <span>Monthly Analysis</span>
-          <span class="tab-badge year-badge">{{ selectedYear }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="tab-btn"
-          [class.active]="activeTab === 'transactions'"
-          (click)="setTab('transactions')"
-        >
-          <i class="bi bi-receipt"></i>
-          <span>All Receipts Log</span>
-          <span class="tab-badge">{{ totalRecords }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="tab-btn"
-          [class.active]="activeTab === 'charts'"
-          (click)="setTab('charts')"
-        >
-          <i class="bi bi-bar-chart-line"></i>
-          <span>Full Analytics</span>
+        <!-- Quick Refresh Button -->
+        <button type="button" class="btn-refresh" (click)="fetchData(true)" [class.spinning]="refreshing" title="Refresh Live Report">
+          <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
     </div>
+  </header>
 
-    <!-- TAB 1: SUMMARY (SIDE-BY-SIDE VIEW - FITS ON SCREEN) -->
-    <div class="tab-pane-content" *ngIf="activeTab === 'summary'">
-      <div class="side-by-side-grid">
+  <!-- 2. Compact KPI Metrics Strip (5 horizontal tiles in a single row) -->
+  <section class="kpi-strip">
+    <!-- Tile 1: Receipts Created (Yearly Count) -->
+    <div class="kpi-tile tile-cyan">
+      <div class="kpi-icon-box bg-cyan-soft text-cyan">
+        <i class="bi bi-receipt-cutoff"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Receipts Created ({{ selectedYear }})</span>
+        <div class="kpi-metric">{{ monthlySummary.totalYearReceipts | number }}</div>
+        <span class="kpi-caption text-truncate">Total annual receipts count</span>
+      </div>
+      <div class="tile-glow glow-cyan"></div>
+    </div>
 
-        <!-- Left Column: Employee-Wise Receipts Table -->
-        <div class="panel-box employee-panel">
-          <div class="panel-header">
-            <div class="panel-title-group">
-              <span class="panel-icon-wrap indigo"><i class="bi bi-person-badge"></i></span>
+    <!-- Tile 2: Total Collections (Yearly Amount) -->
+    <div class="kpi-tile tile-emerald">
+      <div class="kpi-icon-box bg-emerald-soft text-emerald">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Total Collections ({{ selectedYear }})</span>
+        <div class="kpi-metric text-emerald font-mono">{{ formatCurrency(monthlySummary.totalYearAmount) }}</div>
+        <span class="kpi-caption text-truncate">Full year inflow collected</span>
+      </div>
+      <div class="tile-glow glow-emerald"></div>
+    </div>
+
+
+    <!-- Tile 4: Selected Period Collection -->
+    <div class="kpi-tile tile-amber">
+      <div class="kpi-icon-box bg-amber-soft text-amber">
+        <i class="bi bi-funnel-fill"></i>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-header">Selected Range ({{ getDateRangeLabel() }})</span>
+        <div class="kpi-metric font-mono">{{ formatCurrency(kpis.rangeAmount) }}</div>
+        <span class="kpi-caption text-truncate">{{ kpis.rangeCount }} receipts generated</span>
+      </div>
+      <div class="tile-glow glow-amber"></div>
+    </div>
+
+    <!-- Tile 5: Peak Inflow Spotlight -->
+    <div class="kpi-tile tile-gold">
+      <div class="kpi-icon-box bg-gold-soft text-gold">
+        <i class="bi bi-fire"></i>
+      </div>
+      <div class="kpi-content" *ngIf="peakMonthAmount">
+        <span class="kpi-header">Peak Collection ({{ selectedYear }})</span>
+        <div class="kpi-metric text-truncate">{{ peakMonthAmount.monthName }}</div>
+        <span class="kpi-caption text-gold fw-semibold text-truncate">
+          {{ formatCurrency(peakMonthAmount.totalAmount) }} · {{ peakMonthAmount.receiptCount }} Receipts
+        </span>
+      </div>
+      <div class="kpi-content" *ngIf="!peakMonthAmount">
+        <span class="kpi-header">Peak Collection</span>
+        <div class="kpi-metric">—</div>
+        <span class="kpi-caption text-truncate">No collections recorded</span>
+      </div>
+      <div class="tile-glow glow-gold"></div>
+    </div>
+  </section>
+
+  <!-- 3. Main Dashboard Workspace (Only Area Graphs, filling full remaining height) -->
+  <main class="dashboard-workspace">
+
+    <!-- MONTHLY CHARTS (12 MONTHS JAN - DEC) -->
+    <div class="tab-pane-full">
+      <div class="charts-row">
+        
+        <!-- Left Chart: Monthly Receipts Count Area Graph -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-blue"></div>
               <div>
-                <h3 class="panel-title">Employee-Wise Receipts</h3>
-                <span class="panel-sub">Receipts created count & collections per staff member</span>
+                <h3 class="chart-heading">Total Receipts Received (Jan – Dec {{ selectedYear }})</h3>
+                <span class="chart-subheading">Monthly receipt generation volume with peak volume highlighted</span>
               </div>
             </div>
-            <span class="chip-total">{{ employeeBreakdown.length }} Staff</span>
+            <span class="chart-badge badge-blue" *ngIf="peakMonthReceipts">
+              <i class="bi bi-trophy-fill"></i> Peak: {{ peakMonthReceipts.shortName }} ({{ peakMonthReceipts.receiptCount }})
+            </span>
           </div>
 
-          <div class="panel-table-wrap">
-            <table class="compact-table">
-              <thead>
-                <tr>
-                  <th>Staff Member</th>
-                  <th class="text-center">Receipts Count</th>
-                  <th>Share</th>
-                  <th class="text-end">Total Amount</th>
-                  <th class="text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let emp of employeeBreakdown; let i = index">
-                  <!-- Staff Name & Badge -->
-                  <td>
-                    <div class="staff-identity">
-                      <div class="staff-avatar" [class.crown]="i === 0">
-                        {{ getInitials(emp.employee_name) }}
-                      </div>
-                      <div class="staff-text">
-                        <div class="name-line">
-                          <span class="emp-name">{{ emp.employee_name }}</span>
-                          <span class="top-tag" *ngIf="i === 0">👑 Top</span>
-                        </div>
-                        <span class="emp-role" *ngIf="emp.employee_role">{{ emp.employee_role }}</span>
-                      </div>
-                    </div>
-                  </td>
+          <div class="chart-canvas-container">
+            <canvas baseChart
+              *ngIf="isBrowser && monthlyData.length > 0"
+              [data]="monthlyReceiptsChartData"
+              [options]="monthlyReceiptsChartOptions"
+              [type]="'line'">
+            </canvas>
+            <div class="no-chart-data" *ngIf="!loading && monthlyData.length === 0">
+              <i class="bi bi-bar-chart-line"></i>
+              <span>No monthly data found for {{ selectedYear }}</span>
+            </div>
+          </div>
 
-                  <!-- Count -->
-                  <td class="text-center">
-                    <span class="count-pill">{{ emp.receipts_count }}</span>
-                  </td>
-
-                  <!-- Share Progress -->
-                  <td>
-                    <div class="share-bar-wrap">
-                      <div class="share-track">
-                        <div class="share-fill" [style.width.%]="emp.percentage"></div>
-                      </div>
-                      <span class="pct">{{ emp.percentage }}%</span>
-                    </div>
-                  </td>
-
-                  <!-- Amount -->
-                  <td class="text-end font-semibold text-emerald font-mono">
-                    {{ formatCurrency(emp.total_amount) }}
-                  </td>
-
-                  <!-- Action Buttons -->
-                  <td class="text-center">
-                    <div class="action-flex">
-                      <button type="button" class="btn-micro primary" (click)="viewEmployeeTransactions(emp)" title="View in transactions table">
-                        <i class="bi bi-list-ul"></i>
-                      </button>
-                      <button type="button" class="btn-micro secondary" (click)="openEmployeeModal(emp)" title="Drilldown details modal">
-                        <i class="bi bi-box-arrow-up-right"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-
-                <tr *ngIf="employeeBreakdown.length === 0">
-                  <td colspan="5" class="empty-row">
-                    <i class="bi bi-inbox"></i>
-                    <p>No staff receipts found for {{ getDateRangeLabel() }}</p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="chart-footer-note" *ngIf="peakMonthReceipts">
+            <i class="bi bi-info-circle-fill info-icon-blue"></i>
+            <span><strong>{{ peakMonthReceipts.monthName }}</strong> recorded highest receipt generation volume (<strong>{{ peakMonthReceipts.receiptCount }} receipts</strong>).</span>
           </div>
         </div>
 
-        <!-- Right Column: Charts Stack -->
-        <div class="charts-stack">
-          <!-- Mini Trend Chart -->
-          <div class="panel-box chart-card-mini">
-            <div class="panel-header-compact">
-              <span class="chart-label"><i class="bi bi-graph-up text-primary me-1"></i> Receipts Trend</span>
-              <div class="chart-tags">
-                <span class="tag-dot blue"></span> Count
-                <span class="tag-dot green ms-2"></span> Amount (₹)
+        <!-- Right Chart: Monthly Collections Inflow Area Graph -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title-box">
+              <div class="dot-indicator dot-green"></div>
+              <div>
+                <h3 class="chart-heading">Total Collections Inflow (Jan – Dec {{ selectedYear }})</h3>
+                <span class="chart-subheading">Monthly revenue collected via receipts across the 12 calendar months</span>
               </div>
             </div>
-            <div class="chart-canvas-box mini">
-              <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="trendChartType"></canvas>
+            <span class="chart-badge badge-green" *ngIf="peakMonthAmount">
+              <i class="bi bi-cash-coin"></i> Peak: {{ peakMonthAmount.shortName }} ({{ formatCurrency(peakMonthAmount.totalAmount) }})
+            </span>
+          </div>
+
+          <div class="chart-canvas-container">
+            <canvas baseChart
+              *ngIf="isBrowser && monthlyData.length > 0"
+              [data]="monthlyCollectionsChartData"
+              [options]="monthlyCollectionsChartOptions"
+              [type]="'line'">
+            </canvas>
+            <div class="no-chart-data" *ngIf="!loading && monthlyData.length === 0">
+              <i class="bi bi-graph-up"></i>
+              <span>No collection data found for {{ selectedYear }}</span>
             </div>
           </div>
 
-          <!-- Mini Staff Doughnut Chart -->
-          <div class="panel-box chart-card-mini">
-            <div class="panel-header-compact">
-              <span class="chart-label"><i class="bi bi-pie-chart text-indigo me-1"></i> Staff Share</span>
-              <span class="tag-pill">{{ employeeBreakdown.length }} Contributors</span>
-            </div>
-            <div class="chart-canvas-box mini doughnut">
-              <div class="doughnut-container" *ngIf="employeeBreakdown.length > 0; else noStaffMini">
-                <canvas baseChart [data]="staffChartData" [options]="staffChartOptions" [type]="staffChartType"></canvas>
-              </div>
-              <ng-template #noStaffMini>
-                <div class="empty-mini">No staff data in this period</div>
-              </ng-template>
-            </div>
+          <div class="chart-footer-note" *ngIf="peakMonthAmount">
+            <i class="bi bi-info-circle-fill info-icon-green"></i>
+            <span><strong>{{ peakMonthAmount.monthName }}</strong> generated peak monthly collections (<strong>{{ formatCurrency(peakMonthAmount.totalAmount) }}</strong>).</span>
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- TAB: MONTHLY ANALYSIS (DEDICATED IMPRESSIVE VIEW) -->
-    <div class="tab-pane-content" *ngIf="activeTab === 'monthly'">
-      <div class="panel-box monthly-hero-panel">
+  </main>
 
-        <!-- Top Header with Controls -->
-        <div class="monthly-hero-header">
-          <div class="header-branding">
-            <div class="hero-icon-gradient">
-              <i class="bi bi-calendar3-range-fill"></i>
-            </div>
-            <div>
-              <div class="hero-title-line">
-                <h3 class="hero-title">Monthly Receipt & Collection Analysis</h3>
-                <span class="badge-year-active">{{ selectedYear }} Report</span>
-              </div>
-              <p class="hero-subtitle">12-month calendar audit of receipt counts, revenue inflow, and monthly peak performance</p>
-            </div>
-          </div>
-
-          <div class="hero-actions">
-            <!-- View Mode Switcher -->
-            <div class="view-mode-toggle">
-              <button
-                type="button"
-                class="btn-mode"
-                [class.active]="monthlyViewMode === 'split'"
-                (click)="monthlyViewMode = 'split'"
-                title="Split Side-by-Side View"
-              >
-                <i class="bi bi-layout-split"></i>
-                <span>Split</span>
-              </button>
-              <button
-                type="button"
-                class="btn-mode"
-                [class.active]="monthlyViewMode === 'table'"
-                (click)="monthlyViewMode = 'table'"
-                title="Full Table View"
-              >
-                <i class="bi bi-table"></i>
-                <span>Table</span>
-              </button>
-              <button
-                type="button"
-                class="btn-mode"
-                [class.active]="monthlyViewMode === 'chart'"
-                (click)="monthlyViewMode = 'chart'"
-                title="Full Graph View"
-              >
-                <i class="bi bi-bar-chart-line"></i>
-                <span>Graph</span>
-              </button>
-            </div>
-
-            <!-- Year Dropdown Selector -->
-            <div class="hero-year-select-box">
-              <span class="hero-year-label"><i class="bi bi-funnel-fill"></i> Year</span>
-              <select
-                class="hero-select"
-                [(ngModel)]="selectedYear"
-                (ngModelChange)="onYearChange()"
-              >
-                <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
-              </select>
-            </div>
-
-            <!-- Quick Refresh Button -->
-            <button
-              type="button"
-              class="btn-hero-refresh"
-              [class.spinning]="monthlyLoading"
-              (click)="fetchMonthlyAnalysis()"
-              title="Refresh Year Data"
-            >
-              <i class="bi bi-arrow-clockwise"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Metric KPI Highlight Row -->
-        <div class="monthly-kpi-deck">
-          <div class="kpi-deck-card count-card">
-            <div class="deck-icon blue">
-              <i class="bi bi-receipt-cutoff"></i>
-            </div>
-            <div class="deck-content">
-              <span class="deck-label">Total Year Receipts</span>
-              <div class="deck-number-wrap">
-                <span class="deck-value">{{ monthlySummary.totalYearReceipts }}</span>
-                <span class="deck-chip blue">Total Receipts</span>
-              </div>
-              <span class="deck-caption">Generated in {{ selectedYear }}</span>
-            </div>
-          </div>
-
-          <div class="kpi-deck-card amount-card">
-            <div class="deck-icon emerald">
-              <i class="bi bi-cash-stack"></i>
-            </div>
-            <div class="deck-content">
-              <span class="deck-label">Total Collections</span>
-              <div class="deck-number-wrap">
-                <span class="deck-value font-mono text-emerald">{{ formatCurrency(monthlySummary.totalYearAmount) }}</span>
-              </div>
-              <span class="deck-caption">Total payment collected in {{ selectedYear }}</span>
-            </div>
-          </div>
-
-          <div class="kpi-deck-card peak-count-card">
-            <div class="deck-icon amber">
-              <i class="bi bi-trophy-fill"></i>
-            </div>
-            <div class="deck-content">
-              <span class="deck-label">Highest Receipt Month</span>
-              <div class="deck-number-wrap">
-                <span class="deck-value highlight-amber">{{ monthlySummary.bestReceiptsMonth }}</span>
-              </div>
-              <span class="deck-caption">Maximum volume recorded</span>
-            </div>
-          </div>
-
-          <div class="kpi-deck-card peak-amount-card">
-            <div class="deck-icon violet">
-              <i class="bi bi-award-fill"></i>
-            </div>
-            <div class="deck-content">
-              <span class="deck-label">Highest Collection Month</span>
-              <div class="deck-number-wrap">
-                <span class="deck-value highlight-violet">{{ monthlySummary.bestAmountMonth }}</span>
-              </div>
-              <span class="deck-caption">Highest monthly revenue</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dynamic Body: Split, Table, or Chart View -->
-        <div class="monthly-body-layout" [ngClass]="'mode-' + monthlyViewMode">
-
-          <!-- Monthly 12-Month Table -->
-          <div class="monthly-table-pane" *ngIf="monthlyViewMode === 'split' || monthlyViewMode === 'table'">
-            <div class="pane-headline">
-              <div class="pane-left">
-                <i class="bi bi-calendar3 text-indigo"></i>
-                <span class="pane-title">All 12 Months Breakdown</span>
-                <span class="chip-badge">Calendar Year {{ selectedYear }}</span>
-              </div>
-              <span class="pane-note">Application vs Registration breakdown</span>
-            </div>
-
-            <div class="panel-table-wrap monthly-scroll-impressive">
-              <table class="compact-table monthly-impressive-table">
-                <thead>
-                  <tr>
-                    <th>Month</th>
-                    <th class="text-center">App Fees</th>
-                    <th class="text-center">Reg Fees</th>
-                    <th class="text-center">Total Receipts</th>
-                    <th class="text-end">Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngIf="monthlyLoading">
-                    <td colspan="5" class="text-center py-5">
-                      <div class="spinner-border text-primary spinner-sm me-2"></div>
-                      <span class="text-muted">Loading database monthly analytics...</span>
-                    </td>
-                  </tr>
-
-                  <ng-container *ngIf="!monthlyLoading">
-                    <tr
-                      *ngFor="let m of monthlyData"
-                      [class.has-receipts]="m.receiptCount > 0"
-                      [class.zero-month]="m.receiptCount === 0"
-                    >
-                      <td>
-                        <div class="month-cell">
-                          <span class="month-dot" [class.active]="m.receiptCount > 0"></span>
-                          <span class="month-name">{{ m.monthName }}</span>
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        <span class="fee-pill app" [class.zero]="m.applicationCount === 0">
-                          {{ m.applicationCount }}
-                        </span>
-                      </td>
-                      <td class="text-center">
-                        <span class="fee-pill reg" [class.zero]="m.registrationCount === 0">
-                          {{ m.registrationCount }}
-                        </span>
-                      </td>
-                      <td class="text-center">
-                        <span class="count-pill" [class.zero-pill]="m.receiptCount === 0">
-                          {{ m.receiptCount }}
-                        </span>
-                      </td>
-                      <td class="text-end font-mono" [class.text-emerald]="m.totalAmount > 0" [class.text-muted]="m.totalAmount === 0">
-                        <span class="amount-cell-text font-semibold">{{ formatCurrency(m.totalAmount) }}</span>
-                      </td>
-                    </tr>
-
-                    <tr *ngIf="monthlyData.length === 0">
-                      <td colspan="5" class="text-center py-5 text-muted">
-                        <i class="bi bi-calendar-x fs-3 d-block mb-1"></i>
-                        No monthly records found for {{ selectedYear }}
-                      </td>
-                    </tr>
-                  </ng-container>
-                </tbody>
-                <tfoot *ngIf="monthlyData.length > 0 && !monthlyLoading">
-                  <tr class="table-total-row">
-                    <td>
-                      <div class="total-label">
-                        <i class="bi bi-sigma text-indigo"></i>
-                        <strong>Total ({{ selectedYear }})</strong>
-                      </div>
-                    </td>
-                    <td class="text-center">
-                      <span class="fee-pill app font-bold">{{ monthlySummary.totalApplicationCount }}</span>
-                    </td>
-                    <td class="text-center">
-                      <span class="fee-pill reg font-bold">{{ monthlySummary.totalRegistrationCount }}</span>
-                    </td>
-                    <td class="text-center">
-                      <span class="total-count-pill">{{ monthlySummary.totalYearReceipts }}</span>
-                    </td>
-                    <td class="text-end font-mono font-semibold text-emerald">
-                      <strong class="total-amount-val">{{ formatCurrency(monthlySummary.totalYearAmount) }}</strong>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-
-          <!-- Monthly Charts Section: Two Separate Charts + Comparison Option -->
-          <div class="monthly-chart-pane" *ngIf="monthlyViewMode === 'split' || monthlyViewMode === 'chart'">
-            <div class="pane-headline">
-              <div class="pane-left">
-                <i class="bi bi-bar-chart-fill text-indigo"></i>
-                <span class="pane-title">Receipts by Type ({{ selectedYear }})</span>
-              </div>
-              <div class="chart-display-toggle">
-                <button
-                  type="button"
-                  class="btn-chart-display"
-                  [class.active]="monthlyChartDisplayMode === 'dual'"
-                  (click)="monthlyChartDisplayMode = 'dual'"
-                  title="Show 2 Separate Charts"
-                >
-                  <i class="bi bi-grid-1x2"></i> Separate Charts
-                </button>
-                <button
-                  type="button"
-                  class="btn-chart-display"
-                  [class.active]="monthlyChartDisplayMode === 'comparison'"
-                  (click)="monthlyChartDisplayMode = 'comparison'"
-                  title="Side-by-Side Monthly Count Comparison"
-                >
-                  <i class="bi bi-bar-chart"></i> Compare Counts
-                </button>
-              </div>
-            </div>
-
-            <!-- VIEW 1: TWO SEPARATE CHARTS -->
-            <div class="dual-charts-stack" *ngIf="monthlyChartDisplayMode === 'dual'">
-              <!-- Separate Chart 1: Application Fees -->
-              <div class="separate-chart-card app-card">
-                <div class="chart-mini-header">
-                  <div class="chart-title-tag">
-                    <span class="tag-badge app-badge">
-                      <i class="bi bi-file-earmark-text"></i> Application Fees
-                    </span>
-                    <span class="chart-stats-chip">
-                      <strong>{{ monthlySummary.totalApplicationCount }}</strong> receipts • <strong>{{ formatCurrency(monthlySummary.totalApplicationAmount) }}</strong>
-                    </span>
-                  </div>
-                  <div class="chart-legend-indicators">
-                    <span class="dot-legend blue"></span> Count
-                    <span class="dot-legend blue-line ms-2"></span> Collections (₹)
-                  </div>
-                </div>
-                <div class="chart-canvas-box separate-chart-canvas">
-                  <canvas baseChart [data]="applicationChartData" [options]="applicationChartOptions" [type]="applicationChartType"></canvas>
-                </div>
-              </div>
-
-              <!-- Separate Chart 2: Registration Fees -->
-              <div class="separate-chart-card reg-card">
-                <div class="chart-mini-header">
-                  <div class="chart-title-tag">
-                    <span class="tag-badge reg-badge">
-                      <i class="bi bi-check-circle"></i> Registration Fees
-                    </span>
-                    <span class="chart-stats-chip">
-                      <strong>{{ monthlySummary.totalRegistrationCount }}</strong> receipts • <strong>{{ formatCurrency(monthlySummary.totalRegistrationAmount) }}</strong>
-                    </span>
-                  </div>
-                  <div class="chart-legend-indicators">
-                    <span class="dot-legend amber"></span> Count
-                    <span class="dot-legend amber-line ms-2"></span> Collections (₹)
-                  </div>
-                </div>
-                <div class="chart-canvas-box separate-chart-canvas">
-                  <canvas baseChart [data]="registrationChartData" [options]="registrationChartOptions" [type]="registrationChartType"></canvas>
-                </div>
-              </div>
-            </div>
-
-            <!-- VIEW 2: DIRECT MONTHLY COUNT COMPARISON -->
-            <div class="comparison-chart-card" *ngIf="monthlyChartDisplayMode === 'comparison'">
-              <div class="chart-mini-header">
-                <div class="chart-title-tag">
-                  <span class="tag-badge compare-badge">
-                    <i class="bi bi-arrow-left-right"></i> Monthly Receipt Count Comparison
-                  </span>
-                  <span class="chart-stats-chip">
-                    Compare volume between Application Fees & Registration Fees
-                  </span>
-                </div>
-              </div>
-              <div class="chart-canvas-box comparison-chart-canvas">
-                <canvas baseChart [data]="comparisonChartData" [options]="comparisonChartOptions" [type]="comparisonChartType"></canvas>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TAB 2: TRANSACTIONS LIST -->
-    <div class="tab-pane-content" *ngIf="activeTab === 'transactions'">
-      <div class="panel-box">
-        <!-- Filter Toolbar -->
-        <div class="panel-header-toolbar">
-          <div class="search-wrap">
-            <i class="bi bi-search"></i>
-            <input
-              type="text"
-              class="toolbar-search-input"
-              placeholder="Search contact, receipt #, staff..."
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onSearchChange()"
-            />
-            <button type="button" class="btn-clear" *ngIf="searchQuery" (click)="searchQuery = ''; onSearchChange()">
-              <i class="bi bi-x-circle-fill"></i>
-            </button>
-          </div>
-
-          <div class="filter-controls">
-            <!-- Staff filter -->
-            <select class="form-select-sm" [(ngModel)]="selectedEmployeeFilter" (change)="onFilterChange()">
-              <option value="all">All Staff Members</option>
-              <option *ngFor="let staff of staffList" [value]="staff.id">{{ staff.name }}</option>
-            </select>
-
-            <!-- Type filter -->
-            <select class="form-select-sm" [(ngModel)]="selectedTypeFilter" (change)="onFilterChange()">
-              <option value="all">All Receipt Types</option>
-              <option *ngFor="let t of typeBreakdown" [value]="t.type_name">{{ t.type_name }}</option>
-            </select>
-
-            <button
-              type="button"
-              class="btn-reset-filters"
-              *ngIf="searchQuery || selectedEmployeeFilter !== 'all' || selectedTypeFilter !== 'all'"
-              (click)="resetFilters()"
-            >
-              <i class="bi bi-arrow-counterclockwise"></i> Reset
-            </button>
-          </div>
-        </div>
-
-        <!-- Transactions Table -->
-        <div class="panel-table-wrap">
-          <table class="compact-table transactions-table">
-            <thead>
-              <tr>
-                <th>Receipt #</th>
-                <th>Date</th>
-                <th>Applicant / Contact</th>
-                <th>Receipt Type</th>
-                <th class="text-end">Amount</th>
-                <th>Created By (Staff)</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of receipts">
-                <!-- ID -->
-                <td class="font-mono">
-                  <span class="id-pill">#{{ r.receipt_id }}</span>
-                </td>
-
-                <!-- Date -->
-                <td>
-                  <span class="date-main">{{ (r.receipt_date || r.created_at) | date:'mediumDate' }}</span>
-                </td>
-
-                <!-- Applicant -->
-                <td>
-                  <div class="contact-inline">
-                    <span class="contact-name">{{ r.contact_name || 'Contact #' + r.contact_id }}</span>
-                    <span class="contact-phone" *ngIf="r.contact_phone">
-                      <i class="bi bi-telephone"></i> {{ r.contact_phone }}
-                    </span>
-                  </div>
-                </td>
-
-                <!-- Type -->
-                <td>
-                  <span class="type-badge">{{ r.receipt_type_name || 'Application Fee' }}</span>
-                </td>
-
-                <!-- Amount -->
-                <td class="text-end font-mono">
-                  <span class="amount-badge">{{ formatCurrency(r.amount) }}</span>
-                </td>
-
-                <!-- Created By (The crucial requirement!) -->
-                <td>
-                  <div class="creator-chip">
-                    <i class="bi bi-person-check-fill text-primary"></i>
-                    <span>{{ r.created_by_name || 'Staff User' }}</span>
-                  </div>
-                </td>
-
-                <!-- Description -->
-                <td class="text-muted small">
-                  <span class="notes-text" [title]="r.description || ''">
-                    {{ r.description || '—' }}
-                  </span>
-                </td>
-              </tr>
-
-              <tr *ngIf="receipts.length === 0">
-                <td colspan="7" class="empty-row">
-                  <i class="bi bi-receipt"></i>
-                  <p>No receipts match the search and filter criteria</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination-bar" *ngIf="totalRecords > 0">
-          <div class="page-summary">
-            Showing <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong>-<strong>{{ (currentPage * pageSize) > totalRecords ? totalRecords : (currentPage * pageSize) }}</strong>
-            of <strong>{{ totalRecords }}</strong>
-          </div>
-
-          <div class="page-actions">
-            <div class="page-size">
-              <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
-                <option [value]="10">10 / page</option>
-                <option [value]="25">25 / page</option>
-                <option [value]="50">50 / page</option>
-              </select>
-            </div>
-
-            <div class="nav-buttons">
-              <button type="button" class="btn-nav" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <span class="page-text">{{ currentPage }} / {{ totalPages }}</span>
-              <button type="button" class="btn-nav" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: FULL ANALYTICS -->
-    <div class="tab-pane-content" *ngIf="activeTab === 'charts'">
-      <!-- Timeline Chart -->
-      <div class="panel-box full-chart-panel mb-3">
-        <div class="panel-header">
-          <div class="panel-title-group">
-            <span class="panel-icon-wrap blue"><i class="bi bi-graph-up"></i></span>
-            <div>
-              <h3 class="panel-title">Total Receipts Over Time</h3>
-              <span class="panel-sub">Volume & Revenue timeline analysis for {{ getDateRangeLabel() }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="chart-canvas-box full">
-          <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="trendChartType"></canvas>
-        </div>
-      </div>
-
-      <!-- Year Analysis in Charts Tab as well -->
-      <div class="panel-box monthly-analysis-panel">
-        <div class="panel-header">
-          <div class="panel-title-group">
-            <span class="panel-icon-wrap violet"><i class="bi bi-calendar3"></i></span>
-            <div>
-              <h3 class="panel-title">Monthly Receipt & Collection Analysis ({{ selectedYear }})</h3>
-              <span class="panel-sub">Month-by-month full year performance</span>
-            </div>
-          </div>
-          <div class="year-selector-wrap">
-            <label for="monthlyYearSelectTab3" class="year-label"><i class="bi bi-funnel"></i> Year:</label>
-            <select
-              id="monthlyYearSelectTab3"
-              class="form-select-sm year-select"
-              [(ngModel)]="selectedYear"
-              (ngModelChange)="onYearChange()"
-            >
-              <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="chart-canvas-box full">
-          <canvas baseChart [data]="comparisonChartData" [options]="comparisonChartOptions" [type]="comparisonChartType"></canvas>
-        </div>
-      </div>
-    </div>
-
-  </ng-container>
-
-  <!-- Employee Drilldown Modal -->
-  <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
-    <div class="modal-window" (click)="$event.stopPropagation()">
-      <div class="modal-head">
-        <div class="modal-head-title">
-          <div class="modal-avatar">{{ getInitials(modalEmployeeName) }}</div>
+  <!-- 5. Employee Drilldown Modal -->
+  <div class="modal-backdrop" *ngIf="isModalOpen" (click)="closeModal()">
+    <div class="modal-dialog-box" (click)="$event.stopPropagation()">
+      <div class="modal-dialog-header">
+        <div class="modal-title-wrap">
+          <div class="modal-avatar-circle">{{ getInitials(modalEmployeeName) }}</div>
           <div>
-            <h4>{{ modalEmployeeName }}'s Receipts</h4>
-            <span class="sub">Total {{ modalTotal }} receipts created in {{ getDateRangeLabel() }}</span>
+            <h4 class="modal-h4">{{ modalEmployeeName }}'s Receipts</h4>
+            <span class="modal-subtext">Total {{ modalTotal }} receipts created in {{ getDateRangeLabel() }}</span>
           </div>
         </div>
-        <button type="button" class="btn-close-x" (click)="closeModal()">
+        <button type="button" class="btn-modal-close" (click)="closeModal()">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
 
-      <div class="modal-search-row">
-        <div class="search-wrap full">
-          <i class="bi bi-search"></i>
+      <div class="modal-search-bar">
+        <div class="search-input-wrap w-100">
+          <i class="bi bi-search search-icon"></i>
           <input
             type="text"
-            class="toolbar-search-input"
+            class="audit-search-input"
             placeholder="Search within receipts..."
             [(ngModel)]="modalSearch"
             (ngModelChange)="onModalSearchChange()"
@@ -893,13 +315,13 @@
         </div>
       </div>
 
-      <div class="modal-table-scroll">
-        <div class="loading-box" *ngIf="modalLoading">
+      <div class="modal-table-container">
+        <div class="modal-loader" *ngIf="modalLoading">
           <div class="spinner-border text-primary spinner-sm"></div>
-          <span>Loading...</span>
+          <span>Loading receipts...</span>
         </div>
 
-        <table class="compact-table" *ngIf="!modalLoading">
+        <table class="modern-data-table" *ngIf="!modalLoading">
           <thead>
             <tr>
               <th>Receipt #</th>
@@ -912,13 +334,13 @@
           </thead>
           <tbody>
             <tr *ngFor="let r of modalReceipts">
-              <td class="font-mono"><span class="id-pill">#{{ r.receipt_id }}</span></td>
+              <td><span class="receipt-id-badge">#{{ r.receipt_id }}</span></td>
               <td>{{ (r.receipt_date || r.created_at) | date:'mediumDate' }}</td>
               <td>
-                <strong>{{ r.contact_name || 'Contact #' + r.contact_id }}</strong>
+                <div class="applicant-name font-semibold">{{ r.contact_name || 'Contact #' + r.contact_id }}</div>
                 <div class="text-muted small" *ngIf="r.contact_phone">{{ r.contact_phone }}</div>
               </td>
-              <td><span class="type-badge">{{ r.receipt_type_name }}</span></td>
+              <td><span class="type-pill-badge">{{ r.receipt_type_name }}</span></td>
               <td class="text-end font-mono text-emerald font-semibold">{{ formatCurrency(r.amount) }}</td>
               <td class="text-muted small">{{ r.description || '—' }}</td>
             </tr>
@@ -929,9 +351,9 @@
         </table>
       </div>
 
-      <div class="modal-foot" *ngIf="modalTotalPages > 1">
+      <div class="modal-footer-bar" *ngIf="modalTotalPages > 1">
         <span class="small text-muted">Page {{ modalPage }} of {{ modalTotalPages }}</span>
-        <div class="nav-buttons">
+        <div class="btn-group-nav">
           <button type="button" class="btn-nav" [disabled]="modalPage === 1" (click)="goToModalPage(modalPage - 1)">
             <i class="bi bi-chevron-left"></i>
           </button>

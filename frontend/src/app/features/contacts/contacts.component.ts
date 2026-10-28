@@ -47,6 +47,7 @@ export class ContactsComponent implements OnInit {
   activeChannel = '';
   activeStatus = '';
   activeAgent = '';
+  activeEnquiryFor = '';
   allTags: string[] = [];
   transferredOnly: boolean = false;
   filterWithApplications: boolean = false;
@@ -172,6 +173,7 @@ export class ContactsComponent implements OnInit {
   isStatusDropdownOpen = false;
   isAgentDropdownOpen = false;
   isTagDropdownOpen = false;
+  isEnquiryForDropdownOpen = false;
 
   toggleFilterDropdown(dropdownName: string, event: Event) {
     event.stopPropagation();
@@ -180,12 +182,14 @@ export class ContactsComponent implements OnInit {
     if (dropdownName !== 'status') this.isStatusDropdownOpen = false;
     if (dropdownName !== 'agent') this.isAgentDropdownOpen = false;
     if (dropdownName !== 'tag') this.isTagDropdownOpen = false;
+    if (dropdownName !== 'enquiryFor') this.isEnquiryForDropdownOpen = false;
 
     switch(dropdownName) {
       case 'channel': this.isChannelDropdownOpen = !this.isChannelDropdownOpen; break;
       case 'status': this.isStatusDropdownOpen = !this.isStatusDropdownOpen; break;
       case 'agent': this.isAgentDropdownOpen = !this.isAgentDropdownOpen; break;
       case 'tag': this.isTagDropdownOpen = !this.isTagDropdownOpen; break;
+      case 'enquiryFor': this.isEnquiryForDropdownOpen = !this.isEnquiryForDropdownOpen; break;
     }
   }
 
@@ -197,6 +201,7 @@ export class ContactsComponent implements OnInit {
     this.isStatusDropdownOpen = false;
     this.isAgentDropdownOpen = false;
     this.isTagDropdownOpen = false;
+    this.isEnquiryForDropdownOpen = false;
   }
 
   // Lead Details Panel
@@ -700,6 +705,10 @@ export class ContactsComponent implements OnInit {
         this.activeStatus = params['status'];
         shouldFilter = true;
       }
+      if (params['enquiry_for']) {
+        this.activeEnquiryFor = params['enquiry_for'];
+        shouldFilter = true;
+      }
       if (shouldFilter) {
         this.applyFilters();
       }
@@ -713,8 +722,19 @@ export class ContactsComponent implements OnInit {
       }
       if (params['returnUrl']) {
         this.returnUrl = params['returnUrl'];
+        try {
+          sessionStorage.setItem('contact_detail_return_url', params['returnUrl']);
+        } catch (e) {}
+      } else if (!this.returnUrl) {
+        try {
+          const savedReturn = sessionStorage.getItem('contact_detail_return_url');
+          if (savedReturn) {
+            this.returnUrl = savedReturn;
+          }
+        } catch (e) {}
       }
       if (contactId) {
+        const targetTab = params['tab'] || (action === 'application' ? 'Application' : 'Profile');
         // Wait for contacts to load, then open
         const tryOpen = () => {
           const contact = this.contacts.find((c: any) => String(c.id) === String(contactId));
@@ -722,7 +742,7 @@ export class ContactsComponent implements OnInit {
             if (action === 'followup') {
               this.openQuickStatusModal(contact);
             } else {
-              this.openDetailPanel(contact);
+              this.openDetailPanel(contact, targetTab);
             }
             // Clear query params so it doesn't re-trigger on re-navigation
             this.router.navigate([], { queryParams: {}, replaceUrl: true });
@@ -730,14 +750,14 @@ export class ContactsComponent implements OnInit {
             setTimeout(tryOpen, 300);
           } else {
             // Contact not in current page — fetch directly
-            this.api.get(`/contacts/${contactId}`).subscribe({
+            this.api.get('/contacts/' + contactId).subscribe({
               next: (res: any) => {
                 if (res.success && res.data) {
                   const c = { ...res.data, tags: Array.isArray(res.data.tags) ? res.data.tags : JSON.parse(res.data.tags || '[]') };
                   if (action === 'followup') {
                     this.openQuickStatusModal(c);
                   } else {
-                    this.openDetailPanel(c);
+                    this.openDetailPanel(c, targetTab);
                   }
                   this.router.navigate([], { queryParams: {}, replaceUrl: true });
                 }
@@ -800,9 +820,12 @@ export class ContactsComponent implements OnInit {
   loadAgents() {
     this.api.get('/settings/team').subscribe({
       next: (res: any) => {
-        if (res.success) {
-          this.agents = res.data.filter((u: any) => u.role === 'agent');
+        if (res.success && Array.isArray(res.data)) {
           this.employees = res.data;
+          // Load all active team members/agents/counselors/admins so no one is missing, sorted alphabetically
+          this.agents = [...res.data]
+            .filter((u: any) => u && u.is_active !== 0 && u.is_active !== false)
+            .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
         }
       }
     });
@@ -884,6 +907,7 @@ export class ContactsComponent implements OnInit {
     if (this.activeChannel) params.channel = this.activeChannel;
     if (this.activeStatus) params.status = this.activeStatus;
     if (this.activeAgent) params.agent = this.activeAgent;
+    if (this.activeEnquiryFor) params.enquiry_for = this.activeEnquiryFor;
     if (this.transferredOnly) params.transferred_only = true;
     if (this.filterWithApplications) params.has_applications = 1;
     if (this.activeAppStatusFilter) params.app_status = this.activeAppStatusFilter;
@@ -980,11 +1004,11 @@ export class ContactsComponent implements OnInit {
 
   // ── Lead Detail Panel ──────────────────────────────────────────────────────
 
-  openDetailPanel(contact: any) {
+  openDetailPanel(contact: any, initialTab: string = 'Profile') {
     this.showDetailPanel = true;
     this.detailLoading = true;
     this.selectedContact = null;
-    this.detailActiveTab = 'Profile';
+    this.detailActiveTab = initialTab;
     this.api.get(`/contacts/${contact.id}`).subscribe({
       next: (res: any) => {
         if (res.success) {
@@ -1016,24 +1040,42 @@ export class ContactsComponent implements OnInit {
     this.dummyHistory = [];
   }
 
-  closeDetailPanel() {
+  closeDetailPanel(navigateBack: boolean = true) {
     this.showDetailPanel = false;
     this.selectedContact = null;
     this.selectedContactApplications = [];
     this.selectedContactReceipts = [];
     this.visaHistoryList = [];
-    if (this.returnUrl) {
-      const target = this.returnUrl;
-      this.returnUrl = null;
+
+    if (!navigateBack) return;
+
+    let target = this.returnUrl;
+    if (!target) {
+      try {
+        target = sessionStorage.getItem('contact_detail_return_url');
+      } catch (e) {}
+    }
+    try {
+      sessionStorage.removeItem('contact_detail_return_url');
+    } catch (e) {}
+    this.returnUrl = null;
+
+    if (target && !target.startsWith('/contacts')) {
       this.router.navigateByUrl(target);
     }
   }
 
   // --- APPLICATIONS LOGIC ---
   loadApplications(contactId: number) {
+    this.loadingApplications = true;
+    this.selectedContactApplications = [];
     this.appsService.getApplications(contactId).subscribe({
       next: (res: any) => {
         if (res.success) this.selectedContactApplications = res.data;
+        this.loadingApplications = false;
+      },
+      error: () => {
+        this.loadingApplications = false;
       }
     });
   }
@@ -1099,11 +1141,6 @@ export class ContactsComponent implements OnInit {
   }
 
   openAddApplicationModal() {
-    // If an application already exists for this contact, open in Edit mode using existing application
-    if (this.selectedContactApplications && this.selectedContactApplications.length > 0) {
-      this.openEditApplicationModal(this.selectedContactApplications[0]);
-      return;
-    }
     this.currentApplication = { contact_id: this.selectedContact.id, country: '', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
     this.selectedCourseDetails = null;
     this.showAddApplicationModal = true;
@@ -1266,6 +1303,8 @@ export class ContactsComponent implements OnInit {
 
   openEditApplicationModal(app: any) {
     this.currentApplication = { ...app };
+    const course = this.courses ? this.courses.find(c => c.name === this.currentApplication.course) : null;
+    this.selectedCourseDetails = course || null;
     this.showAddApplicationModal = true;
   }
 
@@ -1366,11 +1405,38 @@ export class ContactsComponent implements OnInit {
 
   openAddReceiptModal() {
     this.currentReceipt = {
+      id: null,
       receipt_type_id: this.receiptTypes.length > 0 ? this.receiptTypes[0].id : '',
       receipt_type_name: '',
       amount: '',
       receipt_date: new Date().toISOString().split('T')[0],
       description: ''
+    };
+    this.showAddReceiptModal = true;
+  }
+
+  openEditReceiptModal(r: any) {
+    let formattedDate = '';
+    if (r.receipt_date) {
+      try {
+        const d = new Date(r.receipt_date);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          formattedDate = `${year}-${month}-${day}`;
+        }
+      } catch (e) {
+        formattedDate = String(r.receipt_date).split('T')[0];
+      }
+    }
+    this.currentReceipt = {
+      id: r.id,
+      receipt_type_id: r.receipt_type_id || '',
+      receipt_type_name: r.receipt_type_name || '',
+      amount: r.amount,
+      receipt_date: formattedDate || new Date().toISOString().split('T')[0],
+      description: r.description || ''
     };
     this.showAddReceiptModal = true;
   }
@@ -1394,16 +1460,29 @@ export class ContactsComponent implements OnInit {
       description: this.currentReceipt.description
     };
 
-    this.receiptsService.createReceipt(payload).subscribe({
-      next: (res: any) => {
-        if (res.success) {
-          showImpressiveSuccess('Receipt added successfully');
-          this.showAddReceiptModal = false;
-          this.loadReceipts(this.selectedContact.id);
-        }
-      },
-      error: (err) => Swal.fire('Error', err.error?.message || 'Error saving receipt', 'error')
-    });
+    if (this.currentReceipt.id) {
+      this.receiptsService.updateReceipt(this.currentReceipt.id, payload).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            showImpressiveSuccess('Receipt updated successfully');
+            this.showAddReceiptModal = false;
+            this.loadReceipts(this.selectedContact.id);
+          }
+        },
+        error: (err) => Swal.fire('Error', err.error?.message || 'Error updating receipt', 'error')
+      });
+    } else {
+      this.receiptsService.createReceipt(payload).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            showImpressiveSuccess('Receipt added successfully');
+            this.showAddReceiptModal = false;
+            this.loadReceipts(this.selectedContact.id);
+          }
+        },
+        error: (err) => Swal.fire('Error', err.error?.message || 'Error saving receipt', 'error')
+      });
+    }
   }
 
   deleteReceipt(id: number) {
@@ -1500,7 +1579,7 @@ export class ContactsComponent implements OnInit {
   openEditFromDetail() {
     if (this.selectedContact) {
       const contact = this.selectedContact;
-      this.closeDetailPanel();
+      this.closeDetailPanel(false);
       this.openEditModal(contact);
     }
   }
@@ -1508,7 +1587,7 @@ export class ContactsComponent implements OnInit {
   goToChatFromDetail() {
     if (this.selectedContact) {
       const contact = this.selectedContact;
-      this.closeDetailPanel();
+      this.closeDetailPanel(false);
       this.goToChat(contact);
     }
   }
@@ -2140,7 +2219,7 @@ export class ContactsComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter);
+    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.activeEnquiryFor || this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter);
   }
 
   resetAllFilters() {
@@ -2149,12 +2228,19 @@ export class ContactsComponent implements OnInit {
     this.activeStatus = '';
     this.activeAgent = '';
     this.activeTag = '';
+    this.activeEnquiryFor = '';
     this.transferredOnly = false;
     this.filterWithApplications = false;
     this.activeAppStatusFilter = '';
     this.activeReceiptTypeFilter = '';
     this.currentPage = 1;
     this.applyFilters();
+  }
+
+  getSelectedEnquiryForName(): string {
+    if (!this.activeEnquiryFor) return '';
+    const found = this.enquiryFors.find(e => String(e.id) === String(this.activeEnquiryFor) || (e.name && e.name.toLowerCase() === this.activeEnquiryFor.toLowerCase()));
+    return found ? found.name : this.activeEnquiryFor;
   }
 
   prevCalendarMonth() {
@@ -2180,6 +2266,7 @@ export class ContactsComponent implements OnInit {
     if (this.activeChannel) params.channel = this.activeChannel;
     if (this.activeStatus) params.status = this.activeStatus;
     if (this.activeAgent) params.agent = this.activeAgent;
+    if (this.activeEnquiryFor) params.enquiry_for = this.activeEnquiryFor;
     if (this.transferredOnly) params.transferred_only = true;
     if (this.filterWithApplications) params.has_applications = 1;
 

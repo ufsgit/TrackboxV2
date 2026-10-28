@@ -380,7 +380,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         tint: 'var(--t-blue)', 
         delta: this.deltas.total, 
         spark: [.4, .5, .55, .8, 1], 
-        link: '/all-leads' 
+        link: '/contacts' 
       },
       { 
         label: 'Applications', 

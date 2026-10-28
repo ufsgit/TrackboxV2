@@ -164,6 +164,68 @@ const deleteReceipt = async (req, res) => {
   }
 };
 
+// PUT /api/receipts/:id
+const updateReceipt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { receipt_type_id, receipt_type_name, amount, receipt_date, description } = req.body;
+    if (!receipt_date) {
+      return res.status(400).json({ success: false, message: 'Receipt date is required' });
+    }
+
+    const businessId = req.user?.businessId || req.user?.business_id || 1;
+
+    let finalTypeId = receipt_type_id || null;
+    let finalTypeName = receipt_type_name || null;
+
+    if (!finalTypeId && finalTypeName && finalTypeName.trim()) {
+      const [existing] = await pool.query(
+        'SELECT id, name FROM receipt_types WHERE business_id = ? AND LOWER(name) = LOWER(?)',
+        [businessId, finalTypeName.trim()]
+      );
+      if (existing.length > 0) {
+        finalTypeId = existing[0].id;
+        finalTypeName = existing[0].name;
+      } else {
+        const [inserted] = await pool.query(
+          'INSERT INTO receipt_types (business_id, name) VALUES (?, ?)',
+          [businessId, finalTypeName.trim()]
+        );
+        finalTypeId = inserted.insertId;
+      }
+    } else if (finalTypeId && !finalTypeName) {
+      const [typeRow] = await pool.query('SELECT name FROM receipt_types WHERE id = ?', [finalTypeId]);
+      if (typeRow.length > 0) finalTypeName = typeRow[0].name;
+    }
+
+    const [updateResult] = await pool.query(
+      `UPDATE receipts
+       SET receipt_type_id = ?,
+           receipt_type_name = ?,
+           amount = ?,
+           receipt_date = ?,
+           description = ?
+       WHERE id = ? AND business_id = ?`,
+      [finalTypeId, finalTypeName || 'General Receipt', Number(amount) || 0, receipt_date, description || null, id, businessId]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Receipt not found' });
+    }
+
+    const [rows] = await pool.query(`
+      SELECT r.*, rt.name as receipt_type_title, COALESCE(r.created_by_name, u.name) as created_by_name
+      FROM receipts r
+      LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
+      LEFT JOIN users u ON r.created_by = u.id
+      WHERE r.id = ?
+    `, [id]);
+
+    res.json({ success: true, data: rows[0], message: 'Receipt updated successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
 
 module.exports = {
   getReceiptTypes,
@@ -172,5 +234,6 @@ module.exports = {
   deleteReceiptType,
   getContactReceipts,
   createReceipt,
+  updateReceipt,
   deleteReceipt
 };

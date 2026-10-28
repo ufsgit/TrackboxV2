@@ -71,6 +71,40 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
     private location: Location
   ) {}
 
+  
+  get currentUrl(): string {
+    return this.router.url;
+  }
+
+  saveReportState(): void {
+    try {
+      const state = {
+        currentPage: this.currentPage,
+        pageSize: this.pageSize,
+        dateRange: this.dateRange,
+        customStartDate: this.customStartDate,
+        customEndDate: this.customEndDate,
+        searchQuery: this.searchQuery
+      };
+      sessionStorage.setItem('kpi_report_state_' + this.activeType, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  restoreReportState(): void {
+    try {
+      const raw = sessionStorage.getItem('kpi_report_state_' + this.activeType);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.currentPage) this.currentPage = s.currentPage;
+        if (s.pageSize) this.pageSize = s.pageSize;
+        if (s.dateRange) this.dateRange = s.dateRange;
+        if (s.customStartDate !== undefined) this.customStartDate = s.customStartDate;
+        if (s.customEndDate !== undefined) this.customEndDate = s.customEndDate;
+        if (s.searchQuery !== undefined) this.searchQuery = s.searchQuery;
+      }
+    } catch (e) {}
+  }
+
   ngOnInit(): void {
     // Determine active type from route path or data
     this.sub.add(
@@ -90,6 +124,7 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
         else if (path.includes('visa-approved')) this.activeType = 'visa-approved';
         else if (path.includes('enrolled')) this.activeType = 'enrolled';
         else if (path.includes('applications')) this.activeType = 'applications';
+        this.restoreReportState();
         this.fetchData();
       })
     );
@@ -101,9 +136,9 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
 
   switchTab(type: string): void {
     if (this.activeType === type) return;
+    this.saveReportState();
     this.activeType = type;
-    this.currentPage = 1;
-    this.searchQuery = '';
+    this.restoreReportState();
     
     // Update browser URL smoothly
     this.router.navigate([`/reports/${type}`], { replaceUrl: true });
@@ -139,6 +174,7 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
         this.refreshing = false;
         if (res && res.success && res.data) {
           this.items = res.data.items || [];
+          this.saveReportState();
           this.totalCount = res.data.totalCount || 0;
           this.totalPages = res.data.totalPages || 1;
           if (res.data.summary) {

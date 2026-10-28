@@ -13,13 +13,13 @@
         </div>
         <div>
           <div class="leads-title-with-badge">
-            <h1 class="leads-main-title">Leads Directory</h1>
-            <span class="leads-header-pill">
+            <h1 class="leads-main-title">Leads</h1>
+            <!-- <span class="leads-header-pill">
               <span class="pulse-dot"></span>
               {{ overallTotalContacts }} Total Leads
-            </span>
+            </span> -->
           </div>
-          <p class="leads-subtitle">Track follow-ups, manage schedules and broadcast to prospects from one workspace.</p>
+          <!-- <p class="leads-subtitle">Track follow-ups, manage schedules and broadcast to prospects from one workspace.</p> -->
         </div>
       </div>
     </div>
@@ -45,7 +45,7 @@
         </span>
       </button>
 
-      <button class="leads-btn leads-btn-excel" routerLink="/excel-import" title="Excel Import">
+      <button *ngIf="false" class="leads-btn leads-btn-excel" routerLink="/excel-import" title="Excel Import">
         <i class="bi bi-file-earmark-excel-fill"></i>
         <span>Excel Import</span>
       </button>
@@ -60,7 +60,7 @@
   <!-- ════════════════════════════════════════════════════════════════════ -->
   <!-- 3. FOUR STAT CARDS ROW                                               -->
   <!-- ════════════════════════════════════════════════════════════════════ -->
-  <div class="leads-stats-row">
+  <div class="leads-stats-row" *ngIf="false">
     <!-- Card 1: Total Leads -->
     <div class="stat-card stat-card-purple">
       <div class="stat-card-inner">
@@ -196,6 +196,19 @@
         <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isTagDropdownOpen">
           <li><a class="dropdown-item" [class.active]="!activeTag" (click)="activeTag = ''; applyFilters(); isTagDropdownOpen = false">All Tags</a></li>
           <li><a class="dropdown-item" *ngFor="let tag of allTags" [class.active]="activeTag === tag" (click)="activeTag = tag; applyFilters(); isTagDropdownOpen = false">{{ tag }}</a></li>
+        </ul>
+      </div>
+
+      <!-- Dropdown: Enquiry For -->
+      <div class="dropdown custom-filter-dropdown">
+        <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeEnquiryFor" type="button" (click)="toggleFilterDropdown('enquiryFor', $event)" aria-expanded="false">
+          <i class="bi bi-briefcase me-1 text-muted"></i>
+          <span>{{ getSelectedEnquiryForName() || 'All Enquiry For' }}</span>
+          <i class="bi bi-chevron-down chevron-down-icon"></i>
+        </button>
+        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isEnquiryForDropdownOpen">
+          <li><a class="dropdown-item" [class.active]="!activeEnquiryFor" (click)="activeEnquiryFor = ''; applyFilters(); isEnquiryForDropdownOpen = false">All Enquiry For</a></li>
+          <li><a class="dropdown-item" *ngFor="let eq of enquiryFors" [class.active]="activeEnquiryFor === '' + eq.id || activeEnquiryFor === eq.name" (click)="activeEnquiryFor = '' + eq.id; applyFilters(); isEnquiryForDropdownOpen = false">{{ eq.name }}</a></li>
         </ul>
       </div>
 
@@ -616,6 +629,9 @@
           <button type="button" class="btn-action-pill delete" (click)="deleteContactFromDetail(selectedContact.id)" title="Delete lead">
             <i class="bi bi-trash3-fill"></i> <span>Delete</span>
           </button>
+          <button type="button" class="btn-action-pill cancel" (click)="closeDetailPanel()" title="Cancel and return">
+            <i class="bi bi-x-circle"></i> <span>Cancel</span>
+          </button>
           <button type="button" class="btn-modal-close" (click)="closeDetailPanel()" title="Close modal">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -787,10 +803,16 @@
                 <span class="app-tab-sub">Manage target universities, degree programs, and track admission milestones</span>
               </div>
             </div>
-            <button type="button" class="btn-add-app" (click)="openAddApplicationModal()">
-              <i class="bi bi-plus-circle-fill"></i>
-              <span>Add Application</span>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn-cancel-return" *ngIf="returnUrl" (click)="closeDetailPanel()" title="Cancel and return">
+                <i class="bi bi-arrow-left"></i>
+                <span>Cancel</span>
+              </button>
+              <button type="button" class="btn-add-app" (click)="openAddApplicationModal()">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Add Application</span>
+              </button>
+            </div>
           </div>
 
           <div *ngIf="loadingApplications" class="text-center py-5">
@@ -1044,6 +1066,9 @@
                 </div>
 
                 <div class="receipt-card-actions">
+                  <button type="button" class="btn-receipt-edit" (click)="openEditReceiptModal(r)" title="Edit receipt">
+                    <i class="bi bi-pencil-square"></i> <span>Edit</span>
+                  </button>
                   <button type="button" class="btn-receipt-delete" (click)="deleteReceipt(r.id)" title="Delete receipt">
                     <i class="bi bi-trash3"></i> <span>Delete</span>
                   </button>
@@ -1867,8 +1892,8 @@
           <i class="bi bi-receipt-cutoff"></i>
         </div>
         <div>
-          <h4 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">Add New Receipt</h4>
-          <p style="margin: 2px 0 0; font-size: 0.82rem; color: #64748b;">Record payment, fee, or deposit for {{ selectedContact?.name }}</p>
+          <h4 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">{{ currentReceipt?.id ? 'Edit Receipt' : 'Add New Receipt' }}</h4>
+          <p style="margin: 2px 0 0; font-size: 0.82rem; color: #64748b;">{{ currentReceipt?.id ? 'Update payment, fee, or deposit details' : 'Record payment, fee, or deposit for ' + (selectedContact?.name || 'this contact') }}</p>
         </div>
       </div>
       <button class="close-btn" (click)="showAddReceiptModal = false" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
@@ -1922,7 +1947,7 @@
     <div class="modal-footer" style="padding: 16px 28px 24px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px;">
       <button type="button" class="btn btn-light px-3 py-2" (click)="showAddReceiptModal = false" style="border-radius: 10px; font-weight: 600; color: #64748b;">Cancel</button>
       <button type="button" class="btn btn-success px-4 py-2" (click)="saveReceipt()" style="border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
-        <i class="bi bi-check-circle-fill me-1"></i> Save Receipt
+        <i class="bi bi-check-circle-fill me-1"></i> {{ currentReceipt?.id ? 'Update Receipt' : 'Save Receipt' }}
       </button>
     </div>
 

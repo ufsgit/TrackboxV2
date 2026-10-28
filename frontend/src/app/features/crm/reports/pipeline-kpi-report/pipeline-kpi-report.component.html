@@ -138,7 +138,7 @@
           <tr *ngFor="let it of items; let idx = index" class="data-row">
             <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
             <td>
-              <div class="lead-cell">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="lead-cell clickable-lead-cell" title="View Application Details">
                 <div class="lead-avatar" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
                   {{ getInitials(it.applicant_name) }}
                 </div>
@@ -146,7 +146,7 @@
                   <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
                   <small class="lead-sub">App ID: #{{ it.application_id }}</small>
                 </div>
-              </div>
+              </a>
             </td>
             <td>
               <div class="contact-info">
@@ -180,7 +180,7 @@
               <span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span>
             </td>
             <td class="text-end">
-              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead" title="View Lead Details">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="btn-view-lead" title="View Lead Details">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Lead</span>
               </a>
@@ -211,7 +211,7 @@
           <tr *ngFor="let it of items; let idx = index" class="data-row">
             <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
             <td>
-              <div class="lead-cell">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="lead-cell clickable-lead-cell" title="View Application Details">
                 <div class="lead-avatar" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
                   {{ getInitials(it.applicant_name) }}
                 </div>
@@ -219,7 +219,7 @@
                   <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
                   <small class="lead-sub">App #{{ it.application_id }}</small>
                 </div>
-              </div>
+              </a>
             </td>
             <td>
               <div class="contact-info">
@@ -243,7 +243,7 @@
             </td>
             <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
             <td class="text-end">
-              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="btn-view-lead">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Lead</span>
               </a>
@@ -276,7 +276,7 @@
               <span class="receipt-id-badge">#RCP-{{ it.receipt_id }}</span>
             </td>
             <td>
-              <div class="lead-cell">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="lead-cell clickable-lead-cell" title="View Application Details">
                 <div class="lead-avatar" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">
                   {{ getInitials(it.applicant_name) }}
                 </div>
@@ -284,7 +284,7 @@
                   <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
                   <small class="lead-sub">Contact ID: #{{ it.contact_id }}</small>
                 </div>
-              </div>
+              </a>
             </td>
             <td>
               <div class="contact-info">
@@ -316,7 +316,7 @@
               <span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span>
             </td>
             <td class="text-end">
-              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="btn-view-lead">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Lead</span>
               </a>
@@ -347,7 +347,7 @@
           <tr *ngFor="let it of items; let idx = index" class="data-row">
             <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
             <td>
-              <div class="lead-cell">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="lead-cell clickable-lead-cell" title="View Application Details">
                 <div class="lead-avatar" [style.background]="getActiveTabInfo().tint" [style.color]="getActiveTabInfo().color">
                   {{ getInitials(it.applicant_name) }}
                 </div>
@@ -355,7 +355,7 @@
                   <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
                   <small class="lead-sub">App #{{ it.application_id }}</small>
                 </div>
-              </div>
+              </a>
             </td>
             <td>
               <div class="contact-info">
@@ -379,7 +379,7 @@
             </td>
             <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
             <td class="text-end">
-              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="btn-view-lead">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Lead</span>
               </a>
@@ -410,7 +410,7 @@
           <tr *ngFor="let it of items; let idx = index" class="data-row">
             <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
             <td>
-              <div class="lead-cell">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="lead-cell clickable-lead-cell" title="View Application Details">
                 <div class="lead-avatar" style="background: rgba(16, 185, 129, 0.15); color: #059669;">
                   {{ getInitials(it.applicant_name) }}
                 </div>
@@ -418,7 +418,7 @@
                   <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
                   <small class="lead-sub">App #{{ it.application_id }}</small>
                 </div>
-              </div>
+              </a>
             </td>
             <td>
               <div class="contact-info">
@@ -442,7 +442,7 @@
             </td>
             <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
             <td class="text-end">
-              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="btn-view-lead">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Lead</span>
               </a>
@@ -473,7 +473,7 @@
           <tr *ngFor="let it of items; let idx = index" class="data-row">
             <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
             <td>
-              <div class="lead-cell">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="lead-cell clickable-lead-cell" title="View Application Details">
                 <div class="lead-avatar" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5;">
                   {{ getInitials(it.applicant_name) }}
                 </div>
@@ -481,7 +481,7 @@
                   <span class="lead-title">{{ it.applicant_name || 'N/A' }}</span>
                   <small class="lead-sub">App #{{ it.application_id }}</small>
                 </div>
-              </div>
+              </a>
             </td>
             <td>
               <div class="contact-info">
@@ -505,7 +505,7 @@
             </td>
             <td><span class="counselor-pill">{{ it.assigned_counselor || 'Unassigned' }}</span></td>
             <td class="text-end">
-              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id }" class="btn-view-lead">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Application', returnUrl: currentUrl }" class="btn-view-lead">
                 <i class="bi bi-person-lines-fill"></i>
                 <span>Lead</span>
               </a>

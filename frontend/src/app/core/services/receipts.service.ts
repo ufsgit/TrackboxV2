@@ -35,6 +35,10 @@ export class ReceiptsService {
     return this.http.post(`${this.apiUrl}`, data);
   }
 
+  updateReceipt(id: number, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, data);
+  }
+
   deleteReceipt(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }

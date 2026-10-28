@@ -6,6 +6,11 @@ export const environment = {
   socketUrl: 'http://localhost:3000',
 
 
+   // apiUrl: 'https://demo2api.ufstech.co.in/api',
+  // baseUrl: 'https://demo2api.ufstech.co.in/api',
+  // socketUrl: 'https://demo2api.ufstech.co.in',
+
+
   //   apiUrl: 'http://demoapi.ufstech.co.in/api',
   // baseUrl: 'http://demoapi.ufstech.co.in/api',
   // socketUrl: 'http://demoapi.ufstech.co.in',
@@ -22,6 +27,7 @@ export const environment = {
   // apiUrl: 'https://crmapi.ufstech.co.in/api',
   // baseUrl: 'https://crmapi.ufstech.co.in/api',
   // socketUrl: 'https://crmapi.ufstech.co.in',
+
 
 };
 

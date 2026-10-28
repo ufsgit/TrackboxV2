@@ -60,17 +60,18 @@ export class LeadFlowReportComponent implements OnInit {
   // 2026 Monthly Data & Peak Month
   months2026: any[] = [];
   peakMonth: any = null;
+  peakConvertedMonth: any = null;
 
-  // Chart 1 (Monthly Side): Total Leads Received & Won Comparison (Salesforce Style Area Chart)
+  // Chart 1 (Monthly Side): Leads Created (Salesforce Style Area Chart)
   public monthlyLeadsChartData: ChartConfiguration['data'] = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
         type: 'line',
-        label: 'Leads Received',
+        label: 'Leads Created',
         data: [],
         borderColor: '#0284c7',
-        backgroundColor: 'rgba(2, 132, 199, 0.12)',
+        backgroundColor: 'rgba(2, 132, 199, 0.14)',
         pointBackgroundColor: '#0284c7',
         pointBorderColor: '#ffffff',
         pointBorderWidth: 1.5,
@@ -82,67 +83,31 @@ export class LeadFlowReportComponent implements OnInit {
         tension: 0.4,
         borderWidth: 2.5,
         yAxisID: 'y'
-      },
-      {
-        type: 'line',
-        label: 'Won Opportunities',
-        data: [],
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245, 158, 11, 0.08)',
-        pointBackgroundColor: '#f59e0b',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 1.5,
-        pointHoverBackgroundColor: '#ffffff',
-        pointHoverBorderColor: '#f59e0b',
-        pointRadius: 4.5,
-        pointHoverRadius: 7,
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2.5,
-        yAxisID: 'y1'
       }
     ]
   };
 
-  // Chart 2 (Monthly Side): Won Opportunities & Win Rate (Salesforce Style Area Chart)
+  // Chart 2 (Monthly Side): Leads Converted (Salesforce Style Area Chart)
   public monthlyConversionChartData: ChartConfiguration['data'] = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
         type: 'line',
-        label: 'Won Opportunities',
+        label: 'Leads Converted',
         data: [],
-        borderColor: '#0284c7',
-        backgroundColor: 'rgba(2, 132, 199, 0.12)',
-        pointBackgroundColor: '#0284c7',
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.14)',
+        pointBackgroundColor: '#10b981',
         pointBorderColor: '#ffffff',
         pointBorderWidth: 1.5,
         pointHoverBackgroundColor: '#ffffff',
-        pointHoverBorderColor: '#0284c7',
+        pointHoverBorderColor: '#10b981',
         pointRadius: 4.5,
         pointHoverRadius: 7,
         fill: true,
         tension: 0.4,
         borderWidth: 2.5,
         yAxisID: 'y'
-      },
-      {
-        type: 'line',
-        label: 'Win Rate (%)',
-        data: [],
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245, 158, 11, 0.08)',
-        pointBackgroundColor: '#f59e0b',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 1.5,
-        pointHoverBackgroundColor: '#ffffff',
-        pointHoverBorderColor: '#f59e0b',
-        pointRadius: 4.5,
-        pointHoverRadius: 7,
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2.5,
-        yAxisID: 'y1'
       }
     ]
   };
@@ -203,20 +168,13 @@ export class LeadFlowReportComponent implements OnInit {
         grid: { color: 'rgba(226, 232, 240, 0.65)' },
         ticks: { precision: 0, color: '#64748b', font: { size: 11 } }
       },
-      y1: {
-        type: 'linear',
-        position: 'right',
-        beginAtZero: true,
-        grid: { display: false },
-        ticks: { precision: 0, color: '#64748b', font: { size: 11 } }
-      },
       x: {
         grid: { display: false },
         ticks: {
           color: '#64748b',
           font: { size: 11, weight: 'bold' },
-          maxRotation: 45,
-          minRotation: 45
+          maxRotation: 0,
+          minRotation: 0
         }
       }
     }
@@ -255,12 +213,16 @@ export class LeadFlowReportComponent implements OnInit {
         usePointStyle: true,
         boxPadding: 4,
         callbacks: {
+          afterTitle: (tooltipItems) => {
+            const index = tooltipItems[0]?.dataIndex;
+            if (this.months2026[index]?.isPeakConverted) {
+              return '🏆 HIGHEST CONVERSION MONTH';
+            }
+            return '';
+          },
           label: (context) => {
             const label = context.dataset.label || '';
             const val = context.parsed.y ?? 0;
-            if (label.includes('Rate')) {
-              return ` ${label}: ${val}%`;
-            }
             return ` ${label}: ${val}`;
           }
         }
@@ -274,24 +236,13 @@ export class LeadFlowReportComponent implements OnInit {
         grid: { color: 'rgba(226, 232, 240, 0.65)' },
         ticks: { precision: 0, color: '#64748b', font: { size: 11 } }
       },
-      y1: {
-        type: 'linear',
-        position: 'right',
-        beginAtZero: true,
-        grid: { display: false },
-        ticks: {
-          color: '#64748b',
-          font: { size: 11 },
-          callback: (val) => `${val}%`
-        }
-      },
       x: {
         grid: { display: false },
         ticks: {
           color: '#64748b',
           font: { size: 11, weight: 'bold' },
-          maxRotation: 45,
-          minRotation: 45
+          maxRotation: 0,
+          minRotation: 0
         }
       }
     }
@@ -429,6 +380,7 @@ export class LeadFlowReportComponent implements OnInit {
           this.monthlyTrend = d.monthlyTrend || [];
           this.months2026 = d.months2026 || [];
           this.peakMonth = d.peakMonth || null;
+          this.peakConvertedMonth = d.peakConvertedMonth || null;
           this.leads = d.leads || [];
           this.currentPage = d.page || this.currentPage;
           this.totalPages = d.totalPages || 1;
@@ -458,17 +410,16 @@ export class LeadFlowReportComponent implements OnInit {
       const labels = this.months2026.map(m => m.shortName);
       const creationValues = this.months2026.map(m => Number(m.createdCount) || 0);
       const conversionValues = this.months2026.map(m => Number(m.convertedCount) || 0);
-      const winRateValues = this.months2026.map(m => Number(m.conversionRate) || 0);
 
       this.monthlyLeadsChartData = {
         labels: [...labels],
         datasets: [
           {
             type: 'line',
-            label: 'Leads Received',
+            label: 'Leads Created',
             data: [...creationValues],
             borderColor: '#0284c7',
-            backgroundColor: 'rgba(2, 132, 199, 0.12)',
+            backgroundColor: 'rgba(2, 132, 199, 0.14)',
             pointBackgroundColor: '#0284c7',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 1.5,
@@ -480,24 +431,6 @@ export class LeadFlowReportComponent implements OnInit {
             tension: 0.4,
             borderWidth: 2.5,
             yAxisID: 'y'
-          },
-          {
-            type: 'line',
-            label: 'Won Opportunities',
-            data: [...conversionValues],
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-            pointBackgroundColor: '#f59e0b',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 1.5,
-            pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#f59e0b',
-            pointRadius: 4.5,
-            pointHoverRadius: 7,
-            fill: true,
-            tension: 0.4,
-            borderWidth: 2.5,
-            yAxisID: 'y1'
           }
         ]
       };
@@ -507,39 +440,21 @@ export class LeadFlowReportComponent implements OnInit {
         datasets: [
           {
             type: 'line',
-            label: 'Won Opportunities',
+            label: 'Leads Converted',
             data: [...conversionValues],
-            borderColor: '#0284c7',
-            backgroundColor: 'rgba(2, 132, 199, 0.12)',
-            pointBackgroundColor: '#0284c7',
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.14)',
+            pointBackgroundColor: '#10b981',
             pointBorderColor: '#ffffff',
             pointBorderWidth: 1.5,
             pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#0284c7',
+            pointHoverBorderColor: '#10b981',
             pointRadius: 4.5,
             pointHoverRadius: 7,
             fill: true,
             tension: 0.4,
             borderWidth: 2.5,
             yAxisID: 'y'
-          },
-          {
-            type: 'line',
-            label: 'Win Rate (%)',
-            data: [...winRateValues],
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-            pointBackgroundColor: '#f59e0b',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 1.5,
-            pointHoverBackgroundColor: '#ffffff',
-            pointHoverBorderColor: '#f59e0b',
-            pointRadius: 4.5,
-            pointHoverRadius: 7,
-            fill: true,
-            tension: 0.4,
-            borderWidth: 2.5,
-            yAxisID: 'y1'
           }
         ]
       };

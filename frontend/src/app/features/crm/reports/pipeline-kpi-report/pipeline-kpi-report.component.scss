@@ -621,6 +621,24 @@
   gap: 12px;
 }
 
+.clickable-lead-cell {
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  &:hover {
+    .lead-title {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+    .lead-avatar {
+      transform: scale(1.08);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+  }
+}
+
 .lead-avatar {
   width: 36px;
   height: 36px;

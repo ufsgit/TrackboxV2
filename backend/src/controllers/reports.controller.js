@@ -2713,11 +2713,10 @@ const getLeadFlowReport = async (req, res) => {
 
     // 3. Month-wise summary for the selected year (all 12 months: Jan to Dec)
     const targetYear = parseInt(req.query.year) || 2026;
-    const [yearlyRows] = await pool.query(
+    const [yearlyCreationRows] = await pool.query(
       `SELECT 
          MONTH(c.created_at) as monthNum,
          COUNT(c.id) as createdCount,
-         SUM(CASE WHEN c.sale_won = 1 OR LOWER(c.status_name) LIKE '%won%' THEN 1 ELSE 0 END) as convertedCount,
          SUM(CASE WHEN c.sale_lost = 1 OR LOWER(c.status_name) LIKE '%lost%' THEN 1 ELSE 0 END) as lostCount
        FROM contacts c
        WHERE c.business_id = ?
@@ -2729,25 +2728,51 @@ const getLeadFlowReport = async (req, res) => {
       [businessId, targetYear, ...teamParams, ...employeeParams]
     );
 
+    // Converted leads counted in the month they were converted in targetYear (falls back to created_at if sale_won_date is null)
+    const [yearlyConversionRows] = await pool.query(
+      `SELECT 
+         MONTH(COALESCE(c.sale_won_date, c.created_at)) as monthNum,
+         COUNT(c.id) as convertedCount
+       FROM contacts c
+       WHERE c.business_id = ?
+         AND (c.sale_won = 1 OR LOWER(c.status_name) LIKE '%won%')
+         AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = ?
+         ${teamFilter}
+         ${employeeFilter}
+       GROUP BY MONTH(COALESCE(c.sale_won_date, c.created_at))
+       ORDER BY monthNum ASC`,
+      [businessId, targetYear, ...teamParams, ...employeeParams]
+    );
+
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const shortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     const monthDataMap = {};
-    for (const r of yearlyRows) {
+    for (const r of yearlyCreationRows) {
       monthDataMap[r.monthNum] = {
         createdCount: Number(r.createdCount) || 0,
-        convertedCount: Number(r.convertedCount) || 0,
+        convertedCount: 0,
         lostCount: Number(r.lostCount) || 0
       };
     }
+    for (const r of yearlyConversionRows) {
+      if (!monthDataMap[r.monthNum]) {
+        monthDataMap[r.monthNum] = { createdCount: 0, convertedCount: 0, lostCount: 0 };
+      }
+      monthDataMap[r.monthNum].convertedCount = Number(r.convertedCount) || 0;
+    }
 
     let maxCreated = 0;
+    let maxConverted = 0;
     const months2026 = [];
     for (let m = 1; m <= 12; m++) {
       const data = monthDataMap[m] || { createdCount: 0, convertedCount: 0, lostCount: 0 };
       const rate = data.createdCount > 0 ? Number(((data.convertedCount / data.createdCount) * 100).toFixed(1)) : 0;
       if (data.createdCount > maxCreated) {
         maxCreated = data.createdCount;
+      }
+      if (data.convertedCount > maxConverted) {
+        maxConverted = data.convertedCount;
       }
       months2026.push({
         monthNumber: m,
@@ -2758,11 +2783,13 @@ const getLeadFlowReport = async (req, res) => {
         convertedCount: data.convertedCount,
         lostCount: data.lostCount,
         conversionRate: rate,
-        isPeak: false
+        isPeak: false,
+        isPeakConverted: false
       });
     }
 
     let peakMonth = null;
+    let peakConvertedMonth = null;
     if (maxCreated > 0) {
       for (const m of months2026) {
         if (m.createdCount === maxCreated) {
@@ -2774,6 +2801,21 @@ const getLeadFlowReport = async (req, res) => {
             createdCount: m.createdCount,
             convertedCount: m.convertedCount,
             conversionRate: m.conversionRate
+          };
+          break;
+        }
+      }
+    }
+
+    if (maxConverted > 0) {
+      for (const m of months2026) {
+        if (m.convertedCount === maxConverted) {
+          m.isPeakConverted = true;
+          peakConvertedMonth = {
+            name: `${m.fullName} ${targetYear}`,
+            shortName: m.shortName,
+            monthNumber: m.monthNumber,
+            convertedCount: m.convertedCount
           };
           break;
         }
@@ -2832,6 +2874,7 @@ const getLeadFlowReport = async (req, res) => {
         selectedYear: targetYear,
         months2026,
         peakMonth,
+        peakConvertedMonth,
         daywiseTrend: daywiseRows,
         monthlyTrend: months2026,
         dropdownUsers,

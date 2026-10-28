@@ -26,7 +26,7 @@ const paginate = (page, limit) => {
 
 const getContacts = async (req, res) => {
   try {
-    const { page, limit, tags, channel, search, status, agent, has_followup, has_applications, app_status, receipt_type } = req.query;
+    const { page, limit, tags, channel, search, status, agent, has_followup, has_applications, app_status, receipt_type, enquiry_for } = req.query;
     const { offset, limit: lim, page: p } = paginate(page, limit);
     const bizId = req.user.businessId;
 
@@ -101,6 +101,10 @@ const getContacts = async (req, res) => {
     }
     if (search) { where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
     if (tags) { where += ' AND JSON_CONTAINS(c.tags, ?)'; params.push(JSON.stringify(tags)); }
+    if (enquiry_for) {
+      where += ` AND (c.enquiry_for_id = ? OR EXISTS (SELECT 1 FROM enquiry_fors ef WHERE ef.id = c.enquiry_for_id AND LOWER(TRIM(ef.name)) = LOWER(TRIM(?))))`;
+      params.push(enquiry_for, enquiry_for);
+    }
 
     const [[{ total, with_followup, without_followup }]] = await pool.query(`
       SELECT 
@@ -111,9 +115,11 @@ const getContacts = async (req, res) => {
     `, params);
     const [rows] = await pool.query(`
       SELECT c.*, u.name as assigned_employee_name,
+        e.name as enquiry_for_name,
         (SELECT remarks FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_remark
       FROM contacts c 
       LEFT JOIN users u ON c.assigned_to = u.id
+      LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
       ${where} 
       ORDER BY c.created_at DESC, c.id DESC 
       LIMIT ? OFFSET ?
@@ -872,9 +878,7 @@ const handleOptInLink = async (req, res) => {
 const getUniqueTags = async (req, res) => {
   try {
     const bizId = req.user.businessId;
-    console.log(`[DEBUG] Fetching unique tags for Biz ID: ${bizId}`);
-    const [rows] = await pool.query('SELECT tags FROM contacts WHERE business_id = ? AND opted_in = 1', [bizId]);
-    console.log(`[DEBUG] Found ${rows.length} contacts with tags`);
+    const [rows] = await pool.query('SELECT tags FROM contacts WHERE business_id = ? AND tags IS NOT NULL', [bizId]);
     const tags = new Set();
     rows.forEach(r => {
       let ct = r.tags;
@@ -882,13 +886,16 @@ const getUniqueTags = async (req, res) => {
         try { ct = JSON.parse(ct); } catch (e) { ct = []; }
       }
       if (Array.isArray(ct)) {
-        ct.forEach(t => tags.add(t));
+        ct.forEach(t => {
+          if (t && typeof t === 'string' && t.trim()) {
+            tags.add(t.trim());
+          }
+        });
       }
     });
-    console.log(`[DEBUG] Unique tags found: ${Array.from(tags).join(', ')}`);
     res.json({ success: true, data: Array.from(tags), message: 'OK' });
   } catch (err) {
-    console.error(`[DEBUG] getUniqueTags Error: ${err.message}`);
+    console.error('[getUniqueTags] Error:', err.message);
     res.status(500).json({ success: false, message: err.message, data: null });
   }
 };
