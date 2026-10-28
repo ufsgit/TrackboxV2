@@ -17,11 +17,23 @@ import { UpdateLeadStatusModalComponent } from '../../../../shared/components/up
 })
 export class PendingFollowupComponent implements OnInit {
   searchTerm: string = '';
+  searchTimeout: any = null;
 
   followups: any[] = [];
   stats = { overdue: 0, dueToday: 0, upcoming: 0 };
   displayStats = { overdue: 0, dueToday: 0, upcoming: 0 };
   filterParam: string | null = null;
+
+  // ── Server-side Pagination ──────────────────────────────
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalItems: number = 0;
+  totalPages: number = 1;
+  pageSizeOptions: number[] = [10, 20, 50, 100];
+  loading: boolean = false;
+
+  // ── Selected Follow-up Data for Profile Modal ───────────
+  selectedFollowupRow: any = null;
 
   // ── Lead Profile Modal ──────────────────────────────────
   showProfileModal = false;
@@ -52,8 +64,21 @@ export class PendingFollowupComponent implements OnInit {
   }
 
   fetchData() {
-    this.apiService.get('/reports/leads/pending-followups').subscribe({
+    this.loading = true;
+    const params: any = {
+      page: this.currentPage,
+      limit: this.pageSize
+    };
+    if (this.filterParam) {
+      params.filter = this.filterParam;
+    }
+    if (this.searchTerm && this.searchTerm.trim()) {
+      params.search = this.searchTerm.trim();
+    }
+
+    this.apiService.get('/reports/leads/pending-followups', { params }).subscribe({
       next: (res: any) => {
+        this.loading = false;
         if (res.success) {
           this.stats = {
             overdue: res.data.overdue || 0,
@@ -64,13 +89,25 @@ export class PendingFollowupComponent implements OnInit {
           this.animateCount('dueToday', this.stats.dueToday);
           this.animateCount('upcoming', this.stats.upcoming);
 
-          this.followups = res.data.list.map((f: any) => ({
+          this.followups = (res.data.list || []).map((f: any) => ({
             ...f,
             dueDate: this.datePipe.transform(f.dueDate, 'yyyy-MM-dd')
           }));
+
+          if (res.data.pagination) {
+            this.totalItems = res.data.pagination.total;
+            this.totalPages = res.data.pagination.totalPages;
+            this.currentPage = res.data.pagination.page;
+          } else {
+            this.totalItems = this.followups.length;
+            this.totalPages = 1;
+          }
         }
       },
-      error: (err) => console.error('Error fetching pending followups:', err)
+      error: (err) => {
+        this.loading = false;
+        console.error('Error fetching pending followups:', err);
+      }
     });
   }
 
@@ -80,6 +117,7 @@ export class PendingFollowupComponent implements OnInit {
     const contactId = row?.id || row?.lead_id || row?.contact_id;
     if (!contactId) return;
     this.profileContactId = contactId;
+    this.selectedFollowupRow = row;
     this.showProfileModal = true;
   }
 
@@ -91,6 +129,7 @@ export class PendingFollowupComponent implements OnInit {
   closeProfileModal() {
     this.showProfileModal = false;
     this.profileContactId = null;
+    this.selectedFollowupRow = null;
   }
 
 
@@ -128,7 +167,7 @@ export class PendingFollowupComponent implements OnInit {
   get pageTitle() {
     if (this.filterParam === 'upcoming') return 'Upcoming Follow-ups';
     if (this.filterParam === 'dueToday') return 'Today\'s Follow-ups';
-    return 'Pending Follow-ups';
+    return 'Pending Followup';
   }
 
   get pageSubtitle() {
@@ -138,31 +177,75 @@ export class PendingFollowupComponent implements OnInit {
   }
 
   get filteredFollowups() {
-    let filtered = this.followups;
-    
-    // By default (null) or when explicitly 'overdue', show ONLY Overdue
-    if (this.filterParam === 'upcoming') {
-      filtered = filtered.filter(f => f.status === 'Upcoming');
-    } else if (this.filterParam === 'dueToday') {
-      filtered = filtered.filter(f => f.status === 'Due Today');
-    } else {
-      // If null or 'overdue' or anything else, show Overdue (till yesterday)
-      filtered = filtered.filter(f => f.status === 'Overdue');
-    }
-
-    if (!this.searchTerm) return filtered;
-    return filtered.filter(f =>
-      f.leadName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-      f.assignee?.toLowerCase().includes(this.searchTerm.toLowerCase())
-    );
+    return this.followups;
   }
 
-  get unassignedUpcomingCount() {
-    return this.followups.filter(f => f.status === 'Upcoming' && f.assignee === 'Unassigned').length;
+  onPageChange(page: number) {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+    this.fetchData();
+  }
+
+  goToPage(page: number) {
+    this.onPageChange(page);
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.fetchData();
+    }
+  }
+
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.fetchData();
+    }
+  }
+
+  onPageSizeChange() {
+    this.currentPage = 1;
+    this.fetchData();
+  }
+
+  onSearchChange() {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    this.searchTimeout = setTimeout(() => {
+      this.currentPage = 1;
+      this.fetchData();
+    }, 300);
   }
 
   setFilter(status: string | null) {
     this.filterParam = this.filterParam === status ? null : status;
+    this.currentPage = 1;
+    this.fetchData();
+  }
+
+  get paginationStart(): number {
+    if (this.totalItems === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get paginationEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   }
 
   getStatusClass(status: string): string {

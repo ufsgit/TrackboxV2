@@ -9,28 +9,45 @@
       <p style="font-weight: 600;">Loading lead profile...</p>
     </div>
 
-    <ng-container *ngIf="!detailLoading && selectedContact">
+    <ng-container *ngIf="!detailLoading && (selectedContact || initialFollowupData)">
       
-      <!-- Modal Header with Summary (Image 2 style) -->
+      <!-- Modal Header with Summary -->
       <div class="detail-modal-header" style="padding: 24px 32px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
         <div class="header-main-info" style="display: flex; align-items: center; gap: 20px;">
           <div class="detail-avatar" style="width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);">
-            {{ selectedContact.name?.charAt(0) | uppercase }}
+            {{ (getLeadName() || 'L').charAt(0) | uppercase }}
           </div>
           <div class="header-text">
-            <h3 style="margin: 0 0 6px 0; font-size: 1.4rem; font-weight: 800; color: #0f172a;">{{ selectedContact.name }}</h3>
-            <div class="header-badges" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <span class="tag-pill" *ngFor="let tag of selectedContact.tags" style="background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">{{ tag }}</span>
-              <span *ngIf="!selectedContact.tags || selectedContact.tags.length === 0" style="background: #f1f5f9; color: #64748b; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">lead</span>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+              <h3 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #0f172a;">{{ getLeadName() }}</h3>
+              <div class="header-badges" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="tag-pill" *ngFor="let tag of selectedContact?.tags" style="background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">{{ tag }}</span>
+                <span *ngIf="!selectedContact?.tags || selectedContact.tags.length === 0" style="background: #f1f5f9; color: #64748b; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">lead</span>
+                <span *ngIf="getFollowupStatus()" [ngClass]="getStatusClass(getFollowupStatus())" style="font-size: 0.75rem; font-weight: 700;">
+                  {{ getFollowupStatus() }}
+                </span>
+              </div>
+            </div>
+            <!-- Meta Chips: Phone, Email, Assignee -->
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.85rem; color: #64748b;">
+              <span *ngIf="getPhone()" style="display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; color: #334155;">
+                <i class="bi bi-telephone-fill" style="color: #6366f1;"></i> {{ getPhone() }}
+              </span>
+              <span *ngIf="selectedContact?.email" style="display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; color: #334155;">
+                <i class="bi bi-envelope-fill" style="color: #6366f1;"></i> {{ selectedContact.email }}
+              </span>
+              <span *ngIf="getAssignee()" style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; padding: 3px 10px; border-radius: 8px; border: 1px solid #bfdbfe; font-weight: 700; color: #2563eb;">
+                <i class="bi bi-person-badge"></i> Assignee: {{ getAssignee() }}
+              </span>
             </div>
           </div>
         </div>
         
         <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
-          <button class="btn btn-danger btn-sm ms-2" (click)="deleteContact()" style="padding: 8px 16px; border-radius: 10px; font-weight: 600;">
-            <i class="bi bi-trash me-1"></i> Delete
+          <button class="btn btn-outline-secondary btn-sm" (click)="closeModal()" style="padding: 8px 16px; border-radius: 10px; font-weight: 600;">
+            <i class="bi bi-x-circle me-1"></i> Cancel
           </button>
-          <button class="close-btn ms-3" (click)="closeModal()" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
+          <button class="close-btn ms-2" (click)="closeModal()" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
         </div>
       </div>
 
@@ -41,6 +58,9 @@
         <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
         <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
+        <button class="tab-btn" [class.active]="detailActiveTab === 'Receipt'" (click)="detailActiveTab = 'Receipt'">
+          Receipt <span class="badge bg-secondary ms-1" *ngIf="selectedContactReceipts.length">{{ selectedContactReceipts.length }}</span>
+        </button>
       </div>
 
       <!-- Tab Content Area -->
@@ -49,6 +69,44 @@
         <!-- PROFILE TAB -->
         <div *ngIf="detailActiveTab === 'Profile'" class="tab-pane">
           <div class="row">
+            <!-- Pending Follow-up Details Card from Pending Follow-up Screen -->
+            <div class="col-12 mb-4" *ngIf="getDueDate() || getAssignee() || getLeadStatus() || getRemarks() || getFollowupStatus()">
+              <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px;">
+                  <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-clock-history" style="color: #6366f1;"></i> Pending Follow-up Details
+                  </h5>
+                  <span *ngIf="getFollowupStatus()" [ngClass]="getStatusClass(getFollowupStatus())" style="font-size: 0.8rem; font-weight: 700;">
+                    {{ getFollowupStatus() }}
+                  </span>
+                </div>
+                <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px 32px;">
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">ASSIGNEE / AGENT</label>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #2563eb; margin-top: 4px;">{{ getAssignee() || 'Unassigned' }}</div>
+                  </div>
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">FOLLOW-UP DUE DATE</label>
+                    <div style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-top: 4px;">{{ getDueDate() || '—' }}</div>
+                  </div>
+                  <div class="detail-item">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">LEAD STATUS</label>
+                    <div style="margin-top: 4px;">
+                      <span *ngIf="getLeadStatus()" style="font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
+                        {{ getLeadStatus() }}
+                      </span>
+                      <span *ngIf="!getLeadStatus()" style="color: #94a3b8;">—</span>
+                    </div>
+                  </div>
+                  <div class="detail-item" style="grid-column: 1 / -1;" *ngIf="getRemarks()">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">REMARKS / NOTES</label>
+                    <div style="font-size: 0.92rem; color: #334155; background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 6px; line-height: 1.5;">
+                      {{ getRemarks() }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="col-12 mb-4">
               <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
                 <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
@@ -174,6 +232,37 @@
         </div>
 
 
+        <!-- RECEIPT TAB -->
+        <div *ngIf="detailActiveTab === 'Receipt'" class="tab-pane">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h5 class="mb-0 text-dark fw-bold">Payment Receipts</h5>
+          </div>
+
+          <div *ngIf="loadingReceipts" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Loading receipts...</p>
+          </div>
+
+          <div *ngIf="!loadingReceipts && selectedContactReceipts.length === 0" class="text-center py-5 bg-white rounded-4 border p-4">
+            <i class="bi bi-receipt text-muted" style="font-size: 3rem;"></i>
+            <h6 class="text-dark fw-bold mt-2">No receipts recorded</h6>
+            <p class="text-muted small mb-0">No receipt transactions found for this lead.</p>
+          </div>
+
+          <div *ngIf="!loadingReceipts && selectedContactReceipts.length > 0" class="d-flex flex-column gap-3">
+            <div *ngFor="let r of selectedContactReceipts" class="p-4 rounded-4 border bg-white shadow-sm d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 mb-2">{{ r.receipt_type_name || 'Receipt' }}</span>
+                <h4 class="fw-black text-dark mb-1">₹{{ r.amount | number:'1.2-2' }}</h4>
+                <div class="d-flex gap-3 text-muted small">
+                  <div><i class="bi bi-calendar me-1"></i>{{ r.receipt_date | date:'mediumDate' }}</div>
+                  <div><i class="bi bi-person me-1"></i>Collected by: {{ r.collected_by_name || 'Staff' }}</div>
+                  <div *ngIf="r.remarks"><i class="bi bi-chat-left-text me-1"></i>{{ r.remarks }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </ng-container>
 

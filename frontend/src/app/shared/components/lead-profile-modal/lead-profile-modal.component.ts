@@ -18,6 +18,7 @@ import Swal from 'sweetalert2';
 export class LeadProfileModalComponent implements OnInit, OnChanges {
   @Input() contactId: number | null = null;
   @Input() isOpen: boolean = false;
+  @Input() initialFollowupData: any = null;
   @Output() close = new EventEmitter<void>();
   @Output() contactUpdated = new EventEmitter<void>();
 
@@ -37,6 +38,8 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
 
   // Leads
   selectedContactLeads: any[] = [];
+  selectedContactReceipts: any[] = [];
+  loadingReceipts = false;
 
   constructor(
     private api: ApiService,
@@ -54,6 +57,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       this.loadContactDetails();
       this.loadApplications();
       this.loadDocuments();
+      this.loadReceipts();
       this.loadLeads(this.contactId);
     }
   }
@@ -226,6 +230,54 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
           error: (err) => Swal.fire('Error', err.error?.message || 'Failed to delete lead', 'error')
         });
       }
+    });
+  }
+  getLeadName(): string {
+    return this.selectedContact?.name || this.initialFollowupData?.leadName || 'Lead Profile';
+  }
+
+  getPhone(): string {
+    return this.selectedContact?.phone || this.initialFollowupData?.phone || '';
+  }
+
+  getAssignee(): string {
+    return this.selectedContact?.assigned_employee_name || this.initialFollowupData?.assignee || '';
+  }
+
+  getDueDate(): string {
+    return this.selectedContact?.follow_up_date || this.initialFollowupData?.dueDate || '';
+  }
+
+  getLeadStatus(): string {
+    return this.selectedContact?.status_name || this.initialFollowupData?.statusName || '';
+  }
+
+  getRemarks(): string {
+    return this.selectedContact?.latest_remark || this.initialFollowupData?.remarks || '';
+  }
+
+  getFollowupStatus(): string {
+    return this.selectedContact?.followup_status || this.initialFollowupData?.status || '';
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'Overdue': return 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-1';
+      case 'Due Today': return 'badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-1';
+      case 'Upcoming': return 'badge rounded-pill bg-info-subtle text-info border border-info-subtle px-3 py-1';
+      default: return 'badge rounded-pill bg-light text-dark px-3 py-1';
+    }
+  }
+
+  loadReceipts() {
+    if (!this.contactId) return;
+    this.loadingReceipts = true;
+    this.api.get('/receipts', { params: { contact_id: this.contactId } }).subscribe({
+      next: (res: any) => {
+        this.selectedContactReceipts = (res && res.success) ? (res.data || []) : [];
+        this.loadingReceipts = false;
+      },
+      error: () => { this.loadingReceipts = false; }
     });
   }
 }

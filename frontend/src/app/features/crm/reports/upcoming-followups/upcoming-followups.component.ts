@@ -34,16 +34,13 @@ export class UpcomingFollowupsComponent {
   }
 
   fetchData() {
-    this.api.get('/reports/leads/pending-followups').subscribe({
+    this.api.get('/reports/leads/pending-followups', { params: { filter: 'upcoming' } }).subscribe({
       next: (res: any) => {
         if (res.success) {
-          // Filter the pending followups list to only show upcoming
-          const allPending = res.data.list || [];
-          this.leads = allPending.filter((f: any) => f.status === 'Upcoming');
-          
+          this.leads = res.data.list || [];
           this.stats = {
             upcoming: res.data.upcoming || 0,
-            unassignedUpcoming: this.leads.filter(l => l.assignee === 'Unassigned').length
+            unassignedUpcoming: this.leads.filter((l: any) => l.assignee === 'Unassigned').length
           };
         }
       },

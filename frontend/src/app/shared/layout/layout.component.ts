@@ -647,9 +647,36 @@ export class LayoutComponent implements OnInit {
     const last = segments[segments.length - 1].split('?')[0]; // Remove query params
     if (!last || last === 'lead-dashboard') return 'Lead Dashboard';
     if (last === 'crm-dashboard') return 'CRM Dashboard';
-    if (last === 'daily-report') return 'Daily Follow-Up Report';
-    if (last === 'lead-flow') return 'Lead Flow & Conversion Report';
-    if (last === 'receipt-report') return 'Receipts & Collections Report';
+    if (last === 'daily-report') return 'Daily Report';
+    if (last === 'lead-flow') return 'Lead Flow';
+    if (last === 'receipt-report' || last === 'receipts') return 'Receipts Report';
+    if (last === 'time-track') return 'Time Track Report';
+    if (last === 'work') return 'Work Report';
+    if (last === 'employee') return 'Employee Report';
+    if (last === 'enquiry') return 'Enquiry Report';
+    if (last === 'status') return 'Lead Status Report';
+    if (last === 'source-conversion') return 'Source Conversion Report';
+    if (last === 'conversation') return 'Conversation Report';
+    if (last === 'attendance-report') return 'Attendance Report';
+    if (last === 'won-lost-report') return 'Sale Won / Lost Report';
+    if (last === 'channel-conversion-report') return 'Channel Conversion';
+    if (last === 'employee-conversion-report') return 'Employee Conversion';
+    if (last === 'employee-productivity') return 'Employee Productivity';
+    if (last === 'student-pipeline') return 'Student Pipeline';
+    if (last === 'application-status') return 'Application Status';
+    if (last === 'follow-up-report') return 'Follow-Up Report';
+    if (last === 'team-productivity') return 'Team Productivity';
+    if (last === 'lead-creation') return 'Lead Creation Report';
+    if (last === 'pending-followup') return 'Pending Followup';
+    if (last === 'upcoming-followups') return 'Upcoming Followups';
+    if (last === 'todays-leads') return "Today's Followups";
+    if (last === 'channel-report') return 'Channel Report';
+    if (last === 'applications') return 'Applications Report';
+    if (last === 'offer-letters') return 'Offer Letters Report';
+    if (last === 'fees-paid') return 'Fees Paid Report';
+    if (last === 'visa-submitted') return 'Visa Submitted Report';
+    if (last === 'visa-approved') return 'Visa Approved Report';
+    if (last === 'enrolled') return 'Enrolled Report';
     if (last === 'quotations') return 'Quotations';
     if (last === 'purchase-orders') return 'Purchase Orders';
     if (last === 'delivery-management') return 'Delivery Management';
@@ -678,12 +705,10 @@ export class LayoutComponent implements OnInit {
     if (last === 'employee-location') return 'Employee Location';
     if (last === 'employees') return 'Employees';
     if (last === 'pending-approvals') return 'Pending Approvals';
-    if (last === 'attendance-report') return 'Attendance Report';
     if (last === 'leave-report') return 'Leave Report';
     if (last === 'expense-report') return 'Expense Report';
     if (last === 'gps-report') return 'GPS Report';
     if (last === 'performance-report') return 'Performance Report';
-    if (last === 'employee-report') return 'Employee Report';
 
     return last.charAt(0).toUpperCase() + last.slice(1).replace(/-/g, ' ');
   }
