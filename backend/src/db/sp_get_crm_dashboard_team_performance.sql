@@ -20,7 +20,7 @@ BEGIN
   /* -------------------------------------------------------------
      1. IF CONDITION: Role Evaluation & Team Scoping
      ------------------------------------------------------------- */
-  IF p_user_role = 'agent' THEN
+  IF p_user_role NOT IN ('admin', 'superadmin') THEN
     SET v_is_agent = 1;
     SELECT id INTO v_agent_team_id 
     FROM teams 

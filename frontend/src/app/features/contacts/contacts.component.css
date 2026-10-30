@@ -3955,7 +3955,8 @@
   
   display: block;
   background-color: var(--bg);
-  min-height: 100vh;
+  min-height: 0;
+  flex: 1;
   font-family: var(--font-family);
   color: var(--text);
   box-sizing: border-box;
@@ -3963,10 +3964,13 @@
 
 .contacts-page-wrapper {
   background-color: #f8fafc;
-  padding: 24px 28px 60px;
+  padding: 4px 14px 10px;
   box-sizing: border-box;
   width: 100%;
-  min-height: calc(100vh - 60px);
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Focus states on inputs and buttons */
@@ -3991,8 +3995,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
@@ -4008,9 +4012,9 @@
 }
 
 .leads-title-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
   background: linear-gradient(135deg, #4f46e5, #6366f1);
   color: #ffffff;
   display: flex;
@@ -4029,7 +4033,7 @@
 }
 
 .leads-main-title {
-  font-size: 1.55rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.025em;
@@ -4127,8 +4131,8 @@
 
 /* Common button styling */
 .leads-btn {
-  height: 36px;
-  min-height: 36px;
+  height: 32px;
+  min-height: 32px;
   border-radius: 9px;
   font-weight: 600;
   font-size: 0.82rem;
@@ -4335,7 +4339,7 @@
 
 /* 4.a: Filter Bar */
 .leads-filter-bar {
-  padding: 12px 18px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   gap: 10px;

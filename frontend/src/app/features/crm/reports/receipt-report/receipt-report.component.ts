@@ -733,7 +733,11 @@ export class ReceiptReportComponent implements OnInit {
 
   fetchMonthlyAnalysis() {
     this.monthlyLoading = true;
-    this.api.get(`/reports/receipts/monthly-analysis?year=${this.selectedYear}`).subscribe({
+    let url = `/reports/receipts/monthly-analysis?year=${this.selectedYear}`;
+    if (this.selectedEmployee && this.selectedEmployee !== 'all') {
+      url += `&userId=${encodeURIComponent(this.selectedEmployee)}`;
+    }
+    this.api.get(url).subscribe({
       next: (res: any) => {
         if (res.success && res.data) {
           const d = res.data;
@@ -1089,6 +1093,7 @@ export class ReceiptReportComponent implements OnInit {
     this.isEmployeeDropdownOpen = false;
     this.currentPage = 1;
     this.fetchData();
+    this.fetchMonthlyAnalysis();
   }
 
   getSelectedEmployeeName(): string {

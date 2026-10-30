@@ -15,6 +15,7 @@ import { UpdateLeadStatusModalComponent } from '../../../../shared/components/up
 })
 export class UpcomingFollowupsComponent {
   searchTerm: string = '';
+  loading: boolean = true;
 
   leads: any[] = [];
   stats: any = { upcoming: 0, unassignedUpcoming: 0 };
@@ -34,18 +35,31 @@ export class UpcomingFollowupsComponent {
   }
 
   fetchData() {
-    this.api.get('/reports/leads/pending-followups', { params: { filter: 'upcoming' } }).subscribe({
+    this.loading = true;
+    this.api.get('/reports/leads/pending-followups', { filter: 'upcoming' }).subscribe({
       next: (res: any) => {
+        this.loading = false;
         if (res.success) {
-          this.leads = res.data.list || [];
+          const list = res.data.list || [];
+          // Date logic: Follow-up Date after today strictly belongs under Upcoming Follow-up
+          this.leads = list.filter((l: any) => l.status === 'Upcoming' || this.isUpcomingDate(l.dueDate));
           this.stats = {
-            upcoming: res.data.upcoming || 0,
+            upcoming: res.data.upcoming !== undefined ? res.data.upcoming : this.leads.length,
             unassignedUpcoming: this.leads.filter((l: any) => l.assignee === 'Unassigned').length
           };
         }
       },
-      error: (err: any) => console.error(err)
+      error: (err: any) => { this.loading = false; console.error(err); }
     });
+  }
+
+  isUpcomingDate(dateVal: any): boolean {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    const today = new Date();
+    d.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return d.getTime() > today.getTime();
   }
 
   // ── Lead Profile Modal Navigation ─────────────────────────
@@ -74,12 +88,14 @@ export class UpcomingFollowupsComponent {
 
   // ── Helpers ─────────────────────────────────────────────
   get filteredLeads() {
-    if (!this.searchTerm) return this.leads;
+    const list = this.leads.filter(l => l.status === 'Upcoming' || this.isUpcomingDate(l.dueDate));
+    if (!this.searchTerm) return list;
     const term = this.searchTerm.toLowerCase();
-    return this.leads.filter(l =>
+    return list.filter(l =>
       l.leadName?.toLowerCase().includes(term) ||
       l.assignee?.toLowerCase().includes(term) ||
-      l.statusName?.toLowerCase().includes(term)
+      l.statusName?.toLowerCase().includes(term) ||
+      l.phone?.includes(term)
     );
   }
 

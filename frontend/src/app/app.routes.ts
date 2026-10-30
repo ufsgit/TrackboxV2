@@ -120,6 +120,8 @@ export const routes: Routes = [
       { path: 'system-settings/document-type', loadComponent: () => import('./features/system-settings/components/document-type-management/document-type-management.component').then(m => m.DocumentTypeManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/receipt-types', loadComponent: () => import('./features/system-settings/components/receipt-type-management/receipt-type-management.component').then(m => m.ReceiptTypeManagementComponent), data: { roles: ['admin', 'superadmin'] } },
       { path: 'system-settings/channels', loadComponent: () => import('./features/system-settings/components/channel-management/channel-management.component').then(m => m.ChannelManagementComponent), data: { roles: ['admin', 'superadmin'] } },
+      { path: 'system-settings/courses', loadComponent: () => import('./features/system-settings/components/course-management/course-management.component').then(m => m.CourseManagementComponent), data: { roles: ['admin', 'superadmin', 'manager'] } },
+      { path: 'system-settings/universities', loadComponent: () => import('./features/system-settings/components/university-management/university-management.component').then(m => m.UniversityManagementComponent), data: { roles: ['admin', 'superadmin', 'manager'] } },
       { path: 'analytics', component: AnalyticsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'affiliates', component: AffiliatesComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'templates', component: TemplatesComponent, data: { roles: ['admin', 'superadmin'] } },

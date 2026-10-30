@@ -36,6 +36,7 @@ interface Ring {
   styleUrls: ['./crm-dashboard.component.scss'],
 })
 export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
+  loading = true;
   /** Stats input or state */
   @Input() stats: DashboardStats = { total: 0, pending: 0, today: 0, upcoming: 0, won: 0, lost: 0 };
   @Input() userName = 'Admin';
@@ -104,7 +105,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
   series = [
     { name: 'Leads', color: '#2F7BF5', values: [12, 18, 22, 25, 30, 30] },
-    { name: 'Contacted', color: '#1FB874', values: [10, 15, 19, 22, 27, 28] },
+    { name: 'Applications', color: '#1FB874', values: [10, 15, 19, 22, 27, 28] },
     { name: 'Follow-ups Done', color: '#F59B2B', values: [9, 14, 18, 21, 24, 26] },
     { name: 'Won', color: '#8B5CF6', values: [0, 0, 0, 0, 0, 1] },
   ];
@@ -241,10 +242,12 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
     this.api.get('/analytics/crm-dashboard', { range: this.range }).subscribe({
       next: (res: any) => {
         this.syncing = false;
+        this.loading = false;
         if (res.success && res.data) {
           this.stats = {
             total: res.data.totalLeads || 0,
-            pending: res.data.pendingFollowUps || 0,
+            pending: res.data.pendingLeads !== undefined ? res.data.pendingLeads : Math.max(0, (res.data.totalLeads || 0) - (res.data.wonDeals || 0) - (res.data.lostDeals || 0)),
+            pendingFollowUps: res.data.pendingFollowUps || 0,
             today: res.data.todaysFollowUps || 0,
             upcoming: res.data.upcomingFollowUps || 0,
             won: res.data.wonDeals || 0,
@@ -313,6 +316,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
       error: (err) => {
         console.error('Error fetching CRM dashboard stats', err);
         this.syncing = false;
+        this.loading = false;
         this.build();
         this.countUp();
       }
@@ -364,11 +368,11 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
     // KPI Data from Image 1: Applications, Offer Letters, Fees Paid, Visa Submitted, Visa Approved, Enrolled / Travelled
     const eduStats: any = (s as any).edu || {
       applications: 0,
-      offerLetters: 245,
-      feesPaid: 180,
-      visaSubmitted: 180,
-      visaApproved: 154,
-      enrolled: 148
+      offerLetters: 0,
+      feesPaid: 0,
+      visaSubmitted: 0,
+      visaApproved: 0,
+      enrolled: 0
     };
 
     this.kpis = [
@@ -393,7 +397,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         link: '/reports/applications'
       },
       { 
-        label: 'Offer Letters', 
+        label: 'Offer Received', 
         value: eduStats.offerLetters ?? 0, 
         icon: 'i-letter', 
         color: '#8B5CF6', 
@@ -413,7 +417,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         link: '/reports/fees-paid'
       },
       { 
-        label: 'Visa Submitted', 
+        label: 'Visa Applied', 
         value: eduStats.visaSubmitted ?? 0, 
         icon: 'i-plane', 
         color: '#0EA5E9', 
@@ -423,7 +427,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         link: '/reports/visa-submitted'
       },
       { 
-        label: 'Visa Approved', 
+        label: 'Visa Received', 
         value: eduStats.visaApproved ?? 0, 
         icon: 'i-check-circle', 
         color: '#10B981', 
@@ -488,6 +492,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
 
   /** Count-up for KPI and funnel numbers */
   private countUp(): void {
+    if (this.loading) return;
     if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const nums = [...this.kpis.filter(k => !k.suffix), ...this.funnel];
     const t0 = performance.now(), dur = 1100;
@@ -506,6 +511,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   onRange(r: string): void {
     this.range = r;
     this.rangeChange.emit(r);
+    this.loading = true;
     this.loadDashboardData();
   }
 

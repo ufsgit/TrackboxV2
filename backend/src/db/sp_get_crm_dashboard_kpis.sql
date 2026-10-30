@@ -20,6 +20,7 @@ BEGIN
   DECLARE v_date_filter_mode VARCHAR(20) DEFAULT 'all_time';
 
   DECLARE v_total_leads INT DEFAULT 0;
+  DECLARE v_pending_leads INT DEFAULT 0;
   DECLARE v_pending_followups INT DEFAULT 0;
   DECLARE v_todays_followups INT DEFAULT 0;
   DECLARE v_upcoming_followups INT DEFAULT 0;
@@ -45,7 +46,7 @@ BEGIN
   -- -------------------------------------------------------------
   -- 1. IF CONDITION: Role Evaluation & Scoping
   -- -------------------------------------------------------------
-  IF p_user_role = 'agent' THEN
+  IF p_user_role NOT IN ('admin', 'superadmin') THEN
     SET v_is_agent = 1;
     -- Find the agent's team id
     SELECT id INTO v_agent_team_id 
@@ -120,6 +121,8 @@ BEGIN
       OR (v_date_filter_mode = 'last_30_days' AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
       OR (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
     );
+
+  SET v_pending_leads = GREATEST(0, v_total_leads - COALESCE(v_won_deals, 0) - COALESCE(v_lost_deals, 0));
 
   -- -------------------------------------------------------------
   -- 5. Calculate Follow-up KPIs (State-driven based on current date)
@@ -231,6 +234,7 @@ BEGIN
   -- -------------------------------------------------------------
   SELECT 
     COALESCE(v_total_leads, 0) AS totalLeads,
+    COALESCE(v_pending_leads, 0) AS pendingLeads,
     COALESCE(v_pending_followups, 0) AS pendingFollowUps,
     COALESCE(v_todays_followups, 0) AS todaysFollowUps,
     COALESCE(v_upcoming_followups, 0) AS upcomingFollowUps,

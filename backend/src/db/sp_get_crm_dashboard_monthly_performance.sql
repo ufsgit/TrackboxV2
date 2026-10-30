@@ -26,7 +26,7 @@ BEGIN
   /* -------------------------------------------------------------
      1. IF CONDITION: Role Evaluation & Team Scoping
      ------------------------------------------------------------- */
-  IF p_user_role = 'agent' THEN
+  IF p_user_role NOT IN ('admin', 'superadmin') THEN
     SET v_is_agent = 1;
     SELECT id INTO v_agent_team_id 
     FROM teams 
@@ -85,7 +85,7 @@ BEGIN
         FROM contacts c
         WHERE c.business_id = p_business_id
           AND (c.assigned_to = p_user_id OR (v_agent_team_id IS NOT NULL AND c.assigned_to IN (SELECT user_id FROM team_members WHERE team_id = v_agent_team_id)))
-          AND (c.follow_up_count > 0 OR c.follow_up = 1)
+          AND (c.follow_up_count > 0 OR (c.status_name IS NOT NULL AND c.status_name != 'PENDING'))
           AND c.created_at >= tm.month_start
           AND c.created_at <= CONCAT(tm.month_end, ' 23:59:59')
       ),
@@ -94,14 +94,11 @@ BEGIN
         FROM follow_ups f
         WHERE (
           f.by_user_id = p_user_id 
-          OR f.to_user_id = p_user_id 
-          OR (v_agent_team_id IS NOT NULL AND (
-                f.by_user_id IN (SELECT user_id FROM team_members WHERE team_id = v_agent_team_id)
-                OR f.to_user_id IN (SELECT user_id FROM team_members WHERE team_id = v_agent_team_id)
-             ))
+          OR (v_agent_team_id IS NOT NULL AND f.by_user_id IN (SELECT user_id FROM team_members WHERE team_id = v_agent_team_id))
         )
         AND f.entry_date_time >= tm.month_start
         AND f.entry_date_time <= CONCAT(tm.month_end, ' 23:59:59')
+        AND NOT (LOWER(TRIM(COALESCE(f.remarks, ''))) IN ('new', 'new leads', 'contact created', 'imported via excel', 'lead created', 'initial lead') AND (f.status_name = 'PENDING' OR f.status_name IS NULL))
       ),
       tm.won_count = (
         SELECT COUNT(*)
@@ -127,7 +124,7 @@ BEGIN
         SELECT COUNT(*)
         FROM contacts c
         WHERE c.business_id = p_business_id
-          AND (c.follow_up_count > 0 OR c.follow_up = 1)
+          AND (c.follow_up_count > 0 OR (c.status_name IS NOT NULL AND c.status_name != 'PENDING'))
           AND c.created_at >= tm.month_start
           AND c.created_at <= CONCAT(tm.month_end, ' 23:59:59')
       ),
@@ -138,6 +135,7 @@ BEGIN
         WHERE c.business_id = p_business_id
           AND f.entry_date_time >= tm.month_start
           AND f.entry_date_time <= CONCAT(tm.month_end, ' 23:59:59')
+          AND NOT (LOWER(TRIM(COALESCE(f.remarks, ''))) IN ('new', 'new leads', 'contact created', 'imported via excel', 'lead created', 'initial lead') AND (f.status_name = 'PENDING' OR f.status_name IS NULL))
       ),
       tm.won_count = (
         SELECT COUNT(*)

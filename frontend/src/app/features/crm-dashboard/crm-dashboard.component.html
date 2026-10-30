@@ -18,14 +18,20 @@
           <span>{{ k.label }}</span>
         </div>
         <div class="kpi-b">
-          <span class="kpi-n num">{{ k.display }}</span>
-          <span class="spark" aria-hidden="true">
-            <i *ngFor="let h of k.spark; let j = index" [style.--h]="(h * 100) + '%'" [style.--k]="j"></i>
-          </span>
+          <div *ngIf="loading" class="kpi-skeleton-num shimmer"></div>
+          <ng-container *ngIf="!loading">
+            <span class="kpi-n num">{{ k.display !== undefined ? k.display : k.value }}</span>
+            <span class="spark" aria-hidden="true">
+              <i *ngFor="let h of k.spark; let j = index" [style.--h]="(h * 100) + '%'" [style.--k]="j"></i>
+            </span>
+          </ng-container>
         </div>
         <div class="kpi-d">
-          <b [class.flat]="!k.delta">{{ k.delta ? '▲ ' + k.delta : '– 0%' }}</b>
-          <span>vs last month</span>
+          <div *ngIf="loading" class="kpi-skeleton-delta shimmer"></div>
+          <ng-container *ngIf="!loading">
+            <b [class.flat]="!k.delta">{{ k.delta ? '▲ ' + k.delta : '– 0%' }}</b>
+            <span>vs last month</span>
+          </ng-container>
         </div>
       </article>
     </section>

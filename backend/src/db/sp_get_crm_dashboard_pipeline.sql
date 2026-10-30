@@ -30,7 +30,7 @@ BEGIN
   /* -------------------------------------------------------------
      1. IF CONDITION: Role Evaluation & Team Scoping
      ------------------------------------------------------------- */
-  IF p_user_role = 'agent' THEN
+  IF p_user_role NOT IN ('admin', 'superadmin') THEN
     SET v_is_agent = 1;
     SELECT id INTO v_agent_team_id 
     FROM teams 
@@ -105,25 +105,31 @@ BEGIN
       OR (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
     );
 
-  -- Scheduling status for Pending & Upcoming
+  -- Upcoming follow-ups (future scheduled follow-ups)
   SELECT
     SUM(CASE 
-      WHEN c.follow_up = 1 AND DATE(c.follow_up_date) < CURDATE() THEN 1 
-      ELSE 0 
-    END),
-    SUM(CASE 
-      WHEN c.follow_up = 1 AND DATE(c.follow_up_date) > CURDATE() THEN 1 
+      WHEN c.follow_up = 1 AND DATE(c.follow_up_date) > CURDATE() AND (c.sale_won = 0 OR c.sale_won IS NULL) AND (c.sale_lost = 0 OR c.sale_lost IS NULL) THEN 1 
       ELSE 0 
     END)
   INTO
-    v_pending_leads,
     v_upcoming_leads
   FROM contacts c
   WHERE c.business_id = p_business_id
     AND (
       v_is_agent = 0 
       OR c.assigned_to IN (SELECT user_id FROM tmp_pipeline_agents)
+    )
+    AND (
+      v_date_filter_mode = 'all_time'
+      OR (v_date_filter_mode = 'today' AND DATE(c.created_at) = CURDATE())
+      OR (v_date_filter_mode = 'this_week' AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1))
+      OR (v_date_filter_mode = 'this_month' AND YEAR(c.created_at) = YEAR(CURDATE()) AND MONTH(c.created_at) = MONTH(CURDATE()))
+      OR (v_date_filter_mode = 'last_30_days' AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
+      OR (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
     );
+
+  -- Pending leads: all active leads not won, lost, or upcoming
+  SET v_pending_leads = GREATEST(0, v_total_leads - COALESCE(v_won_leads, 0) - COALESCE(v_lost_leads, 0) - COALESCE(v_upcoming_leads, 0));
 
   /* -------------------------------------------------------------
      5. IF CONDITIONS: Calculate Stage Conversion Percentages

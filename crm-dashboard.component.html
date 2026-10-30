@@ -1,6 +1,6 @@
 <div class="shell">
   <aside class="side">
-    <a class="logo" routerLink="/crm-dashboard"><span class="logo-m">T</span><span><b>TRACKBOX</b><small>CRM</small></span></a>
+    <a class="logo" routerLink="/crm-dashboard"><span class="logo-m"></span><span><b></b><small>CRM</small></span></a>
     <nav class="menu" aria-label="Main">
       <a *ngFor="let m of menu" [routerLink]="m.link" routerLinkActive="active" [attr.aria-current]="m.active ? 'page' : null">
         <svg class="ico"><use [attr.href]="'#' + m.icon"/></svg>{{ m.label }}

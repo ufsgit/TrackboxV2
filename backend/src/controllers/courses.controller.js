@@ -76,13 +76,13 @@ exports.updateCourse = async (req, res) => {
     const { id } = req.params;
     const { name, amount, duration, description } = req.body;
     
-    if (!name || !amount) {
+    if (!name || amount === undefined || amount === null || amount === '') {
       return res.status(400).json({ success: false, message: 'Name and amount are required' });
     }
 
     const [result] = await db.query(
       'UPDATE courses SET name = ?, amount = ?, duration = ?, description = ? WHERE id = ?',
-      [name, amount, duration, description, id]
+      [name, amount, duration || null, description || null, id]
     );
 
     if (result.affectedRows === 0) {

@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { getAccessibleUserIds, buildUserScopeFilter } = require('../services/teamHierarchy.service');
 
 // Strip garbled encoding artifacts (e.g. em-dash stored in latin1 column comes back as Î“Ã‡Ã¶)
 // Heuristic: if >50% of chars are non-ASCII and string is â‰¤10 chars â†’ treat as garbage
@@ -60,21 +61,25 @@ const getContacts = async (req, res) => {
       params.push(receipt_type.trim(), receipt_type.trim());
     }
 
-    if (req.user.role === 'agent') {
-      const selfId = Number(req.user.userId);
-      if (req.query.transferred_only === 'true') {
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        where += ' AND 1 = 0 ';
+      } else if (req.query.transferred_only === 'true') {
+        const selfId = Number(req.user.userId);
         where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
         params.push(selfId.toString(), selfId.toString(), selfId);
+      } else if (agent) {
+        const reqAgentId = Number(agent);
+        if (accessibleUserIds.includes(reqAgentId)) {
+          where += ' AND c.assigned_to = ? ';
+          params.push(reqAgentId);
+        } else {
+          where += ' AND 1 = 0 ';
+        }
       } else {
-        const [teamRows] = await pool.query(
-          `SELECT user_id FROM team_members 
-           WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-          [selfId, bizId]
-        );
-        const teamMemberIds = teamRows.map(r => Number(r.user_id));
-        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-        where += ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
-        params.push(...teamMemberIds);
+        where += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        params.push(...accessibleUserIds);
       }
     } else {
       if (req.query.transferred_only === 'true') {
@@ -127,17 +132,13 @@ const getContacts = async (req, res) => {
 
     let baseWhere = 'WHERE c.business_id = ?';
     const baseParams = [bizId];
-    if (req.user.role === 'agent') {
-      const selfId = Number(req.user.userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, bizId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      baseWhere += ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
-      baseParams.push(...teamMemberIds);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        baseWhere += ' AND 1 = 0 ';
+      } else {
+        baseWhere += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        baseParams.push(...accessibleUserIds);
+      }
     }
     const [[{ overall_total }]] = await pool.query(
       `SELECT COUNT(*) as overall_total FROM contacts c ${baseWhere}`,
@@ -152,25 +153,41 @@ const getContacts = async (req, res) => {
 
 const getContact = async (req, res) => {
   try {
-    let q = 'SELECT * FROM contacts WHERE id = ? AND business_id = ?';
+    let q = `
+      SELECT c.*,
+             COALESCE(u.name, 'Unassigned') as assigned_employee_name,
+             (SELECT remarks FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_remark,
+             (SELECT follow_up_date FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_follow_up_date
+      FROM contacts c
+      LEFT JOIN users u ON c.assigned_to = u.id
+      WHERE c.id = ? AND c.business_id = ?
+    `;
     const params = [req.params.id, req.user.businessId];
-    if (req.user.role === 'agent') {
-      // Get all user IDs who share a team with this agent
-      const [teamRows] = await pool.query(
-        `SELECT DISTINCT tm2.user_id
-         FROM team_members tm1
-         JOIN team_members tm2 ON tm1.team_id = tm2.team_id
-         WHERE tm1.user_id = ?`,
-        [req.user.userId]
-      );
-      const teamMemberIds = teamRows.map(r => r.user_id);
-      if (!teamMemberIds.includes(req.user.userId)) teamMemberIds.push(req.user.userId);
-      q += ` AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
-      params.push(...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, req.user.businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        q += ' AND 1 = 0 ';
+      } else {
+        q += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
+      }
     }
     const [rows] = await pool.query(q, params);
     if (!rows.length) return res.status(404).json({ success: false, message: 'Not found', data: null });
     const contact = rows[0];
+
+    const fDate = contact.follow_up_date || contact.latest_follow_up_date;
+    if (fDate) {
+      try {
+        const d = new Date(fDate);
+        const now = new Date();
+        d.setHours(0,0,0,0);
+        now.setHours(0,0,0,0);
+        if (d.getTime() < now.getTime()) contact.followup_status = 'Overdue';
+        else if (d.getTime() === now.getTime()) contact.followup_status = 'Due Today';
+        else contact.followup_status = 'Upcoming';
+      } catch(e) {}
+    }
 
     // Fetch allowed categories for the user
     let allowedCategories = null;
@@ -908,9 +925,14 @@ const getContactHistory = async (req, res) => {
     // Ensure user has access to contact
     let q = 'SELECT id FROM contacts WHERE id = ? AND business_id = ?';
     const params = [contactId, bizId];
-    if (req.user.role === 'agent') {
-      q += ' AND assigned_to = ?';
-      params.push(req.user.userId);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        q += ' AND 1 = 0 ';
+      } else {
+        q += ` AND assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        params.push(...accessibleUserIds);
+      }
     }
     const [contacts] = await pool.query(q, params);
     console.log('[DEBUG] getContactHistory -> contactId:', contactId, 'bizId:', bizId, 'role:', req.user.role, 'userId:', req.user.userId, 'contacts:', contacts);

@@ -186,19 +186,6 @@
         </ul>
       </div>
 
-      <!-- Dropdown: Tags -->
-      <div class="dropdown custom-filter-dropdown">
-        <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeTag" type="button" (click)="toggleFilterDropdown('tag', $event)" aria-expanded="false">
-          <i class="bi bi-tag me-1 text-muted"></i>
-          <span>{{ activeTag || 'All Tags' }}</span>
-          <i class="bi bi-chevron-down chevron-down-icon"></i>
-        </button>
-        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isTagDropdownOpen">
-          <li><a class="dropdown-item" [class.active]="!activeTag" (click)="activeTag = ''; applyFilters(); isTagDropdownOpen = false">All Tags</a></li>
-          <li><a class="dropdown-item" *ngFor="let tag of allTags" [class.active]="activeTag === tag" (click)="activeTag = tag; applyFilters(); isTagDropdownOpen = false">{{ tag }}</a></li>
-        </ul>
-      </div>
-
       <!-- Dropdown: Enquiry For -->
       <div class="dropdown custom-filter-dropdown">
         <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeEnquiryFor" type="button" (click)="toggleFilterDropdown('enquiryFor', $event)" aria-expanded="false">
@@ -663,6 +650,35 @@
         <!-- PROFILE TAB -->
         <div *ngIf="detailActiveTab === 'Profile'" class="tab-pane">
           <div class="row">
+            <!-- Follow-up Details from Pending Follow-up -->
+            <div class="col-12 mb-4" *ngIf="selectedContact.follow_up_date || selectedContact.assigned_employee_name || selectedContact.status_name || selectedContact.latest_remark || selectedContact.remark">
+              <div class="detail-section-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0"><i class="bi bi-clock-history text-primary me-2"></i> Pending Follow-up Details</h5>
+                  <span *ngIf="getContactFollowupStatus(selectedContact)" [ngClass]="getFollowupBadgeClass(getContactFollowupStatus(selectedContact))">
+                    {{ getContactFollowupStatus(selectedContact) }}
+                  </span>
+                </div>
+                <div class="detail-grid">
+                  <div class="detail-item">
+                    <label>ASSIGNEE / AGENT</label>
+                    <span class="fw-bold text-primary">{{ selectedContact.assigned_employee_name || getEmployeeName(selectedContact.assigned_to) || 'Unassigned' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>DUE DATE</label>
+                    <span>{{ (selectedContact.follow_up_date | date:'yyyy-MM-dd') || '—' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>LEAD STATUS</label>
+                    <span>{{ selectedContact.status_name || selectedContact.status || '—' }}</span>
+                  </div>
+                  <div class="detail-item" style="grid-column: 1 / -1;" *ngIf="selectedContact.latest_remark || selectedContact.remark">
+                    <label>REMARKS / NOTES</label>
+                    <span class="d-block p-2 rounded bg-light border text-muted small mt-1">{{ selectedContact.latest_remark || selectedContact.remark }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="col-12 mb-4">
               <div class="detail-section-card">
                 <h5><i class="bi bi-person-lines-fill"></i> Core Information</h5>
@@ -855,7 +871,7 @@
                 <div class="g-icon"><i class="bi bi-shield-check"></i></div>
                 <div class="g-text">
                   <h6>Stage Progression</h6>
-                  <p>Track status from Applied to Offer Letters and Visa Approval.</p>
+                  <p>Track status from Applied to Offer applied and Visa Approval.</p>
                 </div>
               </div>
             </div>
@@ -1017,10 +1033,10 @@
               <div class="receipt-hero-icon emerald">
                 <i class="bi bi-receipt-cutoff"></i>
               </div>
-              <h6 class="receipt-hero-title">No Receipts Recorded Yet</h6>
-              <p class="receipt-hero-desc">
+               <h6 class="receipt-hero-title">No Receipts Recorded Yet</h6> 
+              <!-- <p class="receipt-hero-desc">
                 Record client payments, application fees, or tuition deposits for {{ selectedContact.name || 'this contact' }}. Every saved receipt automatically stores the collecting staff member.
-              </p>
+              </p> --> 
               <button type="button" class="btn-create-first-receipt" (click)="openAddReceiptModal()">
                 <i class="bi bi-plus-lg me-1"></i> Record First Receipt
               </button>
@@ -1028,27 +1044,27 @@
 
             <!-- 3 Informational Quick-Start Guidance Cards -->
             <div class="receipt-guidance-grid">
-              <div class="guidance-card">
+              <!-- <div class="guidance-card">
                 <div class="g-icon emerald"><i class="bi bi-credit-card-2-front"></i></div>
                 <div class="g-text">
                   <h6>Payment Categorization</h6>
                   <p>Categorize by Application Fees, Consultation, or Tuition.</p>
                 </div>
-              </div>
-              <div class="guidance-card">
+              </div> -->
+              <!-- <div class="guidance-card">
                 <div class="g-icon violet"><i class="bi bi-person-check-fill"></i></div>
                 <div class="g-text">
                   <h6>Staff Attribution</h6>
                   <p>Automatically records and logs the staff member who creates the receipt.</p>
                 </div>
-              </div>
-              <div class="guidance-card">
+              </div> -->
+              <!-- <div class="guidance-card">
                 <div class="g-icon blue"><i class="bi bi-graph-up-arrow"></i></div>
                 <div class="g-text">
                   <h6>Instant CRM Sync</h6>
                   <p>Reflects immediately in Receipts & Collections reporting analytics.</p>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
 
@@ -1628,13 +1644,13 @@
       <!-- Section 1: Institution & Academic Program -->
       <div class="app-form-section">
         <div class="app-section-header">
-          <div class="section-icon program-icon">
+          <!-- <div class="section-icon program-icon">
             <i class="bi bi-bank2"></i>
-          </div>
-          <div>
+          </div> -->
+          <!-- <div>
             <div class="section-title">Institution & Program Details</div>
             <div class="section-desc">Target university destination and enrolled degree course</div>
-          </div>
+          </div> -->
         </div>
 
         <div class="app-grid-row">
@@ -1643,14 +1659,16 @@
             <label class="app-label">
               University Name <span class="app-req">*</span>
             </label>
-            <div class="app-input-wrap">
-              <i class="bi bi-buildings-fill app-input-icon"></i>
-              <input 
-                type="text" 
-                class="app-input" 
-                [(ngModel)]="currentApplication.university" 
-                placeholder="e.g. Oxford University, Harvard, Melbourne"
-                autofocus>
+            <div class="app-select-wrap">
+              <i class="bi bi-buildings-fill app-input-icon text-indigo"></i>
+              <select class="app-select" [(ngModel)]="currentApplication.university">
+                <option value="">Select University</option>
+                <option *ngIf="currentApplication.university && !isUniversityInList(currentApplication.university)" [value]="currentApplication.university">
+                  {{ currentApplication.university }}
+                </option>
+                <option *ngFor="let u of universities" [value]="u.name">{{ u.name }}</option>
+              </select>
+              <i class="bi bi-chevron-down app-select-chevron"></i>
             </div>
           </div>
 
@@ -1663,13 +1681,11 @@
               <i class="bi bi-geo-alt-fill app-input-icon text-indigo"></i>
               <input 
                 type="text" 
-                list="countryList" 
                 class="app-input" 
                 [(ngModel)]="currentApplication.country" 
-                placeholder="Select or type country">
-              <datalist id="countryList">
-                <option *ngFor="let c of countries" [value]="c"></option>
-              </datalist>
+                readonly
+                style="background-color: #f8fafc; font-weight: 600; color: #1e293b; cursor: default;"
+                placeholder="New Zealand">
             </div>
           </div>
 
@@ -1718,10 +1734,10 @@
           <div class="section-icon timeline-icon">
             <i class="bi bi-calendar2-check-fill"></i>
           </div>
-          <div>
+          <!-- <div>
             <div class="section-title">Timeline & Application Status</div>
             <div class="section-desc">Target admission cohort schedule and current processing stage</div>
-          </div>
+          </div> -->
         </div>
 
         <div class="app-grid-row">
@@ -1783,13 +1799,13 @@
       <!-- Section 3: Notes & Documentation -->
       <div class="app-form-section">
         <div class="app-section-header">
-          <div class="section-icon notes-icon">
+          <!-- <div class="section-icon notes-icon">
             <i class="bi bi-card-text"></i>
-          </div>
-          <div>
+          </div> -->
+          <!-- <div>
             <div class="section-title">Additional Notes & Remarks</div>
             <div class="section-desc">Record conditional requirements, deadlines, test scores, or notes</div>
-          </div>
+          </div> -->
         </div>
 
         <div class="app-field-col-12">
@@ -2591,7 +2607,7 @@
             <div class="email-meta-section">
               <div class="meta-row">
                 <span class="meta-label">From:</span>
-                <span class="meta-value"><strong>Trackbox Admissions</strong> &lt;worksufs&#64;gmail.com&gt;</span>
+                <span class="meta-value"><strong>Choice Campaigns Admissions</strong> &lt;worksufs&#64;gmail.com&gt;</span>
               </div>
               <div class="meta-row">
                 <span class="meta-label">To:</span>

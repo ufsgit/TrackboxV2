@@ -9,6 +9,8 @@ import { IntakeManagementComponent } from './components/intake-management/intake
 import { YearManagementComponent } from './components/year-management/year-management.component';
 import { AppStatusManagementComponent } from './components/app-status-management/app-status-management.component';
 import { ChannelManagementComponent } from './components/channel-management/channel-management.component';
+import { CourseManagementComponent } from './components/course-management/course-management.component';
+import { UniversityManagementComponent } from './components/university-management/university-management.component';
 
 @Component({
   selector: 'app-system-settings',
@@ -22,7 +24,9 @@ import { ChannelManagementComponent } from './components/channel-management/chan
     IntakeManagementComponent,
     YearManagementComponent,
     AppStatusManagementComponent,
-    ChannelManagementComponent
+    ChannelManagementComponent,
+    CourseManagementComponent,
+    UniversityManagementComponent
   ],
 
   templateUrl: './system-settings.component.html',
@@ -43,6 +47,8 @@ export class SystemSettingsComponent implements OnInit {
        else if (this.authService.hasPermission('Year', 'view')) this.activeTab = 'year';
        else if (this.authService.hasPermission('Application Status', 'view')) this.activeTab = 'app-status';
        else if (this.authService.hasPermission('Channel', 'view')) this.activeTab = 'channel';
+       else if (this.authService.hasPermission('Courses', 'view')) this.activeTab = 'course';
+       else if (this.authService.hasPermission('Universities', 'view') || this.authService.hasRole('admin', 'superadmin', 'manager')) this.activeTab = 'university';
     }
   }
 
@@ -50,4 +56,3 @@ export class SystemSettingsComponent implements OnInit {
     this.activeTab = tab;
   }
 }
-

@@ -25,7 +25,7 @@ export interface PipelineSummary {
 })
 export class PipelineKpiReportComponent implements OnInit, OnDestroy {
   activeType: string = 'applications';
-  loading: boolean = false;
+  loading: boolean = true;
   refreshing: boolean = false;
 
   // Filter state
@@ -57,10 +57,10 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
 
   tabs = [
     { type: 'applications', label: 'Applications', icon: 'bi-file-earmark-person', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' },
-    { type: 'offer-letters', label: 'Offer Letters', icon: 'bi-envelope-paper-heart', color: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.1)' },
+    { type: 'offer-letters', label: 'Offer Received', icon: 'bi-envelope-paper-heart', color: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.1)' },
     { type: 'fees-paid', label: 'Fees Paid', icon: 'bi-cash-coin', color: '#F59E0B', tint: 'rgba(245, 158, 11, 0.1)' },
-    { type: 'visa-submitted', label: 'Visa Submitted', icon: 'bi-send-check', color: '#0EA5E9', tint: 'rgba(14, 165, 233, 0.1)' },
-    { type: 'visa-approved', label: 'Visa Approved', icon: 'bi-check-circle-fill', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' },
+    { type: 'visa-submitted', label: 'Visa Applied', icon: 'bi-send-check', color: '#0EA5E9', tint: 'rgba(14, 165, 233, 0.1)' },
+    { type: 'visa-approved', label: 'Visa Received', icon: 'bi-check-circle-fill', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' },
     { type: 'enrolled', label: 'Enrolled / Travelled', icon: 'bi-mortarboard-fill', color: '#6366F1', tint: 'rgba(99, 102, 241, 0.1)' },
   ];
 

@@ -80,6 +80,12 @@ export class LayoutComponent implements OnInit {
   selectedTutorialVideo: any = null;
   tutorialSearchQuery: string = '';
 
+  currentRoutedComponent: any = null;
+
+  onOutletActivate(component: any) {
+    this.currentRoutedComponent = component;
+  }
+
   ngOnInit() {
     this.setupSocketNotifications();
     // Restore last active department from localStorage
@@ -178,14 +184,49 @@ export class LayoutComponent implements OnInit {
     });
   }
 
-  navigateToAddLead(): void {
-    if (this.router.url.includes('/leads-list')) {
-      this.router.navigate(['/leads-list'], { queryParams: { action: 'new', t: Date.now() } });
-    } else {
-      this.router.navigate(['/leads-list'], { queryParams: { action: 'new' } });
-    }
+  isCrmRoute(url: string): boolean {
+    if (!url) return false;
+    const crmRoutes = [
+      'crm-dashboard', 'contacts', 'quotations', 'purchase-orders', 'delivery-management',
+      'targets', 'achievements', 'leaderboard', 'incentives', 'underperformers',
+      'pending-followup', 'todays-leads', 'upcoming-followups', 'all-leads',
+      'quotation-report', 'purchase-order-report', 'sales-funnel-report',
+      'lead-conversion-report', 'agent-performance-report', 'won-lost-report',
+      'channel-conversion-report', 'employee-conversion-report', 'reports/employee-productivity',
+      'reports/student-pipeline', 'reports/application-status', 'reports/follow-up-report',
+      'reports/daily-report', 'daily-report', 'lead-flow', 'reports/lead-flow', 'reports/team-productivity', 'reports/lead-creation',
+      'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings'
+    ];
+    return crmRoutes.some(route => url.includes(route));
   }
 
+  navigateToAddLead(): void {
+    const isCrm = this.activeDepartment === 'CRM' || this.isCrmRoute(this.router.url);
+
+    if (isCrm) {
+      this.activeDepartment = 'CRM';
+      localStorage.setItem('activeDepartment', 'CRM');
+      if (this.router.url.includes('/contacts')) {
+        if (this.currentRoutedComponent && typeof this.currentRoutedComponent.openAddModal === 'function') {
+          this.currentRoutedComponent.openAddModal();
+        } else {
+          this.router.navigate(['/contacts'], { queryParams: { action: 'new', t: Date.now() } });
+        }
+      } else {
+        this.router.navigate(['/contacts'], { queryParams: { action: 'new' } });
+      }
+    } else {
+      if (this.router.url.includes('/leads-list')) {
+        if (this.currentRoutedComponent && typeof this.currentRoutedComponent.openAddModal === 'function') {
+          this.currentRoutedComponent.openAddModal();
+        } else {
+          this.router.navigate(['/leads-list'], { queryParams: { action: 'new', t: Date.now() } });
+        }
+      } else {
+        this.router.navigate(['/leads-list'], { queryParams: { action: 'new' } });
+      }
+    }
+  }
   toggleCheckIn() {
     if (!this.isCheckedIn) {
       // Trying to check in
@@ -672,10 +713,10 @@ export class LayoutComponent implements OnInit {
     if (last === 'todays-leads') return "Today's Followups";
     if (last === 'channel-report') return 'Channel Report';
     if (last === 'applications') return 'Applications Report';
-    if (last === 'offer-letters') return 'Offer Letters Report';
+    if (last === 'offer-letters') return 'Offer Received Report';
     if (last === 'fees-paid') return 'Fees Paid Report';
-    if (last === 'visa-submitted') return 'Visa Submitted Report';
-    if (last === 'visa-approved') return 'Visa Approved Report';
+    if (last === 'visa-submitted') return 'Visa Applied Report';
+    if (last === 'visa-approved') return 'Visa received Report';
     if (last === 'enrolled') return 'Enrolled Report';
     if (last === 'quotations') return 'Quotations';
     if (last === 'purchase-orders') return 'Purchase Orders';
@@ -724,7 +765,10 @@ export class LayoutComponent implements OnInit {
            this.authService.hasPermission('Year', 'view') || 
            this.authService.hasPermission('Enquiry For', 'view') || 
            this.authService.hasPermission('Document Type', 'view') || 
-           this.authService.hasPermission('Channel', 'view');
+           this.authService.hasPermission('Channel', 'view') ||
+           this.authService.hasPermission('Courses', 'view') ||
+           this.authService.hasPermission('Universities', 'view') ||
+           this.authService.hasRole('admin', 'superadmin', 'manager');
   }
 
   get isUfsUser(): boolean {
@@ -744,7 +788,9 @@ export class LayoutComponent implements OnInit {
            this.authService.hasPermission('Source Categories', 'view') || 
            this.authService.hasPermission('API & Webhooks', 'view') || 
            this.authService.hasPermission('Integrations', 'view') || 
-           this.authService.hasPermission('Courses', 'view');
+           this.authService.hasPermission('Courses', 'view') ||
+           this.authService.hasPermission('Universities', 'view') ||
+           this.authService.hasRole('admin', 'superadmin', 'manager');
   }
 
   logout() {

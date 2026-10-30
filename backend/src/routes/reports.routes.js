@@ -37,4 +37,12 @@ router.get('/employee', c.getEmployeeReport);
 router.get('/receipts/monthly-analysis', c.getMonthlyReceiptAnalysis);
 router.get('/receipts', c.getReceiptsReport);
 
+
+// Sales Performance Routes
+// router.get('/sales/achievements', c.getSalesAchievements);
+// router.get('/sales/leaderboard', c.getSalesLeaderboard);
+// router.get('/sales/underperformers', c.getSalesUnderperformers);
+// router.get('/sales/incentives', c.getSalesIncentives);
+// router.get('/sales/targets', c.getSalesTargets);
+
 module.exports = router;

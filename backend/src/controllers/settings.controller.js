@@ -1,5 +1,6 @@
 const pool = require('../db/pool');
 const bcrypt = require('bcrypt');
+const { getAccessibleUserIds } = require('../services/teamHierarchy.service');
 
 const getBusiness = async (req, res) => {
   try {
@@ -29,15 +30,27 @@ const updateBusiness = async (req, res) => {
 
 const getTeam = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, u.allowed_custom_field_categories, b.name as branch_name, d.name as department_name, des.name as designation_name
+    const accessibleUserIds = await getAccessibleUserIds(req.user, req.user.businessId);
+
+    let query = `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, u.allowed_custom_field_categories, b.name as branch_name, d.name as department_name, des.name as designation_name
        FROM users u 
        LEFT JOIN branches b ON u.branch_id = b.id 
        LEFT JOIN departments d ON u.department_id = d.id 
        LEFT JOIN designations des ON u.designation_id = des.id
-       WHERE u.business_id=? AND (u.is_dev = 0 OR u.is_dev IS NULL) ORDER BY u.created_at ASC`,
-      [req.user.businessId]
-    );
+       WHERE u.business_id=? AND (u.is_dev = 0 OR u.is_dev IS NULL)`;
+    const queryParams = [req.user.businessId];
+
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      query += ` AND u.id IN (?)`;
+      queryParams.push(accessibleUserIds);
+    }
+
+    query += ` ORDER BY u.created_at ASC`;
+
+    const [rows] = await pool.query(query, queryParams);
     // For each agent, load their personal team member IDs
     for (const r of rows) {
       const [tmRows] = await pool.query(

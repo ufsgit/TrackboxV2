@@ -15,6 +15,7 @@ import { UpdateLeadStatusModalComponent } from '../../../../shared/components/up
 })
 export class TodaysLeadsComponent {
   searchTerm: string = '';
+  loading: boolean = true;
 
   leads: any[] = [];
   stats: any = { totalToday: 0, unassignedLeads: 0 };
@@ -34,15 +35,31 @@ export class TodaysLeadsComponent {
   }
 
   fetchData() {
+    this.loading = true;
     this.api.get('/reports/leads/today').subscribe({
       next: (res: any) => {
+        this.loading = false;
         if (res.success) {
-          this.leads = res.data.leads;
-          this.stats = res.data;
+          const list = res.data.leads || [];
+          // Date logic: Follow-up Date is today strictly belongs under Today's Follow-up
+          this.leads = list.filter((l: any) => l.status === 'Due Today' || this.isTodayDate(l.dueDate || l.follow_up_date));
+          this.stats = {
+            totalToday: this.leads.length,
+            unassignedLeads: this.leads.filter((l: any) => !l.agent || l.agent === 'Unassigned').length
+          };
         }
       },
-      error: (err: any) => console.error(err)
+      error: (err: any) => { this.loading = false; console.error(err); }
     });
+  }
+
+  isTodayDate(dateVal: any): boolean {
+    if (!dateVal) return true;
+    const d = new Date(dateVal);
+    const today = new Date();
+    d.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
   }
 
   // ── Lead Profile Modal Navigation ─────────────────────────
@@ -71,12 +88,14 @@ export class TodaysLeadsComponent {
 
   // ── Helpers ─────────────────────────────────────────────
   get filteredLeads() {
-    if (!this.searchTerm) return this.leads;
+    const list = this.leads.filter(l => l.status === 'Due Today' || this.isTodayDate(l.dueDate || l.follow_up_date));
+    if (!this.searchTerm) return list;
     const term = this.searchTerm.toLowerCase();
-    return this.leads.filter(l =>
+    return list.filter(l =>
       l.name?.toLowerCase().includes(term) ||
       l.agent?.toLowerCase().includes(term) ||
-      l.statusName?.toLowerCase().includes(term)
+      l.statusName?.toLowerCase().includes(term) ||
+      l.phone?.includes(term)
     );
   }
 

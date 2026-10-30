@@ -7,11 +7,11 @@
       <div class="brand-column">
         <!-- Logo Icon: Official Trackbox Hexagon Icon -->
         <div class="logo-icon-wrapper" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer; display: flex; align-items: center;">
-          <img src="assets/images/trackbox-icon.png" alt="Trackbox Logo" style="height: 34px; width: auto; object-fit: contain;">
+          <img src="assets/logo.png" alt="Choice Campaigns Logo" style="height: 34px; width: auto; object-fit: contain;">
         </div>
 
         <div class="brand-text-column" style="display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;">
-          <div class="logo-text" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer; line-height: 1; font-size: 1.15rem;">Trackbox</div>
+          <div class="logo-text" [routerLink]="dashboardRoute" title="Go to Dashboard" style="cursor: pointer; line-height: 1; font-size: 1.15rem;"></div>
           
           <!-- Department Switcher (under Trackbox logo text) -->
           <div class="department-switcher" *ngIf="!isSettingsRoute">
@@ -509,6 +509,12 @@
         <a routerLink="/system-settings/receipt-types" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-receipt-cutoff"></i> Receipt Type
         </a>
+        <a *ngIf="authService.hasPermission('Universities', 'view') || authService.hasRole('admin', 'superadmin', 'manager')" routerLink="/system-settings/universities" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-buildings"></i> Universities
+        </a>
+        <a *ngIf="authService.hasPermission('Courses', 'view')" routerLink="/system-settings/courses" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-book"></i> Courses
+        </a>
         <a *ngIf="authService.hasPermission('Channel', 'view')" routerLink="/system-settings/channels" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
           <i class="bi bi-chat-left-dots"></i> Channels
         </a>
@@ -539,6 +545,9 @@
         </a>
         <a *ngIf="authService.hasPermission('API & Webhooks', 'view')" routerLink="/settings" [queryParams]="{tab: 'api'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-code-slash"></i> API & Webhooks
+        </a>
+        <a *ngIf="authService.hasPermission('Courses', 'view')" routerLink="/settings" [queryParams]="{tab: 'courses'}" class="popup-item" (click)="showUserProfileDropdown = false">
+          <i class="bi bi-book"></i> Courses
         </a>
         <a *ngIf="authService.hasPermission('Integrations', 'view')" routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showUserProfileDropdown = false">
           <i class="bi bi-plug"></i> Integrations
@@ -641,7 +650,7 @@
   <!-- Main Content Area -->
   <main class="main-content">
     <div class="content-area" [@triggerName]="getRouteAnimationData(outlet)">
-      <router-outlet #outlet="outlet"></router-outlet>
+      <router-outlet #outlet="outlet" (activate)="onOutletActivate($event)"></router-outlet>
     </div>
   </main>
 
@@ -741,7 +750,7 @@
             <span>CRM Tutorial Hub</span>
           </div>
           <h3 class="yt-modal-title">Help & Video Tutorials</h3>
-          <p class="yt-modal-subtitle">Watch step-by-step walkthroughs to master your Trackbox CRM workflows.</p>
+          <p class="yt-modal-subtitle">Watch step-by-step walkthroughs to master your Choice Campaigns CRM workflows.</p>
         </div>
 
         <div class="yt-header-right">

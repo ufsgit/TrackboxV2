@@ -377,7 +377,8 @@ export class ContactsComponent implements OnInit {
   appStatuses: any[] = [];
   enquiryFors: any[] = [];
   channels: any[] = [];
-  countries: string[] = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Ireland', 'New Zealand', 'Singapore', 'India', 'China'];
+  countries: string[] = ['New Zealand'];
+  universities: any[] = [];
 
   // Dynamic Filtering Helpers
   getFilteredDepartments(branchName: string) {
@@ -407,7 +408,7 @@ export class ContactsComponent implements OnInit {
   showAddApplicationModal = false;
   showAppHistoryModal = false;
   currentApplication: any = {
-    country: '',
+    country: 'New Zealand',
     university: '',
     course: '',
     intake_id: '',
@@ -671,7 +672,7 @@ export class ContactsComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.isAdmin = this.auth.hasRole('admin', 'superadmin');
+    this.isAdmin = this.auth.hasRole('admin', 'superadmin', 'manager');
     this.initEmailStatusSocket();
     this.loadContacts();
     this.loadTags();
@@ -684,6 +685,7 @@ export class ContactsComponent implements OnInit {
     this.loadDocumentTypes();
     this.loadChannels();
     this.loadCourses();
+    this.loadUniversities();
     this.loadEmailTemplates();
 
     // Handle deep-link from report pages: ?contactId=X&action=profile|followup
@@ -725,12 +727,10 @@ export class ContactsComponent implements OnInit {
         try {
           sessionStorage.setItem('contact_detail_return_url', params['returnUrl']);
         } catch (e) {}
-      } else if (!this.returnUrl) {
+      } else {
+        this.returnUrl = null;
         try {
-          const savedReturn = sessionStorage.getItem('contact_detail_return_url');
-          if (savedReturn) {
-            this.returnUrl = savedReturn;
-          }
+          sessionStorage.removeItem('contact_detail_return_url');
         } catch (e) {}
       }
       if (contactId) {
@@ -1141,8 +1141,9 @@ export class ContactsComponent implements OnInit {
   }
 
   openAddApplicationModal() {
-    this.currentApplication = { contact_id: this.selectedContact.id, country: '', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
+    this.currentApplication = { contact_id: this.selectedContact.id, country: 'New Zealand', university: '', course: '', intake_id: '', year_id: '', status_id: '', description: '' };
     this.selectedCourseDetails = null;
+    this.loadUniversities();
     this.showAddApplicationModal = true;
   }
 
@@ -1154,6 +1155,17 @@ export class ContactsComponent implements OnInit {
         }
       },
       error: (err) => console.error('Failed to load courses', err)
+    });
+  }
+
+  loadUniversities() {
+    this.settingsService.getUniversities().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.universities = res.data || [];
+        }
+      },
+      error: (err: any) => console.error('Failed to load universities', err)
     });
   }
 
@@ -1301,14 +1313,21 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  isUniversityInList(name: string): boolean {
+    if (!name || !this.universities) return true;
+    return this.universities.some(u => u.name && u.name.toLowerCase() === name.toLowerCase());
+  }
+
   openEditApplicationModal(app: any) {
-    this.currentApplication = { ...app };
+    this.currentApplication = { ...app, country: 'New Zealand' };
     const course = this.courses ? this.courses.find(c => c.name === this.currentApplication.course) : null;
     this.selectedCourseDetails = course || null;
+    this.loadUniversities();
     this.showAddApplicationModal = true;
   }
 
   saveApplication() {
+    this.currentApplication.country = 'New Zealand';
     if (!this.currentApplication.country || !this.currentApplication.university || !this.currentApplication.course) {
       Swal.fire('Error', 'Country, University, and Course are required.', 'error');
       return;
@@ -2056,11 +2075,6 @@ export class ContactsComponent implements OnInit {
   closeQuickStatusModal() {
     this.showQuickStatusModal = false;
     this.quickStatusContactId = null;
-    if (this.returnUrl && !this.showDetailPanel) {
-      const target = this.returnUrl;
-      this.returnUrl = null;
-      this.router.navigateByUrl(target);
-    }
   }
 
   openContactDetailFromQuickStatus(id?: number) {
@@ -2774,5 +2788,30 @@ Trackbox CRM Team`;
     return tints[idx];
   }
 
-}
+  getContactFollowupStatus(c: any): string {
+    if (!c) return '';
+    if (c.followup_status) return c.followup_status;
+    const fDate = c.follow_up_date || c.latest_follow_up_date;
+    if (!fDate) return '';
+    try {
+      const d = new Date(fDate);
+      const now = new Date();
+      d.setHours(0,0,0,0);
+      now.setHours(0,0,0,0);
+      if (d.getTime() < now.getTime()) return 'Overdue';
+      if (d.getTime() === now.getTime()) return 'Due Today';
+      return 'Upcoming';
+    } catch(e) {
+      return '';
+    }
+  }
 
+  getFollowupBadgeClass(status: string): string {
+    switch (status) {
+      case 'Overdue': return 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-1';
+      case 'Due Today': return 'badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-1';
+      case 'Upcoming': return 'badge rounded-pill bg-info-subtle text-info border border-info-subtle px-3 py-1';
+      default: return 'badge rounded-pill bg-light text-dark px-3 py-1';
+    }
+  }
+}

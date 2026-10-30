@@ -1624,4 +1624,19 @@ body:not(.swal2-toast-shown) .swal2-container,
   border: none !important;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
 }
-
+
+/* Global Skeleton / Shimmer Loader Animation */
+@keyframes shimmerLoader {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%) !important;
+  background-size: 200% 100% !important;
+  animation: shimmerLoader 1.5s infinite linear !important;
+}

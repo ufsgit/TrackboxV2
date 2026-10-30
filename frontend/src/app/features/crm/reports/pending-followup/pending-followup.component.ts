@@ -30,7 +30,7 @@ export class PendingFollowupComponent implements OnInit {
   totalItems: number = 0;
   totalPages: number = 1;
   pageSizeOptions: number[] = [10, 20, 50, 100];
-  loading: boolean = false;
+  loading: boolean = true;
 
   // ── Selected Follow-up Data for Profile Modal ───────────
   selectedFollowupRow: any = null;
@@ -76,7 +76,7 @@ export class PendingFollowupComponent implements OnInit {
       params.search = this.searchTerm.trim();
     }
 
-    this.apiService.get('/reports/leads/pending-followups', { params }).subscribe({
+    this.apiService.get('/reports/leads/pending-followups', params).subscribe({
       next: (res: any) => {
         this.loading = false;
         if (res.success) {

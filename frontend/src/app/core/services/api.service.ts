@@ -10,7 +10,14 @@ export class ApiService {
 
   get(path: string, params?: any): Observable<any> {
     let httpParams = new HttpParams();
-    if (params) Object.keys(params).forEach(k => { if (params[k] !== undefined && params[k] !== null) httpParams = httpParams.set(k, params[k]); });
+    const queryParams = (params && params.params) ? params.params : params;
+    if (queryParams) {
+      Object.keys(queryParams).forEach(k => {
+        if (queryParams[k] !== undefined && queryParams[k] !== null) {
+          httpParams = httpParams.set(k, queryParams[k]);
+        }
+      });
+    }
     return this.http.get(`${this.apiUrl}${path}`, { params: httpParams });
   }
 

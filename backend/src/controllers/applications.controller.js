@@ -1,20 +1,35 @@
 const pool = require('../db/pool');
+const { getAccessibleUserIds } = require('../services/teamHierarchy.service');
 
 const getApplications = async (req, res) => {
   try {
     const { contactId } = req.params;
+    const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    let scopeClause = '';
+    const params = [contactId, businessId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      scopeClause = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR a.created_by IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+      params.push(...accessibleUserIds, ...accessibleUserIds);
+    }
+
     const [rows] = await pool.query(`
       SELECT a.*, 
              i.name as intake_name, 
              y.name as year_name, 
              s.name as status_name, s.color as status_color
       FROM applications a
+      LEFT JOIN contacts c ON a.contact_id = c.id
       LEFT JOIN intakes i ON a.intake_id = i.id
       LEFT JOIN years y ON a.year_id = y.id
       LEFT JOIN application_statuses s ON a.status_id = s.id
-      WHERE a.contact_id = ? AND a.business_id = ?
+      WHERE a.contact_id = ? AND a.business_id = ? ${scopeClause}
       ORDER BY a.created_at DESC
-    `, [contactId, req.user.businessId]);
+    `, params);
     res.json({ success: true, data: rows, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
@@ -29,7 +44,7 @@ const createApplication = async (req, res) => {
 
     const [result] = await pool.query(
       'INSERT INTO applications (contact_id, business_id, country, university, course, intake_id, year_id, status_id, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [contact_id, req.user.businessId, country, university, course, intake_id || null, year_id || null, status_id || null, description]
+      [contact_id, req.user.businessId, country || 'New Zealand', university, course, intake_id || null, year_id || null, status_id || null, description]
     );
     
     // Log history
@@ -74,7 +89,7 @@ const updateApplication = async (req, res) => {
 
     await pool.query(
       'UPDATE applications SET country=?, university=?, course=?, intake_id=?, year_id=?, status_id=?, description=? WHERE id=? AND business_id=?',
-      [country, university, course, intake_id || null, year_id || null, status_id || null, description, id, req.user.businessId]
+      [country || 'New Zealand', university, course, intake_id || null, year_id || null, status_id || null, description, id, req.user.businessId]
     );
 
     // Get new data for history comparisons

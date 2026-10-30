@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { getAccessibleUserIds } = require('../services/teamHierarchy.service');
 
 // GET /api/receipts/types
 const getReceiptTypes = async (req, res) => {
@@ -64,16 +65,28 @@ const getContactReceipts = async (req, res) => {
   try {
     const { contactId } = req.params;
     const businessId = req.user?.businessId || req.user?.business_id || 1;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    let scopeClause = '';
+    const params = [contactId, businessId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], totalAmount: 0, count: 0, message: 'OK' });
+      }
+      scopeClause = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR r.created_by IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+      params.push(...accessibleUserIds, ...accessibleUserIds);
+    }
+
     const [rows] = await pool.query(`
       SELECT r.*, rt.name as receipt_type_title, COALESCE(r.created_by_name, u.name) as created_by_name
       FROM receipts r
+      LEFT JOIN contacts c ON r.contact_id = c.id
       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
       LEFT JOIN users u ON r.created_by = u.id
-      WHERE r.contact_id = ? AND r.business_id = ?
+      WHERE r.contact_id = ? AND r.business_id = ? ${scopeClause}
       ORDER BY r.receipt_date DESC, r.created_at DESC
-    `, [contactId, businessId]);
+    `, params);
 
-    // calculate total sum
     const totalAmount = rows.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
     res.json({ 

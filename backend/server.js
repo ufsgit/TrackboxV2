@@ -143,6 +143,7 @@ app.use('/api/settings', require('./src/routes/settings.routes'));
 app.use('/api/system-settings', require('./src/routes/system-settings.routes'));
 app.use('/api/media-library', require('./src/routes/media-library.routes'));
 app.use('/api/courses', require('./src/routes/courses.routes'));
+app.use('/api/universities', require('./src/routes/universities.routes'));
 app.use('/api/attendance', require('./src/routes/attendance.routes'));
 app.use('/api/applications', require('./src/routes/applications.routes'));
 app.use('/api/reports', require('./src/routes/reports.routes'));
@@ -151,6 +152,7 @@ app.use('/api/notifications', require('./src/routes/notifications.routes'));
 app.use('/api/receipts', require('./src/routes/receipts.routes'));
 app.use('/api/visas', require('./src/routes/visas.routes'));
 app.use('/api/help-video', require('./src/routes/help-video.routes'));
+// app.use('/api/operations', require('./src/routes/operations.routes'));
 
 // Socket.IO
 io.on('connection', (socket) => {

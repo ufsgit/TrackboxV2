@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { getAccessibleUserIds, buildUserScopeFilter } = require('../services/teamHierarchy.service');
 
 const getEnquiriesReport = async (req, res) => {
   try {
@@ -15,26 +16,31 @@ const getEnquiriesReport = async (req, res) => {
     }
     // 'all' or unrecognized = no date filter
 
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent || req.query.employee || req.query.userId, column: 'c.assigned_to' });
+    const teamFilter = userScope.clause;
+    const teamParams = userScope.params;
+
     // Total Enquiries
     const [[{ totalEnquiries }]] = await pool.query(
-      `SELECT COUNT(*) as totalEnquiries FROM contacts c WHERE c.business_id = ? ${dateFilter}`,
-      [businessId]
+      `SELECT COUNT(*) as totalEnquiries FROM contacts c WHERE c.business_id = ? ${dateFilter} ${teamFilter}`,
+      [businessId, ...teamParams]
     );
 
     // High Value — contacts tagged 'vip'
     const [[{ highValue }]] = await pool.query(
       `SELECT COUNT(*) as highValue FROM contacts c 
        WHERE c.business_id = ? 
-       AND (JSON_CONTAINS(c.tags, '"vip"') OR c.tags LIKE '%vip%') ${dateFilter}`,
-      [businessId]
+       AND (JSON_CONTAINS(c.tags, '"vip"') OR c.tags LIKE '%vip%') ${dateFilter} ${teamFilter}`,
+      [businessId, ...teamParams]
     );
 
     // Sources (Group by opt_in_source)
     const [sources] = await pool.query(
       `SELECT IFNULL(opt_in_source, 'Unknown') as source, COUNT(*) as count 
-       FROM contacts c WHERE c.business_id = ? ${dateFilter} 
+       FROM contacts c WHERE c.business_id = ? ${dateFilter} ${teamFilter}
        GROUP BY opt_in_source ORDER BY count DESC`,
-      [businessId]
+      [businessId, ...teamParams]
     );
 
     const topSource = sources.length > 0 ? (sources[0].source || 'N/A') : 'N/A';
@@ -44,9 +50,9 @@ const getEnquiriesReport = async (req, res) => {
       `SELECT IFNULL(e.name, 'Uncategorized') as category, COUNT(c.id) as count 
        FROM contacts c 
        LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id 
-       WHERE c.business_id = ? ${dateFilter} 
+       WHERE c.business_id = ? ${dateFilter} ${teamFilter}
        GROUP BY c.enquiry_for_id, e.name ORDER BY count DESC`,
-      [businessId]
+      [businessId, ...teamParams]
     );
 
     const page = parseInt(req.query.page) || 1;
@@ -59,9 +65,9 @@ const getEnquiriesReport = async (req, res) => {
               c.follow_up_count, c.sale_won, c.status_name
        FROM contacts c 
        LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id 
-       WHERE c.business_id = ? ${dateFilter} 
+       WHERE c.business_id = ? ${dateFilter} ${teamFilter}
        ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
-      [businessId, limit, offset]
+      [businessId, ...teamParams, limit, offset]
     );
 
     // Score: base 40 + up to 40 from follow_ups + 20 for won
@@ -132,20 +138,11 @@ const getStatusReport = async (req, res) => {
     }
     // 'all' => no date restriction
 
-    // Agent team filtering
-    let teamFilter = '';
-    const teamParams = [];
-    if (req.user.role === 'agent') {
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        'SELECT user_id FROM team_members WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = ?)',
-        [selfId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      teamFilter = ' AND c.assigned_to IN (' + teamMemberIds.map(() => '?').join(',') + ') ';
-      teamParams.push(...teamMemberIds);
-    }
+    // Agent team hierarchy scoping
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent, column: 'c.assigned_to' });
+    const teamFilter = userScope.clause;
+    const teamParams = [...userScope.params];
 
     // 1. Open Leads (active leads in sales pipeline)
     const [[{ openLeadsPeriod }]] = await pool.query(
@@ -323,20 +320,10 @@ const getTodaysLeadsReport = async (req, res) => {
     let teamFilter = '';
     const filterParams = [businessId];
 
-    if (req.user.role === 'agent') {
-      // Include all teammates sharing a team with this agent
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, businessId]
-      );
-      // Cast to Number to avoid string vs. integer mismatch from includes()
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      filterParams.push(...teamMemberIds);
-    }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent, column: 'c.assigned_to' });
+    teamFilter = userScope.clause;
+    filterParams.push(...userScope.params);
 
     // Get all contacts whose follow-up date is today, joined with the latest follow_up entry
     const [leads] = await pool.query(
@@ -412,20 +399,10 @@ const getPendingFollowupsReport = async (req, res) => {
     let teamFilter = '';
     const filterParams = [businessId];
 
-    if (req.user.role === 'agent') {
-      // Include all teammates sharing a team with this agent
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, businessId]
-      );
-      // Cast to Number to avoid string vs. integer mismatch from includes()
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      filterParams.push(...teamMemberIds);
-    }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent, column: 'c.assigned_to' });
+    teamFilter = userScope.clause;
+    filterParams.push(...userScope.params);
 
     // Pull the latest follow-up entry per contact from the follow_ups table,
     // joined with the contact so we have name, phone and assigned agent.
@@ -476,13 +453,54 @@ const getPendingFollowupsReport = async (req, res) => {
     const dueTodayCount = filteredFollowups.filter(f => f.status === 'Due Today').length;
     const upcomingCount = filteredFollowups.filter(f => f.status === 'Upcoming').length;
 
+    const filter = req.query.filter || null;
+    const search = (req.query.search || '').trim().toLowerCase();
+
+    // Strict Date Logic:
+    // - Follow-up Date < today  -> Pending (Overdue)
+    // - Follow-up Date = today  -> Today's Follow-up (Due Today)
+    // - Follow-up Date > today  -> Upcoming Follow-up (Upcoming)
+    let activeItems = filteredFollowups;
+    if (filter === 'upcoming') {
+      activeItems = activeItems.filter(f => f.status === 'Upcoming');
+    } else if (filter === 'dueToday' || filter === 'today') {
+      activeItems = activeItems.filter(f => f.status === 'Due Today');
+    } else if (filter === 'overdue' || filter === 'pending' || (!filter && !search)) {
+      activeItems = activeItems.filter(f => f.status === 'Overdue');
+    }
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    // If limit is not passed and page is not passed (e.g. from upcoming/todays reports), return all matching items:
+    const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit)) : (req.query.page ? 10 : (activeItems.length || 10));
+
+    if (search) {
+      activeItems = activeItems.filter(f =>
+        (f.leadName && f.leadName.toLowerCase().includes(search)) ||
+        (f.phone && f.phone.toLowerCase().includes(search)) ||
+        (f.assignee && f.assignee.toLowerCase().includes(search)) ||
+        (f.remarks && f.remarks.toLowerCase().includes(search)) ||
+        (f.status_name && f.status_name.toLowerCase().includes(search))
+      );
+    }
+
+    const total = activeItems.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const offset = (page - 1) * limit;
+    const pagedList = activeItems.slice(offset, offset + limit);
+
     res.json({
       success: true,
       data: {
         overdue:  overdueCount,
         dueToday: dueTodayCount,
         upcoming: upcomingCount,
-        list: filteredFollowups.map(f => ({
+        pagination: {
+          page: page,
+          limit: limit,
+          total: total,
+          totalPages: totalPages
+        },
+        list: pagedList.map(f => ({
           id:         f.lead_id,
           leadName:   f.leadName,
           contact:    f.contact,
@@ -535,18 +553,14 @@ const getWorkReport = async (req, res) => {
         teamFilter += ` AND (c.assigned_to = ? OR EXISTS (SELECT 1 FROM follow_ups fu WHERE fu.contact_id = c.id AND (fu.by_user_id = ? OR fu.to_user_id = ?))) `;
         filterParams.push(targetUserId, targetUserId, targetUserId);
       }
-    } else if (req.user.role === 'agent') {
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, businessId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      
-      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      filterParams.push(...teamMemberIds);
+    }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (!agent) {
+      const userScope = buildUserScopeFilter({ accessibleUserIds, column: 'c.assigned_to' });
+      teamFilter = userScope.clause;
+      filterParams.push(...userScope.params);
+    } else if (accessibleUserIds !== null && !accessibleUserIds.includes(Number(agent))) {
+      teamFilter = ' AND 1 = 0 ';
     }
     
     // Total Leads Handled
@@ -804,19 +818,16 @@ const getEmployeeReport = async (req, res) => {
     let fuTeamFilter = '';
     let filterParams = [];
 
-    if (req.user.role === 'agent') {
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, businessId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      
-      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      fuTeamFilter = ` AND f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      filterParams.push(...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND 1 = 0 ';
+        fuTeamFilter = ' AND 1 = 0 ';
+      } else {
+        teamFilter = ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        fuTeamFilter = ` AND f.by_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        filterParams.push(...accessibleUserIds);
+      }
     }
 
     // Total active agents in scope
@@ -949,15 +960,10 @@ const getSourceConversionReport = async (req, res) => {
 
     let teamFilter = '';
     if (req.user.role === 'agent') {
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        'SELECT user_id FROM team_members WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = ?)',
-        [selfId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      teamFilter = ' AND c.assigned_to IN (' + teamMemberIds.map(() => '?').join(',') + ') ';
-      params.push(...teamMemberIds);
+      const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent, column: 'c.assigned_to' });
+    teamFilter = userScope.clause;
+    params.push(...userScope.params);
     }
 
     const query = `
@@ -1054,18 +1060,15 @@ const getTimeTrackReport = async (req, res) => {
         query += ` AND (f.by_user_name = ? OR f.to_user_name = ?) `;
         params.push(targetUserName, targetUserName);
       }
-    } else if (req.user.role === 'agent') {
-      const selfId = Number(req.user.userId || req.user.id);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, bizId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-
-      query += ` AND (f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) OR f.to_user_id IN (${teamMemberIds.map(() => '?').join(',')}) OR c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')})) `;
-      params.push(...teamMemberIds, ...teamMemberIds, ...teamMemberIds);
+    }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        query += ' AND 1 = 0 ';
+      } else {
+        query += ` AND (f.by_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) OR f.to_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        params.push(...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds);
+      }
     }
 
     query += ` GROUP BY HOUR(f.entry_date_time) ORDER BY hour ASC`;
@@ -1121,6 +1124,11 @@ const getChannelsReport = async (req, res) => {
     } else if (dateRange === 'today') {
       dateFilter = 'AND DATE(c.created_at) = CURDATE()';
     }
+
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent || req.query.employee || req.query.userId, column: 'c.assigned_to' });
+    dateFilter += userScope.clause;
+    queryParams.push(...userScope.params);
 
     // Drilldown details popup mode
     if (viewDetails === 'true') {
@@ -1227,15 +1235,10 @@ const getWonLostReport = async (req, res) => {
       queryParams.push(startDate, endDate);
     }
 
-    if (agent) {
-      dateFilter += ' AND c.assigned_to = ?';
-      queryParams.push(agent);
-    }
-
-    if (req.user.role === 'agent') {
-      dateFilter += ' AND c.assigned_to = ?';
-      queryParams.push(req.user.userId);
-    }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: agent, column: 'c.assigned_to' });
+    dateFilter += userScope.clause;
+    queryParams.push(...userScope.params);
 
     const query = `
       SELECT 
@@ -1292,15 +1295,10 @@ const getChannelConversionReport = async (req, res) => {
       queryParams.push(startDate, endDate);
     }
 
-    if (agent) {
-      dateFilter += ' AND assigned_to = ?';
-      queryParams.push(agent);
-    }
-
-    if (req.user.role === 'agent') {
-      dateFilter += ' AND assigned_to = ?';
-      queryParams.push(req.user.userId);
-    }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: agent, column: 'assigned_to' });
+    dateFilter += userScope.clause;
+    queryParams.push(...userScope.params);
 
     const query = `
       SELECT 
@@ -1368,33 +1366,13 @@ const getEmployeeConversionReport = async (req, res) => {
     }
 
     let teamFilter = '';
-    const selfId = Number(userId);
-
-    if (req.user.role === 'agent') {
-      // Find the teams the current user belongs to
-      const [myTeams] = await pool.query(
-        `SELECT team_id FROM team_members WHERE user_id = ?`,
-        [selfId]
-      );
-
-      if (myTeams.length > 0) {
-        const teamIds = myTeams.map(t => t.team_id);
-        
-        // Get all members of those teams
-        const [teamRows] = await pool.query(
-          `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-          [teamIds]
-        );
-        
-        const teamMemberIds = teamRows.map(r => Number(r.user_id));
-        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-        
-        teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-        queryParams.push(...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND 1 = 0 ';
       } else {
-        // If agent has no team, they only see themselves
-        teamFilter = ` AND c.assigned_to = ? `;
-        queryParams.push(selfId);
+        teamFilter = ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        queryParams.push(...accessibleUserIds);
       }
     }
     // Admin will see all (teamFilter remains empty)
@@ -1491,29 +1469,14 @@ const getStudentPipelineReport = async (req, res) => {
     }
 
     let teamFilter = '';
-    const selfId = Number(userId);
-
-    const [myTeams] = await pool.query(
-      `SELECT team_id FROM team_members WHERE user_id = ?`,
-      [selfId]
-    );
-
-    if (myTeams.length > 0) {
-      const teamIds = myTeams.map(t => t.team_id);
-      
-      const [teamRows] = await pool.query(
-        `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-        [teamIds]
-      );
-      
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      
-      teamFilter = ` AND c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      queryParams.push(...teamMemberIds);
-    } else if (req.user.role === 'agent') {
-      teamFilter = ` AND c.assigned_to = ? `;
-      queryParams.push(selfId);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND 1 = 0 ';
+      } else {
+        teamFilter = ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        queryParams.push(...accessibleUserIds);
+      }
     }
 
     const query = `
@@ -1604,27 +1567,14 @@ const getFollowUpReport = async (req, res) => {
     let teamFilter = '';
     const selfId = Number(userId);
 
-    const [myTeams] = await pool.query(
-      `SELECT team_id FROM team_members WHERE user_id = ?`,
-      [selfId]
-    );
-
-    if (myTeams.length > 0) {
-      const teamIds = myTeams.map(t => t.team_id);
-      
-      const [teamRows] = await pool.query(
-        `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-        [teamIds]
-      );
-      
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      
-      teamFilter = ` AND u.id IN (${teamMemberIds.map(() => '?').join(',')}) `;
-      queryParams.push(...teamMemberIds);
-    } else if (req.user.role === 'agent') {
-      teamFilter = ` AND u.id = ? `;
-      queryParams.push(selfId);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND u.id = 0 ';
+      } else {
+        teamFilter = ` AND u.id IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        queryParams.push(...accessibleUserIds);
+      }
     }
 
     const query = `
@@ -1636,8 +1586,9 @@ const getFollowUpReport = async (req, res) => {
       LEFT JOIN (
         follow_ups f
         JOIN contacts c ON f.contact_id = c.id AND c.business_id = ?
+        AND NOT (LOWER(TRIM(COALESCE(f.remarks, ''))) IN ('new', 'new leads', 'contact created', 'imported via excel', 'lead created', 'initial lead') AND (f.status_name = 'PENDING' OR f.status_name IS NULL))
       ) ON u.id = f.by_user_id ${dateFilter} ${statusFilter}
-      WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL) AND u.role IN ('agent', 'admin') ${employeeFilter} ${teamFilter}
+      WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL) AND u.role IN ('agent', 'admin', 'manager') ${employeeFilter} ${teamFilter}
       GROUP BY u.id, u.name, u.employee_code
       ORDER BY follow_up_count DESC
     `;
@@ -1698,26 +1649,25 @@ const getTeamProductivityReport = async (req, res) => {
     let employeeFilterFollowUps = '';
     
     let teamFilter = '';
-    const selfId = Number(req.user.userId || req.user.id);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
     let teamMemberIds = [];
-
-    if (req.user.role === 'agent') {
-      const [teamRows] = await pool.query(
-        `SELECT team_id FROM team_members WHERE user_id = ?`,
-        [selfId]
-      );
-      if (teamRows.length > 0) {
-        const teamIds = teamRows.map(t => t.team_id);
-        const [members] = await pool.query(
-          `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-          [teamIds]
-        );
-        teamMemberIds = members.map(m => Number(m.user_id));
-        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-        teamFilter = ` AND u.id IN (${teamMemberIds.map(() => '?').join(',')}) `;
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND u.id = 0 ';
       } else {
-        teamFilter = ` AND u.id = ? `;
-        teamMemberIds = [selfId];
+        teamMemberIds = accessibleUserIds;
+        teamFilter = ` AND u.id IN (${teamMemberIds.map(() => '?').join(',')}) `;
+      }
+    }
+
+    let teamFilterFollowUps = '';
+    const teamParamsFollowUps = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilterFollowUps = ' AND 1 = 0 ';
+      } else {
+        teamFilterFollowUps = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR f.by_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) OR f.to_user_id IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        teamParamsFollowUps.push(...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds);
       }
     }
 
@@ -1729,7 +1679,7 @@ const getTeamProductivityReport = async (req, res) => {
       businessId, date,
       businessId, ...teamMemberIds
     ];
-    let queryParamsFollowUps = [businessId, date];
+    let queryParamsFollowUps = [businessId, date, ...teamParamsFollowUps];
 
     if (employee && employee !== 'All') {
       employeeFilterUsers = 'AND u.id = ?';
@@ -1777,7 +1727,7 @@ const getTeamProductivityReport = async (req, res) => {
         COUNT(f.follow_up_id) as count
       FROM follow_ups f
       JOIN contacts c ON f.contact_id = c.id
-      WHERE c.business_id = ? AND DATE(f.entry_date_time) = ? ${employeeFilterFollowUps}
+      WHERE c.business_id = ? AND DATE(f.entry_date_time) = ? ${teamFilterFollowUps} ${employeeFilterFollowUps}
       GROUP BY f.status_name
     `;
     const [todaysActivityRows] = await pool.query(activityQuery, queryParamsFollowUps);
@@ -1789,7 +1739,7 @@ const getTeamProductivityReport = async (req, res) => {
         COUNT(f.follow_up_id) as count
       FROM follow_ups f
       JOIN contacts c ON f.contact_id = c.id
-      WHERE c.business_id = ? AND DATE(f.entry_date_time) = ? ${employeeFilterFollowUps}
+      WHERE c.business_id = ? AND DATE(f.entry_date_time) = ? ${teamFilterFollowUps} ${employeeFilterFollowUps}
       GROUP BY HOUR(f.entry_date_time)
       ORDER BY hour ASC
     `;
@@ -1842,10 +1792,22 @@ const getLeadCreationReport = async (req, res) => {
       dateParams.push(startDate, endDate);
     }
 
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    let teamClause = '';
+    const teamParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamClause = ' AND 1 = 0 ';
+      } else {
+        teamClause = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        teamParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
     // Drilldown details popup mode
     if (viewDetails === 'true') {
       let detailDateFilter = '';
-      const detailParams = [businessId];
+      const detailParams = [businessId, ...teamParams];
 
       if (filterType === 'all') {
         detailDateFilter = '';
@@ -1882,7 +1844,7 @@ const getLeadCreationReport = async (req, res) => {
       const [[{ totalCount }]] = await pool.query(
         `SELECT COUNT(c.id) as totalCount
          FROM contacts c
-         WHERE c.business_id = ? ${detailDateFilter} ${detailEmployeeFilter} ${searchFilter}`,
+         WHERE c.business_id = ? ${teamClause} ${detailDateFilter} ${detailEmployeeFilter} ${searchFilter}`,
         detailParams
       );
 
@@ -1903,7 +1865,7 @@ const getLeadCreationReport = async (req, res) => {
          FROM contacts c
          LEFT JOIN users u_assigned ON c.assigned_to = u_assigned.id
          LEFT JOIN users u_created ON c.created_by_user = u_created.id
-         WHERE c.business_id = ? ${detailDateFilter} ${detailEmployeeFilter} ${searchFilter}
+         WHERE c.business_id = ? ${teamClause} ${detailDateFilter} ${detailEmployeeFilter} ${searchFilter}
          ORDER BY c.created_at DESC
          LIMIT ? OFFSET ?`,
         [...detailParams, limitNum, offset]
@@ -1922,20 +1884,20 @@ const getLeadCreationReport = async (req, res) => {
     }
 
     // Overall Totals
-    const [[{ totalLeads }]] = await pool.query(`SELECT COUNT(*) as totalLeads FROM contacts c WHERE c.business_id = ?`, [businessId]);
-    const [[{ todayLeads }]] = await pool.query(`SELECT COUNT(*) as todayLeads FROM contacts c WHERE c.business_id = ? AND DATE(c.created_at) = CURDATE()`, [businessId]);
-    const [[{ weekLeads }]] = await pool.query(`SELECT COUNT(*) as weekLeads FROM contacts c WHERE c.business_id = ? AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)`, [businessId]);
-    const [[{ rangeLeads }]] = await pool.query(`SELECT COUNT(*) as rangeLeads FROM contacts c WHERE c.business_id = ? ${dateFilter}`, [businessId, ...dateParams]);
+    const [[{ totalLeads }]] = await pool.query(`SELECT COUNT(*) as totalLeads FROM contacts c WHERE c.business_id = ? ${teamClause}`, [businessId, ...teamParams]);
+    const [[{ todayLeads }]] = await pool.query(`SELECT COUNT(*) as todayLeads FROM contacts c WHERE c.business_id = ? AND DATE(c.created_at) = CURDATE() ${teamClause}`, [businessId, ...teamParams]);
+    const [[{ weekLeads }]] = await pool.query(`SELECT COUNT(*) as weekLeads FROM contacts c WHERE c.business_id = ? AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1) ${teamClause}`, [businessId, ...teamParams]);
+    const [[{ rangeLeads }]] = await pool.query(`SELECT COUNT(*) as rangeLeads FROM contacts c WHERE c.business_id = ? ${dateFilter} ${teamClause}`, [businessId, ...dateParams, ...teamParams]);
 
     // Group by User for the given date filter
     const [userBreakdown] = await pool.query(
       `SELECT c.created_by_user as user_id, u.name as employee, u.employee_code, COUNT(c.id) as leads_created
        FROM contacts c
        LEFT JOIN users u ON c.created_by_user = u.id
-       WHERE c.business_id = ? ${dateFilter}
+       WHERE c.business_id = ? ${dateFilter} ${teamClause}
        GROUP BY c.created_by_user, u.name, u.employee_code
        ORDER BY leads_created DESC`,
-      [businessId, ...dateParams]
+      [businessId, ...dateParams, ...teamParams]
     );
 
     res.json({
@@ -1954,6 +1916,7 @@ const getLeadCreationReport = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to generate lead creation report' });
   }
 };
+
 const getApplicationStatusSummaryReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
@@ -1989,10 +1952,22 @@ const getApplicationStatusSummaryReport = async (req, res) => {
       dateParams.push(startDate, endDate);
     }
 
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    let appScopeClause = '';
+    const appScopeParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        appScopeClause = ' AND 1 = 0 ';
+      } else {
+        appScopeClause = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR a.created_by IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        appScopeParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
     // Drilldown details popup mode
     if (viewDetails === 'true') {
       let statusFilter = '';
-      const filterParams = [businessId, ...dateParams];
+      const filterParams = [businessId, ...dateParams, ...appScopeParams];
 
       if (statusId && statusId !== 'all') {
         statusFilter = 'AND a.status_id = ?';
@@ -2018,7 +1993,7 @@ const getApplicationStatusSummaryReport = async (req, res) => {
          FROM applications a
          LEFT JOIN application_statuses s ON a.status_id = s.id
          LEFT JOIN contacts c ON a.contact_id = c.id
-         WHERE a.business_id = ? ${dateFilter} ${statusFilter} ${searchFilter}`,
+         WHERE a.business_id = ? ${dateFilter} ${appScopeClause} ${statusFilter} ${searchFilter}`,
         filterParams
       );
 
@@ -2038,7 +2013,7 @@ const getApplicationStatusSummaryReport = async (req, res) => {
          FROM applications a
          LEFT JOIN application_statuses s ON a.status_id = s.id
          LEFT JOIN contacts c ON a.contact_id = c.id
-         WHERE a.business_id = ? ${dateFilter} ${statusFilter} ${searchFilter}
+         WHERE a.business_id = ? ${dateFilter} ${appScopeClause} ${statusFilter} ${searchFilter}
          ORDER BY a.created_at DESC
          LIMIT ? OFFSET ?`,
         [...filterParams, limitNum, offset]
@@ -2064,13 +2039,18 @@ const getApplicationStatusSummaryReport = async (req, res) => {
         s.color,
         COUNT(a.id) AS count
       FROM application_statuses s
-      LEFT JOIN applications a ON a.status_id = s.id AND a.business_id = ? ${dateFilter}
+      LEFT JOIN (
+        SELECT a.id, a.status_id
+        FROM applications a
+        LEFT JOIN contacts c ON a.contact_id = c.id
+        WHERE a.business_id = ? ${dateFilter} ${appScopeClause}
+      ) a ON a.status_id = s.id
       WHERE s.business_id = ?
       GROUP BY s.id, s.name, s.color
       ORDER BY s.id ASC
     `;
 
-    const [rows] = await pool.query(query, [businessId, ...dateParams, businessId]);
+    const [rows] = await pool.query(query, [businessId, ...dateParams, ...appScopeParams, businessId]);
 
     res.json({
       success: true,
@@ -2109,16 +2089,14 @@ const getConversationReport = async (req, res) => {
     let teamFilter = '';
     const filterParams = [businessId];
 
-    if (req.user.role === 'agent') {
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        'SELECT user_id FROM team_members WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = ?)',
-        [selfId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-      teamFilter = ' AND (c.assigned_to IN (' + teamMemberIds.map(() => '?').join(',') + ') OR c.assigned_to IS NULL) ';
-      filterParams.push(...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND 1 = 0 ';
+      } else {
+        teamFilter = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IS NULL) `;
+        filterParams.push(...accessibleUserIds);
+      }
     }
 
     // 1. Messages Sent (outbound)
@@ -2394,28 +2372,14 @@ const getDailyReport = async (req, res) => {
     const teamParams = [];
     const selfId = Number(userId);
 
-    if (req.user.role === 'team_leader' || req.user.role === 'manager') {
-      const [myTeams] = await pool.query(
-        `SELECT team_id FROM team_members WHERE user_id = ?`,
-        [selfId]
-      );
-      if (myTeams.length > 0) {
-        const teamIds = myTeams.map(t => t.team_id);
-        const [teamRows] = await pool.query(
-          `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-          [teamIds]
-        );
-        const teamMemberIds = teamRows.map(r => Number(r.user_id));
-        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-        teamFilter = ` AND (f.by_user_id IN (${teamMemberIds.map(() => '?').join(',')}) OR f.to_user_id IN (${teamMemberIds.map(() => '?').join(',')})) `;
-        teamParams.push(...teamMemberIds, ...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND 1 = 0 ';
       } else {
-        teamFilter = ` AND (f.by_user_id = ? OR f.to_user_id = ?) `;
-        teamParams.push(selfId, selfId);
+        teamFilter = ` AND (f.by_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) OR f.to_user_id IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        teamParams.push(...accessibleUserIds, ...accessibleUserIds);
       }
-    } else if (req.user.role === 'agent') {
-      teamFilter = ` AND (f.by_user_id = ? OR f.to_user_id = ?) `;
-      teamParams.push(selfId, selfId);
     }
 
     // Status filter
@@ -2525,13 +2489,18 @@ const getDailyReport = async (req, res) => {
     );
 
     // 5. Dynamic Dropdown Lists from Real Backend Data
-    const [dropdownUsers] = await pool.query(
-      `SELECT id, name, employee_code, role 
-       FROM users 
-       WHERE business_id = ? AND is_active = 1 AND (is_dev = 0 OR is_dev IS NULL)
-       ORDER BY name ASC`,
-      [businessId]
-    );
+    let dropdownUsersQuery = `SELECT id, name, employee_code, role FROM users WHERE business_id = ? AND is_active = 1 AND (is_dev = 0 OR is_dev IS NULL)`;
+    const dropdownUsersParams = [businessId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        dropdownUsersQuery += ` AND 1 = 0`;
+      } else {
+        dropdownUsersQuery += ` AND id IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        dropdownUsersParams.push(...accessibleUserIds);
+      }
+    }
+    dropdownUsersQuery += ` ORDER BY name ASC`;
+    const [dropdownUsers] = await pool.query(dropdownUsersQuery, dropdownUsersParams);
 
     const [dbStatuses] = await pool.query(
       `SELECT DISTINCT TRIM(name) as name 
@@ -2633,28 +2602,14 @@ const getLeadFlowReport = async (req, res) => {
     const teamParams = [];
     const selfId = Number(userId);
 
-    if (req.user.role === 'team_leader' || req.user.role === 'manager') {
-      const [myTeams] = await pool.query(
-        `SELECT team_id FROM team_members WHERE user_id = ?`,
-        [selfId]
-      );
-      if (myTeams.length > 0) {
-        const teamIds = myTeams.map(t => t.team_id);
-        const [teamRows] = await pool.query(
-          `SELECT DISTINCT user_id FROM team_members WHERE team_id IN (?)`,
-          [teamIds]
-        );
-        const teamMemberIds = teamRows.map(r => Number(r.user_id));
-        if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-        teamFilter = ` AND (c.assigned_to IN (${teamMemberIds.map(() => '?').join(',')}) OR c.created_by_user IN (${teamMemberIds.map(() => '?').join(',')})) `;
-        teamParams.push(...teamMemberIds, ...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        teamFilter = ' AND 1 = 0 ';
       } else {
-        teamFilter = ` AND (c.assigned_to = ? OR c.created_by_user = ?) `;
-        teamParams.push(selfId, selfId);
+        teamFilter = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        teamParams.push(...accessibleUserIds, ...accessibleUserIds);
       }
-    } else if (req.user.role === 'agent') {
-      teamFilter = ` AND (c.assigned_to = ? OR c.created_by_user = ?) `;
-      teamParams.push(selfId, selfId);
     }
 
     // Employee dropdown filter
@@ -2853,13 +2808,18 @@ const getLeadFlowReport = async (req, res) => {
     );
 
     // 5. Staff / Employees dropdown list for filter
-    const [dropdownUsers] = await pool.query(
-      `SELECT id, name, employee_code, role 
-       FROM users 
-       WHERE business_id = ? AND is_active = 1 AND (is_dev = 0 OR is_dev IS NULL)
-       ORDER BY name ASC`,
-      [businessId]
-    );
+    let dropdownUsersQuery = `SELECT id, name, employee_code, role FROM users WHERE business_id = ? AND is_active = 1 AND (is_dev = 0 OR is_dev IS NULL)`;
+    const dropdownUsersParams = [businessId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        dropdownUsersQuery += ` AND 1 = 0`;
+      } else {
+        dropdownUsersQuery += ` AND id IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        dropdownUsersParams.push(...accessibleUserIds);
+      }
+    }
+    dropdownUsersQuery += ` ORDER BY name ASC`;
+    const [dropdownUsers] = await pool.query(dropdownUsersQuery, dropdownUsersParams);
 
     res.json({
       success: true,
@@ -2908,16 +2868,18 @@ const getPipelineKpiReport = async (req, res) => {
 
     // 1. Role / Agent scoping
     let agentScopeClause = '';
+    let receiptAgentScopeClause = '';
     const agentScopeParams = [];
-    if (role === 'agent') {
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [userId, bizId]
-      );
-      const scopedIds = teamRows.map(r => Number(r.user_id));
-      if (!scopedIds.includes(userId)) scopedIds.push(userId);
-      agentScopeClause = `AND c.assigned_to IN (${scopedIds.map(() => '?').join(',')})`;
-      agentScopeParams.push(...scopedIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        agentScopeClause = 'AND 1 = 0';
+        receiptAgentScopeClause = 'AND 1 = 0';
+      } else {
+        agentScopeClause = `AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR a.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        receiptAgentScopeClause = `AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR r.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        agentScopeParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
     }
 
     // 2. Date filter builder
@@ -2965,7 +2927,7 @@ const getPipelineKpiReport = async (req, res) => {
        LEFT JOIN contacts c ON r.contact_id = c.id 
        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
        WHERE r.business_id = ? AND (LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%' OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%')
-       ${agentScopeClause} ${recDateFilter.clause}`,
+       ${receiptAgentScopeClause} ${recDateFilter.clause}`,
       [bizId, ...agentScopeParams, ...recDateFilter.params]
     );
 
@@ -3026,7 +2988,7 @@ const getPipelineKpiReport = async (req, res) => {
       const whereBase = `
         WHERE r.business_id = ?
         AND (LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%' OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%')
-        ${agentScopeClause}
+        ${receiptAgentScopeClause}
         ${recDateFilter.clause}
         ${searchClause}
       `;
@@ -3160,6 +3122,18 @@ const getPipelineKpiReport = async (req, res) => {
 const getReceiptsReport = async (req, res) => {
   try {
     const businessId = req.user?.businessId || req.user?.business_id || 1;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    let receiptTeamFilter = '';
+    const receiptTeamParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        receiptTeamFilter = ' AND 1 = 0 ';
+      } else {
+        receiptTeamFilter = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR r.created_by IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        receiptTeamParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
     const {
       dateRange = 'this_month',
       startDate,
@@ -3171,53 +3145,74 @@ const getReceiptsReport = async (req, res) => {
       limit = 25
     } = req.query;
 
-    // Build date filter for receipts based on COALESCE(r.receipt_date, r.created_at)
     let dateFilter = '';
     const dateParams = [];
     if (dateRange === 'today') {
-      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) = CURDATE()';
+      dateFilter = ' AND DATE(COALESCE(r.receipt_date, r.created_at)) = CURDATE() ';
     } else if (dateRange === 'yesterday') {
-      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) = SUBDATE(CURDATE(), 1)';
+      dateFilter = ' AND DATE(COALESCE(r.receipt_date, r.created_at)) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) ';
     } else if (dateRange === 'this_week') {
-      dateFilter = 'AND YEARWEEK(COALESCE(r.receipt_date, r.created_at), 1) = YEARWEEK(CURDATE(), 1)';
+      dateFilter = ' AND YEARWEEK(COALESCE(r.receipt_date, r.created_at), 1) = YEARWEEK(CURDATE(), 1) ';
+    } else if (dateRange === 'last_week') {
+      dateFilter = ' AND YEARWEEK(COALESCE(r.receipt_date, r.created_at), 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1) ';
     } else if (dateRange === 'this_month') {
-      dateFilter = 'AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE())';
+      dateFilter = ' AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE()) ';
     } else if (dateRange === 'last_month') {
-      dateFilter = 'AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE() - INTERVAL 1 MONTH) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE() - INTERVAL 1 MONTH)';
-    } else if (dateRange === 'last_30_days') {
-      dateFilter = 'AND COALESCE(r.receipt_date, r.created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
-    } else if (dateRange === 'ytd') {
-      dateFilter = 'AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE())';
+      dateFilter = ' AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) ';
+    } else if (dateRange === 'this_quarter') {
+      dateFilter = ' AND QUARTER(COALESCE(r.receipt_date, r.created_at)) = QUARTER(CURDATE()) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE()) ';
+    } else if (dateRange === 'this_year' || dateRange === 'ytd') {
+      dateFilter = ' AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE()) ';
+    } else if (dateRange === 'last_year') {
+      dateFilter = ' AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE()) - 1 ';
     } else if (dateRange === 'custom' && startDate && endDate) {
-      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) BETWEEN ? AND ?';
+      dateFilter = ' AND DATE(COALESCE(r.receipt_date, r.created_at)) BETWEEN ? AND ? ';
       dateParams.push(startDate, endDate);
-    } // 'all' leaves dateFilter empty
+    }
 
-    // 1. Overall KPIs
+    // Filter by staff/employee if selected
+    let staffFilter = '';
+    const staffParams = [];
+    if (userId && userId !== 'all') {
+      if (userId === '0' || userId === 'null') {
+        staffFilter = ' AND (r.created_by IS NULL OR r.created_by = 0) ';
+      } else {
+        staffFilter = ' AND r.created_by = ? ';
+        staffParams.push(userId);
+      }
+    }
+
+    // 1. Overall stats
     const [[allTimeStats]] = await pool.query(
-      `SELECT COUNT(id) as totalCount, COALESCE(SUM(amount), 0) as totalAmount FROM receipts WHERE business_id = ?`,
-      [businessId]
+      `SELECT COUNT(r.id) as totalCount, COALESCE(SUM(r.amount), 0) as totalAmount 
+       FROM receipts r 
+       LEFT JOIN contacts c ON r.contact_id = c.id 
+       WHERE r.business_id = ? ${receiptTeamFilter} ${staffFilter}`,
+      [businessId, ...receiptTeamParams, ...staffParams]
     );
 
     const [[todayStats]] = await pool.query(
-      `SELECT COUNT(id) as todayCount, COALESCE(SUM(amount), 0) as todayAmount 
-       FROM receipts 
-       WHERE business_id = ? AND DATE(COALESCE(receipt_date, created_at)) = CURDATE()`,
-      [businessId]
+      `SELECT COUNT(r.id) as todayCount, COALESCE(SUM(r.amount), 0) as todayAmount 
+       FROM receipts r 
+       LEFT JOIN contacts c ON r.contact_id = c.id 
+       WHERE r.business_id = ? AND DATE(COALESCE(r.receipt_date, r.created_at)) = CURDATE() ${receiptTeamFilter} ${staffFilter}`,
+      [businessId, ...receiptTeamParams, ...staffParams]
     );
 
     const [[monthStats]] = await pool.query(
-      `SELECT COUNT(id) as monthCount, COALESCE(SUM(amount), 0) as monthAmount 
-       FROM receipts 
-       WHERE business_id = ? AND MONTH(COALESCE(receipt_date, created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(receipt_date, created_at)) = YEAR(CURDATE())`,
-      [businessId]
+      `SELECT COUNT(r.id) as monthCount, COALESCE(SUM(r.amount), 0) as monthAmount 
+       FROM receipts r 
+       LEFT JOIN contacts c ON r.contact_id = c.id 
+       WHERE r.business_id = ? AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE()) ${receiptTeamFilter} ${staffFilter}`,
+      [businessId, ...receiptTeamParams, ...staffParams]
     );
 
     const [[rangeStats]] = await pool.query(
       `SELECT COUNT(r.id) as rangeCount, COALESCE(SUM(r.amount), 0) as rangeAmount 
        FROM receipts r 
-       WHERE r.business_id = ? ${dateFilter}`,
-      [businessId, ...dateParams]
+       LEFT JOIN contacts c ON r.contact_id = c.id 
+       WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter}`,
+      [businessId, ...dateParams, ...receiptTeamParams, ...staffParams]
     );
 
     const rangeCount = Number(rangeStats?.rangeCount || 0);
@@ -3236,11 +3231,12 @@ const getReceiptsReport = async (req, res) => {
          ROUND(AVG(r.amount), 2) as avg_amount,
          MAX(COALESCE(r.receipt_date, r.created_at)) as last_receipt_date
        FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
        LEFT JOIN users u ON r.created_by = u.id
-       WHERE r.business_id = ? ${dateFilter}
+       WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter}
        GROUP BY r.created_by, COALESCE(r.created_by_name, u.name, 'Unknown Staff'), u.email, u.role
        ORDER BY receipts_count DESC, total_amount DESC`,
-      [businessId, ...dateParams]
+      [businessId, ...dateParams, ...receiptTeamParams, ...staffParams]
     );
 
     const breakdownWithShare = employeeBreakdown.map(emp => ({
@@ -3258,17 +3254,18 @@ const getReceiptsReport = async (req, res) => {
          COUNT(r.id) as count,
          COALESCE(SUM(r.amount), 0) as total_amount
        FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
-       WHERE r.business_id = ? ${dateFilter}
+       WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter}
        GROUP BY COALESCE(r.receipt_type_name, rt.name, 'General Receipt')
        ORDER BY count DESC`,
-      [businessId, ...dateParams]
+      [businessId, ...dateParams, ...receiptTeamParams, ...staffParams]
     );
 
     // 4. Timeline Graph data: daily or monthly
     let timelineGroupFormat = '%Y-%m-%d';
     let timelineLabelFormat = '%d %b';
-    if (dateRange === 'ytd' || dateRange === 'all') {
+    if (dateRange === 'ytd' || dateRange === 'all' || dateRange === 'this_year' || dateRange === 'last_year') {
       timelineGroupFormat = '%Y-%m';
       timelineLabelFormat = '%b %Y';
     }
@@ -3280,33 +3277,25 @@ const getReceiptsReport = async (req, res) => {
          COUNT(r.id) as count,
          COALESCE(SUM(r.amount), 0) as total_amount
        FROM receipts r
-       WHERE r.business_id = ? ${dateFilter}
+       LEFT JOIN contacts c ON r.contact_id = c.id
+       WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter}
        GROUP BY period_key, label
        ORDER BY period_key ASC`,
-      [businessId, ...dateParams]
+      [businessId, ...dateParams, ...receiptTeamParams, ...staffParams]
     );
 
     // 5. Detailed Receipts Query with Search & Filtering
     let extraFilters = '';
     const extraParams = [];
 
-    if (userId && userId !== 'all') {
-      if (userId === '0' || userId === 'null') {
-        extraFilters += ' AND (r.created_by IS NULL OR r.created_by = 0)';
-      } else {
-        extraFilters += ' AND r.created_by = ?';
-        extraParams.push(userId);
-      }
-    }
-
     if (receiptTypeId && receiptTypeId !== 'all') {
-      extraFilters += ' AND (r.receipt_type_id = ? OR r.receipt_type_name = ?)';
+      extraFilters += ' AND (r.receipt_type_id = ? OR r.receipt_type_name = ?) ';
       extraParams.push(receiptTypeId, receiptTypeId);
     }
 
     if (search && search.trim()) {
       const term = `%${search.trim()}%`;
-      extraFilters += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR r.receipt_type_name LIKE ? OR r.created_by_name LIKE ? OR u.name LIKE ? OR r.description LIKE ? OR CAST(r.id AS CHAR) LIKE ?)';
+      extraFilters += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR r.receipt_type_name LIKE ? OR r.created_by_name LIKE ? OR u.name LIKE ? OR r.description LIKE ? OR CAST(r.id AS CHAR) LIKE ?) ';
       extraParams.push(term, term, term, term, term, term, term, term);
     }
 
@@ -3319,8 +3308,8 @@ const getReceiptsReport = async (req, res) => {
        FROM receipts r
        LEFT JOIN contacts c ON r.contact_id = c.id
        LEFT JOIN users u ON r.created_by = u.id
-       WHERE r.business_id = ? ${dateFilter} ${extraFilters}`,
-      [businessId, ...dateParams, ...extraParams]
+       WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter} ${extraFilters}`,
+      [businessId, ...dateParams, ...receiptTeamParams, ...staffParams, ...extraParams]
     );
 
     const [receipts] = await pool.query(
@@ -3345,21 +3334,25 @@ const getReceiptsReport = async (req, res) => {
        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
        LEFT JOIN users u ON r.created_by = u.id
        LEFT JOIN users c_assignee ON c.assigned_to = c_assignee.id
-       WHERE r.business_id = ? ${dateFilter} ${extraFilters}
+       WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter} ${extraFilters}
        ORDER BY COALESCE(r.receipt_date, r.created_at) DESC, r.id DESC
        LIMIT ? OFFSET ?`,
-      [businessId, ...dateParams, ...extraParams, limitNum, offset]
+      [businessId, ...dateParams, ...receiptTeamParams, ...staffParams, ...extraParams, limitNum, offset]
     );
 
     // List of staff members for creator filter
-    const [staffList] = await pool.query(
-      `SELECT DISTINCT r.created_by as id, COALESCE(r.created_by_name, u.name, 'Unknown Staff') as name
-       FROM receipts r
-       LEFT JOIN users u ON r.created_by = u.id
-       WHERE r.business_id = ? AND r.created_by IS NOT NULL
-       ORDER BY name ASC`,
-      [businessId]
-    );
+    let staffListQuery = `SELECT DISTINCT u.id, u.name FROM users u WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL)`;
+    const staffListParams = [businessId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        staffListQuery += ` AND 1 = 0`;
+      } else {
+        staffListQuery += ` AND u.id IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        staffListParams.push(...accessibleUserIds);
+      }
+    }
+    staffListQuery += ` ORDER BY u.name ASC`;
+    const [staffList] = await pool.query(staffListQuery, staffListParams);
 
     res.json({
       success: true,
@@ -3406,19 +3399,46 @@ const getMonthlyReceiptAnalysis = async (req, res) => {
     const businessId = req.user?.businessId || req.user?.business_id || 1;
     const yearParam = req.query.year ? parseInt(req.query.year, 10) : new Date().getFullYear();
     const selectedYear = !isNaN(yearParam) && yearParam > 1900 && yearParam < 2100 ? yearParam : new Date().getFullYear();
+    const { userId } = req.query;
+
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    let receiptTeamFilter = '';
+    const receiptTeamParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        receiptTeamFilter = ' AND 1 = 0 ';
+      } else {
+        receiptTeamFilter = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR r.created_by IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        receiptTeamParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
+    let staffFilter = '';
+    const staffParams = [];
+    if (userId && userId !== 'all') {
+      if (userId === '0' || userId === 'null') {
+        staffFilter = ' AND (r.created_by IS NULL OR r.created_by = 0) ';
+      } else {
+        staffFilter = ' AND r.created_by = ? ';
+        staffParams.push(userId);
+      }
+    }
 
     // Query aggregated monthly receipts for the specified year using COALESCE(receipt_date, created_at)
     const [rows] = await pool.query(
       `SELECT 
-         MONTH(COALESCE(receipt_date, created_at)) as month_num,
-         COUNT(id) as receipt_count,
-         COALESCE(SUM(amount), 0) as total_amount
-       FROM receipts
-       WHERE business_id = ? 
-         AND YEAR(COALESCE(receipt_date, created_at)) = ?
-       GROUP BY MONTH(COALESCE(receipt_date, created_at))
+         MONTH(COALESCE(r.receipt_date, r.created_at)) as month_num,
+         COUNT(r.id) as receipt_count,
+         COALESCE(SUM(r.amount), 0) as total_amount
+       FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
+       WHERE r.business_id = ? 
+         AND YEAR(COALESCE(r.receipt_date, r.created_at)) = ?
+         ${receiptTeamFilter}
+         ${staffFilter}
+       GROUP BY MONTH(COALESCE(r.receipt_date, r.created_at))
        ORDER BY month_num ASC`,
-      [businessId, selectedYear]
+      [businessId, selectedYear, ...receiptTeamParams, ...staffParams]
     );
 
     // Query breakdown specifically for Application Fee vs Registration Fee vs Other
@@ -3433,11 +3453,14 @@ const getMonthlyReceiptAnalysis = async (req, res) => {
          COUNT(r.id) as count,
          COALESCE(SUM(r.amount), 0) as total_amount
        FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
        WHERE r.business_id = ? 
          AND YEAR(COALESCE(r.receipt_date, r.created_at)) = ?
+         ${receiptTeamFilter}
+         ${staffFilter}
        GROUP BY month_num, fee_category`,
-      [businessId, selectedYear]
+      [businessId, selectedYear, ...receiptTeamParams, ...staffParams]
     );
 
     // Query distinct years available in database to provide dynamic dropdown options
@@ -3472,7 +3495,7 @@ const getMonthlyReceiptAnalysis = async (req, res) => {
       });
     });
 
-    const categoryMap = new Map(); // key: `${monthNum}_${category}`
+    const categoryMap = new Map();
     typeRows.forEach(r => {
       const key = `${Number(r.month_num)}_${r.fee_category}`;
       categoryMap.set(key, {
@@ -3558,6 +3581,474 @@ const getMonthlyReceiptAnalysis = async (req, res) => {
   }
 };
 
+const getSalesAchievements = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const userId = Number(req.user.userId || req.user.id);
+    const role = req.user.role || 'admin';
+    const { dateRange = 'this_month', startDate, endDate, agent, search = '', page = 1, limit = 25 } = req.query;
+
+    let dateFilter = '';
+    const params = [bizId];
+
+    if (dateRange === 'today') {
+      dateFilter = 'AND DATE(COALESCE(c.sale_won_date, c.created_at)) = CURDATE()';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(COALESCE(c.sale_won_date, c.created_at), 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(COALESCE(c.sale_won_date, c.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(COALESCE(c.sale_won_date, c.created_at)) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
+    } else if (dateRange === 'this_year') {
+      dateFilter = 'AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(COALESCE(c.sale_won_date, c.created_at)) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: agent, column: 'c.assigned_to' });
+    dateFilter += userScope.clause;
+    params.push(...userScope.params);
+
+    let searchFilter = '';
+    if (search) {
+      searchFilter = ' AND (c.name LIKE ? OR u.name LIKE ?)';
+      params.push('%' + search + '%', '%' + search + '%');
+    }
+
+    const pg = Math.max(1, parseInt(page));
+    const lm = Math.max(1, parseInt(limit));
+    const offset = (pg - 1) * lm;
+
+    const baseWhere = `WHERE c.business_id = ? AND c.sale_won = 1 ${dateFilter} ${searchFilter}`;
+
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM contacts c LEFT JOIN users u ON c.assigned_to = u.id ${baseWhere}`, [...params]);
+
+    const [rows] = await pool.query(`
+      SELECT
+        c.id,
+        c.name AS client,
+        c.status_name,
+        c.sale_won_date AS wonDate,
+        c.created_at AS createdAt,
+        COALESCE(u.name, 'Unassigned') AS assignee,
+        COALESCE(
+          (SELECT SUM(r.amount) FROM receipts r WHERE r.contact_id = c.id),
+          0
+        ) AS revenue,
+        c.enquiry_for_id,
+        (SELECT name FROM enquiry_fors WHERE id = c.enquiry_for_id LIMIT 1) AS dealName
+      FROM contacts c
+      LEFT JOIN users u ON c.assigned_to = u.id
+      ${baseWhere}
+      ORDER BY COALESCE(c.sale_won_date, c.created_at) DESC
+      LIMIT ? OFFSET ?
+    `, [...params, lm, offset]);
+
+    // KPI stats for filter period
+    const [[kpi]] = await pool.query(`
+      SELECT
+        COUNT(*) AS totalDeals,
+        COALESCE(SUM(r_sum.total_amount), 0) AS totalRevenue
+      FROM contacts c
+      LEFT JOIN (
+        SELECT contact_id, SUM(amount) AS total_amount FROM receipts GROUP BY contact_id
+      ) r_sum ON r_sum.contact_id = c.id
+      LEFT JOIN users u ON c.assigned_to = u.id
+      ${baseWhere}
+    `, [...params]);
+
+    const totalDeals = Number(kpi.totalDeals) || 0;
+    const totalRevenue = Number(kpi.totalRevenue) || 0;
+    const avgDealSize = totalDeals > 0 ? (totalRevenue / totalDeals) : 0;
+
+    // Win rate: won / (won + lost) in period
+    const lostParams = [...params];
+    const lostFilter = baseWhere.replace('c.sale_won = 1', 'c.sale_lost = 1');
+    const [[{ lostCount }]] = await pool.query(`SELECT COUNT(*) as lostCount FROM contacts c LEFT JOIN users u ON c.assigned_to = u.id ${lostFilter}`, lostParams).catch(() => [[{ lostCount: 0 }]]);
+    const winRate = (totalDeals + Number(lostCount)) > 0
+      ? Math.round((totalDeals / (totalDeals + Number(lostCount))) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        kpi: { totalRevenue, totalDeals, avgDealSize, winRate },
+        pagination: { page: pg, limit: lm, total: Number(total), totalPages: Math.ceil(Number(total) / lm) || 1 },
+        list: rows.map(r => ({
+          id: r.id,
+          date: r.wonDate || r.createdAt,
+          assignee: r.assignee,
+          client: r.client,
+          dealName: r.dealName || r.status_name || 'Closed Deal',
+          revenue: Number(r.revenue) || 0,
+          status: 'Closed Won'
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('getSalesAchievements error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── Sales Leaderboard API ─────────────────────────────────────────────────
+// Rankings by number of won deals and revenue, per agent, for current business
+const getSalesLeaderboard = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { dateRange = 'this_month', startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    const params = [bizId];
+
+    if (dateRange === 'today') {
+      dateFilter = 'AND DATE(COALESCE(c.sale_won_date, c.created_at)) = CURDATE()';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(COALESCE(c.sale_won_date, c.created_at), 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'this_month') {
+      dateFilter = 'AND MONTH(COALESCE(c.sale_won_date, c.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(COALESCE(c.sale_won_date, c.created_at)) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
+    } else if (dateRange === 'this_year') {
+      dateFilter = 'AND YEAR(COALESCE(c.sale_won_date, c.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(COALESCE(c.sale_won_date, c.created_at)) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    const [agents] = await pool.query(`
+      SELECT
+        u.id AS userId,
+        u.name AS assignee,
+        u.role,
+        COUNT(DISTINCT CASE WHEN c.sale_won = 1 ${dateFilter} THEN c.id END) AS wonDeals,
+        COUNT(DISTINCT CASE WHEN c.sale_lost = 1 ${dateFilter} THEN c.id END) AS lostDeals,
+        COALESCE(SUM(CASE WHEN c.sale_won = 1 ${dateFilter} THEN r_sub.total_amount ELSE 0 END), 0) AS revenue,
+        COUNT(DISTINCT c.id) AS totalLeads
+      FROM users u
+      LEFT JOIN contacts c ON c.assigned_to = u.id AND c.business_id = ?
+      LEFT JOIN (
+        SELECT contact_id, SUM(amount) AS total_amount FROM receipts GROUP BY contact_id
+      ) r_sub ON r_sub.contact_id = c.id
+      WHERE u.business_id = ?
+      GROUP BY u.id, u.name, u.role
+      HAVING wonDeals > 0
+      ORDER BY revenue DESC, wonDeals DESC
+    `, [...params, bizId]);
+
+    const leaderboard = agents.map((a, idx) => {
+      const won = Number(a.wonDeals) || 0;
+      const lost = Number(a.lostDeals) || 0;
+      const winRate = (won + lost) > 0 ? Math.round((won / (won + lost)) * 100) : 0;
+      return {
+        rank: idx + 1,
+        assignee: a.assignee,
+        role: a.role || 'Agent',
+        wonDeals: won,
+        lostDeals: lost,
+        revenue: Number(a.revenue) || 0,
+        winRate
+      };
+    });
+
+    res.json({ success: true, data: leaderboard });
+  } catch (err) {
+    console.error('getSalesLeaderboard error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── Underperformers API ───────────────────────────────────────────────────
+// Agents with 0 wins this month but assigned leads (genuinely at-risk)
+const getSalesUnderperformers = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { dateRange = 'this_month', startDate, endDate } = req.query;
+
+    let dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    const params = [bizId];
+
+    if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(c.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
+    } else if (dateRange === 'this_year') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    const [agents] = await pool.query(`
+      SELECT
+        u.id AS userId,
+        u.name AS assignee,
+        u.role,
+        COUNT(DISTINCT c.id) AS totalAssigned,
+        COUNT(DISTINCT CASE WHEN c.sale_won = 1 THEN c.id END) AS wonDeals,
+        COUNT(DISTINCT CASE WHEN c.sale_lost = 1 THEN c.id END) AS lostDeals,
+        COUNT(DISTINCT CASE WHEN c.sale_won = 0 AND c.sale_lost = 0 THEN c.id END) AS openLeads
+      FROM users u
+      INNER JOIN contacts c ON c.assigned_to = u.id AND c.business_id = ? ${dateFilter}
+      WHERE u.business_id = ?
+      GROUP BY u.id, u.name, u.role
+      HAVING wonDeals = 0 AND totalAssigned >= 3
+      ORDER BY openLeads DESC, totalAssigned DESC
+    `, [...params, bizId]);
+
+    const underperformers = agents.map((a, idx) => {
+      const won = Number(a.wonDeals) || 0;
+      const total = Number(a.totalAssigned) || 0;
+      const attainment = total > 0 ? Math.round((won / total) * 100) : 0;
+      return {
+        id: a.userId,
+        assignee: a.assignee,
+        role: a.role || 'Agent',
+        totalAssigned: total,
+        wonDeals: won,
+        lostDeals: Number(a.lostDeals) || 0,
+        openLeads: Number(a.openLeads) || 0,
+        attainment,
+        status: won === 0 ? 'No Conversions' : 'Low Performance'
+      };
+    });
+
+    res.json({ success: true, data: underperformers });
+  } catch (err) {
+    console.error('getSalesUnderperformers error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── Sales Incentives API ──────────────────────────────────────────────────
+// Receipt-based agent payouts summary
+const getSalesIncentives = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { dateRange = 'this_month', startDate, endDate } = req.query;
+
+    let dateFilter = 'AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(CURDATE()) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE())';
+    const params = [bizId];
+
+    if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(COALESCE(r.receipt_date, r.created_at), 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(COALESCE(r.receipt_date, r.created_at)) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
+    } else if (dateRange === 'this_year') {
+      dateFilter = 'AND YEAR(COALESCE(r.receipt_date, r.created_at)) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(COALESCE(r.receipt_date, r.created_at)) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    const [rows] = await pool.query(`
+      SELECT
+        u.id AS userId,
+        u.name AS assignee,
+        u.role,
+        COUNT(DISTINCT r.id) AS receiptCount,
+        COALESCE(SUM(r.amount), 0) AS totalCollected,
+        COUNT(DISTINCT r.contact_id) AS uniqueClients
+      FROM users u
+      INNER JOIN contacts c ON c.assigned_to = u.id AND c.business_id = ?
+      INNER JOIN receipts r ON r.contact_id = c.id AND r.business_id = ? ${dateFilter}
+      WHERE u.business_id = ?
+      GROUP BY u.id, u.name, u.role
+      ORDER BY totalCollected DESC
+    `, [...params, bizId, bizId]);
+
+    const incentives = rows.map((r, idx) => {
+      const collected = Number(r.totalCollected) || 0;
+      // 5% payout if any collection, 0% if none
+      const payoutRate = collected > 0 ? 5 : 0;
+      const payoutAmount = Math.round(collected * payoutRate / 100);
+      return {
+        id: r.userId,
+        assignee: r.assignee,
+        role: r.role || 'Agent',
+        totalCollected: collected,
+        receiptCount: Number(r.receiptCount) || 0,
+        uniqueClients: Number(r.uniqueClients) || 0,
+        payoutRate,
+        payoutAmount,
+        status: payoutAmount > 0 ? 'Eligible' : 'Not Eligible'
+      };
+    });
+
+    res.json({ success: true, data: incentives });
+  } catch (err) {
+    console.error('getSalesIncentives error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── Sales Targets API ─────────────────────────────────────────────────────
+// Derived from won/lost/open deals vs total assigned per agent (this month / period)
+const getSalesTargets = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const { type = 'Individual', dateRange = 'this_month', startDate, endDate, search = '' } = req.query;
+
+    let dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    const params = [bizId];
+
+    if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (dateRange === 'last_month') {
+      dateFilter = 'AND MONTH(c.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(c.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))';
+    } else if (dateRange === 'this_year') {
+      dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
+    }
+
+    let rows = [];
+
+    if (type !== 'Branch') {
+      // Individual targets: per agent
+      [rows] = await pool.query(`
+        SELECT
+          u.id AS userId,
+          u.name AS assignee,
+          u.role,
+          COUNT(DISTINCT c.id) AS totalAssigned,
+          COUNT(DISTINCT CASE WHEN c.sale_won = 1 THEN c.id END) AS wonDeals,
+          COUNT(DISTINCT CASE WHEN c.sale_lost = 1 THEN c.id END) AS lostDeals,
+          COUNT(DISTINCT CASE WHEN c.sale_won = 0 AND c.sale_lost = 0 THEN c.id END) AS openLeads,
+          COALESCE(SUM(r_sub.total_amount), 0) AS achieved
+        FROM users u
+        INNER JOIN contacts c ON c.assigned_to = u.id AND c.business_id = ? ${dateFilter}
+        LEFT JOIN (
+          SELECT contact_id, SUM(amount) AS total_amount FROM receipts GROUP BY contact_id
+        ) r_sub ON r_sub.contact_id = c.id
+        WHERE u.business_id = ?
+        GROUP BY u.id, u.name, u.role
+        ORDER BY achieved DESC
+      `, [...params, bizId]);
+
+      let searchLower = search.toLowerCase();
+      if (searchLower) {
+        rows = rows.filter(r => r.assignee.toLowerCase().includes(searchLower));
+      }
+
+      // Summary KPIs
+      const totalAchieved = rows.reduce((s, r) => s + Number(r.achieved), 0);
+      const totalAssigned = rows.reduce((s, r) => s + Number(r.totalAssigned), 0);
+      const totalWon = rows.reduce((s, r) => s + Number(r.wonDeals), 0);
+
+      const list = rows.map((r, idx) => {
+        const achieved = Number(r.achieved) || 0;
+        const won = Number(r.wonDeals) || 0;
+        const total = Number(r.totalAssigned) || 1;
+        const attainment = Math.round((won / total) * 100);
+        let status = 'Behind';
+        if (won === 0) status = 'No Activity';
+        else if (attainment >= 80) status = 'On Track';
+        else if (attainment >= 50) status = 'In Progress';
+        return {
+          id: `TGT-${r.userId}-${new Date().getFullYear()}`,
+          assignee: r.assignee,
+          role: r.role || 'Agent',
+          period: getPeriodLabel(dateRange, startDate, endDate),
+          achieved,
+          wonDeals: won,
+          lostDeals: Number(r.lostDeals) || 0,
+          openLeads: Number(r.openLeads) || 0,
+          totalAssigned: Number(r.totalAssigned) || 0,
+          attainment,
+          status
+        };
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          summary: { totalAchieved, totalWon, totalAssigned, completionRate: totalAssigned > 0 ? Math.round((totalWon / totalAssigned) * 100) : 0 },
+          list
+        }
+      });
+
+    } else {
+      // Branch targets
+      const [branches] = await pool.query(`
+        SELECT
+          b.id AS branchId,
+          b.name AS branch,
+          COUNT(DISTINCT c.id) AS totalAssigned,
+          COUNT(DISTINCT CASE WHEN c.sale_won = 1 THEN c.id END) AS wonDeals,
+          COALESCE(SUM(r_sub.total_amount), 0) AS achieved,
+          (SELECT u.name FROM users u INNER JOIN contacts cb ON cb.assigned_to = u.id AND cb.branch_id = b.id AND cb.business_id = ? ${dateFilter} WHERE u.business_id = ? GROUP BY u.id ORDER BY COUNT(cb.id) DESC LIMIT 1) AS manager
+        FROM branches b
+        INNER JOIN contacts c ON c.branch_id = b.id AND c.business_id = ? ${dateFilter}
+        LEFT JOIN (
+          SELECT contact_id, SUM(amount) AS total_amount FROM receipts GROUP BY contact_id
+        ) r_sub ON r_sub.contact_id = c.id
+        WHERE b.business_id = ?
+        GROUP BY b.id, b.name
+        ORDER BY achieved DESC
+      `, [bizId, bizId, ...params, bizId]);
+
+      let branchRows = branches;
+      if (search) {
+        branchRows = branchRows.filter(r => r.branch.toLowerCase().includes(search.toLowerCase()));
+      }
+
+      const totalAchieved = branchRows.reduce((s, r) => s + Number(r.achieved), 0);
+      const totalWon = branchRows.reduce((s, r) => s + Number(r.wonDeals), 0);
+      const totalAssigned = branchRows.reduce((s, r) => s + Number(r.totalAssigned), 0);
+
+      const list = branchRows.map(r => {
+        const won = Number(r.wonDeals) || 0;
+        const total = Number(r.totalAssigned) || 1;
+        const attainment = Math.round((won / total) * 100);
+        let status = 'Behind';
+        if (attainment >= 80) status = 'On Track';
+        else if (attainment >= 50) status = 'In Progress';
+        return {
+          id: `B-TGT-${r.branchId}`,
+          branch: r.branch,
+          manager: r.manager || 'N/A',
+          period: getPeriodLabel(dateRange, startDate, endDate),
+          achieved: Number(r.achieved) || 0,
+          wonDeals: won,
+          totalAssigned: Number(r.totalAssigned) || 0,
+          attainment,
+          status
+        };
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          summary: { totalAchieved, totalWon, totalAssigned, completionRate: totalAssigned > 0 ? Math.round((totalWon / totalAssigned) * 100) : 0 },
+          list
+        }
+      });
+    }
+  } catch (err) {
+    console.error('getSalesTargets error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+function getPeriodLabel(dateRange, startDate, endDate) {
+  const now = new Date();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (dateRange === 'today') return 'Today';
+  if (dateRange === 'this_week') return 'This Week';
+  if (dateRange === 'this_month') return months[now.getMonth()] + ' ' + now.getFullYear();
+  if (dateRange === 'last_month') {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  if (dateRange === 'this_year') return 'FY ' + now.getFullYear();
+  if (dateRange === 'custom' && startDate && endDate) return startDate + ' to ' + endDate;
+  return months[now.getMonth()] + ' ' + now.getFullYear();
+}
+
+
 module.exports = {
   getTimeTrackReport,
   getEnquiriesReport,
@@ -3581,7 +4072,12 @@ module.exports = {
   getLeadFlowReport,
   getPipelineKpiReport,
   getReceiptsReport,
-  getMonthlyReceiptAnalysis
+  getMonthlyReceiptAnalysis,
+  getSalesAchievements,
+  getSalesLeaderboard,
+  getSalesUnderperformers,
+  getSalesIncentives,
+  getSalesTargets
 };
 
 

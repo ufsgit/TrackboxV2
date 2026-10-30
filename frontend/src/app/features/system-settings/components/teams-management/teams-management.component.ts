@@ -186,8 +186,13 @@ import Swal from 'sweetalert2';
               <div *ngIf="otherAgents.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:12px;">No other agents available.</div>
               <label *ngFor="let agent of otherAgents" class="member-checkbox-item">
                 <input type="checkbox" [checked]="isMemberSelected(agent.id)" (change)="toggleMember(agent.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
-                <span style="flex:1; display:flex; justify-content:space-between;">
-                  <span>{{ agent.name }}</span>
+                <span style="flex:1; display:flex; justify-content:space-between; align-items:center;">
+                  <span>
+                    {{ agent.name }}
+                    <small *ngIf="agent.branch_name || agent.branch_id" style="color:#64748b; font-size:0.75rem; margin-left:4px; font-weight:normal;">
+                      ({{ agent.branch_name || getBranchName(agent.branch_id) }})
+                    </small>
+                  </span>
                   <small style="color:#94a3b8;">{{ agent.role | titlecase }}</small>
                 </span>
               </label>

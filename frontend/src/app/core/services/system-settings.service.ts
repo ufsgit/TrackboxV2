@@ -140,4 +140,16 @@ export class SystemSettingsService {
   createChannel(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/channels`, data); }
   updateChannel(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/channels/${id}`, data); }
   deleteChannel(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/channels/${id}`); }
+
+  // --- COURSES ---
+  getCourses(): Observable<any> { return this.http.get(`${environment.apiUrl}/courses`); }
+  createCourse(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/courses`, data); }
+  updateCourse(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/courses/${id}`, data); }
+  deleteCourse(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/courses/${id}`); }
+
+  // --- UNIVERSITIES ---
+  getUniversities(): Observable<any> { return this.http.get(`${environment.apiUrl}/universities`); }
+  createUniversity(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/universities`, data); }
+  updateUniversity(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/universities/${id}`, data); }
+  deleteUniversity(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/universities/${id}`); }
 }

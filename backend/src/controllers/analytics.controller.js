@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { getAccessibleUserIds } = require('../services/teamHierarchy.service');
 
 const getDashboard = async (req, res) => {
   try {
@@ -83,6 +84,7 @@ const getCrmDashboardStats = async (req, res) => {
     const kpiData = (spResults && spResults[0] && spResults[0][0]) ? spResults[0][0] : {};
 
     const totalLeads = Number(kpiData.totalLeads) || 0;
+    const pendingLeads = kpiData.pendingLeads !== undefined ? Number(kpiData.pendingLeads) : Math.max(0, totalLeads - (Number(kpiData.wonDeals) || 0) - (Number(kpiData.lostDeals) || 0));
     const pendingFollowUps = Number(kpiData.pendingFollowUps) || 0;
     const todaysFollowUps = Number(kpiData.todaysFollowUps) || 0;
     const upcomingFollowUps = Number(kpiData.upcomingFollowUps) || 0;
@@ -94,18 +96,14 @@ const getCrmDashboardStats = async (req, res) => {
     let agentClause = '';
     const queryParams = [bizId];
 
-    if (req.user.role === 'agent') {
-      const selfId = Number(userId);
-      const [teamRows] = await pool.query(
-        `SELECT user_id FROM team_members 
-         WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)`,
-        [selfId, bizId]
-      );
-      const teamMemberIds = teamRows.map(r => Number(r.user_id));
-      if (!teamMemberIds.includes(selfId)) teamMemberIds.push(selfId);
-
-      agentClause = `AND assigned_to IN (${teamMemberIds.map(() => '?').join(',')})`;
-      queryParams.push(...teamMemberIds);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        agentClause = 'AND 1 = 0';
+      } else {
+        agentClause = `AND assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        queryParams.push(...accessibleUserIds);
+      }
     }
 
     let dateClause = '';
@@ -278,18 +276,29 @@ const getCrmDashboardStats = async (req, res) => {
     // Query Total Applications created from leads
     let appDateClause = '';
     if (range === 'today') {
-      appDateClause = 'AND DATE(created_at) = CURDATE()';
+      appDateClause = 'AND DATE(a.created_at) = CURDATE()';
     } else if (range === 'this_week') {
-      appDateClause = 'AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
+      appDateClause = 'AND YEARWEEK(a.created_at, 1) = YEARWEEK(CURDATE(), 1)';
     } else if (range === 'this_month') {
-      appDateClause = 'AND YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE())';
+      appDateClause = 'AND YEAR(a.created_at) = YEAR(CURDATE()) AND MONTH(a.created_at) = MONTH(CURDATE())';
     } else if (range === 'last_30_days') {
-      appDateClause = 'AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+      appDateClause = 'AND a.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
     } else if (range === 'this_year') {
-      appDateClause = 'AND YEAR(created_at) = YEAR(CURDATE())';
+      appDateClause = 'AND YEAR(a.created_at) = YEAR(CURDATE())';
     }
 
     // Current counts by active application status
+    let appAgentClause = '';
+    const appParams = [bizId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        appAgentClause = 'AND 1 = 0';
+      } else {
+        appAgentClause = `AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR a.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        appParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
     const [appStatusCounts] = await pool.query(
       `SELECT 
         COUNT(CASE WHEN a.status_id = 5 OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%offer received%' THEN 1 END) as offerLetters,
@@ -298,24 +307,37 @@ const getCrmDashboardStats = async (req, res) => {
         COUNT(CASE WHEN a.status_id = 8 OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%enrolled%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%travelled%' THEN 1 END) as enrolled,
         COUNT(a.id) as totalApplications
       FROM applications a
+      LEFT JOIN contacts c ON a.contact_id = c.id
       LEFT JOIN application_statuses s ON a.status_id = s.id
-      WHERE a.business_id = ? ${appDateClause}`,
-      [bizId]
+      WHERE a.business_id = ? ${appAgentClause} ${appDateClause}`,
+      appParams
     );
     const kpiApps = appStatusCounts[0] || {};
 
     // Fees Paid (leads who paid Application Fees)
+    let feeAgentClause = '';
+    const feeParams = [bizId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        feeAgentClause = 'AND 1 = 0';
+      } else {
+        feeAgentClause = `AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR r.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        feeParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
     const [[{ feesPaid = 0 } = {}]] = await pool.query(
       `SELECT COUNT(DISTINCT r.contact_id) as feesPaid
        FROM receipts r
+       LEFT JOIN contacts c ON r.contact_id = c.id
        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
        WHERE r.business_id = ? 
          AND (
            LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%'
            OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%'
            OR r.receipt_type_id = 1
-         )`,
-      [bizId]
+         ) ${feeAgentClause}`,
+      feeParams
     );
 
     res.json({
@@ -328,6 +350,7 @@ const getCrmDashboardStats = async (req, res) => {
         visaApproved: Number(kpiApps.visaApproved) || 0,
         enrolled: Number(kpiApps.enrolled) || 0,
         feesPaid: Number(feesPaid) || 0,
+        pendingLeads,
         pendingFollowUps,
         todaysFollowUps,
         upcomingFollowUps,
@@ -368,11 +391,20 @@ const getEmployeeProductivity = async (req, res) => {
       dateClause = 'AND DATE(c.created_at) >= ? AND DATE(c.created_at) <= ?';
       params.push(startDate, endDate);
     }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentClause = '';
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      agentClause = ' AND c.assigned_to IN (' + accessibleUserIds.map(() => '?').join(',') + ') ';
+      params.push(...accessibleUserIds);
+    }
     const [rows] = await pool.query(
       `SELECT u.name as employeeName, u.id as employeeCode, COUNT(*) as conversionCount
        FROM contacts c
        LEFT JOIN users u ON c.assigned_to = u.id
-       WHERE c.business_id = ? AND c.status_name = 'Converted' ${dateClause}
+       WHERE c.business_id = ? AND c.status_name = 'Converted' ${dateClause} ${agentClause}
        GROUP BY u.id
        ORDER BY conversionCount DESC`,
       params
@@ -391,11 +423,20 @@ const getStudentPipeline = async (req, res) => {
       statusClause = 'AND c.status_name = ?';
       params.push(status);
     }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentClause = '';
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      agentClause = ' AND c.assigned_to IN (' + accessibleUserIds.map(() => '?').join(',') + ') ';
+      params.push(...accessibleUserIds);
+    }
     const [rows] = await pool.query(
       `SELECT u.name as employeeName, COUNT(*) as leadCount
        FROM contacts c
        LEFT JOIN users u ON c.assigned_to = u.id
-       WHERE c.business_id = ? ${statusClause}
+       WHERE c.business_id = ? ${statusClause} ${agentClause}
        GROUP BY u.id
        ORDER BY leadCount DESC`,
       params
@@ -414,11 +455,23 @@ const getFollowUpReport = async (req, res) => {
       dateClause = 'AND DATE(f.entry_date_time) >= ? AND DATE(f.entry_date_time) <= ?';
       params.push(startDate, endDate);
     }
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentClause = '';
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      agentClause = ' AND (f.by_user_id IN (' + accessibleUserIds.map(() => '?').join(',') + ') OR c.assigned_to IN (' + accessibleUserIds.map(() => '?').join(',') + ')) ';
+      params.push(...accessibleUserIds, ...accessibleUserIds);
+    }
     const [rows] = await pool.query(
       `SELECT u.name as employeeName, COUNT(*) as followUpCount
        FROM follow_ups f
+       JOIN contacts c ON f.contact_id = c.id
        LEFT JOIN users u ON f.by_user_id = u.id
-       WHERE f.contact_id IN (SELECT id FROM contacts WHERE business_id = ?) ${dateClause}
+       WHERE c.business_id = ?
+         AND NOT (LOWER(TRIM(COALESCE(f.remarks, ''))) IN ('new', 'new leads', 'contact created', 'imported via excel', 'lead created', 'initial lead') AND (f.status_name = 'PENDING' OR f.status_name IS NULL))
+         ${dateClause} ${agentClause}
        GROUP BY u.id
        ORDER BY followUpCount DESC`,
       params
@@ -430,6 +483,16 @@ const getFollowUpReport = async (req, res) => {
 const getTeamProductivity = async (req, res) => {
   try {
     const bizId = req.user.businessId;
+    const params = [bizId];
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentClause = '';
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      agentClause = ' AND c.assigned_to IN (' + accessibleUserIds.map(() => '?').join(',') + ') ';
+      params.push(...accessibleUserIds);
+    }
     const [rows] = await pool.query(
       `SELECT 
          u.name as employeeName,
@@ -440,9 +503,9 @@ const getTeamProductivity = async (req, res) => {
          SUM(CASE WHEN c.status_name = 'Converted' THEN 1 ELSE 0 END) as converted
        FROM contacts c
        LEFT JOIN users u ON c.assigned_to = u.id
-       WHERE c.business_id = ?
+       WHERE c.business_id = ? ${agentClause}
        GROUP BY u.id`,
-      [bizId]
+      params
     );
     const formattedData = rows.map(r => {
       const assigned = Number(r.followUps) + Number(r.lost) + Number(r.pending) + Number(r.converted);
@@ -459,6 +522,16 @@ const getTeamProductivity = async (req, res) => {
 const getTodaysActivity = async (req, res) => {
   try {
     const bizId = req.user.businessId;
+    const params = [bizId];
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentClause = '';
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      agentClause = ' AND c.assigned_to IN (' + accessibleUserIds.map(() => '?').join(',') + ') ';
+      params.push(...accessibleUserIds);
+    }
     const [rows] = await pool.query(
       `SELECT 
          u.name as employeeName,
@@ -468,9 +541,9 @@ const getTodaysActivity = async (req, res) => {
          SUM(CASE WHEN c.status_name = 'Status 2' THEN 1 ELSE 0 END) as status2
        FROM contacts c
        LEFT JOIN users u ON c.assigned_to = u.id
-       WHERE c.business_id = ? AND DATE(c.updated_at) = CURDATE()
+       WHERE c.business_id = ? AND DATE(c.updated_at) = CURDATE() ${agentClause}
        GROUP BY u.id`,
-      [bizId]
+      params
     );
     const formattedData = rows.map(r => ({
       ...r,
@@ -485,18 +558,31 @@ const getRawData = async (req, res) => {
     const bizId = req.user.businessId;
     const { page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentClause = '';
+    const params = [bizId];
+    const countParams = [bizId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], total: 0, message: 'OK' });
+      }
+      agentClause = ' AND c.assigned_to IN (' + accessibleUserIds.map(() => '?').join(',') + ') ';
+      params.push(...accessibleUserIds);
+      countParams.push(...accessibleUserIds);
+    }
+    params.push(Number(limit), Number(offset));
     const [rows] = await pool.query(
       `SELECT 
          c.id, u.name as employeeName, c.created_at as date, 
          c.status_name as status, c.name as contactName
        FROM contacts c
        LEFT JOIN users u ON c.assigned_to = u.id
-       WHERE c.business_id = ?
+       WHERE c.business_id = ? ${agentClause}
        ORDER BY c.created_at DESC
        LIMIT ? OFFSET ?`,
-      [bizId, Number(limit), Number(offset)]
+      params
     );
-    const [[{ total }]] = await pool.query('SELECT COUNT(*) as total FROM contacts WHERE business_id = ?', [bizId]);
+    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM contacts c WHERE c.business_id = ? ${agentClause}`, countParams);
     res.json({ success: true, data: rows, total, message: 'OK' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };

@@ -22,7 +22,7 @@ async function runMigrations() {
       name VARCHAR(255),
       email VARCHAR(255) UNIQUE,
       password_hash VARCHAR(255),
-      role ENUM('superadmin','admin','agent') DEFAULT 'agent',
+      role ENUM('superadmin','admin','manager','agent') DEFAULT 'agent',
       is_active BOOLEAN DEFAULT TRUE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (business_id) REFERENCES businesses(id)

@@ -21,7 +21,7 @@
           <div>
             <h1>{{ getActiveTabInfo().label }} Report</h1>
             <p *ngIf="activeType === 'applications'">Showing newly created student applications and submission dates</p>
-            <p *ngIf="activeType === 'offer-letters'">Applications that have received university offer letters</p>
+            <p *ngIf="activeType === 'offer-letters'">Applications that have received university offer applied</p>
             <p *ngIf="activeType === 'fees-paid'">Application fee payment receipts and financial transactions</p>
             <p *ngIf="activeType === 'visa-submitted'">Student applications with visa submitted for embassy processing</p>
             <p *ngIf="activeType === 'visa-approved'">Visas successfully granted and approved</p>
@@ -55,10 +55,13 @@
       <div class="card-info">
         <span class="card-label">{{ tab.label }}</span>
         <div class="card-val-row">
-          <span class="card-val">{{ getTabBadgeCount(tab.type) | number }}</span>
-          <span class="card-sub-badge" *ngIf="tab.type === 'fees-paid' && summary.feesPaidAmount > 0">
-            ₹{{ summary.feesPaidAmount | number }}
-          </span>
+          <div *ngIf="loading" class="kpi-skeleton-val shimmer"></div>
+          <ng-container *ngIf="!loading">
+            <span class="card-val">{{ getTabBadgeCount(tab.type) | number }}</span>
+            <span class="card-sub-badge" *ngIf="tab.type === 'fees-paid' && summary.feesPaidAmount > 0">
+              ₹{{ summary.feesPaidAmount | number }}
+            </span>
+          </ng-container>
         </div>
       </div>
       <div class="active-indicator" [style.background]="tab.color"></div>
