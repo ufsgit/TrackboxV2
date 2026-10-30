@@ -45,6 +45,7 @@ export class InboxComponent implements OnInit, OnDestroy {
   loadingAgents = false;
   availableAgents: any[] = [];
   agents: any[] = [];
+  channels: any[] = [];
 
   // Sidebar State
   showSidebar = localStorage.getItem('inboxSidebarOpen') === 'true';
@@ -403,8 +404,21 @@ export class InboxComponent implements OnInit, OnDestroy {
     }
   }
 
+  ensureChannelsLoaded() {
+    if (this.channels.length === 0) {
+      this.api.get('/system-settings/channels').subscribe({
+        next: (res: any) => {
+          if (res.success && res.data) {
+            this.channels = res.data;
+          }
+        }
+      });
+    }
+  }
+
   loadContactDetailsForEdit() {
     this.ensureAgentsLoaded();
+    this.ensureChannelsLoaded();
     this.api.get(`/contacts/${this.selectedConvo.contact_id}`).subscribe({
       next: (res: any) => {
         if (res.success && res.data) {

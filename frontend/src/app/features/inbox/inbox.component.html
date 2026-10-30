@@ -728,12 +728,13 @@
           <div class="input-field-group">
             <label>Channel</label>
             <select class="form-select" [(ngModel)]="editContactForm.channel_preference" style="border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;">
-              <option value="whatsapp">WhatsApp</option>
-              <option value="sms">SMS</option>
-              <option value="rcs">RCS</option>
-              <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
-              <option value="website">Website</option>
+              <option value="">-- Select Channel --</option>
+              <option *ngFor="let ch of channels" [value]="ch.name">{{ ch.name }}</option>
+
+
+
+
+
             </select>
           </div>
           <div class="input-field-group">

@@ -146,7 +146,7 @@
         </button>
         <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isChannelDropdownOpen">
           <li><a class="dropdown-item" [class.active]="!activeChannel" (click)="activeChannel = ''; applyFilters(); isChannelDropdownOpen = false">All Channels</a></li>
-          <li><a class="dropdown-item" *ngFor="let ch of channels" [class.active]="activeChannel === ch.name.toLowerCase()" (click)="activeChannel = ch.name.toLowerCase(); applyFilters(); isChannelDropdownOpen = false" style="text-transform: capitalize;">{{ ch.name }}</a></li>
+          <li><a class="dropdown-item" *ngFor="let ch of channels" [class.active]="activeChannel === ch.name || activeChannel?.toLowerCase() === ch.name?.toLowerCase()" (click)="activeChannel = ch.name; applyFilters(); isChannelDropdownOpen = false">{{ ch.name }}</a></li>
         </ul>
       </div>
 
@@ -1301,13 +1301,10 @@
             <label>Channel</label>
             <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
               <option value="">-- Select Channel --</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="instagram">Instagram</option>
-              <option value="facebook">Facebook</option>
-              <option value="linkedin">LinkedIn</option>
-              <option value="website">Website</option>
-              <option value="referral">Referral</option>
-              <option value="other">Other</option>
+              <option *ngIf="newContact.channel_preference && !isChannelInList(newContact.channel_preference)" [value]="newContact.channel_preference">
+                {{ newContact.channel_preference }}
+              </option>
+              <option *ngFor="let ch of channels" [value]="ch.name">{{ ch.name }}</option>
             </select>
           </div>
 

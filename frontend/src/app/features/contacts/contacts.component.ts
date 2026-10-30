@@ -472,7 +472,7 @@ export class ContactsComponent implements OnInit {
     remarks: '',
     follow_up_date: '',
     tags: 'lead',
-    channel_preference: 'whatsapp',
+    channel_preference: '',
     assigned_to: '',
     branch: '',
     branch_id: null,
@@ -1805,12 +1805,18 @@ export class ContactsComponent implements OnInit {
 
   // ── Add / Edit Modal ───────────────────────────────────────────────────────
 
+  isChannelInList(name: string): boolean {
+    if (!name || !this.channels) return false;
+    return this.channels.some(c => c.name?.toLowerCase() === name.toLowerCase());
+  }
+
   openAddModal() {
     this.editingContactId = null;
+    this.loadChannels();
     this.newContact = {
       name: '', phone: '', email: '', address: '', company: '', enquiry_for_id: null,
       status: '', remark: '', follow_up_date: '',
-      tags: 'lead', channel_preference: 'whatsapp', assigned_to: '',
+      tags: 'lead', channel_preference: '', assigned_to: '',
       branch: '', department: '', assign_type: 'employee', assigned_employee: '', loss_reason: '',
       custom_field_values: {}
     };
@@ -1824,6 +1830,7 @@ export class ContactsComponent implements OnInit {
 
   openEditModal(contact: any) {
     this.editingContactId = contact.id;
+    this.loadChannels();
     const tagsArray = Array.isArray(contact.tags) ? contact.tags : [];
     this.newContact = {
       name: contact.name || '',
@@ -1836,7 +1843,7 @@ export class ContactsComponent implements OnInit {
       remark: contact.remark || '',
       follow_up_date: contact.follow_up_date ? new Date(contact.follow_up_date).toISOString().split('T')[0] : '',
       tags: tagsArray.join(', '),
-      channel_preference: contact.channel_preference || 'whatsapp',
+      channel_preference: contact.channel_preference || '',
       assigned_to: contact.assigned_to || '',
       branch: contact.branch || '',
       department: contact.department || '',

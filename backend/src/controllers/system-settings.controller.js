@@ -486,7 +486,8 @@ const deleteTeam = async (req, res) => {
 // CHANNELS
 const getChannels = async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM channels WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    const bizId = req.user?.businessId || 1;
+    const [rows] = await pool.query('SELECT * FROM channels WHERE business_id = ? OR business_id IS NULL ORDER BY name ASC', [bizId]);
     res.json({ success: true, data: rows, message: 'OK' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message, data: null });
