@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 router.use(authenticate);
 
 // Lead Reports
+router.get('/leads/enquiry-for', c.getEnquiryForReport);
 router.get('/leads/enquiries', c.getEnquiriesReport);
 router.get('/leads/status', c.getStatusReport);
 router.get('/leads/today', c.getTodaysLeadsReport);

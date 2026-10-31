@@ -4049,7 +4049,45 @@ function getPeriodLabel(dateRange, startDate, endDate) {
 }
 
 
+
+const getEnquiryForReport = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const userId = Number(req.user.userId);
+    const userRole = req.user.role || 'agent';
+    const { startDate, endDate } = req.query;
+
+    const now = new Date();
+    const start = startDate ? `${startDate} 00:00:00` : `${now.getFullYear()}-01-01 00:00:00`;
+    const end = endDate ? `${endDate} 23:59:59` : `${now.getFullYear()}-12-31 23:59:59`;
+
+    const [results] = await pool.query(
+      'CALL get_enquiry_for_report(?, ?, ?, ?, ?)',
+      [bizId, userId, userRole, start, end]
+    );
+
+    const categories = (results && results[0]) ? results[0] : [];
+    const timelineRows = (results && results[1]) ? results[1] : [];
+
+    const totalCount = categories.reduce((sum, item) => sum + Number(item.count || 0), 0);
+
+    return res.json({
+      success: true,
+      message: 'OK',
+      data: {
+        totalCount,
+        categories,
+        timeline: timelineRows
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching enquiry for report:', error);
+    return res.status(500).json({ success: false, message: error.message, data: null });
+  }
+};
+
 module.exports = {
+  getEnquiryForReport,
   getTimeTrackReport,
   getEnquiriesReport,
   getStatusReport,

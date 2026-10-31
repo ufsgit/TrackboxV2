@@ -69,6 +69,53 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_enquiry_for_report`(
+  IN p_business_id INT,
+  IN p_user_id INT,
+  IN p_user_role VARCHAR(50),
+  IN p_start_date DATETIME,
+  IN p_end_date DATETIME
+)
+BEGIN
+  DECLARE v_manager_branch_id INT DEFAULT NULL;
+
+  /* ========================================================
+     1. Manager Scoping: Fetch branch_id
+     ======================================================== */
+  IF LOWER(p_user_role) = 'manager' THEN
+    SELECT branch_id INTO v_manager_branch_id
+    FROM users
+    WHERE id = p_user_id AND business_id = p_business_id
+    LIMIT 1;
+  END IF;
+
+  /* ========================================================
+     Category Counts (Used for both Cards and X-Axis Graph)
+     - Shows all enquiry_fors for the business
+     - Counts matching leads created in the date range
+     ======================================================== */
+  SELECT 
+    ef.id,
+    ef.name,
+    COUNT(c.id) AS count
+  FROM enquiry_fors ef
+  LEFT JOIN contacts c ON ef.id = c.enquiry_for_id
+    AND c.business_id = p_business_id
+    AND c.created_at >= p_start_date 
+    AND c.created_at <= p_end_date
+    AND (
+      LOWER(p_user_role) = 'admin'
+      OR (LOWER(p_user_role) = 'manager' AND c.branch_id = v_manager_branch_id)
+      OR (LOWER(p_user_role) NOT IN ('admin', 'manager') AND c.assigned_to = p_user_id)
+    )
+  WHERE ef.business_id = p_business_id
+  GROUP BY ef.id, ef.name
+  ORDER BY count DESC, ef.name ASC;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_crm_dashboard_kpis`(
   IN p_business_id INT,
   IN p_user_id INT,

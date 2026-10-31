@@ -1,5 +1,174 @@
-<div class="p-4">
-  <h2>Enquiry For Report</h2>
-  <p>Enquiry For Report component works!</p>
-</div>
+<div class="report-container" (click)="isDateDropdownOpen && (isDateDropdownOpen = false)">
+  <!-- Header with Title & Date Filter Toolbar -->
+  <div class="report-header">
+    <div class="header-left">
+      <h1 class="report-title">Enquiry For Report</h1>
+      <!-- <p class="report-subtitle">Analyze and track distribution of lead volumes across all enquiry categories</p> -->
+    </div>
 
+    <!-- Filter Toolbar -->
+    <div class="filter-toolbar" (click)="$event.stopPropagation()">
+      <div class="filter-dropdown-wrapper">
+        <div class="filter-item" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
+          <i class="bi bi-calendar3 filter-icon"></i>
+          <span class="filter-value">{{ getDateRangeLabel() }}</span>
+          <i class="bi bi-chevron-down filter-caret" [class.rotated]="isDateDropdownOpen"></i>
+        </div>
+
+        <!-- Custom Dropdown Panel -->
+        <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+          <div class="dropdown-list">
+            <div class="dropdown-option" [class.selected]="dateRange === 'today'" (click)="selectDateRange('today')">
+              <span class="opt-name">Today</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'today'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'this_week'" (click)="selectDateRange('this_week')">
+              <span class="opt-name">This Week</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_week'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'this_month'" (click)="selectDateRange('this_month')">
+              <span class="opt-name">This Month</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'this_month'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'last_month'" (click)="selectDateRange('last_month')">
+              <span class="opt-name">Last Month</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'last_month'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'ytd'" (click)="selectDateRange('ytd')">
+              <span class="opt-name">Year to Date</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'ytd'"></i>
+            </div>
+            <div class="dropdown-option" [class.selected]="dateRange === 'custom'" (click)="selectDateRange('custom')">
+              <span class="opt-name">Custom Range</span>
+              <i class="bi bi-check2 opt-check" *ngIf="dateRange === 'custom'"></i>
+            </div>
+          </div>
+
+          <!-- Custom Start / End Date Inputs -->
+          <div class="custom-date-inputs" *ngIf="dateRange === 'custom'">
+            <div class="custom-date-row">
+              <label>START DATE</label>
+              <input type="date" class="modern-date-input" [(ngModel)]="customStartDate" />
+            </div>
+            <div class="custom-date-row">
+              <label>END DATE</label>
+              <input type="date" class="modern-date-input" [(ngModel)]="customEndDate" />
+            </div>
+            <button class="btn-apply-custom" (click)="applyCustomDate()">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Refresh / Reset Button -->
+      <button class="btn-refresh-toolbar" [class.spinning]="refreshing" (click)="resetToDefault()" title="Reset to Default (Year to Date)">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State Indicator -->
+  <div class="loader-banner" *ngIf="loading">
+    <div class="mini-spinner"></div>
+    <span>Updating enquiries data...</span>
+  </div>
+
+  <!-- Top 4 Highest Enquiry Items (4-column grid with 10% - 90% split) -->
+  <!-- <div class="section-title-wrap">
+    <div class="section-heading">
+      <i class="bi bi-trophy-fill text-amber"></i>
+      <span>Top Enquiry Categories</span>
+    </div>
+    <span class="sub-counter">Sorted by volume (Highest First)</span>
+  </div> -->
+
+  <!-- When no categories found in database -->
+  <div class="empty-categories" *ngIf="!loading && enquiryList.length === 0">
+    <i class="bi bi-info-circle"></i>
+    <span>No enquiry categories found for this period.</span>
+  </div>
+
+  <div class="stats-grid" *ngIf="topEnquiries.length > 0">
+    <div class="stat-card clickable-card" *ngFor="let item of topEnquiries; let i = index" (click)="viewLeads(item)">
+      <!-- Left side (~10%): Count Number -->
+      <div class="stat-left-col">
+        <span class="stat-value" [title]="item.count">{{ item.count }}</span>
+      </div>
+
+      <!-- Right side (~90%): Name, Rank, and Action -->
+      <div class="stat-right-col">
+        <div class="stat-header-row">
+          <p class="stat-label" [title]="item.name">{{ item.name }}</p>
+          <span class="rank-pill">#{{ i + 1 }}</span>
+        </div>
+        <div class="action-row">
+          <span class="click-indicator">
+            <i class="bi bi-box-arrow-up-right"></i> View Leads
+          </span>
+        </div>
+      </div>
+
+      <div class="stat-bg" [ngClass]="['blue-bg', 'purple-bg', 'green-bg', 'orange-bg'][i % 4]"></div>
+    </div>
+  </div>
+
+  <!-- Center "Show All" toggle button -->
+  <div class="toggle-center-wrapper" *ngIf="remainingEnquiries.length > 0">
+    <button type="button" class="btn-toggle-all" (click)="toggleShowAll()">
+      <span>{{ showAll ? 'Hide Other Enquiries' : 'Show All Enquiries (' + remainingEnquiries.length + ' more)' }}</span>
+      <i class="bi" [ngClass]="showAll ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+    </button>
+  </div>
+
+  <!-- Collapsible Remaining Enquiries -->
+  <div class="remaining-section" *ngIf="showAll && remainingEnquiries.length > 0">
+    <div class="section-divider">
+      <span>Other Enquiries</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card clickable-card" *ngFor="let item of remainingEnquiries; let i = index" (click)="viewLeads(item)">
+        <div class="stat-left-col">
+          <span class="stat-value" [title]="item.count">{{ item.count }}</span>
+        </div>
+
+        <div class="stat-right-col">
+          <div class="stat-header-row">
+            <p class="stat-label" [title]="item.name">{{ item.name }}</p>
+            <span class="rank-pill muted">#{{ i + 5 }}</span>
+          </div>
+          <div class="action-row">
+            <span class="click-indicator">
+              <i class="bi bi-box-arrow-up-right"></i> View Leads
+            </span>
+          </div>
+        </div>
+
+        <div class="stat-bg" [ngClass]="['blue-bg', 'purple-bg', 'green-bg', 'orange-bg'][(i + 4) % 4]"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Comparison Bar Chart Section (X-Axis: Category Names) -->
+  <div class="chart-section-card">
+    <div class="chart-card-header">
+      <div class="chart-title-group">
+        <div class="chart-badge-dot"></div>
+        <div>
+          <h3 class="chart-title">Enquiry Distribution by Category ({{ getDateRangeLabel() }})</h3>
+          <p class="chart-subtitle">Direct comparison of lead volume across all enquiry types</p>
+        </div>
+      </div>
+
+      <div class="chart-header-right">
+        <div class="peak-badge" *ngIf="chartPeakLabel">
+          <i class="bi bi-trophy"></i>
+          <span>{{ chartPeakLabel }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-wrapper">
+      <canvas #chartCanvas></canvas>
+    </div>
+  </div>
+</div>

@@ -194,7 +194,7 @@ export class LayoutComponent implements OnInit {
       'lead-conversion-report', 'agent-performance-report', 'won-lost-report',
       'channel-conversion-report', 'employee-conversion-report', 'reports/employee-productivity',
       'reports/student-pipeline', 'reports/application-status', 'reports/follow-up-report',
-      'reports/daily-report', 'daily-report', 'lead-flow', 'reports/lead-flow', 'reports/team-productivity', 'reports/lead-creation',
+      'reports/daily-report', 'daily-report', 'lead-flow', 'reports/lead-flow', 'reports/team-productivity', 'reports/lead-creation', 'reports/enquiry-for-report', 'enquiry-for-report', 'reports/receipt-report', 'receipt-report', 'reports/enquiry-for-report', 'enquiry-for-report', 'reports/receipt-report', 'receipt-report',
       'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings'
     ];
     return crmRoutes.some(route => url.includes(route));
@@ -637,7 +637,7 @@ export class LayoutComponent implements OnInit {
       'lead-conversion-report', 'agent-performance-report', 'won-lost-report',
       'channel-conversion-report', 'employee-conversion-report', 'reports/employee-productivity',
       'reports/student-pipeline', 'reports/application-status', 'reports/follow-up-report',
-      'reports/daily-report', 'daily-report', 'lead-flow', 'reports/lead-flow', 'reports/team-productivity', 'reports/lead-creation',
+      'reports/daily-report', 'daily-report', 'lead-flow', 'reports/lead-flow', 'reports/team-productivity', 'reports/lead-creation', 'reports/enquiry-for-report', 'enquiry-for-report', 'reports/receipt-report', 'receipt-report',
       'salesperson-report', 'crm/leave-request', 'crm/attendance-report', 'crm-settings', 'system-settings'
     ];
     
@@ -645,7 +645,7 @@ export class LayoutComponent implements OnInit {
     
     const hrRoutes = ['hr-dashboard', 'attendance', 'employee-location', 'employees', 'pending-approvals', 'attendance-report', 'leave-report', 'expense-report', 'gps-report', 'performance-report', 'employee-report', 'hr/leave-request'];
 
-    const leadsReportRoutes = ['reports/work', 'reports/conversation', 'reports/employee', 'reports/enquiry', 'reports/status', 'reports/time-track', 'reports/source-conversion'];
+    const leadsReportRoutes = ['reports/work', 'reports/conversation', 'reports/employee', 'reports/enquiry-report', 'reports/status', 'reports/time-track', 'reports/source-conversion'];
 
     this.isReportsOpen = false;
     this.isOperationReportsOpen = false;
@@ -678,7 +678,7 @@ export class LayoutComponent implements OnInit {
       'reports/application-status', 'reports/follow-up-report', 'reports/team-productivity',
       'reports/lead-creation', 'quotation-report', 'purchase-order-report', 'sales-funnel-report',
       'lead-conversion-report', 'agent-performance-report', 'salesperson-report',
-      'reports/receipt-report', 'receipt-report', 'reports/receipts'
+      'reports/receipt-report', 'receipt-report', 'reports/receipts', 'reports/enquiry-for-report', 'enquiry-for-report'
     ];
     return crmReportList.some(r => url.includes(r));
   }
