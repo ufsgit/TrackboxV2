@@ -146,6 +146,8 @@ export const routes: Routes = [
       { path: 'reports/receipt-report', loadComponent: () => import('./features/crm/reports/receipt-report/receipt-report.component').then(m => m.ReceiptReportComponent) },
       { path: 'reports/receipts', loadComponent: () => import('./features/crm/reports/receipt-report/receipt-report.component').then(m => m.ReceiptReportComponent) },
       { path: 'receipt-report', loadComponent: () => import('./features/crm/reports/receipt-report/receipt-report.component').then(m => m.ReceiptReportComponent) },
+      { path: 'reports/enquiry-for-report', loadComponent: () => import('./features/crm/reports/enquiry-for-report/enquiry-for-report.component').then(m => m.EnquiryForReportComponent) },
+      { path: 'enquiry-for-report', loadComponent: () => import('./features/crm/reports/enquiry-for-report/enquiry-for-report.component').then(m => m.EnquiryForReportComponent) },
       { path: 'help', loadComponent: () => import('./features/help/help-tutorials.component').then(m => m.HelpTutorialsComponent) },
       { path: 'tutorials', loadComponent: () => import('./features/help/help-tutorials.component').then(m => m.HelpTutorialsComponent) },
       { path: 'crm-help', loadComponent: () => import('./features/help/help-tutorials.component').then(m => m.HelpTutorialsComponent) },

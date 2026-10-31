@@ -160,8 +160,8 @@ const getCrmDashboardStats = async (req, res) => {
 
     // Call Stored Procedure for Lead Source Analysis
     const [sourceResults] = await pool.query(
-      'CALL sp_get_crm_dashboard_lead_sources(?, ?, ?, ?)',
-      [bizId, Number(userId), req.user.role || 'admin', range]
+    'CALL dashbord_source_count(?, ?, ?)',
+    [bizId, Number(userId), req.user.role || 'agent']
     );
 
     const sourceRows = (sourceResults && sourceResults[0]) ? sourceResults[0] : [];

@@ -448,8 +448,8 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
     <div class="report-container flex flex-col gap-20">
       <div class="flex justify-between items-center gap-16">
         <div class="title-section">
-          <h2 class="fw-bold mb-1">Channel Report</h2>
-          <p class="text-muted mb-0">Analyze lead volume by channel preference</p>
+          <h2 class="fw-bold mb-1">Source Report</h2>
+          <p class="text-muted mb-0">Analyze lead volume by Source preference</p>
         </div>
         
         <div class="header-actions ms-auto">
@@ -537,7 +537,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         <div class="kpi-card kpi-green clickable-card" (click)="openCardDetails('top')" title="Click to view leads for top channel" style="display: flex; align-items: center; gap: 16px; padding: 20px;">
           <div class="kpi-icon bg-success-soft text-success"><i class="bi bi-trophy"></i></div>
           <div class="kpi-info">
-            <h6 class="kpi-title">Top Channel</h6>
+            <h6 class="kpi-title">Top Source</h6>
             <h3 class="kpi-value" style="font-size: 1.25rem; text-transform: capitalize;">{{ topChannel }}</h3>
             <span class="click-indicator"><i class="bi bi-box-arrow-up-right"></i> View Leads</span>
           </div>
@@ -549,7 +549,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
       <div class="grid" style="grid-template-columns: 1fr 2fr;">
         <div class="chart-card h-100">
           <div class="chart-header flex justify-between items-center">
-            <h5>Leads by Channel</h5>
+            <h5>Leads by Source</h5>
             <small class="text-muted"><i class="bi bi-hand-index-thumb"></i> Click slice to view</small>
           </div>
           <div class="chart-body" style="position: relative; height: 300px; width: 100%; cursor: pointer;">
@@ -559,7 +559,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         
         <div class="chart-card h-100">
           <div class="chart-header flex justify-between items-center">
-            <h5>Channel Performance</h5>
+            <h5>Source Performance</h5>
             <small class="text-muted"><i class="bi bi-hand-index-thumb"></i> Click bar to view</small>
           </div>
           <div class="chart-body" style="position: relative; height: 300px; width: 100%; cursor: pointer;">
@@ -571,14 +571,14 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
       <!-- Breakdown Table (Clickable Rows) -->
       <div class="chart-card">
         <div class="chart-header border-bottom pb-3 mb-3 flex justify-between items-center">
-          <h5>Channel Breakdown</h5>
-          <small class="text-muted"><i class="bi bi-cursor-fill"></i> Click any channel row to view leads</small>
+          <h5>Source Breakdown</h5>
+          <small class="text-muted"><i class="bi bi-cursor-fill"></i> Click any Source row to view leads</small>
         </div>
         <div style="overflow: auto;">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Channel</th>
+                <th>Source</th>
                 <th>Total Leads</th>
                 <th>% of Total</th>
                 <th class="text-end">Action</th>
@@ -621,7 +621,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
         <div class="modal-header">
           <div>
             <div class="modal-title-chip">
-              <i class="bi bi-diagram-3-fill"></i> Channel Leads Audit
+              <i class="bi bi-diagram-3-fill"></i> Source Leads Audit
             </div>
             <h2 class="modal-title">{{ modalTitle }}</h2>
             <p class="modal-subtitle">{{ modalSubtitle }}</p>
@@ -669,14 +669,14 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
           <!-- Loading State -->
           <div class="modal-loading-state" *ngIf="modalLoading">
             <div class="spinner-border text-primary" role="status"></div>
-            <p>Loading channel lead details...</p>
+            <p>Loading Source lead details...</p>
           </div>
 
           <!-- Empty State -->
           <div class="modal-empty-state" *ngIf="!modalLoading && modalLeads.length === 0">
             <i class="bi bi-inbox-fill"></i>
             <h4>No Leads Found</h4>
-            <p>No leads recorded for the selected channel and timeframe.</p>
+            <p>No leads recorded for the selected Source and timeframe.</p>
           </div>
 
           <!-- Leads Table -->
@@ -686,7 +686,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
                 <tr>
                   <th>LEAD & CONTACT</th>
                   <th>CREATED DATE</th>
-                  <th>CHANNEL PREFERENCE</th>
+                  <th>Source PREFERENCE</th>
                   <th>CURRENT STAGE</th>
                   <th>CONVERSION</th>
                   <th>ASSIGNED TO</th>
@@ -899,10 +899,10 @@ export class ChannelReportComponent implements OnInit {
     if (type === 'total') {
       this.selectedChannel = 'all';
       this.modalTitle = `Total Leads (${this.totalLeads})`;
-      this.modalSubtitle = `Showing all leads across all channels for ${this.getDateRangeLabel(this.dateRange)}`;
+      this.modalSubtitle = `Showing all leads across all Source for ${this.getDateRangeLabel(this.dateRange)}`;
     } else {
       this.selectedChannel = this.topChannel;
-      this.modalTitle = `Top Channel: ${this.topChannel}`;
+      this.modalTitle = `Top Source: ${this.topChannel}`;
       this.modalSubtitle = `Showing leads generated through top preference (${this.topChannel}) for ${this.getDateRangeLabel(this.dateRange)}`;
     }
     this.modalCurrentPage = 1;
@@ -916,7 +916,7 @@ export class ChannelReportComponent implements OnInit {
     this.modalTitle = `Leads via ${channelName}`;
     const found = this.channels.find(c => c.label.toLowerCase() === channelName.toLowerCase());
     const count = found ? found.value : '';
-    this.modalSubtitle = `Showing ${count ? count + ' ' : ''}leads with "${channelName}" channel preference for ${this.getDateRangeLabel(this.dateRange)}`;
+    this.modalSubtitle = `Showing ${count ? count + ' ' : ''}leads with "${channelName}" Source preference for ${this.getDateRangeLabel(this.dateRange)}`;
     this.modalCurrentPage = 1;
     this.modalSearchQuery = '';
     this.isModalOpen = true;

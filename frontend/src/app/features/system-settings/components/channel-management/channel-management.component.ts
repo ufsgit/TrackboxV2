@@ -12,9 +12,9 @@ import Swal from 'sweetalert2';
   imports: [CommonModule, FormsModule],
   template: `
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
-      <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Channel Management</h3>
+      <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Source Management</h3>
       <button class="btn btn-primary" (click)="openModal()" style="display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-plus-lg"></i> Add Channel
+        <i class="bi bi-plus-lg"></i> Add Source
       </button>
     </div>
 
@@ -23,7 +23,7 @@ import Swal from 'sweetalert2';
         <div style="display: flex; align-items: center;">
           <div style="width: 300px; position: relative;">
             <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
-            <input type="text" class="form-control" placeholder="Search channels..." [(ngModel)]="searchTerm" style="padding-left: 40px; height: 42px; width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; color: #334155; outline: none;">
+            <input type="text" class="form-control" placeholder="Search Source..." [(ngModel)]="searchTerm" style="padding-left: 40px; height: 42px; width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; color: #334155; outline: none;">
           </div>
         </div>
       </div>
@@ -33,7 +33,7 @@ import Swal from 'sweetalert2';
       <table class="table">
         <thead>
           <tr>
-            <th>CHANNEL NAME</th>
+            <th>Source NAME</th>
             <th>ACTIONS</th>
           </tr>
         </thead>
@@ -46,7 +46,7 @@ import Swal from 'sweetalert2';
             </td>
           </tr>
           <tr *ngIf="items.length === 0">
-            <td colspan="2" class="text-center text-muted py-4">No channels found. Click "Add Channel" to create one.</td>
+            <td colspan="2" class="text-center text-muted py-4">No Source found. Click "Add Source" to create one.</td>
           </tr>
         </tbody>
       </table>
@@ -54,17 +54,17 @@ import Swal from 'sweetalert2';
 
     <div class="ch-modal-overlay" *ngIf="showModal">
       <div class="ch-modal-box">
-        <h4 style="margin-top: 0; margin-bottom: 24px; font-weight: 600;">{{ currentItem.id ? 'Edit Channel' : 'Add Channel' }}</h4>
+        <h4 style="margin-top: 0; margin-bottom: 24px; font-weight: 600;">{{ currentItem.id ? 'Edit Source' : 'Add Source' }}</h4>
         
         <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Channel Name</label>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Source Name</label>
           <input type="text" class="form-control" [(ngModel)]="currentItem.name" placeholder="e.g. Google Ads, Referral" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
         </div>
         
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
           <button class="btn btn-light" (click)="closeModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; border: none; font-weight: 500;">Cancel</button>
           <button class="btn btn-primary" (click)="saveItem()" [disabled]="saving" style="padding: 10px 20px; border-radius: 8px; font-weight: 500;">
-            {{ saving ? 'Saving...' : 'Save Channel' }}
+            {{ saving ? 'Saving...' : 'Save Source' }}
           </button>
         </div>
       </div>
@@ -95,7 +95,7 @@ export class ChannelManagementComponent implements OnInit {
   loadItems() {
     this.settingsService.getChannels().subscribe({
       next: (res: any) => { if (res.success) this.items = res.data; },
-      error: (err: any) => { console.error('Failed to load channels:', err); }
+      error: (err: any) => { console.error('Failed to load Sources:', err); }
     });
   }
 
@@ -111,7 +111,7 @@ export class ChannelManagementComponent implements OnInit {
 
   saveItem() { 
     if (!this.currentItem.name || !this.currentItem.name.trim()) {
-      Swal.fire('Error', 'Channel name is required', 'error');
+      Swal.fire('Error', 'Source name is required', 'error');
       return;
     }
     this.saving = true;
@@ -120,14 +120,14 @@ export class ChannelManagementComponent implements OnInit {
         next: (res: any) => {
           this.saving = false;
           if (res.success) {
-            showImpressiveSuccess('Channel updated');
+            showImpressiveSuccess('Source updated');
             this.loadItems();
             this.closeModal();
           }
         },
         error: (err: any) => {
           this.saving = false;
-          Swal.fire('Error', err.error?.message || 'Failed to update channel', 'error');
+          Swal.fire('Error', err.error?.message || 'Failed to update Source', 'error');
         }
       });
     } else {
@@ -135,14 +135,14 @@ export class ChannelManagementComponent implements OnInit {
         next: (res: any) => {
           this.saving = false;
           if (res.success) {
-            showImpressiveSuccess('Channel added');
+            showImpressiveSuccess('Source added');
             this.loadItems();
             this.closeModal();
           }
         },
         error: (err: any) => {
           this.saving = false;
-          Swal.fire('Error', err.error?.message || 'Failed to create channel', 'error');
+          Swal.fire('Error', err.error?.message || 'Failed to create Source', 'error');
         }
       });
     }
@@ -151,7 +151,7 @@ export class ChannelManagementComponent implements OnInit {
   deleteItem(id: number) {
     Swal.fire({ 
       title: 'Are you sure?', 
-      text: 'This channel will be permanently deleted.', 
+      text: 'This Source will be permanently deleted.', 
       icon: 'warning', 
       showCancelButton: true, 
       confirmButtonText: 'Yes, delete it!', 
@@ -161,12 +161,12 @@ export class ChannelManagementComponent implements OnInit {
         this.settingsService.deleteChannel(id).subscribe({
           next: (res: any) => {
             if (res.success) {
-              showImpressiveSuccess('Channel deleted');
+              showImpressiveSuccess('Source deleted');
               this.loadItems();
             }
           },
           error: (err: any) => {
-            Swal.fire('Error', err.error?.message || 'Failed to delete channel', 'error');
+            Swal.fire('Error', err.error?.message || 'Failed to delete Source', 'error');
           }
         });
       }

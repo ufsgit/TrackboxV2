@@ -1,4 +1,74 @@
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `dashbord_source_count`(
+  IN p_business_id INT,
+  IN p_user_id INT,
+  IN p_user_role VARCHAR(50)
+)
+BEGIN
+  DECLARE v_manager_branch_id INT DEFAULT NULL;
+
+  /* ========================================================
+     1. ADMIN: All contacts for the business
+     ======================================================== */
+  IF LOWER(p_user_role) = 'admin' THEN
+
+    SELECT 
+      source_name AS name,
+      COUNT(*) AS value
+    FROM (
+      SELECT COALESCE(NULLIF(TRIM(c.channel_preference), ''), 'Unknown') AS source_name
+      FROM contacts c
+      WHERE c.business_id = p_business_id
+    ) t
+    GROUP BY source_name
+    ORDER BY value DESC;
+
+  /* ========================================================
+     2. MANAGER: All contacts in the manager's branch
+     ======================================================== */
+  ELSEIF LOWER(p_user_role) = 'manager' THEN
+
+    -- Fetch the manager's branch_id
+    SELECT branch_id INTO v_manager_branch_id
+    FROM users
+    WHERE id = p_user_id AND business_id = p_business_id
+    LIMIT 1;
+
+    SELECT 
+      source_name AS name,
+      COUNT(*) AS value
+    FROM (
+      SELECT COALESCE(NULLIF(TRIM(c.channel_preference), ''), 'Unknown') AS source_name
+      FROM contacts c
+      WHERE c.business_id = p_business_id
+        AND c.branch_id = v_manager_branch_id
+    ) t
+    GROUP BY source_name
+    ORDER BY value DESC;
+
+  /* ========================================================
+     3. AGENT / OTHER: Only contacts assigned to this agent
+     ======================================================== */
+  ELSE
+
+    SELECT 
+      source_name AS name,
+      COUNT(*) AS value
+    FROM (
+      SELECT COALESCE(NULLIF(TRIM(c.channel_preference), ''), 'Unknown') AS source_name
+      FROM contacts c
+      WHERE c.business_id = p_business_id
+        AND c.assigned_to = p_user_id
+    ) t
+    GROUP BY source_name
+    ORDER BY value DESC;
+
+  END IF;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_crm_dashboard_kpis`(
   IN p_business_id INT,
   IN p_user_id INT,

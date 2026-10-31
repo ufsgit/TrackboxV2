@@ -708,6 +708,7 @@ export class LayoutComponent implements OnInit {
     if (last === 'follow-up-report') return 'Follow-Up Report';
     if (last === 'team-productivity') return 'Team Productivity';
     if (last === 'lead-creation') return 'Lead Creation Report';
+    if (last === 'enquiry-for-report') return 'Enquiry For Report';
     if (last === 'pending-followup') return 'Pending Followup';
     if (last === 'upcoming-followups') return 'Upcoming Followups';
     if (last === 'todays-leads') return "Today's Followups";

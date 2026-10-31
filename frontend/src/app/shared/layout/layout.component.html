@@ -131,6 +131,10 @@
                 <i class="bi bi-receipt"></i>
                 <span>Receipts Report</span>
               </a>
+              <a routerLink="/reports/enquiry-for-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                <i class="bi bi-card-checklist"></i>
+                <span>Enquiry For Report</span>
+              </a>
             </div>
           </div>
         </div>
@@ -186,61 +190,71 @@
               </a>
             </div>
 
-            <!-- Column 3: ANALYTICS -->
-            <div class="mega-menu-column">
-              <div class="mega-menu-header">ANALYTICS</div>
-              <a routerLink="/channel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-circle-fill"></i>
-                <span>Channel Report</span>
-              </a>
-              <a routerLink="/won-lost-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-circle"></i>
-                <span>Sale Won / Lost Report</span>
-              </a>
-              <a routerLink="/channel-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-diagram-3"></i>
-                <span>Channel Conversion</span>
-              </a>
-              <a routerLink="/employee-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-people"></i>
-                <span>Employee Conversion</span>
-              </a>
-              <a routerLink="/reports/employee-productivity" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-bar-chart-line"></i>
-                <span>Employee Productivity</span>
-              </a>
-              <a routerLink="/reports/student-pipeline" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-funnel"></i>
-                <span>Student Pipeline</span>
-              </a>
-              <a routerLink="/reports/application-status" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-file-earmark-text"></i>
-                <span>Application Status</span>
-              </a>
-              <a routerLink="/reports/follow-up-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-clock-history"></i>
-                <span>Follow-Up Report</span>
-              </a>
-              <a routerLink="/daily-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-calendar-check"></i>
-                <span>Daily Report</span>
-              </a>
-              <a routerLink="/lead-flow" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-graph-up-arrow"></i>
-                <span>Lead Flow</span>
-              </a>
-              <a routerLink="/reports/team-productivity" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-graph-up"></i>
-                <span>Team Productivity</span>
-              </a>
-              <a routerLink="/reports/lead-creation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-person-plus"></i>
-                <span>Lead Creation Report</span>
-              </a>
-              <a routerLink="/reports/receipt-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
-                <i class="bi bi-receipt"></i>
-                <span>Receipts Report</span>
-              </a>
+            <!-- Column 3: ANALYTICS (2-Column Split) -->
+            <div class="mega-menu-column mega-menu-column-wide">
+              <div class="mega-menu-header text-center">ANALYTICS</div>
+              <div class="mega-menu-subgrid">
+                <div class="mega-menu-subcol">
+                  <a routerLink="/channel-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-circle-fill"></i>
+                    <span>Channel Report</span>
+                  </a>
+                  <a routerLink="/won-lost-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-circle"></i>
+                    <span>Sale Won / Lost Report</span>
+                  </a>
+                  <a routerLink="/channel-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Channel Conversion</span>
+                  </a>
+                  <a routerLink="/employee-conversion-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-people"></i>
+                    <span>Employee Conversion</span>
+                  </a>
+                  <a routerLink="/reports/employee-productivity" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Employee Productivity</span>
+                  </a>
+                  <a routerLink="/reports/student-pipeline" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-funnel"></i>
+                    <span>Student Pipeline</span>
+                  </a>
+                  <a routerLink="/reports/application-status" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-file-earmark-text"></i>
+                    <span>Application Status</span>
+                  </a>
+                </div>
+                <div class="mega-menu-subcol">
+                  <a routerLink="/reports/follow-up-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Follow-Up Report</span>
+                  </a>
+                  <a routerLink="/daily-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-calendar-check"></i>
+                    <span>Daily Report</span>
+                  </a>
+                  <a routerLink="/lead-flow" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Lead Flow</span>
+                  </a>
+                  <a routerLink="/reports/team-productivity" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Team Productivity</span>
+                  </a>
+                  <a routerLink="/reports/lead-creation" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Lead Creation Report</span>
+                  </a>
+                  <a routerLink="/reports/receipt-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-receipt"></i>
+                    <span>Receipts Report</span>
+                  </a>
+                  <a routerLink="/reports/enquiry-for-report" routerLinkActive="active" class="submenu-item" (click)="isReportsOpen = false">
+                    <i class="bi bi-card-checklist"></i>
+                    <span>Enquiry For Report</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -516,7 +530,7 @@
           <i class="bi bi-book"></i> Courses
         </a>
         <a *ngIf="authService.hasPermission('Channel', 'view')" routerLink="/system-settings/channels" class="popup-item" routerLinkActive="active" (click)="showUserProfileDropdown = false">
-          <i class="bi bi-chat-left-dots"></i> Channels
+          <i class="bi bi-chat-left-dots"></i> Source
         </a>
         </ng-container>
 
