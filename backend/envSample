@@ -32,5 +32,16 @@ EXPECTED_START_TIME="12:30"
 
 # Brevo Email Settings
 BREVO_API_KEY=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
-BREVO_SENDER_EMAIL=worksufs@gmail.com
+
+
 BREVO_SENDER_NAME="Trackbox CRM"
+
+R2_ACCOUNT_ID=538b13d4d239da205337637dc6b57ff0
+
+R2_ACCESS_KEY_ID=6cb6315a92cdb97a46bd17600910b60d
+
+R2_SECRET_ACCESS_KEY=23427d17ca05c47b30b75f21199dcb5527e4aff7c1c49f1c17c0d7504f8d93e6
+
+R2_BUCKET_NAME=crm-ufstech
+# Optional: if you enable a Custom Domain or r2.dev domain on Cloudflare R2, set it here (e.g. https://pub-xxxxxx.r2.dev or https://media.yourdomain.com)
+R2_PUBLIC_URL=https://pub-9efbe8f588404e99b6e8f16efeedb49d.r2.dev
