@@ -143,6 +143,8 @@ export const routes: Routes = [
       { path: 'reports/visa-submitted', loadComponent: () => import('./features/crm/reports/pipeline-kpi-report/pipeline-kpi-report.component').then(m => m.PipelineKpiReportComponent), data: { defaultType: 'visa-submitted' } },
       { path: 'reports/visa-approved', loadComponent: () => import('./features/crm/reports/pipeline-kpi-report/pipeline-kpi-report.component').then(m => m.PipelineKpiReportComponent), data: { defaultType: 'visa-approved' } },
       { path: 'reports/enrolled', loadComponent: () => import('./features/crm/reports/pipeline-kpi-report/pipeline-kpi-report.component').then(m => m.PipelineKpiReportComponent), data: { defaultType: 'enrolled' } },
+      { path: 'reports/completion-enrolled-report', loadComponent: () => import('./features/crm/reports/pipeline-kpi-report/pipeline-kpi-report.component').then(m => m.PipelineKpiReportComponent), data: { defaultType: 'enrolled' } },
+      { path: 'completion-enrolled-report', loadComponent: () => import('./features/crm/reports/pipeline-kpi-report/pipeline-kpi-report.component').then(m => m.PipelineKpiReportComponent), data: { defaultType: 'enrolled' } },
       { path: 'reports/pipeline-kpi', loadComponent: () => import('./features/crm/reports/pipeline-kpi-report/pipeline-kpi-report.component').then(m => m.PipelineKpiReportComponent) },
       { path: 'reports/receipt-report', loadComponent: () => import('./features/crm/reports/receipt-report/receipt-report.component').then(m => m.ReceiptReportComponent) },
       { path: 'reports/receipts', loadComponent: () => import('./features/crm/reports/receipt-report/receipt-report.component').then(m => m.ReceiptReportComponent) },

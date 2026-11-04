@@ -37,6 +37,14 @@
         </button>
       </div>
 
+            <button class="leads-btn leads-btn-transfer" (click)="openBulkTransferModal()" title="Bulk Transfer Leads">
+        <i class="bi bi-arrow-left-right"></i>
+        <span>Bulk Transfer</span>
+        <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
+          {{ selectedContactIds.size }}
+        </span>
+      </button>
+
       <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
         <i class="bi bi-envelope-fill"></i>
         <span>Send Email</span>
@@ -249,7 +257,11 @@
         <button class="selection-clear-btn" (click)="clearSelection()">Clear selection</button>
       </div>
 
-      <div class="selection-right">
+            <div class="selection-right">
+        <button class="selection-transfer-btn" (click)="openBulkTransferModal()">
+          <i class="bi bi-arrow-left-right"></i>
+          <span>Transfer {{ selectedContactIds.size }} leads</span>
+        </button>
         <button class="selection-email-btn" (click)="openBulkEmailModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -2702,6 +2714,400 @@
       <div class="footer-actions-right" *ngIf="bulkEmailResultsView">
         <button type="button" class="leads-btn leads-btn-accent" (click)="closeBulkEmailModal()">
           Done
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- BULK TRANSFER LEADS MODAL (EXECUTIVE PRO REDESIGN) -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="custom-modal center-modal leads-bulk-transfer-modal-overlay" *ngIf="showBulkTransferModal">
+  <!-- Backdrop with soft blur -->
+  <div class="modal-backdrop" (click)="closeBulkTransferModal()"></div>
+
+  <!-- Modal Dialog (780px Modern Pro Cockpit) -->
+  <div class="modal-card leads-bulk-transfer-dialog" (click)="$event.stopPropagation()">
+    
+    <!-- Top Accent Gradient Line -->
+    <div class="transfer-top-accent-bar"></div>
+
+    <!-- Executive Header -->
+    <div class="transfer-modal-header">
+      <div class="header-main-left">
+        <div class="transfer-icon-tile">
+          <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div class="header-identity">
+          <div class="identity-top-row">
+            <h3 class="dashboard-header-title">Bulk Transfer Leads</h3>
+            <span class="transfer-badge">
+              <i class="bi bi-shield-check"></i> Audit Tracked
+            </span>
+            <span class="transfer-count-badge" *ngIf="bulkTransferScope === 'selected'">
+              <i class="bi bi-check2-circle"></i> {{ selectedContactIds.size }} Selected
+            </span>
+          </div>
+          <div class="identity-sub-row">
+            <span class="protocol-tag">Reallocate pipeline leads with automated timeline logging and live notifications</span>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-close-modal" (click)="closeBulkTransferModal()" [disabled]="bulkTransferLoading" aria-label="Close dialog">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Scrollable Modal Body -->
+    <div class="transfer-modal-body">
+
+      <!-- Step 1: Transfer Scope Selection -->
+      <div class="transfer-section-block">
+        <div class="section-block-header">
+          <div class="step-badge">1</div>
+          <div class="step-info">
+            <span class="step-title">Source Leads Scope</span>
+            <span class="step-subtitle">Determine which leads are included in this transfer batch</span>
+          </div>
+        </div>
+
+        <div class="scope-toggle-cards">
+          <!-- Option A: Selected Leads -->
+          <label class="scope-card" [class.active]="bulkTransferScope === 'selected'" [class.disabled]="selectedContactIds.size === 0">
+            <input type="radio" name="transferScope" value="selected" [(ngModel)]="bulkTransferScope" [disabled]="selectedContactIds.size === 0">
+            <div class="scope-card-icon">
+              <i class="bi bi-check2-square"></i>
+            </div>
+            <div class="scope-card-content">
+              <div class="scope-name-row">
+                <span class="scope-name">Selected Leads</span>
+                <span class="scope-pill-count">{{ selectedContactIds.size }} Checked</span>
+              </div>
+              <div class="scope-desc" *ngIf="selectedContactIds.size > 0">
+                Transfer the {{ selectedContactIds.size }} leads currently checked in the table
+              </div>
+              <div class="scope-desc text-danger" *ngIf="selectedContactIds.size === 0">
+                No leads currently checked in table checkboxes
+              </div>
+            </div>
+            <div class="scope-radio-indicator">
+              <i class="bi" [ngClass]="bulkTransferScope === 'selected' ? 'bi-check-circle-fill text-indigo' : 'bi-circle text-muted'"></i>
+            </div>
+          </label>
+
+          <!-- Option B: Filter By Source Agent -->
+          <label class="scope-card" [class.active]="bulkTransferScope === 'filter'">
+            <input type="radio" name="transferScope" value="filter" [(ngModel)]="bulkTransferScope">
+            <div class="scope-card-icon filter-icon">
+              <i class="bi bi-funnel-fill"></i>
+            </div>
+            <div class="scope-card-content">
+              <div class="scope-name-row">
+                <span class="scope-name">Filter / Source Agent</span>
+                <span class="scope-pill-tag">Criteria Batch</span>
+              </div>
+              <div class="scope-desc">
+                Transfer all leads matching employee, branch, or status
+              </div>
+            </div>
+            <div class="scope-radio-indicator">
+              <i class="bi" [ngClass]="bulkTransferScope === 'filter' ? 'bi-check-circle-fill text-indigo' : 'bi-circle text-muted'"></i>
+            </div>
+          </label>
+        </div>
+
+        <!-- Filter Controls when Scope = filter -->
+        <div class="filter-controls-card mt-3" *ngIf="bulkTransferScope === 'filter'">
+          <div class="filter-grid-row">
+            <div class="filter-field-col">
+              <label class="field-label"><i class="bi bi-person me-1"></i> From Employee</label>
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="bulkTransferFromAgent" class="premium-form-select">
+                  <option value="all">All Employees</option>
+                  <option value="unassigned">Unassigned Leads Only</option>
+                  <option *ngFor="let a of agents" [value]="a.id">{{ a.name }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-field-col">
+              <label class="field-label"><i class="bi bi-flag me-1"></i> Filter by Status</label>
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="bulkTransferFromStatus" class="premium-form-select">
+                  <option value="all">All Statuses</option>
+                  <option *ngFor="let s of leadStatuses" [value]="s.id">{{ s.name }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-field-col">
+              <label class="field-label"><i class="bi bi-building me-1"></i> Filter by Branch</label>
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="bulkTransferFromBranch" class="premium-form-select">
+                  <option value="all">All Branches</option>
+                  <option *ngFor="let b of branches" [value]="b.id">{{ b.name }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Target Branch, Department & Status -->
+      <div class="transfer-section-block mt-4">
+        <div class="section-block-header">
+          <div class="step-badge">2</div>
+          <div class="step-info">
+            <span class="step-title">Target Branch, Department & Pipeline Status</span>
+            <span class="step-subtitle">Select the destination branch and department to filter available employees</span>
+          </div>
+        </div>
+
+        <div class="optional-params-card">
+          <!-- 3 Columns for Branch, Department, Status -->
+          <div class="params-grid-row">
+            <!-- Branch -->
+            <div class="param-col">
+              <label class="param-label">
+                <i class="bi bi-building text-indigo me-1"></i> Update Branch
+              </label>
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="bulkTransferBranch" (change)="onBulkTransferBranchChange()" class="premium-form-select">
+                  <option value="">Keep Existing Branch</option>
+                  <option *ngFor="let b of branches" [value]="b.id">{{ b.name }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Department (Filtered by Selected Branch) -->
+            <div class="param-col">
+              <label class="param-label">
+                <i class="bi bi-diagram-3 text-cyan me-1"></i> Update Department
+              </label>
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="bulkTransferDepartment" (change)="onBulkTransferDepartmentChange()" class="premium-form-select">
+                  <option value="">{{ bulkTransferBranch ? 'Keep Existing Department' : 'Select Branch First' }}</option>
+                  <option *ngFor="let d of getBulkTransferFilteredDepartments()" [value]="d.id">{{ d.name }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Status -->
+            <div class="param-col">
+              <label class="param-label">
+                <i class="bi bi-flag text-amber me-1"></i> Update Pipeline Status
+              </label>
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="bulkTransferStatus" class="premium-form-select">
+                  <option value="">Keep Existing Status</option>
+                  <option *ngFor="let s of leadStatuses" [value]="s.id">{{ s.name }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Assign Destination Employee (UNDER Department & Branch) -->
+      <div class="transfer-section-block mt-4">
+        <div class="section-block-header justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <div class="step-badge">3</div>
+            <div class="step-info">
+              <div class="d-flex align-items-center gap-2">
+                <span class="step-title">Assign Destination Employee</span>
+                <span class="emp-filter-notice-chip" *ngIf="bulkTransferBranch || bulkTransferDepartment">
+                  <i class="bi bi-funnel-fill"></i>
+                  {{ getBulkTransferFilteredEmployees().length }} in {{ bulkTransferBranchName }}{{ bulkTransferDepartment ? ' / ' + bulkTransferDepartmentName : '' }}
+                </span>
+              </div>
+              <span class="step-subtitle">Employees dynamically filtered by corresponding branch and department</span>
+            </div>
+          </div>
+
+          <!-- Single vs Split Allocation Toggle -->
+          <div class="assignment-type-segmented-toggle">
+            <button type="button" class="btn-seg-toggle" [class.active]="bulkTransferTargetType === 'single'" (click)="bulkTransferTargetType = 'single'">
+              <i class="bi bi-person-fill me-1"></i> Single Assignee
+            </button>
+            <button type="button" class="btn-seg-toggle" [class.active]="bulkTransferTargetType === 'split'" (click)="bulkTransferTargetType = 'split'">
+              <i class="bi bi-diagram-2-fill me-1"></i> Distribute / Split
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode A: Single Assignee View -->
+        <div class="destination-card single-view-card" *ngIf="bulkTransferTargetType === 'single'">
+          <div class="dest-field-group">
+            <label class="dest-field-label">
+              <span>Transfer To Employee</span>
+              <span class="text-danger ms-1">*</span>
+              <span class="ms-auto small text-muted">
+                {{ getBulkTransferFilteredEmployees().length }} available
+              </span>
+            </label>
+            
+            <div class="hero-select-container">
+              <div class="hero-select-icon">
+                <i class="bi bi-person-check-fill"></i>
+              </div>
+              <select [(ngModel)]="bulkTransferTargetAgent" class="hero-premium-select">
+                <option value="" disabled selected>-- Choose Destination Employee --</option>
+                <option *ngFor="let a of getBulkTransferFilteredEmployees()" [value]="a.id">
+                  {{ a.name }} &bull; {{ a.designation_name || a.role || 'Agent' }} ({{ a.branch_name || 'No Branch' }} - {{ a.department_name || 'No Dept' }})
+                </option>
+              </select>
+            </div>
+
+            <!-- Selected Assignee Preview Card -->
+            <div class="assignee-preview-card mt-3" *ngIf="bulkTransferTargetAgentObj">
+              <div class="assignee-avatar">
+                {{ bulkTransferTargetAgentObj.name?.charAt(0) | uppercase }}
+              </div>
+              <div class="assignee-details">
+                <div class="assignee-name-row">
+                  <span class="assignee-name">{{ bulkTransferTargetAgentObj.name }}</span>
+                  <span class="assignee-role-badge">{{ bulkTransferTargetAgentObj.designation_name || bulkTransferTargetAgentObj.role || 'Agent' }}</span>
+                  <span class="badge-branch-tag" *ngIf="bulkTransferTargetAgentObj.branch_name">
+                    <i class="bi bi-building me-1"></i>{{ bulkTransferTargetAgentObj.branch_name }}
+                  </span>
+                  <span class="badge-dept-tag" *ngIf="bulkTransferTargetAgentObj.department_name">
+                    <i class="bi bi-diagram-3 me-1"></i>{{ bulkTransferTargetAgentObj.department_name }}
+                  </span>
+                </div>
+                <div class="assignee-note">
+                  <i class="bi bi-bell-fill me-1 text-primary"></i>
+                  All transferred leads will appear directly in this employee's active queue with push notification.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode B: Multi-Employee Split Allocation -->
+        <div class="destination-card split-view-card" *ngIf="bulkTransferTargetType === 'split'">
+          <div class="split-controls-header">
+            <div class="split-helper-text">
+              <i class="bi bi-info-circle me-1 text-primary"></i>
+              Specify lead counts for each corresponding team member:
+            </div>
+            <button type="button" class="btn-magic-split" (click)="autoDistributeBulkTransferCounts()" [disabled]="bulkTransferAllocations.length === 0">
+              <i class="bi bi-magic me-1"></i> Auto-Split Evenly
+            </button>
+          </div>
+
+          <div class="allocation-rows-container">
+            <div class="allocation-row-item-pro" *ngFor="let alloc of bulkTransferAllocations; let i = index">
+              <div class="alloc-col-agent">
+                <div class="input-select-wrapper">
+                  <select [(ngModel)]="alloc.userId" (change)="onBulkTransferAllocationUserChange(i)" class="premium-form-select">
+                    <option value="" disabled selected>-- Choose Employee --</option>
+                    <option *ngFor="let a of getBulkTransferFilteredEmployees()" [value]="a.id">
+                      {{ a.name }} &bull; {{ a.designation_name || a.role || 'Agent' }} ({{ a.branch_name || 'No Branch' }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="alloc-col-count">
+                <div class="count-input-wrapper">
+                  <input type="number" [(ngModel)]="alloc.count" min="1" class="form-control premium-count-input" placeholder="Count">
+                  <span class="count-suffix">leads</span>
+                </div>
+              </div>
+              <button type="button" class="btn-remove-row" (click)="removeBulkTransferAllocation(i)" title="Remove employee">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+
+            <!-- Empty State -->
+            <div class="allocation-empty-state" *ngIf="bulkTransferAllocations.length === 0">
+              <div class="empty-icon-circle">
+                <i class="bi bi-people"></i>
+              </div>
+              <div class="empty-title">No Employees Added to Split</div>
+              <div class="empty-desc">Add employees corresponding to the branch & department and specify how many leads each person receives.</div>
+              <button type="button" class="btn-add-member-primary" (click)="addBulkTransferAllocation()">
+                <i class="bi bi-plus-circle me-1"></i> Add First Employee
+              </button>
+            </div>
+          </div>
+
+          <!-- Split Footer Bar -->
+          <div class="split-footer-bar" *ngIf="bulkTransferAllocations.length > 0">
+            <button type="button" class="btn-add-another-member" (click)="addBulkTransferAllocation()">
+              <i class="bi bi-plus-lg me-1"></i> Add Another Employee
+            </button>
+            <div class="allocation-meter-pill">
+              <span>Allocated:</span>
+              <strong class="mx-1">{{ totalBulkTransferAllocated }}</strong>
+              <span class="text-muted">/ {{ bulkTransferEffectiveCount }} leads</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Transfer Remarks & Audit Note -->
+      <div class="transfer-section-block mt-4">
+        <div class="section-block-header">
+          <div class="step-badge">4</div>
+          <div class="step-info">
+            <span class="step-title">Transfer Remarks & Audit Note</span>
+            <span class="step-subtitle">Document the reason for this reallocation for permanent audit records</span>
+          </div>
+        </div>
+
+        <div class="optional-params-card">
+          <div class="remarks-box">
+            <label class="param-label">
+              <i class="bi bi-pencil-square text-secondary me-1"></i> Transfer Remarks / Reason
+            </label>
+            <div class="remarks-input-wrapper">
+              <input type="text" [(ngModel)]="bulkTransferRemarks" class="form-control premium-remarks-input" placeholder="e.g. Territory redistribution, counselor transfer, branch restructuring...">
+            </div>
+            <div class="remarks-helper-note">
+              <i class="bi bi-info-circle me-1"></i>
+              This note is permanently recorded in each lead's activity timeline and audit log.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Transfer Preview Strip -->
+      <div class="transfer-preview-strip mt-4">
+        <div class="preview-strip-icon">
+          <i class="bi bi-lightning-charge-fill"></i>
+        </div>
+        <div class="preview-strip-text">
+          <span class="preview-strip-title">Transfer Action Preview:</span>
+          <span class="preview-strip-detail">
+            Reassigning <strong>{{ bulkTransferScope === 'selected' ? (selectedContactIds.size + ' selected leads') : 'filtered batch' }}</strong>
+            to <strong>{{ bulkTransferTargetType === 'single' ? (bulkTransferTargetAgentObj?.name || 'Chosen Assignee') : (bulkTransferAllocations.length + ' split recipients') }}</strong>
+            &bull; Branch: <span class="badge-subtle">{{ bulkTransferBranchName }}</span>
+            &bull; Department: <span class="badge-subtle">{{ bulkTransferDepartmentName }}</span>
+            &bull; Status: <span class="badge-subtle">{{ bulkTransferStatusName }}</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="transfer-modal-footer">
+      <div class="footer-left-status">
+        <i class="bi bi-clock-history me-1 text-muted"></i>
+        <span class="small text-muted">Real-time socket broadcast & push notification</span>
+      </div>
+
+      <div class="footer-right-actions">
+        <button type="button" class="btn-cancel-transfer" (click)="closeBulkTransferModal()" [disabled]="bulkTransferLoading">
+          Cancel
+        </button>
+
+        <button type="button" class="btn-execute-transfer" (click)="executeBulkTransfer()" [disabled]="bulkTransferLoading">
+          <span *ngIf="bulkTransferLoading" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!bulkTransferLoading" class="bi bi-arrow-right-circle-fill me-1"></i>
+          <span>{{ bulkTransferLoading ? 'Transferring Leads...' : 'Transfer Leads Now' }}</span>
         </button>
       </div>
     </div>

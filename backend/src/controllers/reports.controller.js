@@ -1343,7 +1343,7 @@ const getEmployeeConversionReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
     const userId = req.user.userId || req.user.id;
-    const { dateRange, startDate, endDate } = req.query;
+    const { dateRange, startDate, endDate, employee } = req.query;
     let dateFilter = '';
     let queryParams = [businessId];
 
@@ -1355,6 +1355,8 @@ const getEmployeeConversionReport = async (req, res) => {
       dateFilter = 'AND YEAR(c.created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(c.created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
     } else if (dateRange === 'this_month') {
       dateFilter = 'AND MONTH(c.created_at) = MONTH(CURDATE()) AND YEAR(c.created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1)';
     } else if (dateRange === 'custom' && startDate && endDate) {
       dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
       queryParams.push(startDate, endDate);
@@ -1377,8 +1379,20 @@ const getEmployeeConversionReport = async (req, res) => {
     }
     // Admin will see all (teamFilter remains empty)
 
+    let employeeFilter = '';
+    if (employee && employee !== 'All' && employee !== 'all') {
+      if (!isNaN(employee)) {
+        employeeFilter = ' AND (c.assigned_to = ? OR u.id = ?) ';
+        queryParams.push(Number(employee), Number(employee));
+      } else {
+        employeeFilter = ' AND (u.name = ? OR c.assigned_to = ?) ';
+        queryParams.push(employee, employee);
+      }
+    }
+
     const query = `
       SELECT 
+        c.assigned_to as employee_id,
         COALESCE(u.name, 'Unassigned') as employee,
         COALESCE(u.employee_code, 'N/A') as employee_code,
         COUNT(c.id) as total_leads,
@@ -1386,7 +1400,7 @@ const getEmployeeConversionReport = async (req, res) => {
         SUM(IF(c.current_sale_status = 2, 1, 0)) as sale_lost
       FROM contacts c
       LEFT JOIN users u ON c.assigned_to = u.id
-      WHERE c.business_id = ? ${dateFilter} ${teamFilter}
+      WHERE c.business_id = ? ${dateFilter} ${teamFilter} ${employeeFilter}
       GROUP BY c.assigned_to, u.name, u.employee_code
       ORDER BY total_leads DESC
     `;
@@ -1403,6 +1417,7 @@ const getEmployeeConversionReport = async (req, res) => {
       const lossRate = total > 0 ? ((lost / total) * 100).toFixed(1) : '0.0';
       
       return {
+        employee_id: r.employee_id,
         employee: r.employee,
         employee_code: r.employee_code,
         total_leads: total,

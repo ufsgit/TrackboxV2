@@ -19,6 +19,12 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
   dateRange: string = 'ytd';
   customStartDate: string = '';
   customEndDate: string = '';
+
+  selectedEmployee: string = 'All';
+  isEmployeeDropdownOpen: boolean = false;
+  employeeSearchQuery: string = '';
+  users: any[] = [];
+  allEmployeesData: any[] = [];
   
   data: any[] = [];
   topEmployees4: any[] = [];
@@ -91,6 +97,7 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
   }
 
   ngOnInit() {
+    this.fetchUsers();
     this.fetchData();
   }
 
@@ -111,6 +118,88 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
 
   onDocumentClick() {
     this.isDateDropdownOpen = false;
+    this.isEmployeeDropdownOpen = false;
+  }
+
+  fetchUsers() {
+    this.api.get('/settings/team').subscribe({
+      next: (res: any) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.users = res.data.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            employee_code: u.employee_code || u.code || 'N/A',
+            role: u.role
+          }));
+        }
+      },
+      error: (err: any) => console.error('Failed to load team users', err)
+    });
+  }
+
+  toggleEmployeeDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isDateDropdownOpen = false;
+    this.isEmployeeDropdownOpen = !this.isEmployeeDropdownOpen;
+  }
+
+  isEmployeeSelected(u: any): boolean {
+    if (!u) return false;
+    return String(this.selectedEmployee) === String(u.id) ||
+           String(this.selectedEmployee).toLowerCase() === (u.name || '').toLowerCase();
+  }
+
+  selectEmployee(empId: any) {
+    this.selectedEmployee = empId;
+    this.isEmployeeDropdownOpen = false;
+
+    // Fast local filter if we already have the all-employees baseline
+    if (empId !== 'All' && this.allEmployeesData && this.allEmployeesData.length > 0) {
+      const empKey = String(empId).toLowerCase();
+      const empName = this.getSelectedEmployeeName().toLowerCase();
+      const quickFiltered = this.allEmployeesData.filter((row: any) => {
+        const rId = row.employee_id !== undefined ? String(row.employee_id).toLowerCase() : '';
+        const rName = (row.employee || '').toLowerCase();
+        return rId === empKey || rName === empKey || rName === empName;
+      });
+
+      if (quickFiltered.length > 0) {
+        this.data = quickFiltered.map((row: any) => ({
+          ...row,
+          color: this.getEmployeeColor(row.employee)
+        }));
+        this.calculateTotals();
+        this.prepareTopEmployees();
+        this.updateCharts();
+        this.animatedTotals = { ...this.totals };
+      }
+    }
+
+    this.fetchData();
+  }
+
+  getSelectedEmployeeName(): string {
+    if (this.selectedEmployee === 'All') return 'All Employees';
+    const found = this.users.find(u => String(u.id) === String(this.selectedEmployee) || (u.name && u.name.toLowerCase() === String(this.selectedEmployee).toLowerCase()));
+    return found ? found.name : String(this.selectedEmployee);
+  }
+
+  get filteredUsers(): any[] {
+    if (!this.employeeSearchQuery.trim()) return this.users;
+    const q = this.employeeSearchQuery.toLowerCase();
+    return this.users.filter(u => 
+      (u.name && u.name.toLowerCase().includes(q)) ||
+      (u.employee_code && u.employee_code.toLowerCase().includes(q))
+    );
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'EMP';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   }
 
   setActiveTab(tab: 'charts' | 'table' | 'split') {
@@ -122,6 +211,7 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
     if (event) {
       event.stopPropagation();
     }
+    this.isEmployeeDropdownOpen = false;
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -190,11 +280,60 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
       endpoint += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
     }
 
+    if (this.selectedEmployee && this.selectedEmployee !== 'All') {
+      endpoint += `&employee=${encodeURIComponent(this.selectedEmployee)}`;
+    }
+
     this.apiSub = this.api.get(endpoint).subscribe({
       next: (res: any) => {
         if (res && res.success) {
           const rawData: any[] = Array.isArray(res.data) ? res.data : [];
-          this.data = rawData.map((row: any) => ({
+
+          // Save baseline and sync dropdown employees when in All view
+          if (this.selectedEmployee === 'All') {
+            this.allEmployeesData = [...rawData];
+            const existingNames = new Set(this.users.map(u => (u.name || '').toLowerCase()));
+            for (const row of rawData) {
+              const nameLower = (row.employee || '').toLowerCase();
+              if (row.employee && row.employee !== 'Unassigned' && !existingNames.has(nameLower)) {
+                this.users.push({
+                  id: row.employee_id || row.employee,
+                  name: row.employee,
+                  employee_code: row.employee_code || 'N/A'
+                });
+                existingNames.add(nameLower);
+              }
+            }
+          }
+
+          // Strict filter: only show data for the selected employee if not 'All'
+          let filtered = rawData;
+          if (this.selectedEmployee && this.selectedEmployee !== 'All') {
+            const empKey = String(this.selectedEmployee).toLowerCase();
+            const empName = this.getSelectedEmployeeName().toLowerCase();
+            filtered = rawData.filter((row: any) => {
+              const rId = row.employee_id !== undefined ? String(row.employee_id).toLowerCase() : '';
+              const rName = (row.employee || '').toLowerCase();
+              return rId === empKey || rName === empKey || rName === empName;
+            });
+
+            // If selected employee has no leads recorded in this period, provide a clean 0 row
+            if (filtered.length === 0) {
+              const targetUser = this.users.find(u => String(u.id) === String(this.selectedEmployee) || (u.name && u.name.toLowerCase() === empKey));
+              filtered = [{
+                employee_id: this.selectedEmployee,
+                employee: targetUser ? targetUser.name : this.getSelectedEmployeeName(),
+                employee_code: targetUser ? targetUser.employee_code : 'N/A',
+                total_leads: 0,
+                sale_won: 0,
+                sale_lost: 0,
+                conversion_rate: '0.0',
+                loss_rate: '0.0'
+              }];
+            }
+          }
+
+          this.data = filtered.map((row: any) => ({
             ...row,
             color: this.getEmployeeColor(row.employee)
           }));
@@ -294,6 +433,8 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
   }
 
   updateCharts() {
+    const isSingle = this.data.length === 1;
+
     // BAR CHART
     this.barChartData = {
       labels: this.data.map(d => (d.employee || 'Unassigned').toUpperCase()),
@@ -303,18 +444,18 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
           label: 'Sale Won', 
           backgroundColor: '#10b981', 
           borderRadius: 6, 
-          barPercentage: 0.4,
-          categoryPercentage: 0.4,
-          maxBarThickness: 28
+          barPercentage: isSingle ? 0.25 : 0.4,
+          categoryPercentage: isSingle ? 0.3 : 0.4,
+          maxBarThickness: isSingle ? 36 : 28
         },
         { 
           data: this.data.map(d => d.sale_lost), 
           label: 'Sale Lost', 
           backgroundColor: '#ef4444', 
           borderRadius: 6, 
-          barPercentage: 0.4,
-          categoryPercentage: 0.4,
-          maxBarThickness: 28
+          barPercentage: isSingle ? 0.25 : 0.4,
+          categoryPercentage: isSingle ? 0.3 : 0.4,
+          maxBarThickness: isSingle ? 36 : 28
         }
       ]
     };
@@ -330,7 +471,7 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
     this.data.forEach(d => {
       if (d.total_leads === 0) return;
       const share = totalLeads > 0 ? (d.total_leads / totalLeads) * 100 : 0;
-      if (share < 2) {
+      if (share < 2 && !isSingle) {
         otherLeads += d.total_leads;
       } else {
         pieLabels.push((d.employee || 'Unassigned').toUpperCase());
@@ -343,6 +484,12 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
       pieLabels.push('OTHER');
       pieData.push(otherLeads);
       pieColors.push('#64748b');
+    }
+
+    if (pieData.length === 0) {
+      pieLabels = [this.selectedEmployee !== 'All' ? this.getSelectedEmployeeName().toUpperCase() : 'No Leads'];
+      pieData = [1];
+      pieColors = ['#e2e8f0'];
     }
 
     this.pieChartData = {

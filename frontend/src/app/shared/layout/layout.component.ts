@@ -712,13 +712,13 @@ export class LayoutComponent implements OnInit {
     if (last === 'pending-followup') return 'Pending Followup';
     if (last === 'upcoming-followups') return 'Upcoming Followups';
     if (last === 'todays-leads') return "Today's Followups";
-    if (last === 'channel-report') return 'Channel Report';
+    if (last === 'channel-report') return 'Source Report';
     if (last === 'applications') return 'Applications Report';
     if (last === 'offer-letters') return 'Offer Received Report';
     if (last === 'fees-paid') return 'Fees Paid Report';
     if (last === 'visa-submitted') return 'Visa Applied Report';
     if (last === 'visa-approved') return 'Visa received Report';
-    if (last === 'enrolled') return 'Enrolled Report';
+    if (last === 'enrolled' || last === 'completion-enrolled-report') return 'Completion / Enrolled Report';
     if (last === 'quotations') return 'Quotations';
     if (last === 'purchase-orders') return 'Purchase Orders';
     if (last === 'delivery-management') return 'Delivery Management';

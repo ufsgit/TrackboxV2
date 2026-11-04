@@ -271,7 +271,10 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
               this.months = res.data.monthlyPerformance.months;
             }
             if (res.data.monthlyPerformance.series) {
-              this.series = res.data.monthlyPerformance.series;
+              this.series = res.data.monthlyPerformance.series.map((item: any) => ({
+                ...item,
+                name: item.name === 'Contacted' ? 'Applications' : item.name
+              }));
             }
             if (res.data.monthlyPerformance.chartMax) {
               this.chartMax = res.data.monthlyPerformance.chartMax;
@@ -437,14 +440,14 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         link: '/reports/visa-approved'
       },
       { 
-        label: 'Enrolled / Travelled', 
+        label: 'Completion / Enrolled', 
         value: eduStats.enrolled ?? 0, 
         icon: 'i-grad', 
         color: '#6366F1', 
         tint: 'rgba(99, 102, 241, 0.08)', 
         delta: '17%', 
         spark: [.3, .45, .55, .7, 1], 
-        link: '/reports/enrolled'
+        link: '/reports/completion-enrolled-report'
       },
     ].map(k => ({ ...k, display: String(k.value) }));
 

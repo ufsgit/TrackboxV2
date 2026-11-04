@@ -150,7 +150,7 @@ const getCrmDashboardStats = async (req, res) => {
       months: monthlyMonths,
       series: [
         { name: 'Leads', color: '#2F7BF5', values: leadsValues },
-        { name: 'Contacted', color: '#1FB874', values: contactedValues },
+        { name: 'Applications', color: '#1FB874', values: contactedValues },
         { name: 'Follow-ups Done', color: '#F59B2B', values: followupsValues },
         { name: 'Won', color: '#8B5CF6', values: wonValues }
       ],

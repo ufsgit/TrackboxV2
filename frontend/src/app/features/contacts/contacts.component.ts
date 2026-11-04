@@ -240,6 +240,21 @@ export class ContactsComponent implements OnInit {
     assigned_to: ''
   };
   parsedLeadsPreview: any[] = [];
+
+  // ─── Bulk Transfer State ───
+  showBulkTransferModal: boolean = false;
+  bulkTransferLoading: boolean = false;
+  bulkTransferScope: 'selected' | 'filter' = 'selected';
+  bulkTransferFromAgent: string = 'all';
+  bulkTransferFromStatus: string = 'all';
+  bulkTransferFromBranch: string = 'all';
+  bulkTransferTargetType: 'single' | 'split' = 'single';
+  bulkTransferTargetAgent: any = '';
+  bulkTransferBranch: string = '';
+  bulkTransferDepartment: string = '';
+  bulkTransferStatus: string = '';
+  bulkTransferRemarks: string = '';
+  bulkTransferAllocations: { userId: any; userName: string; count: number }[] = [];
   showImportDetailsView = false; // Used to toggle full page import view
 
   openUploadDocumentModal() {
@@ -2820,5 +2835,296 @@ Trackbox CRM Team`;
       case 'Upcoming': return 'badge rounded-pill bg-info-subtle text-info border border-info-subtle px-3 py-1';
       default: return 'badge rounded-pill bg-light text-dark px-3 py-1';
     }
+  }
+
+  // ─── Bulk Transfer Actions ───
+  openBulkTransferModal() {
+    if (this.selectedContactIds.size > 0) {
+      this.bulkTransferScope = 'selected';
+    } else {
+      this.bulkTransferScope = 'filter';
+    }
+    this.bulkTransferTargetType = 'single';
+    this.bulkTransferTargetAgent = '';
+    this.bulkTransferBranch = '';
+    this.bulkTransferDepartment = '';
+    this.bulkTransferStatus = '';
+    this.bulkTransferRemarks = '';
+    this.bulkTransferFromAgent = 'all';
+    this.bulkTransferFromStatus = 'all';
+    this.bulkTransferFromBranch = 'all';
+    this.bulkTransferAllocations = [];
+    this.showBulkTransferModal = true;
+  }
+
+  closeBulkTransferModal() {
+    this.showBulkTransferModal = false;
+    this.bulkTransferLoading = false;
+  }
+
+  onBulkTransferBranchChange() {
+    this.bulkTransferDepartment = '';
+    this.validateBulkTransferTargetAgent();
+  }
+
+  onBulkTransferDepartmentChange() {
+    this.validateBulkTransferTargetAgent();
+  }
+
+  validateBulkTransferTargetAgent() {
+    if (this.bulkTransferTargetAgent) {
+      const allowed = this.getBulkTransferFilteredEmployees();
+      const stillValid = allowed.some(a => String(a.id) === String(this.bulkTransferTargetAgent));
+      if (!stillValid) {
+        this.bulkTransferTargetAgent = '';
+      }
+    }
+  }
+
+  getBulkTransferFilteredDepartments(): any[] {
+    if (!this.bulkTransferBranch) return [];
+    
+    // Look up selected branch by ID or Name
+    const branch = this.branches.find(b => 
+      String(b.id) === String(this.bulkTransferBranch) || 
+      b.name === this.bulkTransferBranch
+    );
+    
+    const branchId = branch ? String(branch.id) : String(this.bulkTransferBranch);
+    const branchName = branch ? branch.name : this.bulkTransferBranch;
+
+    // Filter departments where branch_id or branch_name matches
+    const matched = this.departments.filter(d => 
+      (d.branch_id !== null && d.branch_id !== undefined && String(d.branch_id) === branchId) || 
+      (d.branch_name && d.branch_name === branchName)
+    );
+
+    // If departments are assigned to branches, return matching ones
+    if (matched.length > 0) {
+      return matched;
+    }
+
+    // Fallback: If no departments have branch_id set, or they are global, return all departments
+    return this.departments;
+  }
+
+  getBulkTransferFilteredEmployees(): any[] {
+    let list = this.agents || [];
+    if (!list || list.length === 0) return [];
+
+    let branchId: string | null = null;
+    let branchName: string | null = null;
+    if (this.bulkTransferBranch) {
+      const branch = this.branches.find(b => 
+        String(b.id) === String(this.bulkTransferBranch) || 
+        b.name === this.bulkTransferBranch
+      );
+      branchId = branch ? String(branch.id) : String(this.bulkTransferBranch);
+      branchName = branch ? branch.name : this.bulkTransferBranch;
+    }
+
+    let deptId: string | null = null;
+    let deptName: string | null = null;
+    if (this.bulkTransferDepartment) {
+      const dept = this.departments.find(d => 
+        String(d.id) === String(this.bulkTransferDepartment) || 
+        d.name === this.bulkTransferDepartment
+      );
+      deptId = dept ? String(dept.id) : String(this.bulkTransferDepartment);
+      deptName = dept ? dept.name : this.bulkTransferDepartment;
+    }
+
+    // 1. Both Branch and Department selected
+    if (branchId && deptId) {
+      const matched = list.filter(e => {
+        const matchB = (e.branch_id && String(e.branch_id) === branchId) || (e.branch_name && e.branch_name === branchName);
+        const matchD = (e.department_id && String(e.department_id) === deptId) || (e.department_name && e.department_name === deptName);
+        return matchB && matchD;
+      });
+      if (matched.length > 0) return matched;
+
+      // If no employee has both, try matching department
+      const deptOnly = list.filter(e => (e.department_id && String(e.department_id) === deptId) || (e.department_name && e.department_name === deptName));
+      if (deptOnly.length > 0) return deptOnly;
+
+      // Try matching branch
+      const branchOnly = list.filter(e => (e.branch_id && String(e.branch_id) === branchId) || (e.branch_name && e.branch_name === branchName));
+      if (branchOnly.length > 0) return branchOnly;
+    }
+    // 2. Only Branch selected
+    else if (branchId) {
+      const branchOnly = list.filter(e => (e.branch_id && String(e.branch_id) === branchId) || (e.branch_name && e.branch_name === branchName));
+      if (branchOnly.length > 0) return branchOnly;
+    }
+    // 3. Only Department selected
+    else if (deptId) {
+      const deptOnly = list.filter(e => (e.department_id && String(e.department_id) === deptId) || (e.department_name && e.department_name === deptName));
+      if (deptOnly.length > 0) return deptOnly;
+    }
+
+    return list;
+  }
+
+  addBulkTransferAllocation() {
+    this.bulkTransferAllocations.push({ userId: '', userName: '', count: 0 });
+  }
+
+  removeBulkTransferAllocation(index: number) {
+    this.bulkTransferAllocations.splice(index, 1);
+  }
+
+  onBulkTransferAllocationUserChange(index: number) {
+    const alloc = this.bulkTransferAllocations[index];
+    if (alloc && alloc.userId) {
+      const found = this.agents.find(a => String(a.id) === String(alloc.userId));
+      alloc.userName = found ? found.name : '';
+    }
+  }
+
+  autoDistributeBulkTransferCounts() {
+    if (this.bulkTransferAllocations.length === 0) return;
+    const total = this.bulkTransferEffectiveCount;
+    if (total <= 0) return;
+
+    const base = Math.floor(total / this.bulkTransferAllocations.length);
+    let remainder = total % this.bulkTransferAllocations.length;
+
+    this.bulkTransferAllocations.forEach((alloc) => {
+      alloc.count = base + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
+    });
+  }
+
+  get bulkTransferEffectiveCount(): number {
+    if (this.bulkTransferScope === 'selected') {
+      return this.selectedContactIds.size;
+    }
+    return this.totalContacts;
+  }
+
+  get totalBulkTransferAllocated(): number {
+    return this.bulkTransferAllocations.reduce((sum, a) => sum + (Number(a.count) || 0), 0);
+  }
+
+  get bulkTransferTargetAgentObj(): any {
+    if (!this.bulkTransferTargetAgent) return null;
+    return this.agents.find(a => String(a.id) === String(this.bulkTransferTargetAgent)) || null;
+  }
+
+  get bulkTransferBranchName(): string {
+    if (!this.bulkTransferBranch) return 'Keep Existing';
+    const b = this.branches.find(br => String(br.id) === String(this.bulkTransferBranch) || br.name === this.bulkTransferBranch);
+    return b ? b.name : this.bulkTransferBranch;
+  }
+
+  get bulkTransferDepartmentName(): string {
+    if (!this.bulkTransferDepartment) return 'Keep Existing';
+    const d = this.departments.find(dp => String(dp.id) === String(this.bulkTransferDepartment) || dp.name === this.bulkTransferDepartment);
+    return d ? d.name : this.bulkTransferDepartment;
+  }
+
+  get bulkTransferStatusName(): string {
+    if (!this.bulkTransferStatus) return 'Keep Existing';
+    const s = this.leadStatuses.find(st => String(st.id) === String(this.bulkTransferStatus) || st.name === this.bulkTransferStatus);
+    return s ? s.name : this.bulkTransferStatus;
+  }
+
+  executeBulkTransfer() {
+    if (this.bulkTransferLoading) return;
+
+    if (this.bulkTransferScope === 'selected' && this.selectedContactIds.size === 0) {
+      Swal.fire('No Leads Selected', 'Please select at least one lead from the table to transfer.', 'warning');
+      return;
+    }
+
+    if (this.bulkTransferTargetType === 'single') {
+      if (!this.bulkTransferTargetAgent) {
+        Swal.fire('Employee Required', 'Please choose the employee to receive the leads.', 'warning');
+        return;
+      }
+    } else {
+      const valid = this.bulkTransferAllocations.filter(a => a.userId && Number(a.count) > 0);
+      if (valid.length === 0) {
+        Swal.fire('Allocation Required', 'Please add at least one employee with a lead count greater than 0.', 'warning');
+        return;
+      }
+    }
+
+    const payload: any = {
+      remarks: this.bulkTransferRemarks ? this.bulkTransferRemarks.trim() : undefined
+    };
+
+    if (this.bulkTransferScope === 'selected') {
+      payload.contact_ids = Array.from(this.selectedContactIds);
+    } else {
+      payload.from_agent_id = this.bulkTransferFromAgent;
+      if (this.bulkTransferFromStatus !== 'all') payload.from_status_id = this.bulkTransferFromStatus;
+      if (this.bulkTransferFromBranch !== 'all') payload.from_branch_id = this.bulkTransferFromBranch;
+    }
+
+    if (this.bulkTransferTargetType === 'single') {
+      payload.target_agent_id = this.bulkTransferTargetAgent;
+    } else {
+      payload.allocations = this.bulkTransferAllocations.filter(a => a.userId && Number(a.count) > 0);
+    }
+
+    if (this.bulkTransferBranch) {
+      const bObj = this.branches.find(b => String(b.id) === String(this.bulkTransferBranch) || b.name === this.bulkTransferBranch);
+      payload.branch_id = bObj ? bObj.id : undefined;
+      payload.branch_name = bObj ? bObj.name : this.bulkTransferBranch;
+    }
+    if (this.bulkTransferDepartment) {
+      const dObj = this.departments.find(d => String(d.id) === String(this.bulkTransferDepartment) || d.name === this.bulkTransferDepartment);
+      payload.department_id = dObj ? dObj.id : undefined;
+      payload.department_name = dObj ? dObj.name : this.bulkTransferDepartment;
+    }
+    if (this.bulkTransferStatus) {
+      const sObj = this.leadStatuses.find(s => String(s.id) === String(this.bulkTransferStatus) || s.name === this.bulkTransferStatus);
+      payload.new_status_id = sObj ? sObj.id : undefined;
+      payload.new_status_name = sObj ? sObj.name : this.bulkTransferStatus;
+    }
+
+    const targetName = this.bulkTransferTargetType === 'single'
+      ? (this.agents.find(a => String(a.id) === String(this.bulkTransferTargetAgent))?.name || 'Selected Employee')
+      : `${this.bulkTransferAllocations.length} employees`;
+
+    Swal.fire({
+      title: 'Confirm Bulk Transfer',
+      text: `Are you sure you want to transfer leads to ${targetName}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, Transfer Leads'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.bulkTransferLoading = true;
+        this.api.post('/contacts/bulk-transfer', payload).subscribe({
+          next: (res: any) => {
+            this.bulkTransferLoading = false;
+            if (res.success) {
+              this.closeBulkTransferModal();
+              this.clearSelection();
+              Swal.fire({
+                icon: 'success',
+                title: 'Transferred Successfully',
+                text: res.message || 'Leads have been reallocated.',
+                timer: 2500,
+                showConfirmButton: false
+              });
+              this.loadContacts();
+            } else {
+              Swal.fire('Transfer Error', res.message || 'Failed to transfer leads.', 'error');
+            }
+          },
+          error: (err: any) => {
+            this.bulkTransferLoading = false;
+            console.error('[executeBulkTransfer] Error:', err);
+            const msg = err.error?.message || err.message || 'Failed to transfer leads.';
+            Swal.fire('Transfer Failed', msg, 'error');
+          }
+        });
+      }
+    });
   }
 }

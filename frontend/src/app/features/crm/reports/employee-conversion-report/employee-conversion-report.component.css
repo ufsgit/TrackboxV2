@@ -200,6 +200,81 @@
 }
 
 /* ── Dropdown Panels ── */
+.dropdown-panel.employee-panel {
+  min-width: 250px;
+}
+
+.dropdown-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.dropdown-search i {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.dropdown-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+
+.opt-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.opt-avatar.all-avatar {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.opt-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.opt-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opt-code {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.dropdown-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
 .dropdown-panel {
   position: absolute;
   top: calc(100% + 6px);

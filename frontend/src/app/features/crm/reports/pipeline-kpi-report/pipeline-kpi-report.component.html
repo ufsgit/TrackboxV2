@@ -25,7 +25,7 @@
             <p *ngIf="activeType === 'fees-paid'">Application fee payment receipts and financial transactions</p>
             <p *ngIf="activeType === 'visa-submitted'">Student applications with visa submitted for embassy processing</p>
             <p *ngIf="activeType === 'visa-approved'">Visas successfully granted and approved</p>
-            <p *ngIf="activeType === 'enrolled'">Students successfully enrolled or departed for overseas studies</p>
+            <p *ngIf="activeType === 'enrolled'">Students successfully completed or enrolled for overseas studies</p>
           </div>
         </div>
       </div>
@@ -455,7 +455,7 @@
       </table>
     </div>
 
-    <!-- 6. Enrolled / Travelled Report Table -->
+    <!-- 6. Completion / Enrolled Report Table -->
     <div class="table-responsive" *ngIf="activeType === 'enrolled'">
       <table class="report-table">
         <thead>
@@ -467,7 +467,7 @@
             <th>University</th>
             <th>Course</th>
             <th>Status</th>
-            <th>Enrollment / Travel Date</th>
+            <th>Completion / Enrollment Date</th>
             <th>Counselor</th>
             <th class="text-end">Action</th>
           </tr>
@@ -497,7 +497,7 @@
             <td>{{ it.course || '—' }}</td>
             <td>
               <span class="status-badge" style="background: rgba(99, 102, 241, 0.18); color: #4338ca; border: 1px solid rgba(99, 102, 241, 0.35);">
-                <i class="bi bi-mortarboard-fill me-1"></i> Enrolled / Travelled
+                <i class="bi bi-mortarboard-fill me-1"></i> Completion / Enrolled
               </span>
             </td>
             <td>

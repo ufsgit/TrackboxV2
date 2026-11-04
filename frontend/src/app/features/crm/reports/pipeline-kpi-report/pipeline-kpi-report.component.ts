@@ -61,7 +61,7 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
     { type: 'fees-paid', label: 'Fees Paid', icon: 'bi-cash-coin', color: '#F59E0B', tint: 'rgba(245, 158, 11, 0.1)' },
     { type: 'visa-submitted', label: 'Visa Applied', icon: 'bi-send-check', color: '#0EA5E9', tint: 'rgba(14, 165, 233, 0.1)' },
     { type: 'visa-approved', label: 'Visa Received', icon: 'bi-check-circle-fill', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' },
-    { type: 'enrolled', label: 'Enrolled / Travelled', icon: 'bi-mortarboard-fill', color: '#6366F1', tint: 'rgba(99, 102, 241, 0.1)' },
+    { type: 'enrolled', label: 'Completion / Enrolled', icon: 'bi-mortarboard-fill', color: '#6366F1', tint: 'rgba(99, 102, 241, 0.1)' },
   ];
 
   constructor(
@@ -122,7 +122,7 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
         else if (path.includes('fees-paid')) this.activeType = 'fees-paid';
         else if (path.includes('visa-submitted')) this.activeType = 'visa-submitted';
         else if (path.includes('visa-approved')) this.activeType = 'visa-approved';
-        else if (path.includes('enrolled')) this.activeType = 'enrolled';
+        else if (path.includes('enrolled') || path.includes('completion')) this.activeType = 'enrolled';
         else if (path.includes('applications')) this.activeType = 'applications';
         this.restoreReportState();
         this.fetchData();

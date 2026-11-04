@@ -1680,6 +1680,288 @@ const refreshEmailStatus = async (req, res) => {
   }
 };
 
+
+const bulkTransferContacts = async (req, res) => {
+  let conn;
+  try {
+    const bizId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role || 'agent';
+
+    const {
+      contact_ids,
+      from_agent_id,
+      status_id,
+      target_agent_id,
+      allocations,
+      branch_id,
+      branch_name,
+      department_id,
+      department_name,
+      new_status_id,
+      new_status_name,
+      remarks
+    } = req.body;
+
+    const hasSingleTarget = target_agent_id !== undefined && target_agent_id !== null && target_agent_id !== '';
+    const hasAllocations = Array.isArray(allocations) && allocations.length > 0 && allocations.some(a => a.userId && (a.count > 0 || allocations.length > 0));
+
+    if (!hasSingleTarget && !hasAllocations) {
+      return res.status(400).json({ success: false, message: 'Please select a destination employee to transfer leads to.' });
+    }
+
+    conn = await pool.getConnection();
+
+    let byUserName = req.user.name || 'System';
+    const [currentUserRows] = await conn.query('SELECT name FROM users WHERE id = ?', [userId]);
+    if (currentUserRows.length > 0 && currentUserRows[0].name) {
+      byUserName = currentUserRows[0].name;
+    }
+
+    let targetContacts = [];
+
+    if (Array.isArray(contact_ids) && contact_ids.length > 0) {
+      let query = `
+        SELECT c.id, c.name, c.phone, c.assigned_to, c.branch_id, c.branch_name, c.department_id, c.department_name, c.status_id, c.status_name, c.user_list
+        FROM contacts c
+        WHERE c.business_id = ? AND c.id IN (${contact_ids.map(() => '?').join(',')})
+      `;
+      let params = [bizId, ...contact_ids];
+
+      if (userRole === 'agent') {
+        query += ' AND c.assigned_to = ?';
+        params.push(userId);
+      }
+
+      const [rows] = await conn.query(query, params);
+      targetContacts = rows;
+    } else if (from_agent_id !== undefined && from_agent_id !== null) {
+      let query = `
+        SELECT c.id, c.name, c.phone, c.assigned_to, c.branch_id, c.branch_name, c.department_id, c.department_name, c.status_id, c.status_name, c.user_list
+        FROM contacts c
+        WHERE c.business_id = ?
+      `;
+      let params = [bizId];
+
+      if (userRole === 'agent') {
+        query += ' AND c.assigned_to = ?';
+        params.push(userId);
+      } else if (from_agent_id === 'unassigned') {
+        query += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
+      } else if (from_agent_id !== 'all') {
+        query += ' AND c.assigned_to = ?';
+        params.push(from_agent_id);
+      }
+
+      const filterStatus = req.body.from_status_id || status_id;
+      if (filterStatus && filterStatus !== 'all') {
+        query += ' AND c.status_id = ?';
+        params.push(filterStatus);
+      }
+
+      const filterBranch = req.body.from_branch_id || (from_agent_id !== undefined ? branch_id : null);
+      if (filterBranch && filterBranch !== 'all') {
+        query += ' AND c.branch_id = ?';
+        params.push(filterBranch);
+      }
+
+      const [rows] = await conn.query(query, params);
+      targetContacts = rows;
+    }
+
+    if (!targetContacts || targetContacts.length === 0) {
+      conn.release();
+      return res.status(400).json({ success: false, message: 'No matching leads found to transfer.' });
+    }
+
+    const assignmentPlan = [];
+    const userNamesMap = new Map();
+
+    const targetUserIds = new Set();
+    if (hasSingleTarget) targetUserIds.add(Number(target_agent_id));
+    if (hasAllocations) {
+      allocations.forEach(a => { if (a.userId) targetUserIds.add(Number(a.userId)); });
+    }
+
+    if (targetUserIds.size > 0) {
+      const [uRows] = await conn.query(
+        `SELECT id, name FROM users WHERE id IN (${Array.from(targetUserIds).map(() => '?').join(',')})`,
+        Array.from(targetUserIds)
+      );
+      uRows.forEach(u => userNamesMap.set(u.id, u.name));
+    }
+
+    if (hasAllocations) {
+      let contactIndex = 0;
+      const validAllocs = allocations.filter(a => a.userId && (a.count > 0 || allocations.length > 0));
+      
+      for (const alloc of validAllocs) {
+        const uId = Number(alloc.userId);
+        const uName = userNamesMap.get(uId) || 'Assigned Agent';
+        const allocCount = alloc.count && alloc.count > 0 ? Number(alloc.count) : Math.ceil(targetContacts.length / validAllocs.length);
+        
+        for (let i = 0; i < allocCount && contactIndex < targetContacts.length; i++) {
+          assignmentPlan.push({
+            contact: targetContacts[contactIndex],
+            targetUserId: uId,
+            targetUserName: uName
+          });
+          contactIndex++;
+        }
+      }
+
+      while (contactIndex < targetContacts.length) {
+        const alloc = validAllocs[contactIndex % validAllocs.length];
+        const uId = Number(alloc.userId);
+        assignmentPlan.push({
+          contact: targetContacts[contactIndex],
+          targetUserId: uId,
+          targetUserName: userNamesMap.get(uId) || 'Assigned Agent'
+        });
+        contactIndex++;
+      }
+    } else {
+      const uId = Number(target_agent_id);
+      const uName = userNamesMap.get(uId) || 'Assigned Agent';
+      for (const contact of targetContacts) {
+        assignmentPlan.push({
+          contact,
+          targetUserId: uId,
+          targetUserName: uName
+        });
+      }
+    }
+
+    await conn.beginTransaction();
+
+    const transferRemarks = remarks && remarks.trim() 
+      ? remarks.trim() 
+      : `Bulk lead transfer by ${byUserName}`;
+
+    const resolvedBranchId = (branch_id !== undefined && branch_id !== null && branch_id !== '') ? Number(branch_id) : null;
+    const resolvedBranchName = resolvedBranchId ? (branch_name || null) : null;
+
+    const resolvedDeptId = (department_id !== undefined && department_id !== null && department_id !== '') ? Number(department_id) : null;
+    const resolvedDeptName = resolvedDeptId ? (department_name || null) : null;
+
+    const resolvedStatusId = (new_status_id !== undefined && new_status_id !== null && new_status_id !== '') ? Number(new_status_id) : null;
+    const resolvedStatusName = resolvedStatusId ? (new_status_name || null) : null;
+
+    const notificationCounts = new Map();
+
+    for (const item of assignmentPlan) {
+      const { contact, targetUserId, targetUserName } = item;
+      const contactId = contact.id;
+
+      const finalBranchId = resolvedBranchId !== null ? resolvedBranchId : (contact.branch_id || null);
+      const finalBranchName = resolvedBranchId !== null ? resolvedBranchName : (contact.branch_name || null);
+
+      const finalDeptId = resolvedDeptId !== null ? resolvedDeptId : (contact.department_id || null);
+      const finalDeptName = resolvedDeptId !== null ? resolvedDeptName : (contact.department_name || null);
+
+      const finalStatusId = resolvedStatusId !== null ? resolvedStatusId : (contact.status_id || null);
+      const finalStatusName = resolvedStatusId !== null ? resolvedStatusName : (contact.status_name || null);
+
+      await conn.query(
+        `INSERT INTO follow_ups (
+          contact_id, contact_name, follow_up_date, by_user_id, by_user_name,
+          to_user_id, to_user_name, status_id, status_name,
+          branch_id, branch_name, department_id, department_name, remarks
+        ) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          contactId,
+          contact.name || contact.phone || 'Lead',
+          userId,
+          byUserName,
+          targetUserId,
+          targetUserName,
+          finalStatusId,
+          finalStatusName,
+          finalBranchId,
+          finalBranchName,
+          finalDeptId,
+          finalDeptName,
+          transferRemarks
+        ]
+      );
+
+      let currentList = contact.user_list ? (typeof contact.user_list === 'string' ? JSON.parse(contact.user_list) : contact.user_list) : [];
+      if (!Array.isArray(currentList)) currentList = [];
+      if (contact.assigned_to && !currentList.includes(contact.assigned_to) && !currentList.includes(String(contact.assigned_to)) && !currentList.includes(Number(contact.assigned_to))) {
+        currentList.push(contact.assigned_to);
+      }
+      if (targetUserId && !currentList.includes(targetUserId) && !currentList.includes(String(targetUserId)) && !currentList.includes(Number(targetUserId))) {
+        currentList.push(targetUserId);
+      }
+
+      const updateFields = ['assigned_to = ?', 'user_list = ?', 'follow_up_count = COALESCE(follow_up_count, 0) + 1'];
+      const updateParams = [targetUserId, JSON.stringify(currentList)];
+
+      if (resolvedBranchId !== null) {
+        updateFields.push('branch_id = ?', 'branch_name = ?');
+        updateParams.push(resolvedBranchId, resolvedBranchName);
+      }
+      if (resolvedDeptId !== null) {
+        updateFields.push('department_id = ?', 'department_name = ?');
+        updateParams.push(resolvedDeptId, resolvedDeptName);
+      }
+      if (resolvedStatusId !== null) {
+        updateFields.push('status_id = ?', 'status_name = ?');
+        updateParams.push(resolvedStatusId, resolvedStatusName);
+      }
+
+      updateParams.push(contactId, bizId);
+      await conn.query(
+        `UPDATE contacts SET ${updateFields.join(', ')} WHERE id = ? AND business_id = ?`,
+        updateParams
+      );
+
+      await conn.query(
+        'UPDATE conversations SET assigned_to = ? WHERE contact_id = ? AND business_id = ?',
+        [targetUserId, contactId, bizId]
+      );
+
+      await conn.query(
+        'INSERT INTO contact_history (contact_id, business_id, user_id, field_name, old_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
+        [contactId, bizId, userId, 'assigned_to', contact.assigned_to ? String(contact.assigned_to) : 'Unassigned', String(targetUserId)]
+      );
+
+      notificationCounts.set(targetUserId, (notificationCounts.get(targetUserId) || 0) + 1);
+    }
+
+    await conn.commit();
+
+    const io = req.app.get('io');
+    for (const [tUserId, count] of notificationCounts.entries()) {
+      await pool.query(
+        `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [bizId, tUserId, 'assignment', 'Bulk Leads Transferred', `${count} lead(s) have been transferred to you by ${byUserName}.`, targetContacts[0].id]
+      );
+      if (io) {
+        io.to(`biz_${bizId}`).emit('contacts_bulk_transferred', {
+          count,
+          assigned_to: tUserId,
+          transferred_by: byUserName
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      count: targetContacts.length,
+      message: `Successfully transferred ${targetContacts.length} lead(s).`
+    });
+
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error('[bulkTransferContacts] error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
 module.exports = { 
   getContacts, 
   getContact, 
@@ -1700,6 +1982,7 @@ module.exports = {
   importExcelContacts,
   previewBulkEmail,
   sendBulkEmail,
-  refreshEmailStatus
+  refreshEmailStatus,
+  bulkTransferContacts
 };
 
