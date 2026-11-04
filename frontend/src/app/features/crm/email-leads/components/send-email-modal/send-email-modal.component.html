@@ -1,0 +1,317 @@
+<div class="custom-modal center-modal leads-bulk-email-modal-overlay" *ngIf="isOpen">
+  <!-- Backdrop -->
+  <div class="modal-backdrop" (click)="closeModal()"></div>
+
+  <!-- Modal Dialog / Card (1060px max-width, modern pro dashboard styling) -->
+  <div class="modal-card leads-bulk-email-dialog" (click)="$event.stopPropagation()">
+    
+    <!-- Top Accent Gradient Ribbon -->
+    <div class="modal-top-accent-bar"></div>
+
+    <!-- ═══ MODAL HEADER: EXECUTIVE PRO COCKPIT ═══ -->
+    <div class="bulk-email-dashboard-header">
+      <div class="header-main-left">
+        <div class="dashboard-icon-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M22 2L11 13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </div>
+        <div class="header-identity">
+          <div class="identity-top-row">
+            <h3 class="dashboard-header-title">Send Email Campaign</h3>
+            <span class="brevo-verified-badge">
+              <span class="badge-pulse-dot"></span>
+              Brevo Verified
+            </span>
+          </div>
+          <div class="identity-sub-row">
+            <span class="sender-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="meta-inline-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              From: <strong class="sender-email">worksufs&#64;gmail.com</strong>
+            </span>
+            <span class="meta-separator">&bull;</span>
+            <span class="protocol-tag">Personalized Cloud Delivery via Brevo API</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-main-right">
+        <div class="header-gateway-status">
+          <span class="gateway-live-dot"></span>
+          <span class="gateway-status-text">Relay Active</span>
+        </div>
+        <!-- Close Button -->
+        <button type="button" class="dashboard-close-btn" (click)="closeModal()" [disabled]="bulkEmailSending" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD KPI METRICS STRIP (4-CARD GRID) ═══ -->
+    <div class="dashboard-kpi-strip" *ngIf="!bulkEmailResultsView">
+      <!-- Card 1: Target Audience -->
+      <div class="dashboard-kpi-card" [class.clickable]="bulkEmailPreview.validCount > 0" (click)="bulkEmailPreview.validCount > 0 ? (showInvalidEmailDetails = !showInvalidEmailDetails) : null" title="Click to view recipient list">
+        <div class="kpi-card-icon icon-indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-label">Target Audience</div>
+          <div class="kpi-card-value">
+            {{ (bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0) }}
+            <span class="kpi-unit">Lead{{ ((bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0)) === 1 ? '' : 's' }}</span>
+          </div>
+        </div>
+        <button type="button" class="kpi-toggle-link" *ngIf="bulkEmailPreview.validCount > 0" (click)="$event.stopPropagation(); showInvalidEmailDetails = !showInvalidEmailDetails">
+          <span>{{ showInvalidEmailDetails ? 'Hide' : 'View' }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="kpi-arrow-icon" [class.rotated]="showInvalidEmailDetails"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+
+      </div>
+
+    <!-- ═══ EXPANDABLE AUDIENCE DRAWER ═══ -->
+    <div class="header-audience-drawer" *ngIf="showInvalidEmailDetails && !bulkEmailResultsView">
+      <div class="drawer-header-bar">
+        <div class="drawer-header-left">
+          <span class="drawer-title">Target Delivery List ({{ bulkEmailPreview.validCount || 0 }} Leads)</span>
+          <span class="drawer-note">Personalized variables resolve dynamically per recipient from CRM records</span>
+        </div>
+        <button type="button" class="drawer-close-link" (click)="showInvalidEmailDetails = false">
+          Close List &times;
+        </button>
+      </div>
+      <div class="drawer-chips-grid">
+        <div class="drawer-recipient-card" *ngFor="let vr of bulkEmailPreview.validRecipients">
+          <div class="recipient-avatar-badge">{{ vr.name ? (vr.name[0] | uppercase) : 'L' }}</div>
+          <div class="recipient-details">
+            <span class="r-name">{{ vr.name }}</span>
+            <span class="r-email">{{ vr.email }}</span>
+          </div>
+          <span class="r-status-tag ready">Valid</span>
+        </div>
+        <div class="drawer-recipient-card skipped" *ngFor="let m of bulkEmailPreview.missingRecipients">
+          <div class="recipient-avatar-badge muted">{{ m.name ? (m.name[0] | uppercase) : 'L' }}</div>
+          <div class="recipient-details">
+            <span class="r-name">{{ m.name }}</span>
+            <span class="r-email text-muted">{{ m.phone || 'No email on record' }}</span>
+          </div>
+          <span class="r-status-tag skipped">Skipped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD WORKFLOW TOOLBAR (TEMPLATES + DYNAMIC MERGE TAGS) ═══ -->
+    <div class="dashboard-workflow-bar" *ngIf="!bulkEmailResultsView">
+      <div class="workflow-left">
+        <span class="workflow-heading-label">Campaign Template:</span>
+        <div class="template-segmented-control">
+          <button type="button" 
+                  class="segment-tab-btn" 
+                  [class.active]="!selectedTemplateId"
+                  (click)="selectedTemplateId = null">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="tab-icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>Custom Draft</span>
+          </button>
+          <button type="button" 
+                  *ngFor="let t of emailTemplates"
+                  class="segment-tab-btn" 
+                  [class.active]="selectedTemplateId === t.id"
+                  (click)="onEmailTemplateSelected({ target: { value: t.id } })"
+                  [title]="t.name">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="tab-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>{{ getCleanTemplateName(t.name) }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="workflow-right">
+        <span class="workflow-heading-label">Insert Dynamic Tag:</span>
+        <button type="button" class="quick-variable-pill" (click)="insertVariableTag('{{first_name}}')" title="Click to insert first name tag">
+          + {{ '{' + '{first_name}' + '}' }}
+        </button>
+        <button type="button" class="quick-variable-pill" (click)="insertVariableTag('{{name}}')" title="Click to insert full name tag">
+          + {{ '{' + '{name}' + '}' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Body (Two-Column Layout: Left Compose / Right Interactive Live Preview) -->
+    <div class="bulk-email-body" *ngIf="!bulkEmailResultsView">
+      
+      <!-- Left Column: Subject, Message Body -->
+      <div class="bulk-email-compose-col">
+        <!-- Subject Field -->
+        <div class="compose-field-group">
+          <label class="compose-field-label">Subject Line <span class="required-star">*</span></label>
+          <div class="input-with-icon-wrapper">
+            <svg class="input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="text" 
+                   class="compose-text-input" 
+                   [(ngModel)]="bulkEmailSubject" 
+                   placeholder="e.g. {{ '{' + '{first_name}' + '}' }}, let's discuss your next career step!">
+          </div>
+        </div>
+
+        <!-- Message Field -->
+        <div class="compose-field-group">
+          <div class="compose-field-header">
+            <label class="compose-field-label">Message Body <span class="required-star">*</span></label>
+            <div class="variable-tags-group">
+              <button type="button" class="tag-pill-btn" (click)="insertVariableTag('{{first_name}}')" title="Click to insert first name tag">
+                + {{ '{' + '{first_name}' + '}' }}
+              </button>
+              <button type="button" class="tag-pill-btn" (click)="insertVariableTag('{{name}}')" title="Click to insert full name tag">
+                + {{ '{' + '{name}' + '}' }}
+              </button>
+            </div>
+          </div>
+          <div class="textarea-card-wrapper">
+            <textarea class="compose-textarea-input" 
+                      rows="8" 
+                      [(ngModel)]="bulkEmailBody" 
+                      placeholder="Type your message here..."></textarea>
+            <div class="textarea-footer-strip">
+              <span class="variables-info-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="info-note-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Variables resolve dynamically per recipient from CRM lead records
+              </span>
+              <span class="body-char-counter">{{ bulkEmailBody ? bulkEmailBody.length : 0 }} chars</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Live Inbox Preview (Starts at matching top baseline) -->
+      <div class="bulk-email-preview-col">
+        
+        <!-- Loading State -->
+        <div *ngIf="bulkEmailLoadingPreview" class="recipients-loading-box">
+          <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+          <span>Validating recipients with Brevo...</span>
+        </div>
+
+        <!-- Live Email Preview Mockup Window -->
+        <div class="live-email-preview-container" *ngIf="!bulkEmailLoadingPreview">
+          <div class="preview-mockup-header">
+            <div class="mockup-window-controls">
+              <span class="window-dot red"></span>
+              <span class="window-dot yellow"></span>
+              <span class="window-dot green"></span>
+            </div>
+            <div class="mockup-header-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span>Live Inbox Preview</span>
+            </div>
+            <span class="preview-mode-tag">Personalized</span>
+          </div>
+
+          <div class="preview-email-envelope">
+            <!-- Email Meta Header -->
+            <div class="email-meta-section">
+              <div class="meta-row">
+                <span class="meta-label">From:</span>
+                <span class="meta-value"><strong>Choice Campaigns Admissions</strong> &lt;worksufs&#64;gmail.com&gt;</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">To:</span>
+                <span class="meta-value recipient-target">
+                  <strong>{{ getLivePreviewRecipientName() }}</strong> &lt;{{ getLivePreviewRecipientEmail() }}&gt;
+                </span>
+              </div>
+              <div class="meta-row subject-row">
+                <span class="meta-label">Subject:</span>
+                <span class="meta-value subject-value">{{ getLivePreviewSubject() }}</span>
+              </div>
+            </div>
+
+            <!-- Email Body Preview Canvas -->
+            <div class="email-canvas-body">
+              <div class="email-canvas-letter">
+                <div class="email-rendered-text">{{ getLivePreviewBody() }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Modal Body (Results View: After Sending) -->
+    <div class="bulk-email-body results-view-body" *ngIf="bulkEmailResultsView">
+      <div class="results-summary-card">
+        <div class="results-summary-header">
+          <div>
+            <h4 class="results-title">Brevo Dispatch Status</h4>
+            <p class="results-subtitle">{{ getDeliverySummaryText() }}</p>
+          </div>
+          <button type="button" class="leads-btn leads-btn-secondary" (click)="refreshEmailStatusFromBrevo()" [disabled]="bulkEmailRefreshing">
+            <span *ngIf="bulkEmailRefreshing" class="spinner-border spinner-border-sm me-1"></span>
+            <svg *ngIf="!bulkEmailRefreshing" class="leads-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <span>{{ bulkEmailRefreshing ? 'Updating...' : 'Refresh Status' }}</span>
+          </button>
+        </div>
+
+        <div class="results-table-wrapper">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Lead Name</th>
+                <th>Recipient Email</th>
+                <th>Brevo Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of bulkEmailResults">
+                <td class="lead-cell-name">{{ item.name || 'Lead' }}</td>
+                <td class="lead-cell-email">{{ item.email }}</td>
+                <td>
+                  <span class="status-pill" [ngClass]="getStatusBadgeClass(item.status)">
+                    {{ item.status === 'queued' ? 'Accepted by Brevo' : (item.status | titlecase) }}
+                  </span>
+                </td>
+                <td class="lead-cell-details">
+                  <span *ngIf="item.reason" class="text-danger fw-semibold">{{ item.reason }}</span>
+                  <span *ngIf="!item.reason && item.status === 'delivered'" class="text-success">Delivered to inbox</span>
+                  <span *ngIf="!item.reason && item.status === 'opened'" class="text-primary">Opened by lead</span>
+                  <span *ngIf="!item.reason && item.status === 'queued'" class="text-muted">Accepted by Brevo, pending relay</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="bulk-email-footer">
+      <button type="button" class="leads-btn leads-btn-secondary" (click)="closeModal()" [disabled]="bulkEmailSending">
+        {{ bulkEmailResultsView ? 'Close Window' : 'Cancel' }}
+      </button>
+
+      <div class="footer-actions-right" *ngIf="!bulkEmailResultsView">
+        <span class="footer-warning-hint" *ngIf="!bulkEmailSubject.trim()">* Subject is required</span>
+        <button type="button" 
+                class="leads-btn leads-btn-accent" 
+                (click)="sendBulkEmailViaBrevo()" 
+                [disabled]="bulkEmailSending || bulkEmailLoadingPreview || bulkEmailPreview.validCount === 0 || !bulkEmailSubject.trim()">
+          <span *ngIf="bulkEmailSending" class="spinner-border spinner-border-sm me-2"></span>
+          <svg *ngIf="!bulkEmailSending" class="leads-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          <span>{{ bulkEmailSending ? 'Sending via Brevo...' : 'Send to ' + (bulkEmailPreview.validCount || 0) + ' recipients' }}</span>
+        </button>
+      </div>
+
+      <div class="footer-actions-right" *ngIf="bulkEmailResultsView">
+        <button type="button" class="leads-btn leads-btn-accent" (click)="closeModal()">
+          Done
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

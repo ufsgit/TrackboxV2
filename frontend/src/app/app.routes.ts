@@ -32,6 +32,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardRedirectComponent },
       { path: 'lead-dashboard', loadComponent: () => import('./features/lead-dashboard/lead-dashboard.component').then(m => m.LeadDashboardComponent) },
       { path: 'crm-dashboard', loadComponent: () => import('./features/crm-dashboard/crm-dashboard.component').then(m => m.CrmDashboardComponent) },
+      { path: 'email-leads', loadComponent: () => import('./features/crm/email-leads/email-leads.component').then(m => m.EmailLeadsComponent) },
       { path: 'quotations', loadComponent: () => import('./features/crm/quotations/quotations.component').then(m => m.QuotationsComponent) },
       { path: 'purchase-orders', loadComponent: () => import('./features/crm/purchase-orders/purchase-orders.component').then(m => m.PurchaseOrdersComponent) },
       { path: 'delivery-management', loadComponent: () => import('./features/crm/delivery-management/delivery-management.component').then(m => m.DeliveryManagementComponent) },

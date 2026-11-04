@@ -1,0 +1,207 @@
+<div class="email-leads-wrapper">
+  <!-- Top Header Section -->
+  <div class="leads-header-row">
+    <div class="leads-header-left">
+      <div class="leads-header-icon">
+        <i class="bi bi-envelope-at-fill"></i>
+      </div>
+      <div>
+        <div class="leads-title-with-badge">
+          <h1 class="leads-main-title">Email Leads</h1>
+          <span class="leads-count-pill" *ngIf="totalLeads > 0">
+            {{ totalLeads }} Leads
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="leads-actions-col">
+      <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email">
+        <i class="bi bi-envelope-fill"></i>
+        <span>Send Email</span>
+        <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
+          {{ selectedContactIds.size }}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="leads-toolbar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        (ngModelChange)="onSearchChange()" 
+        placeholder="Search by name, phone or email..."
+        class="search-input"
+      />
+      <button *ngIf="searchQuery" class="clear-search-btn" (click)="searchQuery = ''; applyFilters()">
+        <i class="bi bi-x-circle-fill"></i>
+      </button>
+    </div>
+
+    <div class="filter-controls">
+      <select class="form-select filter-select" [(ngModel)]="activeStatus" (ngModelChange)="onStatusChange()">
+        <option value="">All Statuses</option>
+        <option *ngFor="let st of leadStatuses" [value]="st.name">{{ st.name }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Selection Bar -->
+  <div class="leads-selection-bar" *ngIf="selectedContactIds.size > 0">
+    <div class="selection-left">
+      <span class="selection-count-pill">{{ selectedContactIds.size }}</span>
+      <span class="selection-text">of {{ totalLeads }} leads selected</span>
+      <button class="selection-clear-btn" (click)="clearSelection()">Clear selection</button>
+    </div>
+    <div class="selection-right">
+      <button class="selection-action-btn" (click)="openBulkEmailModal()">
+        <i class="bi bi-send-fill me-1"></i> Send Email to Selected ({{ selectedContactIds.size }})
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="leads-table-card">
+    <div class="table-responsive">
+      <table class="leads-styled-table">
+        <thead>
+          <tr>
+            <th class="col-checkbox">
+              <input 
+                type="checkbox" 
+                class="leads-checkbox" 
+                [checked]="isAllSelected" 
+                (change)="toggleSelectAll()" 
+                title="Select All On Page"
+              />
+            </th>
+            <th class="col-lead">LEAD NAME</th>
+            <th class="col-email">EMAIL</th>
+            <th class="col-status">STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading Spinner -->
+          <tr *ngIf="loading">
+            <td colspan="4" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="!loading && leads.length === 0">
+            <td colspan="4" class="text-center py-5">
+              <div class="empty-state">
+                <i class="bi bi-inbox text-muted display-4"></i>
+                <h5 class="mt-3 text-secondary">No Leads Found</h5>
+                <p class="text-muted small">No leads matching your search/filters or none available.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Data Rows -->
+          <tr 
+            *ngFor="let lead of leads; let i = index" 
+            class="leads-table-row" 
+            [class.leads-row-selected]="isContactSelected(lead.id)"
+          >
+            <!-- Checkbox -->
+            <td class="col-checkbox" (click)="$event.stopPropagation()">
+              <input 
+                type="checkbox" 
+                class="leads-checkbox" 
+                [checked]="isContactSelected(lead.id)" 
+                (change)="toggleSelectContact(lead.id, $event)"
+              />
+            </td>
+
+            <!-- Lead Name & Avatar -->
+            <td class="col-lead">
+              <div class="lead-info-cell">
+                <div class="lead-avatar" [ngClass]="getAvatarTintClass(lead.id || i)">
+                  {{ getLeadInitials(lead.name) }}
+                </div>
+                <div class="lead-text-group">
+                  <span class="lead-name">{{ lead.name || 'Unnamed Lead' }}</span>
+                  <span class="lead-phone" *ngIf="lead.phone">{{ lead.phone }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Email -->
+            <td class="col-email">
+              <span *ngIf="lead.email && lead.email.trim()" class="lead-email-text">
+                {{ lead.email }}
+              </span>
+              <span *ngIf="!lead.email || !lead.email.trim()" class="no-email-chip">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                <span>No email</span>
+              </span>
+            </td>
+
+            <!-- Status -->
+            <td class="col-status">
+              <span 
+                class="status-pill"
+                [class.status-pending]="(lead.status_name || '').toUpperCase() === 'PENDING' || (lead.status_name || '').toUpperCase() === 'NEW'"
+                [class.status-won]="(lead.status_name || '').toUpperCase() === 'WON' || (lead.status_name || '').toUpperCase() === 'CONVERTED'"
+                [style.backgroundColor]="((lead.status_name || '').toUpperCase() !== 'PENDING' && (lead.status_name || '').toUpperCase() !== 'NEW' && (lead.status_name || '').toUpperCase() !== 'WON' && (lead.status_name || '').toUpperCase() !== 'CONVERTED') ? (getStatusColor(lead.status_name) + '18') : null"
+                [style.color]="((lead.status_name || '').toUpperCase() !== 'PENDING' && (lead.status_name || '').toUpperCase() !== 'NEW' && (lead.status_name || '').toUpperCase() !== 'WON' && (lead.status_name || '').toUpperCase() !== 'CONVERTED') ? getStatusColor(lead.status_name) : null"
+              >
+                {{ lead.status_name || 'PENDING' }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="table-pagination-footer" *ngIf="totalLeads > 0">
+      <div class="pagination-info">
+        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ (currentPage * pageSize > totalLeads ? totalLeads : currentPage * pageSize) }} of {{ totalLeads }} leads
+      </div>
+      <div class="pagination-controls">
+        <select class="form-select form-select-sm page-size-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+          <option [ngValue]="10">10 per page</option>
+          <option [ngValue]="25">25 per page</option>
+          <option [ngValue]="50">50 per page</option>
+          <option [ngValue]="100">100 per page</option>
+        </select>
+
+        <div class="page-buttons">
+          <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button 
+            *ngFor="let p of getPages()" 
+            class="page-btn" 
+            [class.active]="p === currentPage" 
+            (click)="goToPage(p)"
+          >
+            {{ p }}
+          </button>
+          <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Send Email Modal Component -->
+<app-send-email-modal
+  [isOpen]="showBulkEmailModal"
+  [selectedContactIds]="selectedContactIds"
+  [searchQuery]="searchQuery"
+  [activeStatus]="activeStatus"
+  (close)="closeBulkEmailModal()"
+  (emailSent)="onEmailSent()"
+></app-send-email-modal>
