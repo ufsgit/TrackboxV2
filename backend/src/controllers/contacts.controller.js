@@ -19,6 +19,22 @@ const path = require('path');
 const fs = require('fs');
 const r2Service = require('../services/r2.service');
 
+const normalizeDateOnly = (val) => {
+  if (!val) return null;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+};
+
 const paginate = (page, limit) => {
   const p = Math.max(1, parseInt(page) || 1);
   const l = Math.min(10000, parseInt(limit) || 1000);
@@ -297,7 +313,7 @@ const createContact = async (req, res) => {
     
     let formattedFollowUpDate = null;
     if (follow_up_date) {
-      formattedFollowUpDate = new Date(follow_up_date).toISOString().split('T')[0];
+      formattedFollowUpDate = normalizeDateOnly(follow_up_date);
     }
 
     let current_sale_status = 0;
@@ -437,7 +453,7 @@ const updateContact = async (req, res) => {
     // Format follow_up_date if provided; convert empty string to null
     if (updateFields.follow_up_date !== undefined) {
       if (updateFields.follow_up_date && updateFields.follow_up_date !== '') {
-        updateFields.follow_up_date = new Date(updateFields.follow_up_date).toISOString().split('T')[0];
+        updateFields.follow_up_date = normalizeDateOnly(updateFields.follow_up_date);
       } else {
         updateFields.follow_up_date = null;
       }
@@ -550,7 +566,7 @@ const updateContact = async (req, res) => {
     }
 
     const formatValue = (val) => {
-      if (val instanceof Date) return val.toISOString().split('T')[0];
+      if (val instanceof Date) return normalizeDateOnly(val);
       return val ? String(val) : null;
     };
     const logHistory = async (field, oldVal, newVal) => {
@@ -1121,7 +1137,7 @@ const importExcelContacts = async (req, res) => {
     // ── Follow-up date ────────────────────────────────────
     let formattedFollowUpDate = null;
     if (follow_up_date) {
-      try { formattedFollowUpDate = new Date(follow_up_date).toISOString().split('T')[0]; } catch {}
+      formattedFollowUpDate = normalizeDateOnly(follow_up_date);
     }
 
     // ── User names for follow_ups record ─────────────────

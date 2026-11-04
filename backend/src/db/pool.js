@@ -11,6 +11,7 @@ const pool = mysql.createPool({
   connectionLimit: 20,
   queueLimit: 0,
   charset: 'utf8mb4',
+  dateStrings: ['DATE'],
 });
 
 const promisePool = pool.promise();

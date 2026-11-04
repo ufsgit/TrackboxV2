@@ -665,6 +665,7 @@ export class ReceiptReportComponent implements OnInit {
   ngOnInit() {
     this.fetchData();
     this.fetchMonthlyAnalysis();
+    this.loadStaffList();
   }
 
   fetchData(isRefresh = false) {
@@ -706,7 +707,7 @@ export class ReceiptReportComponent implements OnInit {
           this.employeeBreakdown = d.employeeBreakdown || [];
           this.typeBreakdown = d.typeBreakdown || [];
           this.timelineData = d.timelineData || [];
-          this.staffList = d.staffList || [];
+          if (d.staffList && d.staffList.length > 0) { this.staffList = d.staffList; }
           this.receipts = d.receipts || [];
           if (d.pagination) {
             this.totalRecords = d.pagination.total;
@@ -1088,8 +1089,34 @@ export class ReceiptReportComponent implements OnInit {
     this.isDateDropdownOpen = false;
   }
 
-  selectEmployee(empId: string) {
-    this.selectedEmployee = empId;
+  loadStaffList() {
+    this.api.get('/users').subscribe({
+      next: (res: any) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const list = res.data
+            .filter((u: any) => !u.is_dev)
+            .map((u: any) => ({ id: u.id, name: u.name }));
+          if (list.length > 0) {
+            this.staffList = list;
+          }
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  isEmployeeSelected(u: any): boolean {
+    if (!u) return false;
+    return String(this.selectedEmployee) === String(u.id);
+  }
+
+  clearEmployeeFilter(event?: Event) {
+    if (event) event.stopPropagation();
+    this.selectEmployee('all');
+  }
+
+  selectEmployee(empId: any) {
+    this.selectedEmployee = String(empId);
     this.isEmployeeDropdownOpen = false;
     this.currentPage = 1;
     this.fetchData();

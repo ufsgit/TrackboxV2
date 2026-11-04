@@ -1856,7 +1856,7 @@ export class ContactsComponent implements OnInit {
       enquiry_for_id: contact.enquiry_for_id || null,
       status: contact.status || '',
       remark: contact.remark || '',
-      follow_up_date: contact.follow_up_date ? new Date(contact.follow_up_date).toISOString().split('T')[0] : '',
+      follow_up_date: this.extractLocalDateStr(contact.follow_up_date),
       tags: tagsArray.join(', '),
       channel_preference: contact.channel_preference || '',
       assigned_to: contact.assigned_to || '',
@@ -2319,6 +2319,25 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  extractLocalDateStr(val: any): string {
+    if (!val) return '';
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) {
+      if (typeof val === 'string') {
+        const m = val.match(/^\d{4}-\d{2}-\d{2}/);
+        if (m) return m[0];
+      }
+      return '';
+    }
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   generateCalendarWeeks() {
     const year = this.calendarCurrentDate.getFullYear();
     const month = this.calendarCurrentDate.getMonth();
@@ -2344,13 +2363,8 @@ export class ContactsComponent implements OnInit {
       const d = String(currentDay.getDate()).padStart(2, '0');
       const dateStr = `${y}-${m}-${d}`;
       const leadsOnDay = this.calendarAllLeads.filter(l => {
-        if (l.follow_up_date) {
-          return l.follow_up_date.startsWith(dateStr);
-        }
-        if (l.created_at) {
-          return l.created_at.startsWith(dateStr);
-        }
-        return false;
+        const targetDate = l.follow_up_date || l.created_at;
+        return this.extractLocalDateStr(targetDate) === dateStr;
       });
       
       this.calendarWeeks[this.calendarWeeks.length - 1].push({

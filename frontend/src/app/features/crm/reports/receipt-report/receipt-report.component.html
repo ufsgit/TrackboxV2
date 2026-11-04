@@ -102,14 +102,15 @@
 
         <!-- Staff / Employee Filter -->
         <div class="filter-dropdown-wrapper">
-          <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen">
+          <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen" [class.filtered]="selectedEmployee && selectedEmployee !== 'all'">
             <i class="bi bi-person-badge filter-icon user-icon"></i>
             <span class="filter-label">{{ getSelectedEmployeeName() }}</span>
-            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isEmployeeDropdownOpen"></i>
+            <i class="bi bi-x-circle-fill clear-btn" *ngIf="selectedEmployee && selectedEmployee !== 'all'" (click)="clearEmployeeFilter($event)" title="Clear staff filter"></i>
+            <i class="bi bi-chevron-down caret-icon" *ngIf="!selectedEmployee || selectedEmployee === 'all'" [class.rotated]="isEmployeeDropdownOpen"></i>
           </div>
 
           <div class="dropdown-panel employee-panel" *ngIf="isEmployeeDropdownOpen">
-            <div class="panel-search">
+            <div class="panel-search" (click)="$event.stopPropagation()">
               <i class="bi bi-search search-icon"></i>
               <input type="text" placeholder="Search staff name..." [(ngModel)]="employeeSearchQuery" (click)="$event.stopPropagation()" />
             </div>
@@ -119,10 +120,10 @@
                 <span class="item-title">All Staff</span>
                 <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === 'all'"></i>
               </div>
-              <div class="dropdown-item" *ngFor="let u of filteredStaffList" [class.selected]="selectedEmployee === '' + u.id" (click)="selectEmployee('' + u.id)">
+              <div class="dropdown-item" *ngFor="let u of filteredStaffList" [class.selected]="isEmployeeSelected(u)" (click)="selectEmployee(u.id)">
                 <div class="avatar-tag">{{ getInitials(u.name) }}</div>
                 <span class="item-title">{{ u.name }}</span>
-                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === '' + u.id"></i>
+                <i class="bi bi-check2 check-icon" *ngIf="isEmployeeSelected(u)"></i>
               </div>
               <div class="empty-list" *ngIf="filteredStaffList.length === 0">No staff found</div>
             </div>

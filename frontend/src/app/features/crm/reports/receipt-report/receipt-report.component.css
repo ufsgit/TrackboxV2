@@ -1495,3 +1495,23 @@
   border-top: 1px solid #e2e8f0;
   background: #fafbfc;
 }
+
+.filter-btn.filtered {
+  border-color: #3b82f6 !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+.clear-btn {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  transition: color 0.15s ease, transform 0.15s ease;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+.clear-btn:hover {
+  color: #ef4444;
+  transform: scale(1.15);
+}

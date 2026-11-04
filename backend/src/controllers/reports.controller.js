@@ -3186,14 +3186,15 @@ const getReceiptsReport = async (req, res) => {
     }
 
     // Filter by staff/employee if selected
+    const selectedUserId = userId || req.query.staffId || req.query.employeeId;
     let staffFilter = '';
     const staffParams = [];
-    if (userId && userId !== 'all') {
-      if (userId === '0' || userId === 'null') {
-        staffFilter = ' AND (r.created_by IS NULL OR r.created_by = 0) ';
+    if (selectedUserId && selectedUserId !== 'all') {
+      if (selectedUserId === '0' || selectedUserId === 'null') {
+        staffFilter = ' AND (r.created_by IS NULL OR r.created_by = 0) AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else {
-        staffFilter = ' AND r.created_by = ? ';
-        staffParams.push(userId);
+        staffFilter = ' AND (r.created_by = ? OR c.assigned_to = ?) ';
+        staffParams.push(selectedUserId, selectedUserId);
       }
     }
 
@@ -3237,10 +3238,10 @@ const getReceiptsReport = async (req, res) => {
     // 2. Employee breakdown for selected date range
     const [employeeBreakdown] = await pool.query(
       `SELECT 
-         r.created_by as user_id,
-         COALESCE(r.created_by_name, u.name, 'Unknown Staff') as employee_name,
-         u.email as employee_email,
-         u.role as employee_role,
+         COALESCE(c.assigned_to, r.created_by) as user_id,
+         COALESCE(c_assignee.name, r.created_by_name, u.name, 'Unassigned') as employee_name,
+         COALESCE(c_assignee.email, u.email) as employee_email,
+         COALESCE(c_assignee.role, u.role) as employee_role,
          COUNT(r.id) as receipts_count,
          COALESCE(SUM(r.amount), 0) as total_amount,
          ROUND(AVG(r.amount), 2) as avg_amount,
@@ -3248,8 +3249,9 @@ const getReceiptsReport = async (req, res) => {
        FROM receipts r
        LEFT JOIN contacts c ON r.contact_id = c.id
        LEFT JOIN users u ON r.created_by = u.id
+       LEFT JOIN users c_assignee ON c.assigned_to = c_assignee.id
        WHERE r.business_id = ? ${dateFilter} ${receiptTeamFilter} ${staffFilter}
-       GROUP BY r.created_by, COALESCE(r.created_by_name, u.name, 'Unknown Staff'), u.email, u.role
+       GROUP BY COALESCE(c.assigned_to, r.created_by), COALESCE(c_assignee.name, r.created_by_name, u.name, 'Unassigned'), COALESCE(c_assignee.email, u.email), COALESCE(c_assignee.role, u.role)
        ORDER BY receipts_count DESC, total_amount DESC`,
       [businessId, ...dateParams, ...receiptTeamParams, ...staffParams]
     );
@@ -3428,14 +3430,15 @@ const getMonthlyReceiptAnalysis = async (req, res) => {
       }
     }
 
+    const selectedUserId = userId || req.query.staffId || req.query.employeeId;
     let staffFilter = '';
     const staffParams = [];
-    if (userId && userId !== 'all') {
-      if (userId === '0' || userId === 'null') {
-        staffFilter = ' AND (r.created_by IS NULL OR r.created_by = 0) ';
+    if (selectedUserId && selectedUserId !== 'all') {
+      if (selectedUserId === '0' || selectedUserId === 'null') {
+        staffFilter = ' AND (r.created_by IS NULL OR r.created_by = 0) AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else {
-        staffFilter = ' AND r.created_by = ? ';
-        staffParams.push(userId);
+        staffFilter = ' AND (r.created_by = ? OR c.assigned_to = ?) ';
+        staffParams.push(selectedUserId, selectedUserId);
       }
     }
 
