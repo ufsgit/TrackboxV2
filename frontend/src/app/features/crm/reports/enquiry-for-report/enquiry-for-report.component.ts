@@ -22,7 +22,7 @@ export interface EnquiryItem {
 })
 export class EnquiryForReportComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
-  chart: Chart | null = null;
+  chart: any = null;
 
   // Loading & State
   loading: boolean = false;
