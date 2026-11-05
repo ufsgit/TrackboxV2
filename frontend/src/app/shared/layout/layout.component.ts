@@ -54,6 +54,7 @@ export class LayoutComponent implements OnInit {
   isReportsOpen = false;
   isSalesPerformanceOpen = false;
   isMobileMenuOpen = false;
+  isSettingsOpen = false;
 
   // Department State
   activeDepartment = localStorage.getItem('activeDepartment') || 'Leads';
@@ -110,6 +111,7 @@ export class LayoutComponent implements OnInit {
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
       this.isReportsOpen = false;
+      this.isSettingsOpen = false;
       this.isDepartmentDropdownOpen = false;
       this.showNotificationDropdown = false;
       this.showUserProfileDropdown = false;
@@ -304,6 +306,9 @@ export class LayoutComponent implements OnInit {
     if (!target.closest('.system-settings-wrapper')) {
       this.showSystemSettingsMenu = false;
     }
+    if (!target.closest('.settings-dropdown-wrapper')) {
+      this.isSettingsOpen = false;
+    }
     if (!target.closest('.reports-dropdown-wrapper')) {
       this.isReportsOpen = false;
       this.isOperationReportsOpen = false;
@@ -323,7 +328,27 @@ export class LayoutComponent implements OnInit {
     this.isCollapsed = !this.isCollapsed;
   }
 
+    toggleSettings(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isSettingsOpen = !this.isSettingsOpen;
+    if (this.isSettingsOpen) {
+      this.isReportsOpen = false;
+      this.isOperationReportsOpen = false;
+      this.isHrReportsOpen = false;
+      this.showUserProfileDropdown = false;
+      this.showNotificationDropdown = false;
+      this.isDepartmentDropdownOpen = false;
+    }
+  }
+
+  isSettingsActive(): boolean {
+    const url = this.router.url;
+    return url.includes('system-settings') || url.includes('/settings') || url.includes('excel-import') || url.includes('crm-settings');
+  }
+
   toggleReports(event: Event) {
+    this.isSettingsOpen = false;
     event.preventDefault();
     event.stopPropagation();
     this.isReportsOpen = !this.isReportsOpen;
@@ -338,6 +363,7 @@ export class LayoutComponent implements OnInit {
   isOperationReportsOpen = false;
 
   toggleOperationReports(event: Event) {
+    this.isSettingsOpen = false;
     event.preventDefault();
     event.stopPropagation();
     this.isOperationReportsOpen = !this.isOperationReportsOpen;
@@ -346,6 +372,7 @@ export class LayoutComponent implements OnInit {
   isHrReportsOpen = false;
 
   toggleHrReports(event: Event) {
+    this.isSettingsOpen = false;
     event.preventDefault();
     event.stopPropagation();
     this.isHrReportsOpen = !this.isHrReportsOpen;

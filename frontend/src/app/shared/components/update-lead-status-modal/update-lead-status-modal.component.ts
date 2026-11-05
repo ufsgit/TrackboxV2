@@ -253,7 +253,8 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
       status_name: this.quickStatusData.status || this.quickStatusData.status_name,
       remarks: this.quickStatusData.remark,
       follow_up_date: (this.isFollowupStatus(this.quickStatusData.status) && this.quickStatusData.follow_up_date) ? this.quickStatusData.follow_up_date : null,
-      loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
+      loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null,
+      is_follow_up: true
     };
 
     if (this.isTransferStatus(this.quickStatusData.status)) {

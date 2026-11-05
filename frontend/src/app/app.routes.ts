@@ -107,7 +107,8 @@ export const routes: Routes = [
       { path: 'sms', component: SmsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'settings', component: SettingsComponent, data: { roles: ['admin', 'superadmin'] } },
       { path: 'crm-settings', loadComponent: () => import('./features/crm-settings/crm-settings.component').then(m => m.CrmSettingsComponent), data: { roles: ['admin', 'superadmin'] } },
-      { path: 'system-settings', redirectTo: 'system-settings/teams', pathMatch: 'full' },
+      { path: 'system-settings', loadComponent: () => import('./features/system-settings/system-settings.component').then(m => m.SystemSettingsComponent), data: { roles: ['admin', 'superadmin', 'manager'] } },
+      { path: 'management', redirectTo: 'system-settings', pathMatch: 'full' },
       { path: 'system-settings/teams', loadComponent: () => import('./features/system-settings/components/teams-management/teams-management.component').then(m => m.TeamsManagementComponent), data: { roles: ['admin', 'superadmin'] } },
 
       { path: 'system-settings/branch', loadComponent: () => import('./features/system-settings/components/branch-management/branch-management.component').then(m => m.BranchManagementComponent), data: { roles: ['admin', 'superadmin'] } },

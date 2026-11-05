@@ -459,8 +459,35 @@ const updateContact = async (req, res) => {
       }
     }
 
-    // Step 1: Log to follow_ups BEFORE updating contacts
-    if (updateFields.remarks !== undefined || updateFields.remark !== undefined || updateFields.status_id !== undefined || updateFields.status_name !== undefined || updateFields.assigned_to !== undefined) {
+    // Determine whether this update is specifically a follow-up action
+    let shouldLogFollowUp = false;
+    if (updateFields.is_follow_up !== undefined) {
+      shouldLogFollowUp = Boolean(updateFields.is_follow_up);
+    } else {
+      // If is_follow_up is not explicitly provided:
+      // Lead detail edits (name, phone, email, address, enquiry_for_id, channel_preference, tags, custom fields) MUST NOT log to follow_ups
+      const isLeadDetailEdit = Boolean(
+        updateFields.name || updateFields.phone || updateFields.email || 
+        updateFields.address || updateFields.channel_preference || 
+        updateFields.enquiry_for_id || custom_field_values
+      );
+
+      const hasRemarks = Boolean(
+        (updateFields.remarks && String(updateFields.remarks).trim()) || 
+        (updateFields.remark && String(updateFields.remark).trim())
+      );
+      const statusChanged = (updateFields.status_id !== undefined && String(updateFields.status_id) !== String(oldContact.status_id || '')) ||
+                            (updateFields.status_name !== undefined && updateFields.status_name !== (oldContact.status_name || ''));
+      const assigneeChanged = (updateFields.assigned_to !== undefined && String(updateFields.assigned_to) !== String(oldContact.assigned_to || ''));
+      const followUpDateChanged = (updateFields.follow_up_date !== undefined && updateFields.follow_up_date !== oldContact.follow_up_date);
+
+      if (!isLeadDetailEdit && (hasRemarks || statusChanged || assigneeChanged || followUpDateChanged)) {
+        shouldLogFollowUp = true;
+      }
+    }
+
+    // Step 1: Log to follow_ups ONLY if this is specifically a follow-up action
+    if (shouldLogFollowUp) {
       let byUserName = null;
       let toUserName = null;
       const toUserId = updateFields.assigned_to !== undefined ? (updateFields.assigned_to || null) : oldContact.assigned_to;
@@ -477,7 +504,7 @@ const updateContact = async (req, res) => {
         'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           contactId, 
-          oldContact.name, 
+          updateFields.name || oldContact.name, 
           (updateFields.follow_up_date !== undefined ? updateFields.follow_up_date : oldContact.follow_up_date) || null, 
           userId, 
           byUserName,
@@ -498,7 +525,7 @@ const updateContact = async (req, res) => {
     let updates = [];
     let params = [];
 
-    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'follow_up_date', 'enquiry_for_id', 'branch_id', 'branch_name', 'department_id', 'department_name', 'status_id', 'status_name', 'sale_won', 'sale_lost'];
+    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'follow_up_date', 'enquiry_for_id', 'branch_id', 'branch_name', 'department_id', 'department_name', 'status_id', 'status_name', 'sale_won', 'sale_lost', 'loss_reason'];
     
     for (const key of allowedFields) {
       if (updateFields[key] !== undefined) {
@@ -552,7 +579,7 @@ const updateContact = async (req, res) => {
     }
 
     if (updates.length > 0) {
-      if (updateFields.remarks !== undefined || updateFields.remark !== undefined || updateFields.status_id !== undefined || updateFields.status_name !== undefined || updateFields.assigned_to !== undefined) {
+      if (shouldLogFollowUp) {
           updates.push('follow_up_count = follow_up_count + 1');
       }
 

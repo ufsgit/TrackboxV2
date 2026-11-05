@@ -1,47 +1,120 @@
-<div class="settings-page">
-  <div class="settings-nav">
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'team'" (click)="setActiveTab('team')" *ngIf="authService.hasPermission('Teams', 'view')">
-      <i class="bi bi-people me-2"></i>Teams Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'branch'" (click)="setActiveTab('branch')" *ngIf="authService.hasPermission('Branch', 'view')">
-      <i class="bi bi-building me-2"></i>Branch Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'department'" (click)="setActiveTab('department')" *ngIf="authService.hasPermission('Department', 'view')">
-      <i class="bi bi-diagram-3 me-2"></i>Department Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'status'" (click)="setActiveTab('status')" *ngIf="authService.hasPermission('Lead Status', 'view')">
-      <i class="bi bi-tag me-2"></i>Lead Status
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'intake'" (click)="setActiveTab('intake')" *ngIf="authService.hasPermission('Intake', 'view')">
-      <i class="bi bi-calendar3 me-2"></i>Intake Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'year'" (click)="setActiveTab('year')" *ngIf="authService.hasPermission('Year', 'view')">
-      <i class="bi bi-calendar-year me-2"></i>Year Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'app-status'" (click)="setActiveTab('app-status')" *ngIf="authService.hasPermission('Application Status', 'view')">
-      <i class="bi bi-mortarboard me-2"></i>Application Status
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'channel'" (click)="setActiveTab('channel')" *ngIf="authService.hasPermission('Channel', 'view')">
-      <i class="bi bi-chat-left-dots me-2"></i>Channel Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'course'" (click)="setActiveTab('course')" *ngIf="authService.hasPermission('Courses', 'view')">
-      <i class="bi bi-book me-2"></i>Course Management
-    </a>
-    <a href="javascript:void(0)" class="nav-link" [class.active]="activeTab === 'university'" (click)="setActiveTab('university')" *ngIf="authService.hasPermission('Universities', 'view') || authService.hasRole('admin', 'superadmin', 'manager')">
-      <i class="bi bi-buildings me-2"></i>University Management
-    </a>
+<div class="management-hub-container">
+  <!-- Header Hero Banner -->
+  <div class="hub-header-card">
+    <div class="hub-header-left">
+      <div class="hub-badge">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span>Administration & Configuration</span>
+      </div>
+      <h1 class="hub-title">Settings & Management</h1>
+      <p class="hub-subtitle">
+        Configure system parameters, organizational structure, lead preferences, and communication channels.
+      </p>
+    </div>
+
+    <div class="hub-stats-group">
+      <div class="hub-stat-pill" (click)="selectedFilter = 'all'" [class.active-stat]="selectedFilter === 'all'">
+        <span class="stat-number">{{ totalCount }}</span>
+        <span class="stat-label">Total Modules</span>
+      </div>
+      <div class="hub-stat-pill" (click)="selectedFilter = 'system'" [class.active-stat]="selectedFilter === 'system'">
+        <span class="stat-number text-primary">{{ systemCount }}</span>
+        <span class="stat-label">System Modules</span>
+      </div>
+      <div class="hub-stat-pill" (click)="selectedFilter = 'general'" [class.active-stat]="selectedFilter === 'general'">
+        <span class="stat-number text-success">{{ generalCount }}</span>
+        <span class="stat-label">General & Leads</span>
+      </div>
+    </div>
   </div>
 
-  <div class="settings-content">
-    <app-teams-management *ngIf="activeTab === 'team' && authService.hasPermission('Teams', 'view')"></app-teams-management>
-    <app-branch-management *ngIf="activeTab === 'branch' && authService.hasPermission('Branch', 'view')"></app-branch-management>
-    <app-department-management *ngIf="activeTab === 'department' && authService.hasPermission('Department', 'view')"></app-department-management>
-    <app-status-management *ngIf="activeTab === 'status' && authService.hasPermission('Lead Status', 'view')"></app-status-management>
-    <app-intake-management *ngIf="activeTab === 'intake' && authService.hasPermission('Intake', 'view')"></app-intake-management>
-    <app-year-management *ngIf="activeTab === 'year' && authService.hasPermission('Year', 'view')"></app-year-management>
-    <app-app-status-management *ngIf="activeTab === 'app-status' && authService.hasPermission('Application Status', 'view')"></app-app-status-management>
-    <app-channel-management *ngIf="activeTab === 'channel' && authService.hasPermission('Channel', 'view')"></app-channel-management>
-    <app-course-management *ngIf="activeTab === 'course' && authService.hasPermission('Courses', 'view')"></app-course-management>
-    <app-university-management *ngIf="activeTab === 'university' && (authService.hasPermission('Universities', 'view') || authService.hasRole('admin', 'superadmin', 'manager'))"></app-university-management>
+  <!-- Search & Filter Controls -->
+  <div class="hub-controls-bar">
+    <!-- Search Box -->
+    <div class="hub-search-wrapper">
+      <i class="bi bi-search hub-search-icon"></i>
+      <input 
+        type="text" 
+        class="hub-search-input" 
+        placeholder="Search settings (e.g. branch, teams, lead fields, whatsapp, courses)..." 
+        [(ngModel)]="searchQuery"
+      />
+      <button *ngIf="searchQuery" class="hub-search-clear-btn" (click)="clearSearch()" title="Clear search">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="hub-filter-tabs">
+      <button 
+        type="button" 
+        class="filter-tab-btn" 
+        [class.active]="selectedFilter === 'all'" 
+        (click)="selectedFilter = 'all'">
+        <span>All</span>
+        <span class="tab-badge">{{ totalCount }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="filter-tab-btn" 
+        [class.active]="selectedFilter === 'system'" 
+        (click)="selectedFilter = 'system'">
+        <i class="bi bi-gear-fill me-1"></i>
+        <span>System Settings</span>
+        <span class="tab-badge">{{ systemCount }}</span>
+      </button>
+      <button 
+        type="button" 
+        class="filter-tab-btn" 
+        [class.active]="selectedFilter === 'general'" 
+        (click)="selectedFilter = 'general'">
+        <i class="bi bi-sliders me-1"></i>
+        <span>General & Leads</span>
+        <span class="tab-badge">{{ generalCount }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Cards Grid -->
+  <div class="hub-grid" *ngIf="filteredCards.length > 0">
+    <div 
+      class="hub-card" 
+      *ngFor="let card of filteredCards" 
+      (click)="navigateTo(card)"
+      [attr.data-category]="card.category"
+    >
+      <div class="card-top">
+        <div class="card-icon-box" [style.background]="card.gradient">
+          <i class="bi" [ngClass]="card.icon"></i>
+        </div>
+        <span class="card-category-tag" [ngClass]="card.category">
+          {{ card.categoryLabel }}
+        </span>
+      </div>
+
+      <div class="card-body">
+        <h3 class="card-title">{{ card.title }}</h3>
+        <p class="card-description">{{ card.description }}</p>
+      </div>
+
+      <div class="card-footer">
+        <span class="card-action-text">Manage</span>
+        <div class="card-action-arrow">
+          <i class="bi bi-arrow-right"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty Search State -->
+  <div class="hub-empty-state" *ngIf="filteredCards.length === 0">
+    <div class="empty-icon-box">
+      <i class="bi bi-search"></i>
+    </div>
+    <h3 class="empty-title">No settings match "{{ searchQuery }}"</h3>
+    <p class="empty-text">Try searching with a different keyword or reset the filter.</p>
+    <button class="empty-reset-btn" (click)="clearSearch(); selectedFilter = 'all'">
+      <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Search
+    </button>
   </div>
 </div>

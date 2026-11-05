@@ -1949,14 +1949,29 @@ export class ContactsComponent implements OnInit {
       this.newContact.assigned_to = null;
     }
 
-    const payload = {
-      ...this.newContact,
-      follow_up_date: this.newContact.follow_up_date || null,
-      tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
-      custom_field_values: this.newContact.custom_field_values
-    };
-
     const isEditing = !!this.editingContactId;
+    let payload: any;
+    if (isEditing) {
+      // Editing lead details: Only send editable lead details, do NOT touch status/follow-up
+      payload = {
+        name: this.newContact.name,
+        phone: this.newContact.phone,
+        email: this.newContact.email || null,
+        tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
+        channel_preference: this.newContact.channel_preference || null,
+        enquiry_for_id: this.newContact.enquiry_for_id || null,
+        address: this.newContact.address || null,
+        custom_field_values: this.newContact.custom_field_values,
+        is_follow_up: false
+      };
+    } else {
+      payload = {
+        ...this.newContact,
+        follow_up_date: this.newContact.follow_up_date || null,
+        tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
+        custom_field_values: this.newContact.custom_field_values
+      };
+    }
     const leadName = this.newContact.name || 'Lead';
 
     const request = isEditing 
@@ -2182,7 +2197,8 @@ export class ContactsComponent implements OnInit {
       status_name: this.quickStatusData.status_name,
       remarks: this.quickStatusData.remark,
       follow_up_date: (this.isFollowupStatus(this.quickStatusData.status) && this.quickStatusData.follow_up_date) ? this.quickStatusData.follow_up_date : null,
-      loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null
+      loss_reason: this.quickStatusData.status === 'Sales Loss' ? this.quickStatusData.loss_reason : null,
+      is_follow_up: true
     };
 
     if (this.isTransferStatus(this.quickStatusData.status)) {

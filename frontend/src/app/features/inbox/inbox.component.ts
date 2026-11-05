@@ -455,7 +455,7 @@ export class InboxComponent implements OnInit, OnDestroy {
       this.showToast('Full Name is required', 'danger');
       return;
     }
-    const payload = { ...this.editContactForm };
+    const payload = { ...this.editContactForm, is_follow_up: false };
     if (payload.tags) {
       payload.tags = payload.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t);
     }
