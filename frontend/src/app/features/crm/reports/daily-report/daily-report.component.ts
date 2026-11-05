@@ -3,11 +3,12 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
+import { ExcelExportBtnComponent } from '../../../../shared/components/excel-export-btn/excel-export-btn.component';
 
 @Component({
   selector: 'app-daily-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ExcelExportBtnComponent],
   templateUrl: './daily-report.component.html',
   styleUrl: './daily-report.component.css'
 })
@@ -70,6 +71,58 @@ export class DailyReportComponent implements OnInit {
     this.isDateDropdownOpen = false;
     this.isEmployeeDropdownOpen = false;
     this.isStatusDropdownOpen = false;
+  }
+
+  
+  getExportFilters(): any {
+    const filters: any = {
+      dateRange: this.dateRange,
+      status: this.selectedStatus,
+      employee: this.selectedEmployee,
+      search: this.searchQuery ? this.searchQuery.trim() : ''
+    };
+
+    const formatDate = (d: Date): string => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const now = new Date();
+
+    if (this.dateRange === 'today') {
+      const todayStr = formatDate(now);
+      filters.startDate = todayStr;
+      filters.endDate = todayStr;
+    } else if (this.dateRange === 'yesterday') {
+      const y = new Date();
+      y.setDate(now.getDate() - 1);
+      const yStr = formatDate(y);
+      filters.startDate = yStr;
+      filters.endDate = yStr;
+    } else if (this.dateRange === 'this_week') {
+      const day = now.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1) - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      filters.startDate = formatDate(monday);
+      filters.endDate = formatDate(now);
+    } else if (this.dateRange === 'this_month') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      filters.startDate = formatDate(firstDay);
+      filters.endDate = formatDate(now);
+    } else if (this.dateRange === 'last_month') {
+      const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      filters.startDate = formatDate(firstDayLastMonth);
+      filters.endDate = formatDate(lastDayLastMonth);
+    } else if (this.dateRange === 'custom') {
+      filters.startDate = this.customStartDate;
+      filters.endDate = this.customEndDate;
+    }
+
+    return filters;
   }
 
   ngOnInit() {

@@ -12,7 +12,13 @@
     </div>
 
     <!-- Filter Control Bar -->
-    <div class="header-actions">
+    <div class="header-actions d-flex align-items-center gap-2">
+      <app-excel-export-btn
+        endpoint="/export/daily-report"
+        [filters]="getExportFilters()"
+        fileName="Daily_Followup_Report"
+        buttonText="Export Excel"
+      ></app-excel-export-btn>
       <div class="filter-toolbar" (click)="$event.stopPropagation()">
         
         <!-- Date Range Filter -->
@@ -134,7 +140,7 @@
           <i class="bi bi-search search-lens"></i>
           <input 
             type="text" 
-            placeholder="Search lead, phone, remarks..." 
+            placeholder="Search lead, phone..." 
             [(ngModel)]="searchQuery" 
             (keyup.enter)="onSearchChange()" 
             class="table-search-input" 

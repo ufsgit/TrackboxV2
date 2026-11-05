@@ -2492,9 +2492,9 @@ const getDailyReport = async (req, res) => {
     let searchFilter = '';
     const searchParams = [];
     if (search && search.trim()) {
-      searchFilter = ` AND (c.name LIKE ? OR c.phone LIKE ? OR f.remarks LIKE ? OR f.by_user_name LIKE ? OR f.to_user_name LIKE ?) `;
+      searchFilter = ` AND (c.name LIKE ? OR c.phone LIKE ?) `;
       const term = `%${search.trim()}%`;
-      searchParams.push(term, term, term, term, term);
+      searchParams.push( term, term);
     }
 
     // Base WHERE
