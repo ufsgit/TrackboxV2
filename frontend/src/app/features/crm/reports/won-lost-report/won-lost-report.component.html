@@ -171,10 +171,10 @@
           <thead>
             <tr>
               <th>Client</th>
-              <th>Amount</th>
+              <!-- <th>Amount</th> -->
               <th>Date Closed</th>
               <th>Sales Rep</th>
-              <th>Primary Reason</th>
+              <!-- <th>Primary Reason</th> -->
               <th class="text-end">Status</th>
             </tr>
           </thead>
@@ -186,10 +186,10 @@
                 (click)="openDealModal(d)"
                 style="cursor: pointer;">
               <td><span class="source-name">{{ d.client }}</span></td>
-              <td class="bold-cell">{{ d.amount }}</td>
+              <!-- <td class="bold-cell">{{ d.amount }}</td> -->
               <td class="muted-cell">{{ d.date }}</td>
               <td class="rep-cell">{{ d.rep }}</td>
-              <td class="muted-cell text-truncate" style="max-width: 140px;" [title]="d.reason">{{ d.reason || '—' }}</td>
+              <!-- <td class="muted-cell text-truncate" style="max-width: 140px;" [title]="d.reason">{{ d.reason || '—' }}</td> -->
               <td class="text-end">
                 <span [ngClass]="getStatusClass(d.status)" class="status-pill">
                   {{ d.status }}
