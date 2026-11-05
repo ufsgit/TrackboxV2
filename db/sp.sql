@@ -69,6 +69,91 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_daily_report_export`(
+    IN p_business_id INT,
+    IN p_user_id INT,           -- Logged-in user ID
+    IN p_start_date DATE,        -- Start date (or NULL for no date filter)
+    IN p_end_date DATE,          -- End date (or NULL for no date filter)
+    IN p_employee VARCHAR(100),  -- User ID or NULL
+    IN p_status VARCHAR(100),    -- Status name or NULL
+    IN p_search VARCHAR(255)     -- Search term for lead name and phone
+)
+BEGIN
+    DECLARE v_role VARCHAR(50);
+    DECLARE v_branch_id INT;
+
+    -- 1. Fetch the logged-in user's role and branch_id
+    SELECT `role`, `branch_id` 
+    INTO v_role, v_branch_id
+    FROM `users` 
+    WHERE `id` = p_user_id AND `business_id` = p_business_id
+    LIMIT 1;
+
+    -- 2. Execute Query fetching fields directly from follow_ups (f)
+    SELECT 
+        f.follow_up_id,
+        f.contact_id,
+        f.contact_name,
+        COALESCE(c.phone, 'N/A') AS phone,
+        f.entry_date_time,
+        f.status_name,
+        f.by_user_name,
+        f.to_user_name,
+        f.branch_name,
+        f.department_name,
+        f.follow_up_date,
+        f.remarks
+    FROM follow_ups f
+    JOIN contacts c ON f.contact_id = c.id
+    WHERE c.business_id = p_business_id
+
+      -- Start & End Date Filter on entry_date_time
+      AND (
+          (p_start_date IS NULL OR p_end_date IS NULL)
+          OR DATE(f.entry_date_time) BETWEEN p_start_date AND p_end_date
+      )
+
+      -- Employee Filter (matches logged-by or assigned-to)
+      AND (
+          p_employee IS NULL 
+          OR p_employee = '' 
+          OR p_employee = 'All' 
+          OR f.by_user_id = p_employee 
+          OR f.to_user_id = p_employee
+      )
+
+      -- Status Filter
+      AND (
+          p_status IS NULL 
+          OR p_status = '' 
+          OR p_status = 'All' 
+          OR TRIM(LOWER(f.status_name)) = TRIM(LOWER(p_status))
+      )
+
+      -- Search Filter (Lead Name and Phone Number only)
+      AND (
+          p_search IS NULL 
+          OR p_search = '' 
+          OR f.contact_name LIKE CONCAT('%', p_search, '%') 
+          OR c.phone LIKE CONCAT('%', p_search, '%')
+      )
+
+      -- Role-based data visibility logic:
+      AND (
+          -- Admin / Superadmin: view all business records
+          (v_role IN ('admin', 'superadmin'))
+          
+          -- Manager: view records for their branch
+          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR f.branch_id = v_branch_id))
+          
+          -- Agent: view records logged by or assigned to them
+          OR (v_role = 'agent' AND (f.by_user_id = p_user_id OR f.to_user_id = p_user_id))
+      )
+    ORDER BY f.entry_date_time DESC, f.follow_up_id DESC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_enquiry_for_report`(
   IN p_business_id INT,
   IN p_user_id INT,
@@ -112,6 +197,124 @@ BEGIN
   GROUP BY ef.id, ef.name
   ORDER BY count DESC, ef.name ASC;
 
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_lead_creation_export`(
+    IN p_business_id INT,
+    IN p_user_id INT,        -- Logged-in user ID
+    IN p_start_date DATE,    -- Start Date (or NULL)
+    IN p_end_date DATE       -- End Date (or NULL)
+)
+BEGIN
+    DECLARE v_role VARCHAR(50);
+    DECLARE v_branch_id INT;
+
+    -- 1. Fetch the logged-in user's role and branch_id
+    SELECT `role`, `branch_id` 
+    INTO v_role, v_branch_id
+    FROM `users` 
+    WHERE `id` = p_user_id AND `business_id` = p_business_id
+    LIMIT 1;
+
+    -- 2. Execute Query
+    SELECT 
+        c.id,
+        c.name,
+        COALESCE(c.phone, 'N/A') AS phone,
+        COALESCE(c.email, 'N/A') AS email,
+        COALESCE(c.channel_preference, c.opt_in_source, 'Direct') AS channel_preference,
+        c.created_at,
+        COALESCE(u_created.name, 'System') AS created_by,
+        COALESCE(u_assigned.name, 'Unassigned') AS assigned_to,
+        COALESCE(TRIM(c.status_name), 'PENDING') AS status_name
+    FROM contacts c
+    LEFT JOIN users u_created ON c.created_by_user = u_created.id
+    LEFT JOIN users u_assigned ON c.assigned_to = u_assigned.id
+    WHERE c.business_id = p_business_id
+
+      -- Date filter on created_at (checks start & end date)
+      AND (
+          (p_start_date IS NULL OR p_end_date IS NULL)
+          OR DATE(c.created_at) BETWEEN p_start_date AND p_end_date
+      )
+
+      -- Role-based data visibility logic:
+      AND (
+          -- Admin / Superadmin: show all records in business
+          (v_role IN ('admin', 'superadmin'))
+
+          -- Manager: show all records belonging to their branch
+          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u_assigned.branch_id = v_branch_id OR u_created.branch_id = v_branch_id))
+
+          -- Agent: show leads assigned to them or created by them
+          OR (v_role = 'agent' AND (c.assigned_to = p_user_id OR c.created_by_user = p_user_id))
+      )
+    ORDER BY c.created_at DESC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_won_lost_export`(
+    IN p_business_id INT,
+    IN p_user_id INT,        -- Logged-in user ID
+    IN p_start_date DATE,
+    IN p_end_date DATE
+)
+BEGIN
+    DECLARE v_role VARCHAR(50);
+    DECLARE v_branch_id INT;
+
+    -- 1. Fetch the logged-in user's role and branch_id
+    SELECT `role`, `branch_id` 
+    INTO v_role, v_branch_id
+    FROM `users` 
+    WHERE `id` = p_user_id AND `business_id` = p_business_id
+    LIMIT 1;
+
+    -- 2. Execute Query strictly by sale_won_date or sale_lost_date (NO fallback)
+    SELECT 
+        c.id,
+        c.name AS client,
+        c.status_name AS status,
+        c.current_sale_status,
+        CASE 
+            WHEN c.current_sale_status = 1 THEN 'Won'
+            WHEN c.current_sale_status = 2 THEN 'Lost'
+            ELSE 'Unknown'
+        END AS deal_status,
+        COALESCE(u.name, 'Unassigned') AS rep,
+        CASE 
+            WHEN c.current_sale_status = 1 THEN c.sale_won_date
+            WHEN c.current_sale_status = 2 THEN c.sale_lost_date
+        END AS date
+    FROM contacts c
+    LEFT JOIN users u ON u.id = c.assigned_to
+    WHERE c.business_id = p_business_id
+      AND c.current_sale_status IN (1, 2)
+      -- Strict date filter: checks sale_won_date for Won and sale_lost_date for Lost
+      AND (
+          (p_start_date IS NULL OR p_end_date IS NULL)
+          OR DATE(
+              CASE 
+                  WHEN c.current_sale_status = 1 THEN c.sale_won_date
+                  WHEN c.current_sale_status = 2 THEN c.sale_lost_date
+              END
+          ) BETWEEN p_start_date AND p_end_date
+      )
+      -- Role-based data visibility logic:
+      AND (
+          -- Admin & Superadmin: show all records in business
+          (v_role IN ('admin', 'superadmin'))
+          
+          -- Manager: show all records belonging to their branch
+          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u.branch_id = v_branch_id))
+          
+          -- Agent: show only records assigned to them
+          OR (v_role = 'agent' AND c.assigned_to = p_user_id)
+      )
+    ORDER BY date DESC;
 END$$
 DELIMITER ;
 
