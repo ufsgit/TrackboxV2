@@ -21,14 +21,14 @@
         <div class="filter-toolbar">
           <!-- Custom Date / Period Filter -->
           <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleDateDropdown()" [class.active]="isDateDropdownOpen">
+            <div class="filter-item" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
               <i class="bi bi-calendar3 filter-icon"></i>
               <span class="filter-value">{{ getDateRangeLabel() }}</span>
               <i class="bi bi-chevron-down filter-caret"></i>
             </div>
             
             <!-- Date Popup -->
-            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen" (click)="$event.stopPropagation()">
               <div class="dropdown-list">
                 <div class="dropdown-option" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
                   <span class="opt-name">Today</span>
@@ -92,7 +92,7 @@
     <div class="kpi-card kpi-green" style="cursor: pointer" (click)="openModal('Won')">
       <div class="kpi-icon"><i class="bi bi-trophy"></i></div>
       <div class="kpi-body">
-        <span class="kpi-label">Deals Won (This Month)</span>
+        <span class="kpi-label">Deals Won ({{ getDateRangeLabel() }})</span>
         <div class="kpi-value">{{ kpi_won }}</div>
       </div>
       <div class="kpi-glow"></div>
@@ -103,7 +103,7 @@
     <div class="kpi-card kpi-red" style="cursor: pointer" (click)="openModal('Lost')">
       <div class="kpi-icon"><i class="bi bi-x-circle"></i></div>
       <div class="kpi-body">
-        <span class="kpi-label">Deals Lost (This Month)</span>
+        <span class="kpi-label">Deals Lost ({{ getDateRangeLabel() }})</span>
         <div class="kpi-value">{{ kpi_lost }}</div>
       </div>
       <div class="kpi-glow"></div>
@@ -194,7 +194,7 @@
                 style="cursor: pointer;">
               <td><span class="source-name">{{ d.client }}</span></td>
               <!-- <td class="bold-cell">{{ d.amount }}</td> -->
-              <td class="muted-cell">{{ d.date }}</td>
+              <td class="muted-cell">{{ d.date | date:'MMM d, y, h:mm a' }}</td>
               <td class="rep-cell">{{ d.rep }}</td>
               <!-- <td class="muted-cell text-truncate" style="max-width: 140px;" [title]="d.reason">{{ d.reason || '—' }}</td> -->
               <td class="text-end">
@@ -248,7 +248,7 @@
               <tr *ngFor="let d of modalDeals" class="table-row">
                 <td><span class="source-name">{{ d.client }}</span></td>
                 <td class="bold-cell">{{ d.amount }}</td>
-                <td class="muted-cell">{{ d.date }}</td>
+                <td class="muted-cell">{{ d.date | date:'MMM d, y, h:mm a' }}</td>
                 <td class="rep-cell">{{ d.rep }}</td>
                 <td class="muted-cell">{{ d.reason || 'N/A' }}</td>
               </tr>
@@ -298,7 +298,7 @@
           </div>
           <div class="detail-row mt-3">
             <small class="detail-label">Date Closed</small>
-            <span class="detail-value">{{ selectedDeal.date }}</span>
+            <span class="detail-value">{{ selectedDeal.date | date:'MMM d, y, h:mm a' }}</span>
           </div>
           <div class="detail-row mt-3">
             <small class="detail-label">Sales Rep</small>

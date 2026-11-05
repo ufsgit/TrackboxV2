@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, NgZone, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone, Inject, PLATFORM_ID, HostListener } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -23,7 +23,13 @@ export class WonLostReportComponent implements OnInit {
   // Custom Dropdown State
   isDateDropdownOpen: boolean = false;
 
-  toggleDateDropdown() {
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.isDateDropdownOpen = false;
+  }
+
+  toggleDateDropdown(e?: Event) {
+    if (e) e.stopPropagation();
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 

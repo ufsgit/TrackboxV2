@@ -1226,12 +1226,29 @@ const getChannelsReport = async (req, res) => {
 const getWonLostReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
-    const { startDate, endDate, agent } = req.query;
+    const { dateRange, startDate, endDate, agent } = req.query;
     let dateFilter = '';
     let queryParams = [businessId];
 
-    if (startDate && endDate) {
-      dateFilter = 'AND DATE(c.created_at) BETWEEN ? AND ?';
+    const dateCol = 'COALESCE(c.sale_won_date, c.sale_lost_date, c.created_at)';
+
+    if (dateRange === 'today') {
+      dateFilter = `AND DATE(${dateCol}) = CURDATE()`;
+    } else if (dateRange === 'this_week') {
+      dateFilter = `AND YEARWEEK(${dateCol}, 1) = YEARWEEK(CURDATE(), 1)`;
+    } else if (dateRange === 'this_month') {
+      dateFilter = `AND MONTH(${dateCol}) = MONTH(CURDATE()) AND YEAR(${dateCol}) = YEAR(CURDATE())`;
+    } else if (dateRange === 'last_month') {
+      dateFilter = `AND MONTH(${dateCol}) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(${dateCol}) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))`;
+    } else if (dateRange === 'ytd') {
+      dateFilter = `AND YEAR(${dateCol}) = YEAR(CURDATE())`;
+    } else if (dateRange === 'prev_year') {
+      dateFilter = `AND YEAR(${dateCol}) = YEAR(CURDATE()) - 1`;
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      dateFilter = `AND DATE(${dateCol}) BETWEEN ? AND ?`;
+      queryParams.push(startDate, endDate);
+    } else if (startDate && endDate) {
+      dateFilter = `AND DATE(${dateCol}) BETWEEN ? AND ?`;
       queryParams.push(startDate, endDate);
     }
 
@@ -1245,10 +1262,11 @@ const getWonLostReport = async (req, res) => {
         c.id, c.name as client, c.status_name as status, 
         c.current_sale_status,
         (SELECT name FROM users WHERE id = c.assigned_to) as rep,
-        c.created_at as date 
+        ${dateCol} as date,
+        c.loss_reason as reason 
       FROM contacts c
       WHERE c.business_id = ? AND c.current_sale_status IN (1, 2) ${dateFilter} 
-      ORDER BY c.created_at DESC
+      ORDER BY ${dateCol} DESC
     `;
 
     const [rows] = await pool.query(query, queryParams);
