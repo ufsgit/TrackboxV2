@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../core/services/api.service';
 import { SystemSettingsService } from '../../../core/services/system-settings.service';
 import { SendEmailModalComponent } from './components/send-email-modal/send-email-modal.component';
@@ -13,12 +15,16 @@ import { SendEmailModalComponent } from './components/send-email-modal/send-emai
   templateUrl: './email-leads.component.html',
   styleUrls: ['./email-leads.component.css']
 })
-export class EmailLeadsComponent implements OnInit {
+export class EmailLeadsComponent implements OnInit, OnDestroy {
   leads: any[] = [];
   loading = false;
   searchQuery = '';
   activeStatus = '';
   leadStatuses: any[] = [];
+
+  // Search Debounce (0.3s)
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
 
   // Pagination
   currentPage = 1;
@@ -29,7 +35,7 @@ export class EmailLeadsComponent implements OnInit {
   // Selection
   selectedContactIds: Set<number> = new Set();
   isAllSelected = false;         // Page level selection
-  isAllPagesSelected = false;    // Select all 140 leads across all pages
+  isAllPagesSelected = false;    // Select all leads across all pages
 
   // Modal Control
   showBulkEmailModal = false;
@@ -40,8 +46,21 @@ export class EmailLeadsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(() => {
+      this.applyFilters();
+    });
+
     this.loadLeadStatuses();
     this.loadLeads();
+  }
+
+  ngOnDestroy(): void {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
   }
 
   loadLeadStatuses(): void {
@@ -91,7 +110,7 @@ export class EmailLeadsComponent implements OnInit {
   }
 
   onSearchChange(): void {
-    this.applyFilters();
+    this.searchSubject.next(this.searchQuery);
   }
 
   onStatusChange(): void {
