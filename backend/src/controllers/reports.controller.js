@@ -476,10 +476,7 @@ const getPendingFollowupsReport = async (req, res) => {
     if (search) {
       activeItems = activeItems.filter(f =>
         (f.leadName && f.leadName.toLowerCase().includes(search)) ||
-        (f.phone && f.phone.toLowerCase().includes(search)) ||
-        (f.assignee && f.assignee.toLowerCase().includes(search)) ||
-        (f.remarks && f.remarks.toLowerCase().includes(search)) ||
-        (f.status_name && f.status_name.toLowerCase().includes(search))
+        (f.phone && f.phone.toLowerCase().includes(search))
       );
     }
 
