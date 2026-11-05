@@ -96,9 +96,24 @@
 
       <!-- Grouped Bars: Monthly Performance -->
       <section class="card wide rise" style="--r:4">
-        <div class="card-h">
-          <svg class="ico"><use href="#i-chart"/></svg>
-          <h2>Monthly Performance</h2>
+        <div class="card-h monthly-header">
+          <div class="card-h-left">
+            <svg class="ico"><use href="#i-chart"/></svg>
+            <h2>Monthly Performance</h2>
+          </div>
+          <div class="monthly-controls">
+            <!-- 6M / 12M toggle buttons -->
+            <div class="mode-toggle-group">
+              <button type="button" class="mode-btn" [class.active]="monthlyViewMode === '6m'" (click)="setMonthlyViewMode('6m')">6M</button>
+              <button type="button" class="mode-btn" [class.active]="monthlyViewMode === '12m'" (click)="setMonthlyViewMode('12m')">12M</button>
+            </div>
+            <!-- Year Selector Dropdown -->
+            <div class="year-select-wrap">
+              <select class="year-select" [ngModel]="monthlySelectedYear" (ngModelChange)="onMonthlyYearChange($event)">
+                <option *ngFor="let yr of availableMonthlyYears" [value]="yr">{{ yr }}</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="leg">
           <span *ngFor="let s of series" [style.--c]="s.color">
@@ -109,7 +124,7 @@
           <div class="gy">
             <span *ngFor="let t of ticks" [style.bottom.%]="t / chartMax * 100">{{ t }}</span>
           </div>
-          <div class="gp">
+          <div class="gp" [style.--mc]="months.length">
             <i class="gl" *ngFor="let t of ticks" [style.bottom.%]="t / chartMax * 100"></i>
             <div class="grp" *ngFor="let m of months; let mi = index" [title]="m">
               <div class="gb num" *ngFor="let s of series; let si = index"
@@ -121,7 +136,7 @@
             </div>
           </div>
         </div>
-        <div class="gx">
+        <div class="gx" [style.--mc]="months.length">
           <span *ngFor="let m of months">{{ m }}</span>
         </div>
       </section>

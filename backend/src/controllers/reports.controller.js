@@ -1847,9 +1847,9 @@ const getLeadCreationReport = async (req, res) => {
 
       let searchFilter = '';
       if (search && search.trim()) {
-        searchFilter = 'AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.status_name LIKE ?)';
+        searchFilter = 'AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.status_name LIKE ? OR c.channel_preference LIKE ?)';
         const term = `%${search.trim()}%`;
-        detailParams.push(term, term, term, term);
+        detailParams.push(term, term, term, term, term);
       }
 
       const pageNum = Math.max(1, parseInt(page) || 1);
@@ -1869,7 +1869,9 @@ const getLeadCreationReport = async (req, res) => {
            c.name,
            c.phone,
            c.email,
-           c.opt_in_source as source,
+           c.channel_preference,
+           COALESCE(NULLIF(TRIM(c.channel_preference), ''), NULLIF(TRIM(c.opt_in_source), ''), 'Direct') as source,
+           c.opt_in_source,
            c.created_at,
            COALESCE(u_assigned.name, 'Unassigned') as assigned_to,
            COALESCE(u_created.name, 'System') as created_by,
@@ -2472,7 +2474,9 @@ const getDailyReport = async (req, res) => {
          f.contact_id,
          COALESCE(f.contact_name, c.name, 'Unknown Lead') as lead_name,
          c.phone,
-         c.opt_in_source as source,
+         c.channel_preference,
+         COALESCE(NULLIF(TRIM(c.channel_preference), ''), NULLIF(TRIM(c.opt_in_source), ''), 'Direct') as source,
+         c.opt_in_source,
          f.follow_up_date as next_follow_up_date,
          f.entry_date_time as logged_at,
          COALESCE(f.by_user_name, u_by.name, 'System') as logged_by,
@@ -2800,7 +2804,9 @@ const getLeadFlowReport = async (req, res) => {
          c.name,
          c.phone,
          c.email,
-         c.opt_in_source as source,
+         c.channel_preference,
+         COALESCE(NULLIF(TRIM(c.channel_preference), ''), NULLIF(TRIM(c.opt_in_source), ''), 'Direct') as source,
+         c.opt_in_source,
          c.created_at,
          COALESCE(u_assigned.name, 'Unassigned') as assigned_to,
          COALESCE(u_created.name, 'System') as created_by,

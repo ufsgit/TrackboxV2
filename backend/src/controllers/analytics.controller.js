@@ -69,6 +69,65 @@ const getContactGrowth = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
 
+const fetchMonthlyPerformance = async (bizId, userId, userRole, range, year, mode) => {
+  const currentYear = new Date().getFullYear();
+  const targetYear = year ? parseInt(year, 10) : currentYear;
+  const targetMode = (mode && (mode.toLowerCase() === '12m' || mode.toLowerCase() === 'year')) ? '12m' : '6m';
+
+  const [monthlyResults] = await pool.query(
+    'CALL sp_get_crm_dashboard_monthly_performance(?, ?, ?, ?, ?, ?)',
+    [bizId, Number(userId), userRole || 'admin', range || 'all', targetYear, targetMode]
+  );
+
+  const monthlyRows = (monthlyResults && monthlyResults[0]) ? monthlyResults[0] : [];
+  const monthlyMonths = monthlyRows.map(r => r.month_name);
+  const leadsValues = monthlyRows.map(r => Number(r.leads_count || 0));
+  const applicationsValues = monthlyRows.map(r => Number(r.applications_count !== undefined ? r.applications_count : (r.contacted_count || 0)));
+  const followupsValues = monthlyRows.map(r => Number(r.followups_count || 0));
+  const wonValues = monthlyRows.map(r => Number(r.won_count || 0));
+
+  const maxVal = Math.max(...leadsValues, ...applicationsValues, ...followupsValues, ...wonValues, 10);
+  // Round up maxVal to a clean step (multiple of 10 or 20)
+  const chartMax = Math.ceil((maxVal * 1.15) / 10) * 10;
+  const step = chartMax / 4;
+  const ticks = [0, Math.round(step), Math.round(step * 2), Math.round(step * 3), chartMax];
+
+  // Fetch available years from contacts, applications, follow_ups
+  let availableYears = [currentYear];
+  try {
+    const [yearRows] = await pool.query(`
+      SELECT DISTINCT yr FROM (
+        SELECT YEAR(created_at) as yr FROM contacts WHERE business_id = ? AND created_at IS NOT NULL
+        UNION
+        SELECT YEAR(created_at) as yr FROM applications WHERE business_id = ? AND created_at IS NOT NULL
+        UNION
+        SELECT YEAR(f.entry_date_time) as yr FROM follow_ups f JOIN contacts c ON c.id = f.contact_id WHERE c.business_id = ? AND f.entry_date_time IS NOT NULL
+      ) t WHERE yr IS NOT NULL AND yr > 2000 AND yr < 2100 ORDER BY yr DESC
+    `, [bizId, bizId, bizId]);
+    if (yearRows && yearRows.length > 0) {
+      const dbYears = yearRows.map(r => Number(r.yr));
+      availableYears = Array.from(new Set([...dbYears, currentYear])).sort((a, b) => b - a);
+    }
+  } catch (err) {
+    console.error('Error fetching available years:', err);
+  }
+
+  return {
+    year: targetYear,
+    mode: targetMode,
+    availableYears,
+    months: monthlyMonths,
+    series: [
+      { name: 'Leads', color: '#2F7BF5', values: leadsValues },
+      { name: 'Applications', color: '#1FB874', values: applicationsValues },
+      { name: 'Follow-ups Done', color: '#F59B2B', values: followupsValues },
+      { name: 'Won', color: '#8B5CF6', values: wonValues }
+    ],
+    chartMax,
+    ticks
+  };
+};
+
 const getCrmDashboardStats = async (req, res) => {
   try {
     const bizId = req.user.businessId;
@@ -128,35 +187,14 @@ const getCrmDashboardStats = async (req, res) => {
     const pipelineStages = (pipelineResults && pipelineResults[0]) ? pipelineResults[0] : [];
 
     // Call Stored Procedure for Monthly Performance Grouped Bar Chart
-    const [monthlyResults] = await pool.query(
-      'CALL sp_get_crm_dashboard_monthly_performance(?, ?, ?, ?)',
-      [bizId, Number(userId), req.user.role || 'admin', range]
+    const monthlyPerformance = await fetchMonthlyPerformance(
+      bizId,
+      userId,
+      req.user.role,
+      range,
+      req.query.year,
+      req.query.monthlyMode
     );
-
-    const monthlyRows = (monthlyResults && monthlyResults[0]) ? monthlyResults[0] : [];
-    const monthlyMonths = monthlyRows.map(r => r.month_name);
-    const leadsValues = monthlyRows.map(r => Number(r.leads_count || 0));
-    const contactedValues = monthlyRows.map(r => Number(r.contacted_count || 0));
-    const followupsValues = monthlyRows.map(r => Number(r.followups_count || 0));
-    const wonValues = monthlyRows.map(r => Number(r.won_count || 0));
-
-    const maxVal = Math.max(...leadsValues, ...contactedValues, ...followupsValues, ...wonValues, 10);
-    // Round up maxVal to a clean step (multiple of 10 or 20)
-    const chartMax = Math.ceil((maxVal * 1.15) / 10) * 10;
-    const step = chartMax / 4;
-    const ticks = [0, Math.round(step), Math.round(step * 2), Math.round(step * 3), chartMax];
-
-    const monthlyPerformance = {
-      months: monthlyMonths,
-      series: [
-        { name: 'Leads', color: '#2F7BF5', values: leadsValues },
-        { name: 'Applications', color: '#1FB874', values: contactedValues },
-        { name: 'Follow-ups Done', color: '#F59B2B', values: followupsValues },
-        { name: 'Won', color: '#8B5CF6', values: wonValues }
-      ],
-      chartMax,
-      ticks
-    };
 
     // Call Stored Procedure for Lead Source Analysis
     const [sourceResults] = await pool.query(
@@ -587,9 +625,23 @@ const getRawData = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
 };
 
+const getMonthlyPerformance = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+    const { range, year, mode } = req.query;
+    const data = await fetchMonthlyPerformance(bizId, userId, req.user.role, range, year, mode);
+    res.json({ success: true, data, message: 'Monthly performance fetched successfully' });
+  } catch (err) {
+    console.error('getMonthlyPerformance error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = { 
   getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, 
   getChatbotAnalytics, getContactGrowth, getCrmDashboardStats,
+  getMonthlyPerformance,
   getEmployeeProductivity, getStudentPipeline, getFollowUpReport,
   getTeamProductivity, getTodaysActivity, getRawData
 };

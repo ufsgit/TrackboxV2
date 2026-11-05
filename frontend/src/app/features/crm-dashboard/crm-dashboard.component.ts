@@ -102,6 +102,10 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   hoveredStage: number | null = null;
 
   // Monthly Performance Graph Data (Sample with realistic trends)
+  monthlySelectedYear: number = new Date().getFullYear();
+  availableMonthlyYears: number[] = [new Date().getFullYear()];
+  monthlyViewMode: '6m' | '12m' = '6m';
+  monthlyLoading: boolean = false;
   months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
   series = [
     { name: 'Leads', color: '#2F7BF5', values: [12, 18, 22, 25, 30, 30] },
@@ -239,7 +243,11 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
 
   public loadDashboardData(): void {
     this.syncing = true;
-    this.api.get('/analytics/crm-dashboard', { range: this.range }).subscribe({
+    this.api.get('/analytics/crm-dashboard', { 
+      range: this.range,
+      year: this.monthlySelectedYear,
+      monthlyMode: this.monthlyViewMode
+    }).subscribe({
       next: (res: any) => {
         this.syncing = false;
         this.loading = false;
@@ -267,6 +275,15 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
           }
 
           if (res.data.monthlyPerformance) {
+            if (res.data.monthlyPerformance.availableYears) {
+              this.availableMonthlyYears = res.data.monthlyPerformance.availableYears;
+            }
+            if (res.data.monthlyPerformance.year) {
+              this.monthlySelectedYear = Number(res.data.monthlyPerformance.year);
+            }
+            if (res.data.monthlyPerformance.mode) {
+              this.monthlyViewMode = res.data.monthlyPerformance.mode;
+            }
             if (res.data.monthlyPerformance.months) {
               this.months = res.data.monthlyPerformance.months;
             }
@@ -322,6 +339,60 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         this.loading = false;
         this.build();
         this.countUp();
+      }
+    });
+  }
+
+  onMonthlyYearChange(year: any): void {
+    this.monthlySelectedYear = Number(year);
+    this.loadMonthlyPerformance();
+  }
+
+  setMonthlyViewMode(mode: '6m' | '12m'): void {
+    if (this.monthlyViewMode === mode) return;
+    this.monthlyViewMode = mode;
+    this.loadMonthlyPerformance();
+  }
+
+  loadMonthlyPerformance(): void {
+    this.monthlyLoading = true;
+    this.api.get('/analytics/monthly-performance', {
+      range: this.range,
+      year: this.monthlySelectedYear,
+      mode: this.monthlyViewMode
+    }).subscribe({
+      next: (res: any) => {
+        this.monthlyLoading = false;
+        if (res.success && res.data) {
+          if (res.data.availableYears) {
+            this.availableMonthlyYears = res.data.availableYears;
+          }
+          if (res.data.year) {
+            this.monthlySelectedYear = Number(res.data.year);
+          }
+          if (res.data.mode) {
+            this.monthlyViewMode = res.data.mode;
+          }
+          if (res.data.months) {
+            this.months = res.data.months;
+          }
+          if (res.data.series) {
+            this.series = res.data.series.map((item: any) => ({
+              ...item,
+              name: item.name === 'Contacted' ? 'Applications' : item.name
+            }));
+          }
+          if (res.data.chartMax) {
+            this.chartMax = res.data.chartMax;
+          }
+          if (res.data.ticks) {
+            this.ticks = res.data.ticks;
+          }
+        }
+      },
+      error: (err: any) => {
+        console.error('Error loading monthly performance:', err);
+        this.monthlyLoading = false;
       }
     });
   }

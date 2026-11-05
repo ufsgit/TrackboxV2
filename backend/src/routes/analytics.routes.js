@@ -8,6 +8,8 @@ router.get('/messages', c.getMessagesAnalytics);
 router.get('/broadcasts', c.getBroadcastsAnalytics);
 router.get('/chatbots/:id', c.getChatbotAnalytics);
 router.get('/crm-dashboard', c.getCrmDashboardStats);
+router.get('/crm-dashboard/monthly-performance', c.getMonthlyPerformance);
+router.get('/monthly-performance', c.getMonthlyPerformance);
 router.get('/contacts/growth', c.getContactGrowth);
 
 // Custom Reports Routes
