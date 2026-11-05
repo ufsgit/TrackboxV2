@@ -50,36 +50,59 @@
 
     <!-- ═══ DASHBOARD KPI METRICS STRIP (4-CARD GRID) ═══ -->
     <div class="dashboard-kpi-strip" *ngIf="!bulkEmailResultsView">
-      <!-- Card 1: Target Audience -->
-      <div class="dashboard-kpi-card" [class.clickable]="bulkEmailPreview.validCount > 0" (click)="bulkEmailPreview.validCount > 0 ? (showInvalidEmailDetails = !showInvalidEmailDetails) : null" title="Click to view recipient list">
+            <!-- Card 1: Target Audience -->
+      <div class="dashboard-kpi-card" [class.clickable]="bulkEmailPreview.validCount > 0" (click)="bulkEmailPreview.validCount > 0 ? toggleAudienceDrawer() : null" title="Click to view target recipient list">
         <div class="kpi-card-icon icon-indigo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
         <div class="kpi-card-content">
           <div class="kpi-card-label">Target Audience</div>
           <div class="kpi-card-value">
-            {{ (bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0) }}
-            <span class="kpi-unit">Lead{{ ((bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0)) === 1 ? '' : 's' }}</span>
+            {{ (bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0) + (bulkEmailPreview.invalidCount || 0) }}
+            <span class="kpi-unit">Lead{{ ((bulkEmailPreview.validCount || 0) + (bulkEmailPreview.missingCount || 0) + (bulkEmailPreview.invalidCount || 0)) === 1 ? '' : 's' }}</span>
           </div>
         </div>
-        <button type="button" class="kpi-toggle-link" *ngIf="bulkEmailPreview.validCount > 0" (click)="$event.stopPropagation(); showInvalidEmailDetails = !showInvalidEmailDetails">
-          <span>{{ showInvalidEmailDetails ? 'Hide' : 'View' }}</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="kpi-arrow-icon" [class.rotated]="showInvalidEmailDetails"><polyline points="6 9 12 15 18 9"/></svg>
+        <button type="button" class="kpi-toggle-link" *ngIf="bulkEmailPreview.validCount > 0" (click)="$event.stopPropagation(); toggleAudienceDrawer()">
+          <span>{{ showAudienceDrawer ? 'Hide' : 'View' }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="kpi-arrow-icon" [class.rotated]="showAudienceDrawer"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
       </div>
 
+      <!-- Card 2: Invalid Email Count (Strictly invalidCount, excluding missing) -->
+      <div class="dashboard-kpi-card card-invalid-emails" 
+           [class.clickable]="(bulkEmailPreview.invalidCount || 0) > 0" 
+           (click)="(bulkEmailPreview.invalidCount || 0) > 0 ? toggleInvalidDrawer() : null" 
+           title="Click to view invalid email addresses">
+        <div class="kpi-card-icon icon-rose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <div class="kpi-card-content">
+          <div class="kpi-card-label">Invalid Emails</div>
+          <div class="kpi-card-value text-rose">
+            {{ bulkEmailPreview.invalidCount || 0 }}
+            <span class="kpi-unit">Lead{{ (bulkEmailPreview.invalidCount || 0) === 1 ? '' : 's' }}</span>
+          </div>
+        </div>
+        <button type="button" class="kpi-toggle-link kpi-toggle-rose" *ngIf="(bulkEmailPreview.invalidCount || 0) > 0" (click)="$event.stopPropagation(); toggleInvalidDrawer()">
+          <span>{{ showInvalidListDrawer ? 'Hide' : 'View' }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="kpi-arrow-icon" [class.rotated]="showInvalidListDrawer"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="kpi-card-pill pill-emerald" *ngIf="(bulkEmailPreview.invalidCount || 0) === 0">
+          None
+        </div>
       </div>
+    </div>
 
     <!-- ═══ EXPANDABLE AUDIENCE DRAWER ═══ -->
-    <div class="header-audience-drawer" *ngIf="showInvalidEmailDetails && !bulkEmailResultsView">
+    <div class="header-audience-drawer" *ngIf="showAudienceDrawer && !bulkEmailResultsView">
       <div class="drawer-header-bar">
         <div class="drawer-header-left">
-          <span class="drawer-title">Target Delivery List ({{ bulkEmailPreview.validCount || 0 }} Leads)</span>
+          <span class="drawer-title">Target Delivery List ({{ bulkEmailPreview.validCount || 0 }} Valid Leads)</span>
           <span class="drawer-note">Personalized variables resolve dynamically per recipient from CRM records</span>
         </div>
-        <button type="button" class="drawer-close-link" (click)="showInvalidEmailDetails = false">
+        <!-- <button type="button" class="drawer-close-link" (click)="showAudienceDrawer = false">
           Close List &times;
-        </button>
+        </button> -->
       </div>
       <div class="drawer-chips-grid">
         <div class="drawer-recipient-card" *ngFor="let vr of bulkEmailPreview.validRecipients">
@@ -97,6 +120,29 @@
             <span class="r-email text-muted">{{ m.phone || 'No email on record' }}</span>
           </div>
           <span class="r-status-tag skipped">Skipped</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EXPANDABLE INVALID EMAILS DRAWER (ONLY INVALID COUNT / LIST) ═══ -->
+    <div class="header-audience-drawer drawer-invalid" *ngIf="showInvalidListDrawer && !bulkEmailResultsView">
+      <div class="drawer-header-bar">
+        <div class="drawer-header-left">
+          <span class="drawer-title text-danger">Invalid Email Addresses ({{ bulkEmailPreview.invalidCount || 0 }} Leads)</span>
+          <span class="drawer-note">Malformed emails that cannot be delivered</span>
+        </div>
+        <!-- <button type="button" class="drawer-close-link" (click)="showInvalidListDrawer = false">
+          Close List &times;
+        </button> -->
+      </div>
+      <div class="drawer-chips-grid">
+        <div class="drawer-recipient-card card-invalid-item" *ngFor="let inv of bulkEmailPreview.invalidRecipients">
+          <div class="recipient-avatar-badge badge-invalid">{{ inv.name ? (inv.name[0] | uppercase) : 'L' }}</div>
+          <div class="recipient-details">
+            <span class="r-name">{{ inv.name }}</span>
+            <span class="r-email text-danger">{{ inv.email }} (Invalid format)</span>
+          </div>
+          <span class="r-status-tag tag-invalid">Invalid</span>
         </div>
       </div>
     </div>

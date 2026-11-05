@@ -1539,3 +1539,63 @@
     width: 100%;
   }
 }
+
+/* KPI Strip Grid for 2 Cards (Target Audience + Invalid Emails) */
+.dashboard-kpi-strip {
+  grid-template-columns: repeat(2, minmax(220px, 300px)) !important;
+  gap: 12px !important;
+}
+
+.kpi-card-icon.icon-amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.kpi-card-value.text-amber {
+  color: #b45309 !important;
+}
+
+/* KPI Strip for Target Audience + Invalid Emails */
+.dashboard-kpi-strip {
+  grid-template-columns: repeat(2, minmax(220px, 300px)) !important;
+  gap: 12px !important;
+}
+
+.kpi-card-icon.icon-rose {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+
+.kpi-card-value.text-rose {
+  color: #e11d48 !important;
+}
+
+.kpi-toggle-rose {
+  color: #e11d48 !important;
+}
+
+.kpi-toggle-rose:hover {
+  background: #ffe4e6 !important;
+  border-color: #fecdd3 !important;
+}
+
+.drawer-invalid {
+  background: #fff5f5 !important;
+  border-bottom: 1px solid #fed7d7 !important;
+}
+
+.card-invalid-item {
+  border-color: #fecdd3 !important;
+  background: #ffffff !important;
+}
+
+.badge-invalid {
+  background: #e11d48 !important;
+  color: #ffffff !important;
+}
+
+.tag-invalid {
+  background: #ffe4e6 !important;
+  color: #be123c !important;
+  border: 1px solid #fecdd3;
+}

@@ -50,26 +50,21 @@ Trackbox CRM Team`;
     missingRecipients: []
   };
 
-  showInvalidEmailDetails = false;
+  showAudienceDrawer = false;
   showInvalidListDrawer = false;
 
   toggleAudienceDrawer(): void {
-    this.showInvalidEmailDetails = !this.showInvalidEmailDetails;
-    if (this.showInvalidEmailDetails) {
-      
+    this.showAudienceDrawer = !this.showAudienceDrawer;
+    if (this.showAudienceDrawer) {
+      this.showInvalidListDrawer = false;
     }
   }
 
   toggleInvalidDrawer(): void {
     this.showInvalidListDrawer = !this.showInvalidListDrawer;
     if (this.showInvalidListDrawer) {
-      this.showInvalidEmailDetails = false;
-    
+      this.showAudienceDrawer = false;
     }
-  }
-
-  getInvalidTotalCount(): number {
-    return (this.bulkEmailPreview.invalidCount || 0) + (this.bulkEmailPreview.missingCount || 0);
   }
   bulkEmailCampaignId: string | null = null;
   bulkEmailResultsView = false;
@@ -101,7 +96,8 @@ Trackbox CRM Team`;
     this.bulkEmailResultsView = false;
     this.bulkEmailCampaignId = null;
     this.bulkEmailResults = [];
-    this.showInvalidEmailDetails = false;
+    this.showAudienceDrawer = false;
+    this.showInvalidListDrawer = false;
     
     this.selectedTemplateId = null;
     this.loadEmailTemplates();
@@ -152,7 +148,7 @@ Trackbox CRM Team`;
   }
 
   toggleInvalidEmailDetails(): void {
-    this.showInvalidEmailDetails = !this.showInvalidEmailDetails;
+    this.toggleInvalidDrawer();
   }
 
   getLivePreviewRecipientName(): string {
