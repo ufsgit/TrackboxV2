@@ -19,7 +19,10 @@
       <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email">
         <i class="bi bi-envelope-fill"></i>
         <span>Send Email</span>
-        <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
+        <span *ngIf="isAllPagesSelected" class="leads-count-bubble">
+          {{ totalLeads }}
+        </span>
+        <span *ngIf="!isAllPagesSelected && selectedContactIds.size > 0" class="leads-count-bubble">
           {{ selectedContactIds.size }}
         </span>
       </button>
@@ -42,6 +45,20 @@
       </button>
     </div>
 
+    <!-- Center toolbar "Select All Leads" button (marked location) -->
+    <div class="toolbar-center-actions" *ngIf="totalLeads > 0">
+      <button 
+        type="button" 
+        class="select-all-leads-btn" 
+        [class.active]="isAllPagesSelected"
+        (click)="isAllPagesSelected ? clearSelection() : selectAllAcrossAllPages()"
+        title="Select all leads matching current filter"
+      >
+        <i class="bi" [ngClass]="isAllPagesSelected ? 'bi-check2-circle' : 'bi-check-all'"></i>
+        <span>{{ isAllPagesSelected ? ('Selected All ' + totalLeads + ' Leads') : ('Select All ' + totalLeads + ' Leads') }}</span>
+      </button>
+    </div>
+
     <div class="filter-controls">
       <select class="form-select filter-select" [(ngModel)]="activeStatus" (ngModelChange)="onStatusChange()">
         <option value="">All Statuses</option>
@@ -51,15 +68,21 @@
   </div>
 
   <!-- Selection Bar -->
-  <div class="leads-selection-bar" *ngIf="selectedContactIds.size > 0">
+  <div class="leads-selection-bar" *ngIf="isAllPagesSelected || selectedContactIds.size > 0">
     <div class="selection-left">
-      <span class="selection-count-pill">{{ selectedContactIds.size }}</span>
+      <span class="selection-count-pill">{{ isAllPagesSelected ? totalLeads : selectedContactIds.size }}</span>
       <span class="selection-text">of {{ totalLeads }} leads selected</span>
+      
+      <!-- Option to select all across all pages when only page is selected -->
+      <button *ngIf="!isAllPagesSelected && totalLeads > selectedContactIds.size" class="select-all-pages-link" (click)="selectAllAcrossAllPages()">
+        Select all {{ totalLeads }} leads
+      </button>
+
       <button class="selection-clear-btn" (click)="clearSelection()">Clear selection</button>
     </div>
     <div class="selection-right">
       <button class="selection-action-btn" (click)="openBulkEmailModal()">
-        <i class="bi bi-send-fill me-1"></i> Send Email to Selected ({{ selectedContactIds.size }})
+        <i class="bi bi-send-fill me-1"></i> Send Email to {{ isAllPagesSelected ? ('All ' + totalLeads) : selectedContactIds.size }} Leads
       </button>
     </div>
   </div>
@@ -200,6 +223,8 @@
 <app-send-email-modal
   [isOpen]="showBulkEmailModal"
   [selectedContactIds]="selectedContactIds"
+  [isAllAcrossPages]="isAllPagesSelected"
+  [totalLeads]="totalLeads"
   [searchQuery]="searchQuery"
   [activeStatus]="activeStatus"
   (close)="closeBulkEmailModal()"

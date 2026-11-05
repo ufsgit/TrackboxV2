@@ -28,7 +28,8 @@ export class EmailLeadsComponent implements OnInit {
 
   // Selection
   selectedContactIds: Set<number> = new Set();
-  isAllSelected = false;
+  isAllSelected = false;         // Page level selection
+  isAllPagesSelected = false;    // Select all 140 leads across all pages
 
   // Modal Control
   showBulkEmailModal = false;
@@ -85,6 +86,7 @@ export class EmailLeadsComponent implements OnInit {
 
   applyFilters(): void {
     this.currentPage = 1;
+    this.clearSelection();
     this.loadLeads();
   }
 
@@ -123,19 +125,30 @@ export class EmailLeadsComponent implements OnInit {
 
   // Checkbox management
   toggleSelectAll(): void {
-    if (this.isAllSelected) {
-      this.selectedContactIds.clear();
-      this.isAllSelected = false;
+    if (this.isAllSelected || this.isAllPagesSelected) {
+      this.clearSelection();
     } else {
       this.leads.forEach(lead => {
         if (lead.id) this.selectedContactIds.add(lead.id);
       });
       this.isAllSelected = true;
+      this.isAllPagesSelected = false;
     }
+  }
+
+  selectAllAcrossAllPages(): void {
+    this.isAllPagesSelected = true;
+    this.isAllSelected = true;
+    this.leads.forEach(lead => {
+      if (lead.id) this.selectedContactIds.add(lead.id);
+    });
   }
 
   toggleSelectContact(contactId: number, event: Event): void {
     event.stopPropagation();
+    if (this.isAllPagesSelected) {
+      this.isAllPagesSelected = false;
+    }
     if (this.selectedContactIds.has(contactId)) {
       this.selectedContactIds.delete(contactId);
     } else {
@@ -145,6 +158,7 @@ export class EmailLeadsComponent implements OnInit {
   }
 
   isContactSelected(contactId: number): boolean {
+    if (this.isAllPagesSelected) return true;
     return this.selectedContactIds.has(contactId);
   }
 
@@ -153,12 +167,17 @@ export class EmailLeadsComponent implements OnInit {
       this.isAllSelected = false;
       return;
     }
+    if (this.isAllPagesSelected) {
+      this.isAllSelected = true;
+      return;
+    }
     this.isAllSelected = this.leads.every(lead => this.selectedContactIds.has(lead.id));
   }
 
   clearSelection(): void {
     this.selectedContactIds.clear();
     this.isAllSelected = false;
+    this.isAllPagesSelected = false;
   }
 
   // Avatar Tint & Initials

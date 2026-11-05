@@ -14,6 +14,8 @@ import Swal from 'sweetalert2';
 export class SendEmailModalComponent implements OnInit, OnDestroy, OnChanges {
   @Input() isOpen = false;
   @Input() selectedContactIds: Set<number> = new Set();
+  @Input() isAllAcrossPages = false;
+  @Input() totalLeads = 0;
   @Input() searchQuery = '';
   @Input() activeStatus = '';
 
@@ -49,6 +51,26 @@ Trackbox CRM Team`;
   };
 
   showInvalidEmailDetails = false;
+  showInvalidListDrawer = false;
+
+  toggleAudienceDrawer(): void {
+    this.showInvalidEmailDetails = !this.showInvalidEmailDetails;
+    if (this.showInvalidEmailDetails) {
+      
+    }
+  }
+
+  toggleInvalidDrawer(): void {
+    this.showInvalidListDrawer = !this.showInvalidListDrawer;
+    if (this.showInvalidListDrawer) {
+      this.showInvalidEmailDetails = false;
+    
+    }
+  }
+
+  getInvalidTotalCount(): number {
+    return (this.bulkEmailPreview.invalidCount || 0) + (this.bulkEmailPreview.missingCount || 0);
+  }
   bulkEmailCampaignId: string | null = null;
   bulkEmailResultsView = false;
   bulkEmailResults: any[] = [];
@@ -80,6 +102,7 @@ Trackbox CRM Team`;
     this.bulkEmailCampaignId = null;
     this.bulkEmailResults = [];
     this.showInvalidEmailDetails = false;
+    
     this.selectedTemplateId = null;
     this.loadEmailTemplates();
     this.fetchBulkEmailPreview();
@@ -180,7 +203,8 @@ Trackbox CRM Team`;
       status: this.activeStatus || null
     };
 
-    if (this.selectedContactIds && this.selectedContactIds.size > 0) {
+    // If specific IDs are selected AND not in "Select all across pages" mode, send selected_contact_ids
+    if (!this.isAllAcrossPages && this.selectedContactIds && this.selectedContactIds.size > 0) {
       filterPayload.selected_contact_ids = Array.from(this.selectedContactIds);
     }
 
@@ -217,9 +241,9 @@ Trackbox CRM Team`;
       return;
     }
 
-    const targetDesc = (this.selectedContactIds && this.selectedContactIds.size > 0)
+    const targetDesc = (!this.isAllAcrossPages && this.selectedContactIds && this.selectedContactIds.size > 0)
       ? `<strong>${this.selectedContactIds.size} individually selected leads</strong> (${this.bulkEmailPreview.validCount} valid email addresses)`
-      : `<strong>${this.bulkEmailPreview.validCount} filtered leads</strong> with valid email addresses`;
+      : `<strong>All ${this.bulkEmailPreview.validCount} filtered leads</strong> with valid email addresses`;
 
     Swal.fire({
       title: 'Confirm Bulk Email Dispatch',
@@ -251,7 +275,7 @@ Trackbox CRM Team`;
           template_id: this.selectedTemplateId || null
         };
 
-        if (this.selectedContactIds && this.selectedContactIds.size > 0) {
+        if (!this.isAllAcrossPages && this.selectedContactIds && this.selectedContactIds.size > 0) {
           sendPayload.selected_contact_ids = Array.from(this.selectedContactIds);
         }
 
@@ -352,4 +376,3 @@ Trackbox CRM Team`;
     return parts.length > 0 ? parts.join(' • ') : 'Queued for delivery';
   }
 }
-
