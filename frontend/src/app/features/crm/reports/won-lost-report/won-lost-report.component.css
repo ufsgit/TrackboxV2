@@ -106,16 +106,20 @@
 .header-actions {
   margin-left: auto !important;
   display: flex !important;
+  align-items: center !important;
   justify-content: flex-end !important;
+  gap: 12px !important;
   flex-shrink: 0;
 }
 
 .filter-toolbar {
   display: flex;
   align-items: center;
+  height: 44px;
+  box-sizing: border-box;
   background: #ffffff;
   border-radius: 10px;
-  padding: 0.2rem 0.35rem;
+  padding: 0 0.35rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
 }

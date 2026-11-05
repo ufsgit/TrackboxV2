@@ -1,0 +1,12 @@
+<button 
+  type="button" 
+  class="btn-excel-export" 
+  (click)="exportToExcel()" 
+  [disabled]="exporting"
+  [title]="exporting ? 'Generating Excel file...' : 'Export to Excel (.xlsx)'"
+>
+  <span *ngIf="exporting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+  <i *ngIf="!exporting" class="bi bi-file-earmark-excel-fill export-icon"></i>
+  <span class="btn-text">{{ exporting ? 'Exporting...' : buttonText }}</span>
+</button>
+

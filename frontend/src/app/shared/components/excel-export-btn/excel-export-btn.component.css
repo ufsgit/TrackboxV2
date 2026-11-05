@@ -1,0 +1,52 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-excel-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 0 1rem;
+  background-color: #ffffff;
+  color: #047857;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  user-select: none;
+  line-height: normal;
+}
+
+.btn-excel-export:hover:not(:disabled) {
+  background-color: #f8fafc;
+  color: #065f46;
+}
+
+.btn-excel-export:active:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.btn-excel-export:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.export-icon {
+  font-size: 1.1rem;
+  color: #10b981;
+}
+
+.btn-text {
+  color: #334155;
+  font-weight: 500;
+  letter-spacing: normal;
+}

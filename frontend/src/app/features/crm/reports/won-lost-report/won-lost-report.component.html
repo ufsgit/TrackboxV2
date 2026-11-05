@@ -10,7 +10,14 @@
       <p class="page-sub text-muted">Analyze performance of won and lost leads to identify trends and conversion rates.</p>
     </div>
     
-    <div class="header-actions ms-auto">
+    <div class="header-actions ms-auto d-flex align-items-center gap-2">
+        <app-excel-export-btn
+          endpoint="/export/won-lost"
+          [filters]="getExportFilters()"
+          fileName="Sale_Won_Lost_Report"
+          buttonText="Export Excel"
+        ></app-excel-export-btn>
+
         <div class="filter-toolbar">
           <!-- Custom Date / Period Filter -->
           <div class="filter-dropdown-wrapper">

@@ -152,6 +152,7 @@ app.use('/api/notifications', require('./src/routes/notifications.routes'));
 app.use('/api/receipts', require('./src/routes/receipts.routes'));
 app.use('/api/visas', require('./src/routes/visas.routes'));
 app.use('/api/help-video', require('./src/routes/help-video.routes'));
+app.use('/api/export', require('./src/routes/excel-export'));
 // app.use('/api/operations', require('./src/routes/operations.routes'));
 
 // Socket.IO

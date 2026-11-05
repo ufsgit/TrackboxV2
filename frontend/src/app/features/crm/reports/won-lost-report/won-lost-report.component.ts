@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { ExcelExportBtnComponent } from '../../../../shared/components/excel-export-btn/excel-export-btn.component';
 
 @Component({
   selector: 'app-won-lost-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgChartsModule],
+  imports: [CommonModule, FormsModule, NgChartsModule, ExcelExportBtnComponent],
   templateUrl: './won-lost-report.component.html',
   styleUrl: './won-lost-report.component.css'
 })
@@ -137,6 +138,18 @@ export class WonLostReportComponent implements OnInit {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
+
+  getExportFilters(): any {
+    const filters: any = {
+      dateRange: this.dateRange,
+      search: this.searchTerm ? this.searchTerm.trim() : ''
+    };
+    if (this.dateRange === 'custom') {
+      filters.startDate = this.customStartDate;
+      filters.endDate = this.customEndDate;
+    }
+    return filters;
+  }
   ngOnInit() {
     this.fetchData();
   }
