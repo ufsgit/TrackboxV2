@@ -19,6 +19,12 @@ export class EmployeeProductivityReportComponent implements OnInit {
   customStartDate: string = '';
   customEndDate: string = '';
   searchTerm: string = '';
+
+  selectedEmployee: any = 'All';
+  isEmployeeDropdownOpen: boolean = false;
+  employeeSearchQuery: string = '';
+  allEmployeesData: any[] = [];
+  users: any[] = [];
   
   data: any[] = [];
   totals: any = { conversions: 0, leads: 0, employees: 0, topPerformer: 'N/A', avgPerEmp: '0' };
@@ -65,11 +71,107 @@ export class EmployeeProductivityReportComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.fetchUsers();
     this.fetchData();
+  }
+
+  fetchUsers() {
+    this.api.get('/settings/team').subscribe({
+      next: (res: any) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.users = res.data;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err: any) => console.error('Error fetching users from users table:', err)
+    });
   }
 
   onDocumentClick() {
     this.isDateDropdownOpen = false;
+    this.isEmployeeDropdownOpen = false;
+  }
+
+  get filteredEmployees(): any[] {
+    const q = (this.employeeSearchQuery || '').trim().toLowerCase();
+    if (!q) return this.users;
+    return this.users.filter(u => 
+      (u.name && u.name.toLowerCase().includes(q)) ||
+      (u.employee_code && u.employee_code.toLowerCase().includes(q))
+    );
+  }
+
+  getSelectedEmployeeName(): string {
+    if (!this.selectedEmployee || this.selectedEmployee === 'All') {
+      return 'All Employees';
+    }
+    const u = this.users.find(usr => String(usr.id) === String(this.selectedEmployee) || (usr.name && usr.name.toLowerCase() === String(this.selectedEmployee).toLowerCase()));
+    if (u && u.name) return u.name;
+    return String(this.selectedEmployee);
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'EM';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  toggleEmployeeDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isDateDropdownOpen = false;
+    this.isEmployeeDropdownOpen = !this.isEmployeeDropdownOpen;
+  }
+
+  selectEmployee(empId: any) {
+    this.selectedEmployee = empId;
+    this.isEmployeeDropdownOpen = false;
+
+    // Fast local filter if we already have the baseline data
+    if (empId !== 'All' && this.allEmployeesData && this.allEmployeesData.length > 0) {
+      const key = String(empId).toLowerCase();
+      const empName = this.getSelectedEmployeeName().toLowerCase();
+      const matched = this.allEmployeesData.filter(d => 
+        (d.employee_id !== undefined && String(d.employee_id).toLowerCase() === key) ||
+        (d.employee && d.employee.toLowerCase() === key) ||
+        (d.employee && d.employee.toLowerCase() === empName)
+      );
+      if (matched.length > 0) {
+        this.data = [...matched];
+      } else {
+        const targetUser = this.users.find(u => String(u.id) === String(empId) || (u.name && u.name.toLowerCase() === key));
+        this.data = [{
+          employee_id: empId,
+          employee: targetUser ? targetUser.name : this.getSelectedEmployeeName(),
+          employee_code: targetUser ? (targetUser.employee_code || 'N/A') : 'N/A',
+          total_leads: 0,
+          sale_won: 0,
+          sale_lost: 0,
+          conversion_rate: '0.0',
+          loss_rate: '0.0'
+        }];
+      }
+      this.calculateTotals();
+      this.updateCharts();
+      if (this.isBrowser) {
+        this.animateCountUp();
+      } else {
+        this.animatedTotals = { ...this.totals };
+      }
+    } else if (empId === 'All' && this.allEmployeesData && this.allEmployeesData.length > 0) {
+      this.data = [...this.allEmployeesData];
+      this.calculateTotals();
+      this.updateCharts();
+      if (this.isBrowser) {
+        this.animateCountUp();
+      } else {
+        this.animatedTotals = { ...this.totals };
+      }
+    }
+
+    this.fetchData();
   }
 
   setActiveTab(tab: 'split' | 'chart' | 'table') {
@@ -81,6 +183,7 @@ export class EmployeeProductivityReportComponent implements OnInit {
     if (event) {
       event.stopPropagation();
     }
+    this.isEmployeeDropdownOpen = false;
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -120,6 +223,9 @@ export class EmployeeProductivityReportComponent implements OnInit {
     }
     
     let endpoint = `/reports/leads/employee-conversion?dateRange=${this.dateRange}`;
+    if (this.selectedEmployee && this.selectedEmployee !== 'All') {
+      endpoint += `&employee=${encodeURIComponent(this.selectedEmployee)}`;
+    }
     if (this.dateRange === 'custom') {
       if (!this.customStartDate || !this.customEndDate) {
         this.loading = false;
@@ -132,7 +238,14 @@ export class EmployeeProductivityReportComponent implements OnInit {
     this.api.get(endpoint).subscribe({
       next: (res: any) => {
         if (res.success) {
-          this.data = (res.data || []).sort((a: any, b: any) => (b.sale_won || 0) - (a.sale_won || 0));
+          if (res.users && Array.isArray(res.users) && this.users.length === 0) {
+            this.users = res.users;
+          }
+          const rawData: any[] = (res.data || []).sort((a: any, b: any) => (b.sale_won || 0) - (a.sale_won || 0));
+          if (!this.selectedEmployee || this.selectedEmployee === 'All') {
+            this.allEmployeesData = rawData;
+          }
+          this.data = rawData;
           this.calculateTotals();
           this.updateCharts();
           if (this.isBrowser) {
@@ -159,7 +272,12 @@ export class EmployeeProductivityReportComponent implements OnInit {
     const conversions = this.data.reduce((sum, r) => sum + (r.sale_won || 0), 0);
     const leads = this.data.reduce((sum, r) => sum + (r.total_leads || 0), 0);
     const employees = this.data.length;
-    const topPerformer = this.data.length > 0 && this.data[0].sale_won > 0 ? (this.data[0].employee || 'Unassigned') : 'None';
+    let topPerformer = 'None';
+    if (this.selectedEmployee !== 'All' && this.data.length > 0) {
+      topPerformer = this.data[0].employee || this.getSelectedEmployeeName();
+    } else if (this.data.length > 0 && this.data[0].sale_won > 0) {
+      topPerformer = this.data[0].employee || 'Unassigned';
+    }
     const avgPerEmp = employees > 0 ? (conversions / employees).toFixed(1) : '0';
     this.totals = { conversions, leads, employees, topPerformer, avgPerEmp };
   }

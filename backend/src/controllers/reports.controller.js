@@ -1273,7 +1273,7 @@ const getWonLostReport = async (req, res) => {
 const getChannelConversionReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
-    const { dateRange, startDate, endDate, agent } = req.query;
+    const { dateRange, startDate, endDate, agent, source, channel } = req.query;
     let dateFilter = '';
     let queryParams = [businessId];
 
@@ -1285,6 +1285,8 @@ const getChannelConversionReport = async (req, res) => {
       dateFilter = 'AND YEAR(created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
     } else if (dateRange === 'this_month') {
       dateFilter = 'AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1)';
     } else if (dateRange === 'custom' && startDate && endDate) {
       dateFilter = 'AND DATE(created_at) BETWEEN ? AND ?';
       queryParams.push(startDate, endDate);
@@ -1300,21 +1302,55 @@ const getChannelConversionReport = async (req, res) => {
     dateFilter += userScope.clause;
     queryParams.push(...userScope.params);
 
+    const targetSource = (source || channel || '').trim();
+    if (targetSource && targetSource.toLowerCase() !== 'all') {
+      dateFilter += ' AND (LOWER(TRIM(channel_preference)) = LOWER(?) OR REPLACE(LOWER(TRIM(channel_preference)), " ", "") = REPLACE(LOWER(TRIM(?)), " ", "") OR LOWER(TRIM(opt_in_source)) = LOWER(?)) ';
+      queryParams.push(targetSource, targetSource, targetSource);
+    }
+
     const query = `
       SELECT 
-        COALESCE(channel_preference, 'Unknown') as channel,
+        channel,
         COUNT(id) as total_leads,
-        SUM(IF(current_sale_status = 1, 1, 0)) as sale_won,
-        SUM(IF(current_sale_status = 2, 1, 0)) as sale_lost
-      FROM contacts
-      WHERE business_id = ? ${dateFilter}
-      GROUP BY channel_preference
+        SUM(IF(current_sale_status = 1 OR sale_won = 1 OR LOWER(status_name) LIKE '%won%', 1, 0)) as sale_won,
+        SUM(IF(current_sale_status = 2 OR sale_lost = 1 OR LOWER(status_name) LIKE '%lost%', 1, 0)) as sale_lost
+      FROM (
+        SELECT 
+          id,
+          current_sale_status,
+          sale_won,
+          sale_lost,
+          status_name,
+          COALESCE(NULLIF(TRIM(channel_preference), ''), NULLIF(TRIM(opt_in_source), ''), 'Unknown') as channel
+        FROM contacts
+        WHERE business_id = ? ${dateFilter}
+      ) t
+      GROUP BY channel
       ORDER BY total_leads DESC
     `;
 
     const [rows] = await pool.query(query, queryParams);
 
-    const data = rows.map(r => {
+    // Fetch available sources list directly from trackboxv2.channels table
+    const [allSourceRows] = await pool.query(
+      `SELECT 
+         ch.id,
+         ch.name,
+         COUNT(c.id) as total_leads
+       FROM channels ch
+       LEFT JOIN contacts c ON c.business_id = ch.business_id 
+         AND (
+           LOWER(TRIM(c.channel_preference)) = LOWER(TRIM(ch.name)) 
+           OR REPLACE(LOWER(TRIM(c.channel_preference)), ' ', '') = REPLACE(LOWER(TRIM(ch.name)), ' ', '')
+           OR LOWER(TRIM(c.opt_in_source)) = LOWER(TRIM(ch.name))
+         )
+       WHERE ch.business_id = ? OR ch.business_id IS NULL
+       GROUP BY ch.id, ch.name
+       ORDER BY total_leads DESC, ch.name ASC`,
+      [businessId]
+    );
+
+    let data = rows.map(r => {
       const total = Number(r.total_leads) || 0;
       const won = Number(r.sale_won) || 0;
       const lost = Number(r.sale_lost) || 0;
@@ -1332,7 +1368,18 @@ const getChannelConversionReport = async (req, res) => {
       };
     });
 
-    res.json({ success: true, data });
+    if (data.length === 0 && targetSource && targetSource.toLowerCase() !== 'all') {
+      data = [{
+        channel: targetSource,
+        total_leads: 0,
+        sale_won: 0,
+        sale_lost: 0,
+        conversion_rate: '0.0',
+        loss_rate: '0.0'
+      }];
+    }
+
+    res.json({ success: true, data, availableSources: allSourceRows });
   } catch (error) {
     console.error('getChannelConversionReport Error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate report' });
@@ -1404,11 +1451,19 @@ const getEmployeeConversionReport = async (req, res) => {
       GROUP BY c.assigned_to, u.name, u.employee_code
       ORDER BY total_leads DESC
     `;
-    console.log("EXEC QUERY:", query, queryParams);
 
     const [rows] = await pool.query(query, queryParams);
 
-    const data = rows.map(r => {
+    // Fetch active users directly from users table for employee filter dropdown
+    const [userRows] = await pool.query(
+      `SELECT u.id, u.name, u.employee_code, u.role
+       FROM users u
+       WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL) AND u.is_active = 1
+       ORDER BY u.name ASC`,
+      [businessId]
+    );
+
+    let data = rows.map(r => {
       const total = Number(r.total_leads) || 0;
       const won = Number(r.sale_won) || 0;
       const lost = Number(r.sale_lost) || 0;
@@ -1428,7 +1483,21 @@ const getEmployeeConversionReport = async (req, res) => {
       };
     });
 
-    res.json({ success: true, data });
+    if (data.length === 0 && employee && employee !== 'All' && employee !== 'all') {
+      const matchedUser = userRows.find(u => String(u.id) === String(employee) || (u.name && u.name.toLowerCase() === String(employee).toLowerCase()));
+      data = [{
+        employee_id: matchedUser ? matchedUser.id : employee,
+        employee: matchedUser ? matchedUser.name : employee,
+        employee_code: matchedUser ? (matchedUser.employee_code || 'N/A') : 'N/A',
+        total_leads: 0,
+        sale_won: 0,
+        sale_lost: 0,
+        conversion_rate: '0.0',
+        loss_rate: '0.0'
+      }];
+    }
+
+    res.json({ success: true, data, users: userRows });
   } catch (error) {
     console.error('getEmployeeConversionReport Error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate report' });
@@ -1546,8 +1615,7 @@ const getFollowUpReport = async (req, res) => {
     const { dateRange, startDate, endDate, status, employee } = req.query;
     
     let dateFilter = '';
-    // Query uses business_id twice: once in JOIN for contacts, once in WHERE for users
-    let queryParams = [businessId, businessId];
+    const joinParams = [businessId];
 
     if (dateRange === 'ytd') {
       dateFilter = 'AND YEAR(f.entry_date_time) = YEAR(CURDATE())';
@@ -1557,26 +1625,30 @@ const getFollowUpReport = async (req, res) => {
       dateFilter = 'AND YEAR(f.entry_date_time) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(f.entry_date_time) = MONTH(CURDATE() - INTERVAL 1 MONTH)';
     } else if (dateRange === 'this_month') {
       dateFilter = 'AND MONTH(f.entry_date_time) = MONTH(CURDATE()) AND YEAR(f.entry_date_time) = YEAR(CURDATE())';
+    } else if (dateRange === 'this_week') {
+      dateFilter = 'AND YEARWEEK(f.entry_date_time, 1) = YEARWEEK(CURDATE(), 1)';
     } else if (dateRange === 'custom' && startDate && endDate) {
       dateFilter = 'AND DATE(f.entry_date_time) BETWEEN ? AND ?';
-      queryParams.push(startDate, endDate);
+      joinParams.push(startDate, endDate);
     } else if (dateRange === 'today') {
       dateFilter = 'AND DATE(f.entry_date_time) = CURDATE()';
     } else if (startDate && endDate) {
       dateFilter = 'AND DATE(f.entry_date_time) BETWEEN ? AND ?';
-      queryParams.push(startDate, endDate);
+      joinParams.push(startDate, endDate);
     }
 
     let statusFilter = '';
     if (status && status !== 'All') {
       statusFilter = 'AND f.status_name = ?';
-      queryParams.push(status);
+      joinParams.push(status);
     }
+
+    const whereParams = [businessId];
 
     let employeeFilter = '';
     if (employee && employee !== 'All') {
       employeeFilter = 'AND u.id = ?';
-      queryParams.push(employee);
+      whereParams.push(employee);
     }
 
     let teamFilter = '';
@@ -1588,7 +1660,7 @@ const getFollowUpReport = async (req, res) => {
         teamFilter = ' AND u.id = 0 ';
       } else {
         teamFilter = ` AND u.id IN (${accessibleUserIds.map(() => '?').join(',')}) `;
-        queryParams.push(...accessibleUserIds);
+        whereParams.push(...accessibleUserIds);
       }
     }
 
@@ -1608,6 +1680,7 @@ const getFollowUpReport = async (req, res) => {
       ORDER BY follow_up_count DESC
     `;
 
+    const queryParams = [...joinParams, ...whereParams];
     const [rows] = await pool.query(query, queryParams);
 
     const data = rows.map(r => ({

@@ -19,6 +19,12 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
   dateRange: string = 'ytd';
   customStartDate: string = '';
   customEndDate: string = '';
+
+  selectedSource: string = 'All';
+  isSourceDropdownOpen: boolean = false;
+  sourceSearchQuery: string = '';
+  allSourcesData: any[] = [];
+  availableSources: Array<{ name: string; total_leads: number; color?: string }> = [];
   
   data: any[] = [];
   topChannels4: any[] = [];
@@ -33,14 +39,22 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
   // Common Colors for consistency
   colorMap: any = {
     whatsapp: '#25D366',
+    'whats app': '#25D366',
     instagram: '#E1306C',
     facebook: '#1877F2',
     messenger: '#0084FF',
     linkedin: '#0A66C2',
+    linkdin: '#0A66C2',
     website: '#0DCAF0',
     rcs: '#198754',
     sms: '#6F42C1',
     referral: '#FFC107',
+    referrals: '#FFC107',
+    'google ads': '#4285F4',
+    google: '#4285F4',
+    twiter: '#1DA1F2',
+    twitter: '#1DA1F2',
+    others: '#64748B',
     other: '#6C757D'
   };
 
@@ -98,7 +112,49 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
   }
 
   ngOnInit() {
+    this.fetchChannelsTable();
     this.fetchData();
+  }
+
+  fetchChannelsTable() {
+    this.api.get('/system-settings/channels').subscribe({
+      next: (res: any) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          if (this.availableSources.length === 0) {
+            this.availableSources = res.data.map((ch: any) => ({
+              id: ch.id,
+              name: ch.name,
+              total_leads: 0,
+              color: this.getChannelColor(ch.name)
+            }));
+          } else {
+            this.mergeChannels(res.data);
+          }
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err: any) => {
+        console.error('Error fetching trackboxv2.channels:', err);
+      }
+    });
+  }
+
+  private mergeChannels(dbChannels: any[]) {
+    const countsMap = new Map<string, number>();
+    for (const s of this.availableSources) {
+      const k = (s.name || '').toLowerCase().replace(/\s+/g, '');
+      countsMap.set(k, s.total_leads || 0);
+    }
+
+    this.availableSources = dbChannels.map((ch: any) => {
+      const k = (ch.name || '').toLowerCase().replace(/\s+/g, '');
+      return {
+        id: ch.id,
+        name: ch.name,
+        total_leads: countsMap.get(k) || 0,
+        color: this.getChannelColor(ch.name)
+      };
+    }).sort((a, b) => b.total_leads - a.total_leads);
   }
 
   ngAfterViewInit() {
@@ -118,6 +174,72 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
 
   onDocumentClick() {
     this.isDateDropdownOpen = false;
+    this.isSourceDropdownOpen = false;
+  }
+
+  get filteredSources(): Array<{ name: string; total_leads: number; color?: string }> {
+    const q = (this.sourceSearchQuery || '').trim().toLowerCase();
+    if (!q) return this.availableSources;
+    return this.availableSources.filter(s => s.name.toLowerCase().includes(q));
+  }
+
+  getSelectedSourceName(): string {
+    if (!this.selectedSource || this.selectedSource === 'All') {
+      return 'All Sources';
+    }
+    return this.selectedSource.toUpperCase();
+  }
+
+  toggleSourceDropdown(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isDateDropdownOpen = false;
+    this.isSourceDropdownOpen = !this.isSourceDropdownOpen;
+  }
+
+  selectSource(sourceName: string) {
+    this.selectedSource = sourceName;
+    this.isSourceDropdownOpen = false;
+
+    // Instant local filter if we already have the baseline all-sources data
+    if (sourceName !== 'All' && this.allSourcesData && this.allSourcesData.length > 0) {
+      const key = sourceName.toLowerCase().replace(/\s+/g, '');
+      const matched = this.allSourcesData.filter(d => (d.channel || '').toLowerCase().replace(/\s+/g, '') === key);
+      if (matched.length > 0) {
+        this.data = matched.map(row => ({ ...row, color: this.getChannelColor(row.channel) }));
+      } else {
+        this.data = [{
+          channel: sourceName,
+          total_leads: 0,
+          sale_won: 0,
+          sale_lost: 0,
+          conversion_rate: '0.0',
+          loss_rate: '0.0',
+          color: this.getChannelColor(sourceName)
+        }];
+      }
+      this.calculateTotals();
+      this.prepareTopChannels();
+      this.updateCharts();
+      if (this.isBrowser) {
+        this.animateCountUp();
+      } else {
+        this.animatedTotals = { ...this.totals };
+      }
+    } else if (sourceName === 'All' && this.allSourcesData && this.allSourcesData.length > 0) {
+      this.data = this.allSourcesData.map(row => ({ ...row, color: this.getChannelColor(row.channel) }));
+      this.calculateTotals();
+      this.prepareTopChannels();
+      this.updateCharts();
+      if (this.isBrowser) {
+        this.animateCountUp();
+      } else {
+        this.animatedTotals = { ...this.totals };
+      }
+    }
+
+    this.fetchData();
   }
 
   setActiveTab(tab: 'charts' | 'table' | 'split') {
@@ -129,6 +251,7 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
     if (event) {
       event.stopPropagation();
     }
+    this.isSourceDropdownOpen = false;
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
   }
 
@@ -183,6 +306,9 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
     }
     
     let endpoint = `/reports/leads/channel-conversion?dateRange=${this.dateRange}`;
+    if (this.selectedSource && this.selectedSource !== 'All') {
+      endpoint += `&source=${encodeURIComponent(this.selectedSource)}`;
+    }
     if (this.dateRange === 'custom') {
       if (!this.customStartDate || !this.customEndDate) {
         this.loading = false;
@@ -195,7 +321,25 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
     this.apiSub = this.api.get(endpoint).subscribe({
       next: (res: any) => {
         if (res && res.success) {
+          if (res.availableSources && Array.isArray(res.availableSources)) {
+            this.availableSources = res.availableSources.map((s: any) => ({
+              name: s.name,
+              total_leads: Number(s.total_leads) || 0,
+              color: this.getChannelColor(s.name)
+            }));
+          }
           const rawData: any[] = Array.isArray(res.data) ? res.data : [];
+          if (!this.selectedSource || this.selectedSource === 'All') {
+            this.allSourcesData = rawData;
+            // Also sync available sources if not provided by backend
+            if (this.availableSources.length === 0) {
+              this.availableSources = rawData.map((s: any) => ({
+                name: s.channel,
+                total_leads: Number(s.total_leads) || 0,
+                color: this.getChannelColor(s.channel)
+              }));
+            }
+          }
           this.data = rawData.map((row: any) => ({
             ...row,
             color: this.getChannelColor(row.channel)
@@ -347,6 +491,12 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
       pieColors.push(this.colorMap['other']);
     }
 
+    if (pieData.length === 0) {
+      pieLabels = [this.selectedSource !== 'All' ? this.selectedSource.toUpperCase() : 'No Leads'];
+      pieData = [1];
+      pieColors = ['#e2e8f0'];
+    }
+
     this.pieChartData = {
       labels: pieLabels,
       datasets: [{
@@ -372,14 +522,20 @@ export class ChannelConversionReportComponent implements OnInit, AfterViewInit, 
   }
 
   getChannelIcon(channel: string): string {
-    const c = (channel || '').toLowerCase();
+    const c = (channel || '').toLowerCase().replace(/\s+/g, '');
     if (c.includes('facebook') || c.includes('meta')) return 'bi-facebook text-primary';
     if (c.includes('instagram')) return 'bi-instagram text-danger';
     if (c.includes('whatsapp')) return 'bi-whatsapp text-success';
-    if (c.includes('linkedin')) return 'bi-linkedin text-primary';
+    if (c.includes('link')) return 'bi-linkedin text-primary';
+    if (c.includes('twit') || c.includes('x')) return 'bi-twitter-x text-info';
+    if (c.includes('google')) return 'bi-google text-primary';
     if (c.includes('web') || c.includes('site')) return 'bi-globe text-info';
-    if (c.includes('referral')) return 'bi-people text-warning';
-    return 'bi-hash text-secondary';
+    if (c.includes('refer')) return 'bi-people text-warning';
+    if (c.includes('messenger')) return 'bi-messenger text-primary';
+    if (c.includes('sms')) return 'bi-chat-dots text-purple';
+    if (c.includes('rcs')) return 'bi-chat-square-text text-success';
+    if (c.includes('other')) return 'bi-three-dots text-secondary';
+    return 'bi-funnel-fill text-secondary';
   }
 
   getTopChannels(limit: number = 3): any[] {

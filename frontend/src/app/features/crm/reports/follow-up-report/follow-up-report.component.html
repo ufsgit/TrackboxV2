@@ -10,14 +10,14 @@
         <div class="filter-toolbar">
           <!-- Custom Date Period -->
           <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleDateDropdown()" [class.active]="isDateDropdownOpen">
+            <div class="filter-item" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
               <i class="bi bi-calendar3 filter-icon"></i>
               <span class="filter-value">{{ getDateRangeLabel() }}</span>
               <i class="bi bi-chevron-down filter-caret"></i>
             </div>
             
             <!-- Date Popup -->
-            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen">
+            <div class="custom-dropdown-panel date-panel" *ngIf="isDateDropdownOpen" (click)="$event.stopPropagation()">
               <div class="dropdown-list">
                 <div class="dropdown-option" (click)="selectDateRange('today')" [class.selected]="dateRange === 'today'">
                   <span class="opt-name">Today</span>
@@ -66,14 +66,14 @@
 
           <!-- Custom Employee Dropdown -->
           <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleEmployeeDropdown()" [class.active]="isEmployeeDropdownOpen">
+            <div class="filter-item" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen">
               <i class="bi bi-person filter-icon"></i>
               <span class="filter-value">{{ getSelectedEmployeeName() }}</span>
               <i class="bi bi-chevron-down filter-caret"></i>
             </div>
             
             <!-- Employee Popup -->
-            <div class="custom-dropdown-panel employee-panel" *ngIf="isEmployeeDropdownOpen">
+            <div class="custom-dropdown-panel employee-panel" *ngIf="isEmployeeDropdownOpen" (click)="$event.stopPropagation()">
               <div class="dropdown-search">
                 <i class="bi bi-search"></i>
                 <input type="text" placeholder="Search employees..." [(ngModel)]="employeeSearchQuery" (click)="$event.stopPropagation()">
@@ -84,10 +84,10 @@
                   <span class="opt-name">All Employees</span>
                   <i class="bi bi-check2 opt-check" *ngIf="selectedEmployee === 'All'"></i>
                 </div>
-                <div class="dropdown-option" *ngFor="let u of filteredUsers" (click)="selectEmployee(u.id)" [class.selected]="selectedEmployee === u.id">
+                <div class="dropdown-option" *ngFor="let u of filteredUsers" (click)="selectEmployee(u.id)" [class.selected]="selectedEmployee == u.id">
                   <div class="opt-avatar">{{ getInitials(u.name) }}</div>
                   <span class="opt-name">{{ u.name }}</span>
-                  <i class="bi bi-check2 opt-check" *ngIf="selectedEmployee === u.id"></i>
+                  <i class="bi bi-check2 opt-check" *ngIf="selectedEmployee == u.id"></i>
                 </div>
                 <div class="dropdown-empty" *ngIf="filteredUsers.length === 0">
                   No employees found
@@ -100,14 +100,14 @@
 
           <!-- Custom Status Dropdown -->
           <div class="filter-dropdown-wrapper">
-            <div class="filter-item" (click)="toggleStatusDropdown()" [class.active]="isStatusDropdownOpen">
+            <div class="filter-item" (click)="toggleStatusDropdown($event)" [class.active]="isStatusDropdownOpen">
               <i class="bi bi-tag filter-icon"></i>
               <span class="filter-value">{{ selectedStatus === 'All' ? 'All Statuses' : selectedStatus }}</span>
               <i class="bi bi-chevron-down filter-caret"></i>
             </div>
             
             <!-- Status Popup -->
-            <div class="custom-dropdown-panel status-panel" *ngIf="isStatusDropdownOpen">
+            <div class="custom-dropdown-panel status-panel" *ngIf="isStatusDropdownOpen" (click)="$event.stopPropagation()">
               <div class="dropdown-list">
                 <div class="dropdown-option" (click)="selectStatus('All')" [class.selected]="selectedStatus === 'All'">
                   <div class="status-dot" style="background: #e2e8f0;"></div>

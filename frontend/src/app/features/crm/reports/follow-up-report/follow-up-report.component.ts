@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID, HostListener } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -60,14 +60,18 @@ export class FollowUpReportComponent implements OnInit {
     plugins: {
       legend: { display: false },
       tooltip: { 
-        backgroundColor: '#ffffff', 
-        titleColor: '#212529',
-        bodyColor: '#212529',
-        borderColor: '#dee2e6',
+        backgroundColor: '#1e293b', 
+        titleColor: '#ffffff',
+        bodyColor: '#e2e8f0',
+        borderColor: '#334155',
         borderWidth: 1,
         padding: 12, 
         cornerRadius: 8,
-        displayColors: false
+        displayColors: false,
+        callbacks: {
+          title: (items: any) => items[0]?.label || '',
+          label: (context: any) => 'Follow-ups: ' + (context.parsed.x !== undefined ? context.parsed.x : context.raw)
+        }
       }
     }
   };
@@ -103,7 +107,7 @@ export class FollowUpReportComponent implements OnInit {
     this.api.get('/settings/team').subscribe({
       next: (res: any) => {
         if (res.success) {
-          this.users = res.data.filter((u: any) => u.role === 'agent');
+          this.users = res.data.filter((u: any) => ['agent', 'admin', 'manager'].includes(u.role));
         }
       },
       error: (err: any) => console.error('Failed to load users', err)
@@ -168,7 +172,7 @@ export class FollowUpReportComponent implements OnInit {
   updateCharts() {
     this.chartHeight = Math.max(400, this.data.length * 40);
     this.barChartData = {
-      labels: this.data.map(d => `${d.employee_code || 'N/A'}`), // Only Employee Code as in the image
+      labels: this.data.map(d => d.employee || d.employee_name || 'Unassigned'),
       datasets: [
         { 
           data: this.data.map(d => d.follow_up_count), 
@@ -183,8 +187,16 @@ export class FollowUpReportComponent implements OnInit {
     };
   }
 
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.isDateDropdownOpen = false;
+    this.isEmployeeDropdownOpen = false;
+    this.isStatusDropdownOpen = false;
+  }
+
   // Custom Filter Logic
-  toggleDateDropdown() {
+  toggleDateDropdown(e?: Event) {
+    if (e) e.stopPropagation();
     this.isDateDropdownOpen = !this.isDateDropdownOpen;
     if (this.isDateDropdownOpen) {
       this.isEmployeeDropdownOpen = false;
@@ -192,7 +204,8 @@ export class FollowUpReportComponent implements OnInit {
     }
   }
 
-  toggleEmployeeDropdown() {
+  toggleEmployeeDropdown(e?: Event) {
+    if (e) e.stopPropagation();
     this.isEmployeeDropdownOpen = !this.isEmployeeDropdownOpen;
     if (this.isEmployeeDropdownOpen) {
       this.isDateDropdownOpen = false;
@@ -200,7 +213,8 @@ export class FollowUpReportComponent implements OnInit {
     }
   }
 
-  toggleStatusDropdown() {
+  toggleStatusDropdown(e?: Event) {
+    if (e) e.stopPropagation();
     this.isStatusDropdownOpen = !this.isStatusDropdownOpen;
     if (this.isStatusDropdownOpen) {
       this.isDateDropdownOpen = false;
@@ -228,7 +242,7 @@ export class FollowUpReportComponent implements OnInit {
     return this.users.filter(u => u.name.toLowerCase().includes(this.employeeSearchQuery.toLowerCase()));
   }
 
-  selectEmployee(id: string) {
+  selectEmployee(id: any) {
     this.selectedEmployee = id;
     this.isEmployeeDropdownOpen = false;
     this.fetchData();
@@ -236,7 +250,7 @@ export class FollowUpReportComponent implements OnInit {
 
   getSelectedEmployeeName(): string {
     if (this.selectedEmployee === 'All') return 'All Employees';
-    const user = this.users.find(u => u.id === this.selectedEmployee);
+    const user = this.users.find(u => String(u.id) === String(this.selectedEmployee));
     return user ? user.name : 'All Employees';
   }
 

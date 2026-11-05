@@ -11,6 +11,7 @@
       </div>
       <span class="subtitle-indicator">
         <i class="bi bi-bar-chart-steps text-primary"></i> {{ getDateRangeLabel() }} Overview
+        <span *ngIf="selectedEmployee !== 'All'" class="text-indigo fw-semibold"> &bull; {{ getSelectedEmployeeName() }}</span>
       </span>
     </div>
 
@@ -18,6 +19,52 @@
     <div class="header-actions">
       <div class="filter-toolbar" (click)="$event.stopPropagation()">
         
+        <!-- Employee Filter Dropdown -->
+        <div class="filter-dropdown-wrapper">
+          <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen" title="Filter by Employee">
+            <i class="bi bi-person-fill filter-icon text-indigo"></i>
+            <span class="filter-label text-truncate" style="max-width: 140px;">{{ getSelectedEmployeeName() }}</span>
+            <i class="bi bi-chevron-down caret-icon" [class.rotated]="isEmployeeDropdownOpen"></i>
+          </div>
+
+          <div class="dropdown-panel employee-panel" *ngIf="isEmployeeDropdownOpen">
+            <div class="dropdown-search" (click)="$event.stopPropagation()">
+              <i class="bi bi-search"></i>
+              <input type="text" placeholder="Search employee..." [(ngModel)]="employeeSearchQuery" (click)="$event.stopPropagation()">
+            </div>
+            <div class="dropdown-list">
+              <div class="dropdown-item" (click)="selectEmployee('All')" [class.selected]="selectedEmployee === 'All'">
+                <div class="item-content">
+                  <span class="item-title">All Employees</span>
+                  <span class="item-subtitle">Full team data</span>
+                </div>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === 'All'"></i>
+              </div>
+
+              <div class="dropdown-divider"></div>
+
+              <div class="dropdown-item" *ngFor="let emp of filteredEmployees" (click)="selectEmployee(emp.id)" [class.selected]="selectedEmployee === emp.id || selectedEmployee === emp.name">
+                <div class="opt-row">
+                  <div class="opt-avatar">
+                    {{ getInitials(emp.name) }}
+                  </div>
+                  <div class="opt-text">
+                    <span class="opt-name">{{ emp.name }}</span>
+                    <span class="opt-code">{{ emp.employee_code ? '#' + emp.employee_code : (emp.role || 'Staff') }}</span>
+                  </div>
+                </div>
+                <i class="bi bi-check2 check-icon" *ngIf="selectedEmployee === emp.id || selectedEmployee === emp.name"></i>
+              </div>
+
+              <div class="dropdown-empty" *ngIf="filteredEmployees.length === 0">
+                No employees found matching "{{ employeeSearchQuery }}"
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
         <!-- Date Range Filter -->
         <div class="filter-dropdown-wrapper">
           <div class="filter-btn" (click)="toggleDateDropdown($event)" [class.active]="isDateDropdownOpen">
@@ -158,7 +205,7 @@
 
     <div class="tabs-meta" *ngIf="data.length > 0">
       <span class="meta-chip">
-        <i class="bi bi-person-check-fill text-success"></i> <strong>{{ data.length }} Team Members</strong>
+        <i class="bi bi-person-check-fill text-success"></i> <strong>{{ data.length }} Team Member{{ data.length !== 1 ? 's' : '' }}</strong>
       </span>
     </div>
   </div>
