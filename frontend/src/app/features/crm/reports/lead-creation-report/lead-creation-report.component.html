@@ -9,8 +9,16 @@
       </div>
     </div>
 
-    <!-- Filter Toolbar -->
-    <div class="filter-toolbar" (click)="$event.stopPropagation()">
+    <!-- Filter & Export Controls -->
+    <div class="filter-actions-group d-flex align-items-center gap-2" (click)="$event.stopPropagation()">
+      <app-excel-export-btn
+        endpoint="/export/lead-creation"
+        [filters]="getExportFilters()"
+        fileName="Lead_Creation_Report"
+        buttonText="Export Excel"
+      ></app-excel-export-btn>
+
+      <div class="filter-toolbar">
       <div class="filter-dropdown-wrapper">
         <div class="filter-item" [class.active]="isDateDropdownOpen" (click)="toggleDateDropdown()">
           <i class="bi bi-calendar3 filter-icon"></i>
@@ -62,6 +70,7 @@
       <button class="btn-refresh-toolbar" [class.spinning]="refreshing" (click)="fetchData(true)" title="Refresh">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
+      </div>
     </div>
   </div>
 

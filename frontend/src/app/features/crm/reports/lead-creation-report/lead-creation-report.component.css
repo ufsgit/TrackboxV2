@@ -1,3 +1,10 @@
+
+.filter-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 :host {
   display: block;
   background-color: #f1f5f9;

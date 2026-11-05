@@ -2,11 +2,12 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
+import { ExcelExportBtnComponent } from '../../../../shared/components/excel-export-btn/excel-export-btn.component';
 
 @Component({
   selector: 'app-lead-creation-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ExcelExportBtnComponent],
   templateUrl: './lead-creation-report.component.html',
   styleUrl: './lead-creation-report.component.css'
 })
@@ -43,6 +44,17 @@ export class LeadCreationReportComponent implements OnInit {
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
+  getExportFilters(): any {
+    const filters: any = {
+      dateRange: this.dateRange
+    };
+    if (this.dateRange === 'custom') {
+      filters.startDate = this.customStartDate;
+      filters.endDate = this.customEndDate;
+    }
+    return filters;
+  }
+
   ngOnInit() {
     this.fetchData();
   }
@@ -67,17 +79,16 @@ export class LeadCreationReportComponent implements OnInit {
     this.api.get(endpoint).subscribe({
       next: (res: any) => {
         if (res.success) {
-          this.totalLeads = res.data.totalLeads || 0;
-          this.rangeLeads = res.data.rangeLeads || 0;
-          this.todayLeads = res.data.todayLeads || 0;
-          this.weekLeads = res.data.weekLeads || 0;
-          this.breakdown = res.data.breakdown || [];
+          const d = res.data;
+          this.totalLeads = d.totalLeads || 0;
+          this.rangeLeads = d.rangeLeads || 0;
+          this.todayLeads = d.todayLeads || 0;
+          this.weekLeads = d.weekLeads || 0;
+          this.breakdown = d.breakdown || [];
         }
-        setTimeout(() => {
-          this.loading = false;
-          this.refreshing = false;
-          this.cdr.detectChanges();
-        }, 150);
+        this.loading = false;
+        this.refreshing = false;
+        this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error('Failed to load lead creation report', err);
@@ -85,113 +96,6 @@ export class LeadCreationReportComponent implements OnInit {
         this.refreshing = false;
       }
     });
-  }
-
-  // --- Modal Popup Handlers ---
-  openCardDetails(type: 'all' | 'range' | 'today' | 'week', title: string, subtitle: string) {
-    this.modalFilterType = type;
-    this.modalUserId = null;
-    this.modalEmployeeName = '';
-    this.modalTitle = title;
-    this.modalSubtitle = subtitle;
-    this.modalCurrentPage = 1;
-    this.modalSearchQuery = '';
-    this.isModalOpen = true;
-    this.fetchModalLeads();
-  }
-
-  openEmployeeDetails(row: any) {
-    this.modalFilterType = 'employee';
-    this.modalUserId = row.user_id;
-    this.modalEmployeeName = row.employee || 'Unassigned';
-    this.modalTitle = `Leads Created by ${this.modalEmployeeName}`;
-    this.modalSubtitle = `Showing leads created in ${this.getDateRangeLabel()} (${row.leads_created} total)`;
-    this.modalCurrentPage = 1;
-    this.modalSearchQuery = '';
-    this.isModalOpen = true;
-    this.fetchModalLeads();
-  }
-
-  closeModal() {
-    this.isModalOpen = false;
-    this.modalLeads = [];
-    this.modalSearchQuery = '';
-    this.modalTotalCount = 0;
-  }
-
-  fetchModalLeads() {
-    this.modalLoading = true;
-    let url = `/reports/leads/creation?viewDetails=true&filterType=${this.modalFilterType}&page=${this.modalCurrentPage}&limit=${this.modalPageSize}&dateRange=${this.dateRange}`;
-
-    if (this.dateRange === 'custom' && this.customStartDate && this.customEndDate) {
-      url += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
-    }
-
-    if (this.modalFilterType === 'employee') {
-      url += `&userId=${this.modalUserId ?? ''}`;
-    }
-
-    if (this.modalSearchQuery && this.modalSearchQuery.trim()) {
-      url += `&search=${encodeURIComponent(this.modalSearchQuery.trim())}`;
-    }
-
-    this.api.get(url).subscribe({
-      next: (res: any) => {
-        if (res.success && res.data) {
-          this.modalLeads = res.data.leads || [];
-          this.modalTotalCount = res.data.totalCount || 0;
-          this.modalTotalPages = res.data.totalPages || 1;
-          this.modalCurrentPage = res.data.page || this.modalCurrentPage;
-        }
-        this.modalLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err: any) => {
-        console.error('Failed to load lead details for modal:', err);
-        this.modalLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  onModalSearch() {
-    this.modalCurrentPage = 1;
-    this.fetchModalLeads();
-  }
-
-  clearModalSearch() {
-    this.modalSearchQuery = '';
-    this.modalCurrentPage = 1;
-    this.fetchModalLeads();
-  }
-
-  goToModalPage(p: number) {
-    if (p >= 1 && p <= this.modalTotalPages && p !== this.modalCurrentPage) {
-      this.modalCurrentPage = p;
-      this.fetchModalLeads();
-    }
-  }
-
-  get modalPages(): number[] {
-    const list: number[] = [];
-    let start = Math.max(1, this.modalCurrentPage - 2);
-    let end = Math.min(this.modalTotalPages, start + 4);
-    if (end - start < 4) {
-      start = Math.max(1, end - 4);
-    }
-    for (let i = start; i <= end; i++) {
-      list.push(i);
-    }
-    return list;
-  }
-
-  get modalPaginationStart(): number {
-    if (this.modalTotalCount === 0) return 0;
-    return (this.modalCurrentPage - 1) * this.modalPageSize + 1;
-  }
-
-  get modalPaginationEnd(): number {
-    return Math.min(this.modalCurrentPage * this.modalPageSize, this.modalTotalCount);
   }
 
   toggleDateDropdown() {
@@ -214,34 +118,202 @@ export class LeadCreationReportComponent implements OnInit {
   }
 
   getDateRangeLabel(): string {
-    const labels: any = {
+    const labels: Record<string, string> = {
       'today': 'Today',
       'this_week': 'This Week',
       'this_month': 'This Month',
       'last_month': 'Last Month',
       'ytd': 'Year to Date',
-      'prev_year': 'Previous Year',
       'custom': 'Custom Range'
     };
-    return labels[this.dateRange] || 'Year to Date';
+    return labels[this.dateRange] || 'Date Range';
   }
 
-  getContributionPercent(leads: number): number {
+  getContributionPercent(leadsCreated: number): number {
     if (!this.rangeLeads || this.rangeLeads === 0) return 0;
-    return Math.round((leads / this.rangeLeads) * 100);
+    return Math.round((leadsCreated / this.rangeLeads) * 100);
   }
 
   getInitials(name: string): string {
-    if (!name) return '?';
+    if (!name) return 'U';
     const parts = name.trim().split(' ');
-    if (parts.length > 1) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return parts[0].substring(0, 2).toUpperCase();
   }
 
   getAvatarColor(index: number): string {
-    const colors = ['#6366f1', '#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#14b8a6'];
+    const colors = [
+      'linear-gradient(135deg, #6366f1, #4f46e5)',
+      'linear-gradient(135deg, #3b82f6, #2563eb)',
+      'linear-gradient(135deg, #10b981, #059669)',
+      'linear-gradient(135deg, #f59e0b, #d97706)',
+      'linear-gradient(135deg, #ec4899, #db2777)',
+      'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+      'linear-gradient(135deg, #14b8a6, #0d9488)',
+      'linear-gradient(135deg, #f97316, #ea580c)'
+    ];
     return colors[index % colors.length];
+  }
+
+  // ══════════════════════════════════════════════
+  // POPUP MODAL METHODS
+  // ══════════════════════════════════════════════
+
+  openCardDetails(filterType: 'all' | 'range' | 'today' | 'week', title: string, subtitle: string) {
+    this.modalFilterType = filterType;
+    this.modalUserId = null;
+    this.modalEmployeeName = '';
+    this.modalTitle = title;
+    this.modalSubtitle = subtitle;
+    this.modalBadge = filterType === 'all' ? 'All Time' :
+                      filterType === 'today' ? 'Today' :
+                      filterType === 'week' ? 'This Week' : this.getDateRangeLabel();
+    this.modalSearchQuery = '';
+    this.modalCurrentPage = 1;
+    this.isModalOpen = true;
+    this.fetchModalLeads();
+  }
+
+  openEmployeeDetails(row: any) {
+    this.modalFilterType = 'employee';
+    this.modalUserId = row.user_id;
+    this.modalEmployeeName = row.employee || 'Unassigned';
+    this.modalTitle = `${this.modalEmployeeName}'s Generated Leads`;
+    this.modalSubtitle = `Leads created by ${this.modalEmployeeName} in ${this.getDateRangeLabel()}`;
+    this.modalBadge = `${row.leads_created} Leads`;
+    this.modalSearchQuery = '';
+    this.modalCurrentPage = 1;
+    this.isModalOpen = true;
+    this.fetchModalLeads();
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.modalLeads = [];
+  }
+
+  
+  clearModalSearch() {
+    this.modalSearchQuery = '';
+    this.modalCurrentPage = 1;
+    this.fetchModalLeads();
+  }
+
+  get modalPaginationStart(): number {
+    if (this.modalTotalCount === 0) return 0;
+    return (this.modalCurrentPage - 1) * this.modalPageSize + 1;
+  }
+
+  get modalPaginationEnd(): number {
+    return Math.min(this.modalCurrentPage * this.modalPageSize, this.modalTotalCount);
+  }
+
+  get modalPages(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.modalCurrentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(this.modalTotalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  onModalSearch() {
+    this.modalCurrentPage = 1;
+    this.fetchModalLeads();
+  }
+
+  goToModalPage(page: number) {
+    if (page >= 1 && page <= this.modalTotalPages && page !== this.modalCurrentPage) {
+      this.modalCurrentPage = page;
+      this.fetchModalLeads();
+    }
+  }
+
+  fetchModalLeads() {
+    this.modalLoading = true;
+    let url = `/reports/leads/creation?viewDetails=true&filterType=${this.modalFilterType}&page=${this.modalCurrentPage}&limit=${this.modalPageSize}`;
+    
+    // Pass date range context
+    if (this.modalFilterType === 'range' || this.modalFilterType === 'employee') {
+      url += `&dateRange=${this.dateRange}`;
+      if (this.dateRange === 'custom') {
+        url += `&startDate=${this.customStartDate}&endDate=${this.customEndDate}`;
+      }
+    }
+
+    if (this.modalFilterType === 'employee') {
+      url += `&userId=${this.modalUserId}`;
+    }
+
+    if (this.modalSearchQuery.trim()) {
+      url += `&search=${encodeURIComponent(this.modalSearchQuery.trim())}`;
+    }
+
+    this.api.get(url).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          this.modalLeads = res.data.leads || [];
+          this.modalTotalCount = res.data.totalCount || 0;
+          this.modalTotalPages = res.data.totalPages || 1;
+        } else {
+          this.modalLeads = [];
+          this.modalTotalCount = 0;
+          this.modalTotalPages = 1;
+        }
+        this.modalLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Failed to load lead creation details', err);
+        this.modalLoading = false;
+        this.modalLeads = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  formatDate(dateStr: string): string {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateStr;
+    }
+  }
+
+  getChannelClass(channel: string): string {
+    const c = (channel || '').toLowerCase();
+    if (c.includes('whatsapp')) return 'ch-whatsapp';
+    if (c.includes('web') || c.includes('site')) return 'ch-web';
+    if (c.includes('facebook') || c.includes('fb')) return 'ch-fb';
+    if (c.includes('instagram') || c.includes('ig')) return 'ch-ig';
+    if (c.includes('call') || c.includes('phone')) return 'ch-phone';
+    if (c.includes('import')) return 'ch-import';
+    return 'ch-default';
+  }
+
+  getChannelIcon(channel: string): string {
+    const c = (channel || '').toLowerCase();
+    if (c.includes('whatsapp')) return 'bi bi-whatsapp';
+    if (c.includes('web') || c.includes('site')) return 'bi bi-globe';
+    if (c.includes('facebook') || c.includes('fb')) return 'bi bi-facebook';
+    if (c.includes('instagram') || c.includes('ig')) return 'bi bi-instagram';
+    if (c.includes('call') || c.includes('phone')) return 'bi bi-telephone-fill';
+    if (c.includes('import')) return 'bi bi-file-earmark-arrow-down-fill';
+    return 'bi bi-broadcast-pin';
   }
 }

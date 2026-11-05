@@ -18,7 +18,7 @@ export class ExcelExportBtnComponent {
   @Input() endpoint: string = '';
 
   /**
-   * Filter parameters to pass to the endpoint (e.g. { dateRange: 'ytd', search: '...' })
+   * Filter parameters to pass to the endpoint (e.g. { dateRange: 'today', ... })
    */
   @Input() filters: any = {};
 
@@ -36,6 +36,13 @@ export class ExcelExportBtnComponent {
 
   constructor(private api: ApiService) {}
 
+  private formatDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   exportToExcel(): void {
     if (!this.endpoint) {
       console.error('[ExcelExportBtn] No endpoint provided for export');
@@ -45,15 +52,58 @@ export class ExcelExportBtnComponent {
     if (this.exporting) return;
     this.exporting = true;
 
-    // Clean up empty/undefined filters
+    // Resolve dateRange into explicit startDate & endDate if not already explicitly provided
     const cleanParams: any = {};
-    if (this.filters) {
-      Object.keys(this.filters).forEach(k => {
-        if (this.filters[k] !== undefined && this.filters[k] !== null && this.filters[k] !== '') {
-          cleanParams[k] = this.filters[k];
-        }
-      });
+    const input = { ...(this.filters || {}) };
+
+    const now = new Date();
+    const range = (input.dateRange || '').toLowerCase();
+
+    if (!input.startDate || !input.endDate) {
+      if (range === 'today') {
+        const todayStr = this.formatDate(now);
+        input.startDate = todayStr;
+        input.endDate = todayStr;
+      } else if (range === 'yesterday') {
+        const y = new Date();
+        y.setDate(now.getDate() - 1);
+        const yStr = this.formatDate(y);
+        input.startDate = yStr;
+        input.endDate = yStr;
+      } else if (range === 'this_week') {
+        const day = now.getDay();
+        const diffToMonday = (day === 0 ? -6 : 1) - day;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + diffToMonday);
+        input.startDate = this.formatDate(monday);
+        input.endDate = this.formatDate(now);
+      } else if (range === 'this_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        input.startDate = this.formatDate(firstDay);
+        input.endDate = this.formatDate(now);
+      } else if (range === 'last_month') {
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        input.startDate = this.formatDate(firstDayLastMonth);
+        input.endDate = this.formatDate(lastDayLastMonth);
+      } else if (range === 'ytd') {
+        const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+        input.startDate = this.formatDate(firstDayOfYear);
+        input.endDate = this.formatDate(now);
+      } else if (range === 'prev_year') {
+        const firstDayPrevYear = new Date(now.getFullYear() - 1, 0, 1);
+        const lastDayPrevYear = new Date(now.getFullYear() - 1, 11, 31);
+        input.startDate = this.formatDate(firstDayPrevYear);
+        input.endDate = this.formatDate(lastDayPrevYear);
+      }
     }
+
+    // Clean up empty/undefined filters
+    Object.keys(input).forEach(k => {
+      if (input[k] !== undefined && input[k] !== null && input[k] !== '') {
+        cleanParams[k] = input[k];
+      }
+    });
 
     this.api.get(this.endpoint, cleanParams).subscribe({
       next: (res: any) => {
@@ -108,11 +158,16 @@ export class ExcelExportBtnComponent {
 
       const dateStr = new Date().toISOString().slice(0, 10);
       const safeFileName = `${this.fileName}_${dateStr}.xlsx`;
+
       XLSX.writeFile(workbook, safeFileName);
-    } catch (err: any) {
-      console.error('[ExcelExportBtn] Error building Excel file:', err);
-      Swal.fire('Error', 'Failed to generate Excel file on client.', 'error');
+    } catch (error: any) {
+      console.error('[ExcelExportBtn] Error building Excel file:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'File Generation Failed',
+        text: 'Failed to create the Excel file. Please try again.',
+        confirmButtonColor: '#4f46e5'
+      });
     }
   }
 }
-
