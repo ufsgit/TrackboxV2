@@ -4303,21 +4303,46 @@ function getPeriodLabel(dateRange, startDate, endDate) {
 const getEnquiryForReport = async (req, res) => {
   try {
     const bizId = req.user.businessId;
-    const userId = Number(req.user.userId);
-    const userRole = req.user.role || 'agent';
     const { startDate, endDate } = req.query;
 
     const now = new Date();
     const start = startDate ? `${startDate} 00:00:00` : `${now.getFullYear()}-01-01 00:00:00`;
     const end = endDate ? `${endDate} 23:59:59` : `${now.getFullYear()}-12-31 23:59:59`;
 
-    const [results] = await pool.query(
-      'CALL get_enquiry_for_report(?, ?, ?, ?, ?)',
-      [bizId, userId, userRole, start, end]
-    );
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let userFilter = '';
+    const queryParams = [bizId, start, end];
 
-    const categories = (results && results[0]) ? results[0] : [];
-    const timelineRows = (results && results[1]) ? results[1] : [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        userFilter = 'AND 1 = 0';
+      } else {
+        const selfId = Number(req.user.userId || req.user.id);
+        userFilter = `AND (
+          c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})
+          OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})
+          OR (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?))
+        )`;
+        queryParams.push(...accessibleUserIds, ...accessibleUserIds, selfId.toString(), selfId.toString());
+      }
+    }
+
+    const [categories] = await pool.query(
+      `SELECT 
+        ef.id,
+        ef.name,
+        COUNT(c.id) AS count
+      FROM enquiry_fors ef
+      LEFT JOIN contacts c ON ef.id = c.enquiry_for_id
+        AND c.business_id = ?
+        AND c.created_at >= ?
+        AND c.created_at <= ?
+        ${userFilter}
+      WHERE ef.business_id = ?
+      GROUP BY ef.id, ef.name
+      ORDER BY count DESC, ef.name ASC`,
+      [...queryParams, bizId]
+    );
 
     const totalCount = categories.reduce((sum, item) => sum + Number(item.count || 0), 0);
 
@@ -4327,7 +4352,7 @@ const getEnquiryForReport = async (req, res) => {
       data: {
         totalCount,
         categories,
-        timeline: timelineRows
+        timeline: []
       }
     });
   } catch (error) {

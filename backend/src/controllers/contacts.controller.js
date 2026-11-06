@@ -421,6 +421,35 @@ const updateContact = async (req, res) => {
     }
     const oldContact = existingRows[0];
 
+    // Verify user has access to update this contact based on team hierarchy, user list, or assignment
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      const assignedId = oldContact.assigned_to != null ? Number(oldContact.assigned_to) : null;
+      const creatorId = oldContact.created_by_user != null ? Number(oldContact.created_by_user) : null;
+      const currentUserId = Number(userId);
+
+      let userListIds = [];
+      if (oldContact.user_list) {
+        try {
+          const parsed = typeof oldContact.user_list === 'string' ? JSON.parse(oldContact.user_list) : oldContact.user_list;
+          if (Array.isArray(parsed)) {
+            userListIds = parsed.map(x => Number(x));
+          }
+        } catch (e) {}
+      }
+
+      const isAssignedToAccessible = assignedId !== null && accessibleUserIds.includes(assignedId);
+      const isCreatedByAccessible = creatorId !== null && accessibleUserIds.includes(creatorId);
+      const isUserInList = userListIds.includes(currentUserId);
+      const isUnassigned = assignedId === null || assignedId === 0;
+
+      if (!isAssignedToAccessible && !isCreatedByAccessible && !isUserInList && !isUnassigned) {
+        await conn.rollback();
+        conn.release();
+        return res.status(403).json({ success: false, message: 'You do not have permission to edit this contact.', data: null });
+      }
+    }
+
     // Phone validation and duplicate check
     if (updateFields.phone) {
       const numericPhone = updateFields.phone.replace(/\D/g, '');
@@ -587,10 +616,6 @@ const updateContact = async (req, res) => {
 
       let query = `UPDATE contacts SET ${updates.join(', ')} WHERE id = ? AND business_id = ?`;
       params.push(contactId, bizId);
-      if (req.user.role === 'agent') {
-        query += ' AND assigned_to = ?';
-        params.push(userId);
-      }
       await conn.query(query, params);
     }
 
