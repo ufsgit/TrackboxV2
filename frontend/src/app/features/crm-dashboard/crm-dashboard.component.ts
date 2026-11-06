@@ -110,7 +110,6 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   series = [
     { name: 'Leads', color: '#2F7BF5', values: [12, 18, 22, 25, 30, 30] },
     { name: 'Applications', color: '#1FB874', values: [10, 15, 19, 22, 27, 28] },
-    { name: 'Follow-ups Done', color: '#F59B2B', values: [9, 14, 18, 21, 24, 26] },
     { name: 'Won', color: '#8B5CF6', values: [0, 0, 0, 0, 0, 1] },
   ];
   chartMax = 40;
@@ -288,10 +287,12 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
               this.months = res.data.monthlyPerformance.months;
             }
             if (res.data.monthlyPerformance.series) {
-              this.series = res.data.monthlyPerformance.series.map((item: any) => ({
-                ...item,
-                name: item.name === 'Contacted' ? 'Applications' : item.name
-              }));
+              this.series = res.data.monthlyPerformance.series
+                .filter((item: any) => item.name !== 'Follow-ups Done' && item.name !== 'Follow-ups')
+                .map((item: any) => ({
+                  ...item,
+                  name: item.name === 'Contacted' ? 'Applications' : item.name
+                }));
             }
             if (res.data.monthlyPerformance.chartMax) {
               this.chartMax = res.data.monthlyPerformance.chartMax;
@@ -377,10 +378,12 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
             this.months = res.data.months;
           }
           if (res.data.series) {
-            this.series = res.data.series.map((item: any) => ({
-              ...item,
-              name: item.name === 'Contacted' ? 'Applications' : item.name
-            }));
+            this.series = res.data.series
+              .filter((item: any) => item.name !== 'Follow-ups Done' && item.name !== 'Follow-ups')
+              .map((item: any) => ({
+                ...item,
+                name: item.name === 'Contacted' ? 'Applications' : item.name
+              }));
           }
           if (res.data.chartMax) {
             this.chartMax = res.data.chartMax;

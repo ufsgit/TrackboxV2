@@ -548,11 +548,13 @@ const updateContact = async (req, res) => {
 
       let finalAssignedTo = updateFields.assigned_to !== undefined ? updateFields.assigned_to : oldContact.assigned_to;
       if (saleStatus === 1) {
-        updates.push('sale_won = 1, sale_won_date = ?, sale_won_by = ?');
+        updates.push('sale_won = 1, sale_won_date = ?, sale_won_by = ?, sale_lost = 0, sale_lost_date = NULL, sale_lost_by = NULL');
         params.push(new Date(), finalAssignedTo);
       } else if (saleStatus === 2) {
-        updates.push('sale_lost = 1, sale_lost_date = ?, sale_lost_by = ?');
+        updates.push('sale_lost = 1, sale_lost_date = ?, sale_lost_by = ?, sale_won = 0, sale_won_date = NULL, sale_won_by = NULL');
         params.push(new Date(), finalAssignedTo);
+      } else {
+        updates.push('sale_won = 0, sale_won_date = NULL, sale_won_by = NULL, sale_lost = 0, sale_lost_date = NULL, sale_lost_by = NULL');
       }
     }
 
@@ -1126,18 +1128,16 @@ const importExcelContacts = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No lead data provided.', data: null });
     }
 
-    const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason } = statusAndAssignment || {};
+    const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason, channel, channel_preference, source } = statusAndAssignment || {};
+    const selectedChannel = (channel_preference || channel || source || '').trim() || null;
 
-    // ── Resolve status ────────────────────────────────────
-    let statusId   = null, statusName = status ? status.trim() : null;
-    let sale_won = 0, sale_lost = 0, sale_won_date = null, sale_lost_date = null, sale_won_by = null, sale_lost_by = null;
-    if (statusName) {
-      const [sRows] = await conn.query('SELECT id, name FROM statuses WHERE TRIM(name) = ? OR name = ? LIMIT 1', [statusName, statusName]);
-      if (sRows.length > 0) {
-        statusId = sRows[0].id;
-        statusName = sRows[0].name;
-      }
+    // ── Resolve assigned user ─────────────────────────────
+    let assignedTo = null;
+    if (assigned_employee) {
+      const [uRows] = await conn.query('SELECT id FROM users WHERE name = ? AND business_id = ? LIMIT 1', [assigned_employee, bizId]);
+      if (uRows.length > 0) assignedTo = uRows[0].id;
     }
+    if (!assignedTo) assignedTo = userId;
 
     // ── Resolve branch ────────────────────────────────────
     let branchId = null, branchName = branch || null;
@@ -1153,13 +1153,28 @@ const importExcelContacts = async (req, res) => {
       if (dRows.length > 0) departmentId = dRows[0].id;
     }
 
-    // ── Resolve assigned user ─────────────────────────────
-    let assignedTo = null;
-    if (assigned_employee) {
-      const [uRows] = await conn.query('SELECT id FROM users WHERE name = ? AND business_id = ? LIMIT 1', [assigned_employee, bizId]);
-      if (uRows.length > 0) assignedTo = uRows[0].id;
+    // ── Resolve status ────────────────────────────────────
+    let statusId   = null, statusName = status ? status.trim() : null;
+    let current_sale_status = 0;
+    let sale_won = 0, sale_lost = 0, sale_won_date = null, sale_lost_date = null, sale_won_by = null, sale_lost_by = null;
+    if (statusName) {
+      const [sRows] = await conn.query('SELECT id, name, type FROM statuses WHERE TRIM(name) = ? OR name = ? LIMIT 1', [statusName, statusName]);
+      if (sRows.length > 0) {
+        statusId = sRows[0].id;
+        statusName = sRows[0].name;
+        if (sRows[0].type === 'sale') {
+          current_sale_status = 1;
+          sale_won = 1;
+          sale_won_date = new Date();
+          sale_won_by = assignedTo;
+        } else if (sRows[0].type === 'sale_lost') {
+          current_sale_status = 2;
+          sale_lost = 1;
+          sale_lost_date = new Date();
+          sale_lost_by = assignedTo;
+        }
+      }
     }
-    if (!assignedTo) assignedTo = userId;
 
     // ── Follow-up date ────────────────────────────────────
     let formattedFollowUpDate = null;
@@ -1215,6 +1230,8 @@ const importExcelContacts = async (req, res) => {
         let   email   = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
         const tags    = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
         const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
+        const rowChannel = getCol(row, ['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
+        const finalChannel = rowChannel || selectedChannel || 'WHATS APP';
 
         // Skip completely empty rows
         if (!name && !phone) {
@@ -1257,10 +1274,10 @@ const importExcelContacts = async (req, res) => {
         const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
         const userList  = [assignedTo];
 
-        // INSERT — columns match trackbox_v2.contacts exactly (no current_sale_status)
+        // INSERT — include dynamic finalChannel, current_sale_status, and opt_in_source
         const [result] = await conn.query(
-          'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), 'whatsapp', assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null]
+          'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import']
         );
         const contactId = result.insertId;
 
@@ -1888,7 +1905,18 @@ const bulkTransferContacts = async (req, res) => {
     const resolvedDeptName = resolvedDeptId ? (department_name || null) : null;
 
     const resolvedStatusId = (new_status_id !== undefined && new_status_id !== null && new_status_id !== '') ? Number(new_status_id) : null;
-    const resolvedStatusName = resolvedStatusId ? (new_status_name || null) : null;
+    let resolvedStatusName = resolvedStatusId ? (new_status_name || null) : null;
+    let resolvedStatusType = null;
+
+    if (resolvedStatusId !== null) {
+      const [stRows] = await conn.query('SELECT name, type FROM statuses WHERE id = ?', [resolvedStatusId]);
+      if (stRows.length > 0) {
+        resolvedStatusType = stRows[0].type || null;
+        if (!resolvedStatusName) {
+          resolvedStatusName = stRows[0].name;
+        }
+      }
+    }
 
     const notificationCounts = new Map();
 
@@ -1951,6 +1979,18 @@ const bulkTransferContacts = async (req, res) => {
       if (resolvedStatusId !== null) {
         updateFields.push('status_id = ?', 'status_name = ?');
         updateParams.push(resolvedStatusId, resolvedStatusName);
+
+        const now = new Date();
+        if (resolvedStatusType === 'sale') {
+          updateFields.push('current_sale_status = ?', 'sale_won = ?', 'sale_won_date = ?', 'sale_won_by = ?', 'sale_lost = ?', 'sale_lost_date = ?', 'sale_lost_by = ?');
+          updateParams.push(1, 1, now, targetUserId, 0, null, null);
+        } else if (resolvedStatusType === 'sale_lost') {
+          updateFields.push('current_sale_status = ?', 'sale_won = ?', 'sale_won_date = ?', 'sale_won_by = ?', 'sale_lost = ?', 'sale_lost_date = ?', 'sale_lost_by = ?');
+          updateParams.push(2, 0, null, null, 1, now, targetUserId);
+        } else {
+          updateFields.push('current_sale_status = ?', 'sale_won = ?', 'sale_won_date = ?', 'sale_won_by = ?', 'sale_lost = ?', 'sale_lost_date = ?', 'sale_lost_by = ?');
+          updateParams.push(0, 0, null, null, 0, null, null);
+        }
       }
 
       updateParams.push(contactId, bizId);
@@ -1968,6 +2008,13 @@ const bulkTransferContacts = async (req, res) => {
         'INSERT INTO contact_history (contact_id, business_id, user_id, field_name, old_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
         [contactId, bizId, userId, 'assigned_to', contact.assigned_to ? String(contact.assigned_to) : 'Unassigned', String(targetUserId)]
       );
+
+      if (resolvedStatusId !== null && resolvedStatusId !== contact.status_id) {
+        await conn.query(
+          'INSERT INTO contact_history (contact_id, business_id, user_id, field_name, old_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
+          [contactId, bizId, userId, 'status_id', contact.status_name || (contact.status_id ? String(contact.status_id) : 'None'), resolvedStatusName || String(resolvedStatusId)]
+        );
+      }
 
       notificationCounts.set(targetUserId, (notificationCounts.get(targetUserId) || 0) + 1);
     }

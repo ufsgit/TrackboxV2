@@ -86,7 +86,7 @@ const fetchMonthlyPerformance = async (bizId, userId, userRole, range, year, mod
   const followupsValues = monthlyRows.map(r => Number(r.followups_count || 0));
   const wonValues = monthlyRows.map(r => Number(r.won_count || 0));
 
-  const maxVal = Math.max(...leadsValues, ...applicationsValues, ...followupsValues, ...wonValues, 10);
+  const maxVal = Math.max(...leadsValues, ...applicationsValues, ...wonValues, 10);
   // Round up maxVal to a clean step (multiple of 10 or 20)
   const chartMax = Math.ceil((maxVal * 1.15) / 10) * 10;
   const step = chartMax / 4;
@@ -120,7 +120,6 @@ const fetchMonthlyPerformance = async (bizId, userId, userRole, range, year, mod
     series: [
       { name: 'Leads', color: '#2F7BF5', values: leadsValues },
       { name: 'Applications', color: '#1FB874', values: applicationsValues },
-      { name: 'Follow-ups Done', color: '#F59B2B', values: followupsValues },
       { name: 'Won', color: '#8B5CF6', values: wonValues }
     ],
     chartMax,

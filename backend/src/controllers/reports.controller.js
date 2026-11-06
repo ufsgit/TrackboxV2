@@ -1907,12 +1907,14 @@ const getTeamProductivityReport = async (req, res) => {
     }
 
     let queryParamsUsers = [
+      businessId, 
       businessId, date, 
-      businessId, date, 
-      businessId, date, 
-      businessId, date, 
+      businessId, 
+      businessId, 
+      businessId,
+      businessId, ...teamMemberIds,
       businessId, date,
-      businessId, ...teamMemberIds
+      businessId
     ];
     let queryParamsFollowUps = [businessId, date, ...teamParamsFollowUps];
 
@@ -1930,13 +1932,17 @@ const getTeamProductivityReport = async (req, res) => {
         u.id as employee_id,
         COALESCE(u.name, 'Unassigned') as employee_name,
         COALESCE(u.employee_code, 'N/A') as employee_code,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND DATE(c.created_at) = ?) as assigned,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ?) as assigned,
         (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE (f.by_user_id = u.id OR f.to_user_id = u.id) AND fc.business_id = ? AND DATE(f.entry_date_time) = ?) as follow_ups,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_lost = 1 AND DATE(c.created_at) = ?) as lost,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 1 AND DATE(c.created_at) = ?) as converted,
-        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND c.sale_won = 0 AND c.sale_lost = 0 AND DATE(c.created_at) = ?) as pending
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND (c.sale_lost = 1 OR c.current_sale_status = 2)) as lost,
+        (SELECT COUNT(*) FROM contacts c WHERE (c.assigned_to = u.id OR c.sale_won_by = u.id) AND c.business_id = ? AND (c.sale_won = 1 OR c.current_sale_status = 1)) as converted,
+        (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ? AND (c.sale_won = 0 OR c.sale_won IS NULL) AND (c.sale_lost = 0 OR c.sale_lost IS NULL) AND (c.current_sale_status = 0 OR c.current_sale_status IS NULL)) as pending
       FROM users u
       WHERE u.business_id = ? AND (u.is_dev = 0 OR u.is_dev IS NULL) AND u.role = 'agent' ${teamFilter} ${employeeFilterUsers}
+      ORDER BY (
+        (SELECT COUNT(*) FROM follow_ups f JOIN contacts fc ON f.contact_id = fc.id WHERE (f.by_user_id = u.id OR f.to_user_id = u.id) AND fc.business_id = ? AND DATE(f.entry_date_time) = ?)
+        + (SELECT COUNT(*) FROM contacts c WHERE c.assigned_to = u.id AND c.business_id = ?)
+      ) DESC, u.name ASC
     `;
     const [teamProductivityRows] = await pool.query(usersQuery, queryParamsUsers);
 
