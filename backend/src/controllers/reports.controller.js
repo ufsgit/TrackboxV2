@@ -312,207 +312,339 @@ const getStatusReport = async (req, res) => {
   }
 };
 
-const getTodaysLeadsReport = async (req, res) => {
-  try {
-    const businessId = req.user.businessId;
-    const userId = req.user.userId || req.user.id;
 
-    let teamFilter = '';
-    const filterParams = [businessId];
+/**
+ * Helper to build role-based filter for contacts c and assigned user u
+ */
+const buildContactsRoleFilter = async (user, businessId, agentParam) => {
+  const userId = user.userId || user.id;
+  const [[userRow]] = await pool.query('SELECT role, branch_id FROM users WHERE id = ? AND business_id = ? LIMIT 1', [userId, businessId]);
+  const userRole = userRow ? userRow.role : 'agent';
+  const userBranchId = userRow ? userRow.branch_id : null;
 
-    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
-    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent, column: 'c.assigned_to' });
-    teamFilter = userScope.clause;
-    filterParams.push(...userScope.params);
+  let clause = '';
+  const params = [];
 
-    // Get all contacts whose follow-up date is today, joined with the latest follow_up entry
-    const [leads] = await pool.query(
-      `SELECT
-        c.id          AS id,
-        c.id          AS lead_id,
-        c.name,
-        c.phone,
-        c.status_name,
-        c.branch_name,
-        c.department_name,
-        c.assigned_to,
-        COALESCE(c.follow_up_date, fu.follow_up_date) AS follow_up_date,
-        COALESCE(u2.name, u.name) AS agent,
-        e.name AS product,
-        fu.remarks,
-        fu.status_name AS fu_status_name
-      FROM contacts c
-      LEFT JOIN users u  ON c.assigned_to = u.id
-      LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
-      LEFT JOIN (
-        SELECT
-          fu1.follow_up_id,
-          fu1.contact_id,
-          fu1.follow_up_date,
-          fu1.to_user_id,
-          fu1.remarks,
-          fu1.status_name
-        FROM follow_ups fu1
-        INNER JOIN (
-          SELECT contact_id, MAX(follow_up_id) AS max_id
-          FROM follow_ups
-          GROUP BY contact_id
-        ) latest ON fu1.contact_id = latest.contact_id AND fu1.follow_up_id = latest.max_id
-      ) fu ON fu.contact_id = c.id
-      LEFT JOIN users u2 ON fu.to_user_id = u2.id
-      WHERE c.business_id = ? ${teamFilter}
-        AND DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) = CURDATE()
-      ORDER BY COALESCE(c.follow_up_date, fu.follow_up_date) ASC`,
-      filterParams
-    );
-
-    const unassignedCount = leads.filter(l => !l.agent || l.agent === 'Unassigned').length;
-
-    res.json({
-      success: true,
-      data: {
-        totalToday: leads.length,
-        unassignedLeads: unassignedCount,
-        leads: leads.map(l => ({
-          id:         l.id || l.lead_id,
-          lead_id:    l.id || l.lead_id,
-          name:       l.name,
-          phone:      l.phone || '—',
-          interest:   l.product || '—',
-          statusName: l.fu_status_name || l.status_name || '—',
-          remarks:    l.remarks || '',
-          agent:      l.agent || 'Unassigned'
-        }))
-      }
-    });
-
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  if (userRole === 'admin' || userRole === 'superadmin') {
+    // Admin sees all in business
+  } else if (userRole === 'manager') {
+    clause += ' AND (c.branch_id = ? OR u.branch_id = ?) ';
+    params.push(userBranchId, userBranchId);
+  } else {
+    // Agent sees only leads assigned to them
+    clause += ' AND c.assigned_to = ? ';
+    params.push(userId);
   }
+
+  if (agentParam && agentParam !== 'all') {
+    clause += ' AND c.assigned_to = ? ';
+    params.push(agentParam);
+  }
+
+  return { clause, params, userRole, userBranchId };
 };
 
+/**
+ * 1. PENDING (OVERDUE) FOLLOWUPS REPORT
+ * Follow-up date < NOW() or CURDATE(), not won/lost
+ * Returns Overdue count card + paginated list + search (name, phone)
+ */
 const getPendingFollowupsReport = async (req, res) => {
   try {
     const businessId = req.user.businessId;
-    const userId = req.user.userId || req.user.id;
+    const { search = '', page = 1, limit = 10, agent } = req.query;
 
-    let teamFilter = '';
-    const filterParams = [businessId];
+    const roleScope = await buildContactsRoleFilter(req.user, businessId, agent);
+    let roleClause = roleScope.clause;
+    let baseParams = [businessId, ...roleScope.params];
 
-    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
-    const userScope = buildUserScopeFilter({ accessibleUserIds, requestedAgent: req.query.agent, column: 'c.assigned_to' });
-    teamFilter = userScope.clause;
-    filterParams.push(...userScope.params);
+    // Base condition for Overdue / Pending
+    const baseCondition = `
+      WHERE c.business_id = ?
+        ${roleClause}
+        AND c.follow_up_date IS NOT NULL
+        AND DATE(c.follow_up_date) < CURDATE()
+        AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+    `;
 
-    // Pull the latest follow-up entry per contact from the follow_ups table,
-    // joined with the contact so we have name, phone and assigned agent.
-    const [followups] = await pool.query(
-      `SELECT
-        c.id          AS lead_id,
-        c.name        AS leadName,
-        c.phone       AS phone,
-        c.status_name,
-        c.branch_name,
-        c.department_name,
-        c.assigned_to,
-        COALESCE(u2.name, u.name) AS assignee,
-        COALESCE(c.follow_up_date, fu.follow_up_date) AS dueDate,
-        fu.remarks,
-        CASE
-          WHEN DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) < CURDATE()  THEN 'Overdue'
-          WHEN DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) = CURDATE()  THEN 'Due Today'
-          WHEN DATE(COALESCE(c.follow_up_date, fu.follow_up_date)) > CURDATE() THEN 'Upcoming'
-          ELSE 'Other'
-        END AS status
-      FROM contacts c
-      LEFT JOIN users u  ON c.assigned_to = u.id
-      LEFT JOIN (
-        SELECT
-          fu1.follow_up_id,
-          fu1.contact_id,
-          fu1.follow_up_date,
-          fu1.to_user_id,
-          fu1.remarks
-        FROM follow_ups fu1
-        INNER JOIN (
-          SELECT contact_id, MAX(follow_up_id) AS max_id
-          FROM follow_ups
-          GROUP BY contact_id
-        ) latest ON fu1.contact_id = latest.contact_id AND fu1.follow_up_id = latest.max_id
-      ) fu ON fu.contact_id = c.id
-      LEFT JOIN users u2 ON fu.to_user_id = u2.id
-      WHERE c.business_id = ? ${teamFilter}
-        AND COALESCE(c.follow_up_date, fu.follow_up_date) IS NOT NULL
-      ORDER BY COALESCE(c.follow_up_date, fu.follow_up_date) ASC`,
-      filterParams
+    // 1. Overdue Count (Single card for this page)
+    const [[{ overdueCount }]] = await pool.query(
+      `SELECT COUNT(c.id) AS overdueCount
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}`,
+      baseParams
     );
 
-    const filteredFollowups = followups.filter(f => ['Overdue', 'Due Today', 'Upcoming'].includes(f.status));
-
-    const overdueCount  = filteredFollowups.filter(f => f.status === 'Overdue').length;
-    const dueTodayCount = filteredFollowups.filter(f => f.status === 'Due Today').length;
-    const upcomingCount = filteredFollowups.filter(f => f.status === 'Upcoming').length;
-
-    const filter = req.query.filter || null;
-    const search = (req.query.search || '').trim().toLowerCase();
-
-    // Strict Date Logic:
-    // - Follow-up Date < today  -> Pending (Overdue)
-    // - Follow-up Date = today  -> Today's Follow-up (Due Today)
-    // - Follow-up Date > today  -> Upcoming Follow-up (Upcoming)
-    let activeItems = filteredFollowups;
-    if (filter === 'upcoming') {
-      activeItems = activeItems.filter(f => f.status === 'Upcoming');
-    } else if (filter === 'dueToday' || filter === 'today') {
-      activeItems = activeItems.filter(f => f.status === 'Due Today');
-    } else if (filter === 'overdue' || filter === 'pending' || (!filter && !search)) {
-      activeItems = activeItems.filter(f => f.status === 'Overdue');
+    // 2. Search Filter (Lead Name & Phone only)
+    let searchClause = '';
+    const searchParams = [];
+    if (search && search.trim()) {
+      searchClause = ' AND (c.name LIKE ? OR c.phone LIKE ?) ';
+      const term = `%${search.trim()}%`;
+      searchParams.push(term, term);
     }
 
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    // If limit is not passed and page is not passed (e.g. from upcoming/todays reports), return all matching items:
-    const limit = req.query.limit ? Math.max(1, parseInt(req.query.limit)) : (req.query.page ? 10 : (activeItems.length || 10));
+    const [[{ totalFiltered }]] = await pool.query(
+      `SELECT COUNT(c.id) AS totalFiltered
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}
+       ${searchClause}`,
+      [...baseParams, ...searchParams]
+    );
 
-    if (search) {
-      activeItems = activeItems.filter(f =>
-        (f.leadName && f.leadName.toLowerCase().includes(search)) ||
-        (f.phone && f.phone.toLowerCase().includes(search))
-      );
-    }
+    // 3. Paginated List
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, parseInt(limit) || 10);
+    const offset = (pageNum - 1) * limitNum;
 
-    const total = activeItems.length;
-    const totalPages = Math.ceil(total / limit) || 1;
-    const offset = (page - 1) * limit;
-    const pagedList = activeItems.slice(offset, offset + limit);
+    const [rows] = await pool.query(
+      `SELECT 
+         c.id AS lead_id,
+         c.id AS id,
+         c.name AS leadName,
+         c.phone,
+         c.follow_up_date AS dueDate,
+         c.status_name AS statusName,
+         COALESCE(u.name, 'Unassigned') AS assignee,
+         c.loss_reason,
+         'Overdue' AS status,
+         COALESCE((SELECT fu.remarks FROM follow_ups fu WHERE fu.contact_id = c.id ORDER BY fu.follow_up_id DESC LIMIT 1), '') AS remarks
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}
+       ${searchClause}
+       ORDER BY c.follow_up_date ASC
+       LIMIT ? OFFSET ?`,
+      [...baseParams, ...searchParams, limitNum, offset]
+    );
 
-    res.json({
+    const totalPages = Math.ceil((Number(totalFiltered) || 0) / limitNum) || 1;
+
+    return res.json({
       success: true,
       data: {
-        overdue:  overdueCount,
-        dueToday: dueTodayCount,
-        upcoming: upcomingCount,
+        overdue: Number(overdueCount) || 0,
+        dueToday: 0,
+        upcoming: 0,
         pagination: {
-          page: page,
-          limit: limit,
-          total: total,
-          totalPages: totalPages
+          page: pageNum,
+          limit: limitNum,
+          total: Number(totalFiltered) || 0,
+          totalPages
         },
-        list: pagedList.map(f => ({
-          id:         f.lead_id,
-          leadName:   f.leadName,
-          contact:    f.contact,
-          phone:      f.phone,
-          dueDate:    f.dueDate,
-          remarks:    f.remarks || '',
-          status:     f.status,
-          statusName: f.status_name || '',
-          assignee:   f.assignee || 'Unassigned'
-        }))
+        list: rows
       }
     });
-
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('getPendingFollowupsReport Error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * 2. TODAY'S FOLLOWUPS REPORT
+ * Follow-up date = CURDATE(), not won/lost
+ * Returns Due Today count card + Unassigned count card + paginated leads + search (name, phone)
+ */
+const getTodaysLeadsReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { search = '', page = 1, limit = 10, agent } = req.query;
+
+    const roleScope = await buildContactsRoleFilter(req.user, businessId, agent);
+    let roleClause = roleScope.clause;
+    let baseParams = [businessId, ...roleScope.params];
+
+    // Base condition for Today's Follow-up
+    const baseCondition = `
+      WHERE c.business_id = ?
+        ${roleClause}
+        AND c.follow_up_date IS NOT NULL
+        AND DATE(c.follow_up_date) = CURDATE()
+        AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+    `;
+
+    // 1. KPI Counts: Due Today & Unassigned
+    const [[kpiRow]] = await pool.query(
+      `SELECT 
+         COUNT(c.id) AS totalToday,
+         SUM(CASE WHEN c.assigned_to IS NULL OR c.assigned_to = 0 THEN 1 ELSE 0 END) AS unassignedLeads
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}`,
+      baseParams
+    );
+
+    // 2. Search Filter (Lead Name & Phone only)
+    let searchClause = '';
+    const searchParams = [];
+    if (search && search.trim()) {
+      searchClause = ' AND (c.name LIKE ? OR c.phone LIKE ?) ';
+      const term = `%${search.trim()}%`;
+      searchParams.push(term, term);
+    }
+
+    const [[{ totalFiltered }]] = await pool.query(
+      `SELECT COUNT(c.id) AS totalFiltered
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}
+       ${searchClause}`,
+      [...baseParams, ...searchParams]
+    );
+
+    // 3. Paginated List
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, parseInt(limit) || 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const [rows] = await pool.query(
+      `SELECT 
+         c.id,
+         c.id AS lead_id,
+         c.name,
+         c.name AS leadName,
+         c.phone,
+         e.name AS interest,
+         e.name AS product,
+         c.status_name AS statusName,
+         c.follow_up_date,
+         c.follow_up_date AS dueDate,
+         COALESCE(u.name, 'Unassigned') AS agent,
+         COALESCE(u.name, 'Unassigned') AS assignee,
+         'Due Today' AS status,
+         COALESCE((SELECT fu.remarks FROM follow_ups fu WHERE fu.contact_id = c.id ORDER BY fu.follow_up_id DESC LIMIT 1), '') AS remarks
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
+       ${baseCondition}
+       ${searchClause}
+       ORDER BY c.follow_up_date ASC, c.id DESC
+       LIMIT ? OFFSET ?`,
+      [...baseParams, ...searchParams, limitNum, offset]
+    );
+
+    const totalPages = Math.ceil((Number(totalFiltered) || 0) / limitNum) || 1;
+
+    return res.json({
+      success: true,
+      data: {
+        totalToday: Number(kpiRow?.totalToday) || 0,
+        unassignedLeads: Number(kpiRow?.unassignedLeads) || 0,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: Number(totalFiltered) || 0,
+          totalPages
+        },
+        leads: rows,
+        list: rows
+      }
+    });
+  } catch (err) {
+    console.error('getTodaysLeadsReport Error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * 3. UPCOMING FOLLOWUPS REPORT
+ * Follow-up date > CURDATE(), not won/lost
+ * Returns Upcoming count card + Unassigned count card + paginated list + search (name, phone)
+ */
+const getUpcomingFollowupsReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const { search = '', page = 1, limit = 10, agent } = req.query;
+
+    const roleScope = await buildContactsRoleFilter(req.user, businessId, agent);
+    let roleClause = roleScope.clause;
+    let baseParams = [businessId, ...roleScope.params];
+
+    // Base condition for Upcoming Follow-up
+    const baseCondition = `
+      WHERE c.business_id = ?
+        ${roleClause}
+        AND c.follow_up_date IS NOT NULL
+        AND DATE(c.follow_up_date) > CURDATE()
+        AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+    `;
+
+    // 1. KPI Counts: Upcoming & Unassigned
+    const [[kpiRow]] = await pool.query(
+      `SELECT 
+         COUNT(c.id) AS upcomingCount,
+         SUM(CASE WHEN c.assigned_to IS NULL OR c.assigned_to = 0 THEN 1 ELSE 0 END) AS unassignedUpcoming
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}`,
+      baseParams
+    );
+
+    // 2. Search Filter (Lead Name & Phone only)
+    let searchClause = '';
+    const searchParams = [];
+    if (search && search.trim()) {
+      searchClause = ' AND (c.name LIKE ? OR c.phone LIKE ?) ';
+      const term = `%${search.trim()}%`;
+      searchParams.push(term, term);
+    }
+
+    const [[{ totalFiltered }]] = await pool.query(
+      `SELECT COUNT(c.id) AS totalFiltered
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}
+       ${searchClause}`,
+      [...baseParams, ...searchParams]
+    );
+
+    // 3. Paginated List
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, parseInt(limit) || 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const [rows] = await pool.query(
+      `SELECT 
+         c.id AS lead_id,
+         c.id AS id,
+         c.name AS leadName,
+         c.phone,
+         c.follow_up_date AS dueDate,
+         c.status_name AS statusName,
+         COALESCE(u.name, 'Unassigned') AS assignee,
+         'Upcoming' AS status,
+         COALESCE((SELECT fu.remarks FROM follow_ups fu WHERE fu.contact_id = c.id ORDER BY fu.follow_up_id DESC LIMIT 1), '') AS remarks
+       FROM contacts c
+       LEFT JOIN users u ON c.assigned_to = u.id
+       ${baseCondition}
+       ${searchClause}
+       ORDER BY c.follow_up_date ASC, c.id DESC
+       LIMIT ? OFFSET ?`,
+      [...baseParams, ...searchParams, limitNum, offset]
+    );
+
+    const totalPages = Math.ceil((Number(totalFiltered) || 0) / limitNum) || 1;
+
+    return res.json({
+      success: true,
+      data: {
+        upcoming: Number(kpiRow?.upcomingCount) || 0,
+        unassignedUpcoming: Number(kpiRow?.unassignedUpcoming) || 0,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: Number(totalFiltered) || 0,
+          totalPages
+        },
+        list: rows
+      }
+    });
+  } catch (err) {
+    console.error('getUpcomingFollowupsReport Error:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -4205,6 +4337,7 @@ module.exports = {
   getStatusReport,
   getTodaysLeadsReport,
   getPendingFollowupsReport,
+  getUpcomingFollowupsReport,
   getWorkReport,
   getEmployeeReport,
   getSourceConversionReport,

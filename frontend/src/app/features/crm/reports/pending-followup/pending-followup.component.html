@@ -6,6 +6,14 @@
       <h2 class="fw-black mb-1 page-heading">{{ pageTitle }}</h2>
       <p class="text-muted mb-0" style="font-size: 0.95rem;">{{ pageSubtitle }}</p>
     </div>
+    <div>
+      <app-excel-export-btn
+        endpoint="/export/pending-followup"
+        [filters]="getExportFilters()"
+        fileName="Pending_Followup_Report"
+        buttonText="Export Excel"
+      ></app-excel-export-btn>
+    </div>
   </div>
 
   <!-- KPI Cards -->
@@ -42,7 +50,7 @@
             <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Lead Status</th>
             <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Remarks</th>
             <th style="padding: 16px 20px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Assignee</th>
-            <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right;">Follow-up Status</th>
+            <!-- <th style="padding: 16px 32px; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right;">Follow-up Status</th> -->
           </tr>
         </thead>
         <tbody>
@@ -70,9 +78,9 @@
             <td (click)="openFollowup(f)" style="padding: 20px 20px; cursor: pointer;">
               <div style="font-weight: 600; color: #3b82f6; font-size: 0.95rem;">{{ f.assignee }}</div>
             </td>
-            <td (click)="openFollowup(f)" style="padding: 20px 32px; text-align: right; cursor: pointer;">
+            <!-- <td (click)="openFollowup(f)" style="padding: 20px 32px; text-align: right; cursor: pointer;">
               <span [ngClass]="getStatusClass(f.status)" style="font-size: 0.8rem; font-weight: 600;">{{ f.status }}</span>
-            </td>
+            </td> -->
           </tr>
 
         </tbody>

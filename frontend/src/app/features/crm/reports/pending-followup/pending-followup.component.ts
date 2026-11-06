@@ -6,11 +6,12 @@ import { ApiService } from '../../../../core/services/api.service';
 
 import { LeadProfileModalComponent } from '../../../../shared/components/lead-profile-modal/lead-profile-modal.component';
 import { UpdateLeadStatusModalComponent } from '../../../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
+import { ExcelExportBtnComponent } from '../../../../shared/components/excel-export-btn/excel-export-btn.component';
 
 @Component({
   selector: 'app-pending-followup',
   standalone: true,
-  imports: [CommonModule, FormsModule, LeadProfileModalComponent, UpdateLeadStatusModalComponent],
+  imports: [CommonModule, FormsModule, LeadProfileModalComponent, UpdateLeadStatusModalComponent, ExcelExportBtnComponent],
   providers: [DatePipe],
   templateUrl: './pending-followup.component.html',
   styleUrl: './pending-followup.component.css'
@@ -246,6 +247,12 @@ export class PendingFollowupComponent implements OnInit {
       pages.push(i);
     }
     return pages;
+  }
+
+  getExportFilters() {
+    const f: any = {};
+    if (this.searchTerm && this.searchTerm.trim()) f.search = this.searchTerm.trim();
+    return f;
   }
 
   getStatusClass(status: string): string {

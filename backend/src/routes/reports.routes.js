@@ -10,6 +10,7 @@ router.get('/leads/enquiries', c.getEnquiriesReport);
 router.get('/leads/status', c.getStatusReport);
 router.get('/leads/today', c.getTodaysLeadsReport);
 router.get('/leads/pending-followups', c.getPendingFollowupsReport);
+router.get('/leads/upcoming-followups', c.getUpcomingFollowupsReport);
 router.get('/leads/source-conversion', c.getSourceConversionReport);
 router.get('/leads/channels', c.getChannelsReport);
 router.get('/leads/won-lost', c.getWonLostReport);

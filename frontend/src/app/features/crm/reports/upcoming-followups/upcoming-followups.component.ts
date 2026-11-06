@@ -1,24 +1,34 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
 import { LeadProfileModalComponent } from '../../../../shared/components/lead-profile-modal/lead-profile-modal.component';
 import { UpdateLeadStatusModalComponent } from '../../../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
+import { ExcelExportBtnComponent } from '../../../../shared/components/excel-export-btn/excel-export-btn.component';
 
 @Component({
   selector: 'app-upcoming-followups',
   standalone: true,
-  imports: [CommonModule, FormsModule, LeadProfileModalComponent, UpdateLeadStatusModalComponent],
+  imports: [CommonModule, FormsModule, LeadProfileModalComponent, UpdateLeadStatusModalComponent, ExcelExportBtnComponent],
+  providers: [DatePipe],
   templateUrl: './upcoming-followups.component.html',
   styleUrl: './upcoming-followups.component.css'
 })
-export class UpcomingFollowupsComponent {
+export class UpcomingFollowupsComponent implements OnInit {
   searchTerm: string = '';
+  searchTimeout: any = null;
   loading: boolean = true;
 
   leads: any[] = [];
   stats: any = { upcoming: 0, unassignedUpcoming: 0 };
+
+  // ── Server-Side Pagination ──────────────────────────────
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalItems: number = 0;
+  totalPages: number = 1;
+  pageSizeOptions: number[] = [10, 20, 50, 100];
 
   // ── Lead Profile Modal ──────────────────────────────────
   showProfileModal = false;
@@ -30,36 +40,112 @@ export class UpcomingFollowupsComponent {
   followupContactName = '';
   followupInitialData: any = null;
 
-  constructor(private api: ApiService, private router: Router) {
+  constructor(private api: ApiService, private router: Router) {}
+
+  ngOnInit() {
     this.fetchData();
   }
 
   fetchData() {
     this.loading = true;
-    this.api.get('/reports/leads/pending-followups', { filter: 'upcoming' }).subscribe({
+    const params: any = {
+      page: this.currentPage,
+      limit: this.pageSize
+    };
+    if (this.searchTerm && this.searchTerm.trim()) {
+      params.search = this.searchTerm.trim();
+    }
+
+    this.api.get('/reports/leads/upcoming-followups', params).subscribe({
       next: (res: any) => {
         this.loading = false;
         if (res.success) {
-          const list = res.data.list || [];
-          // Date logic: Follow-up Date after today strictly belongs under Upcoming Follow-up
-          this.leads = list.filter((l: any) => l.status === 'Upcoming' || this.isUpcomingDate(l.dueDate));
+          this.leads = res.data.list || [];
           this.stats = {
-            upcoming: res.data.upcoming !== undefined ? res.data.upcoming : this.leads.length,
-            unassignedUpcoming: this.leads.filter((l: any) => l.assignee === 'Unassigned').length
+            upcoming: res.data.upcoming || 0,
+            unassignedUpcoming: res.data.unassignedUpcoming || 0
           };
+          if (res.data.pagination) {
+            this.totalItems = res.data.pagination.total;
+            this.totalPages = res.data.pagination.totalPages;
+            this.currentPage = res.data.pagination.page;
+          } else {
+            this.totalItems = this.leads.length;
+            this.totalPages = 1;
+          }
         }
       },
-      error: (err: any) => { this.loading = false; console.error(err); }
+      error: (err: any) => {
+        this.loading = false;
+        console.error('Error fetching upcoming followups:', err);
+      }
     });
   }
 
-  isUpcomingDate(dateVal: any): boolean {
-    if (!dateVal) return false;
-    const d = new Date(dateVal);
-    const today = new Date();
-    d.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    return d.getTime() > today.getTime();
+  onSearchChange() {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    this.searchTimeout = setTimeout(() => {
+      this.currentPage = 1;
+      this.fetchData();
+    }, 300);
+  }
+
+  getExportFilters() {
+    const f: any = {};
+    if (this.searchTerm && this.searchTerm.trim()) f.search = this.searchTerm.trim();
+    return f;
+  }
+
+  // ── Pagination Controls ──────────────────────────────────
+  goToPage(p: number) {
+    if (p >= 1 && p <= this.totalPages && p !== this.currentPage) {
+      this.currentPage = p;
+      this.fetchData();
+    }
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.fetchData();
+    }
+  }
+
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.fetchData();
+    }
+  }
+
+  onPageSizeChange() {
+    this.currentPage = 1;
+    this.fetchData();
+  }
+
+  get paginationStart(): number {
+    if (this.totalItems === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get paginationEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   }
 
   // ── Lead Profile Modal Navigation ─────────────────────────
@@ -84,19 +170,6 @@ export class UpcomingFollowupsComponent {
     this.showFollowupModal = false;
     this.followupContactId = null;
     this.followupInitialData = null;
-  }
-
-  // ── Helpers ─────────────────────────────────────────────
-  get filteredLeads() {
-    const list = this.leads.filter(l => l.status === 'Upcoming' || this.isUpcomingDate(l.dueDate));
-    if (!this.searchTerm) return list;
-    const term = this.searchTerm.toLowerCase();
-    return list.filter(l =>
-      l.leadName?.toLowerCase().includes(term) ||
-      l.assignee?.toLowerCase().includes(term) ||
-      l.statusName?.toLowerCase().includes(term) ||
-      l.phone?.includes(term)
-    );
   }
 
   getAssigneeBadge(assignee: string): string {
