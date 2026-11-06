@@ -14,14 +14,14 @@
       <div class="stat-icon icon-red"><i class="bi bi-exclamation-octagon"></i></div>
       <div class="stat-info"><label>Overdue</label><div *ngIf="loading" class="shimmer" style="width: 50px; height: 28px; border-radius: 6px; margin-top: 4px;"></div><h3 *ngIf="!loading" class="stat-number">{{ displayStats.overdue | number }}</h3></div>
     </div>
-    <div (click)="setFilter('dueToday')" class="stat-card-anim" [ngStyle]="{'outline': filterParam === 'dueToday' ? '2px solid #f59e0b' : 'none'}" style="animation-delay: 0.2s; cursor: pointer;">
+    <!-- <div (click)="setFilter('dueToday')" class="stat-card-anim" [ngStyle]="{'outline': filterParam === 'dueToday' ? '2px solid #f59e0b' : 'none'}" style="animation-delay: 0.2s; cursor: pointer;">
       <div class="stat-icon icon-orange"><i class="bi bi-calendar-event"></i></div>
       <div class="stat-info"><label>Due Today</label><div *ngIf="loading" class="shimmer" style="width: 50px; height: 28px; border-radius: 6px; margin-top: 4px;"></div><h3 *ngIf="!loading" class="stat-number">{{ displayStats.dueToday | number }}</h3></div>
     </div>
     <div (click)="setFilter('upcoming')" class="stat-card-anim" [ngStyle]="{'outline': filterParam === 'upcoming' ? '2px solid #3b82f6' : 'none'}" style="animation-delay: 0.3s; cursor: pointer;">
       <div class="stat-icon icon-blue"><i class="bi bi-calendar2-week"></i></div>
       <div class="stat-info"><label>Upcoming (7 Days)</label><div *ngIf="loading" class="shimmer" style="width: 50px; height: 28px; border-radius: 6px; margin-top: 4px;"></div><h3 *ngIf="!loading" class="stat-number">{{ displayStats.upcoming | number }}</h3></div>
-    </div>
+    </div> -->
   </div>
 
 
@@ -111,6 +111,7 @@
 </div>
 
 <app-update-lead-status-modal
+  *ngIf="showFollowupModal"
   [contactId]="followupContactId"
   [contactName]="followupContactName"
   [isOpen]="showFollowupModal"
@@ -121,6 +122,7 @@
 </app-update-lead-status-modal>
 
 <app-lead-profile-modal
+  *ngIf="showProfileModal"
   [contactId]="profileContactId"
   [initialFollowupData]="selectedFollowupRow"
   [isOpen]="showProfileModal"
