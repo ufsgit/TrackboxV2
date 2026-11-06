@@ -22,25 +22,25 @@
             <h3 class="dashboard-header-title">Send Email Campaign</h3>
             <span class="brevo-verified-badge">
               <span class="badge-pulse-dot"></span>
-              Brevo Verified
+              <!-- Brevo Verified -->
             </span>
           </div>
           <div class="identity-sub-row">
             <span class="sender-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="meta-inline-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              From: <strong class="sender-email">worksufs&#64;gmail.com</strong>
+              From: <strong class="sender-email">sreelakshmichoicecampaigns8&#64;gmail.com</strong>
             </span>
-            <span class="meta-separator">&bull;</span>
-            <span class="protocol-tag">Personalized Cloud Delivery via Brevo API</span>
+            <!-- <span class="meta-separator">&bull;</span> -->
+            <!-- <span class="protocol-tag">Personalized Cloud Delivery via Brevo API</span> -->
           </div>
         </div>
       </div>
 
       <div class="header-main-right">
-        <div class="header-gateway-status">
+        <!-- <div class="header-gateway-status">
           <span class="gateway-live-dot"></span>
           <span class="gateway-status-text">Relay Active</span>
-        </div>
+        </div> -->
         <!-- Close Button -->
         <button type="button" class="dashboard-close-btn" (click)="closeModal()" [disabled]="bulkEmailSending" aria-label="Close modal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -171,7 +171,7 @@
         </div>
       </div>
 
-      <div class="workflow-right">
+      <!-- <div class="workflow-right">
         <span class="workflow-heading-label">Insert Dynamic Tag:</span>
         <button type="button" class="quick-variable-pill" (click)="insertVariableTag('{{first_name}}')" title="Click to insert first name tag">
           + {{ '{' + '{first_name}' + '}' }}
@@ -179,7 +179,7 @@
         <button type="button" class="quick-variable-pill" (click)="insertVariableTag('{{name}}')" title="Click to insert full name tag">
           + {{ '{' + '{name}' + '}' }}
         </button>
-      </div>
+      </div> -->
     </div>
 
     <!-- Modal Body (Two-Column Layout: Left Compose / Right Interactive Live Preview) -->
@@ -220,7 +220,7 @@
             <div class="textarea-footer-strip">
               <span class="variables-info-note">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="info-note-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                Variables resolve dynamically per recipient from CRM lead records
+                <!-- Variables resolve dynamically per recipient from CRM lead records -->
               </span>
               <span class="body-char-counter">{{ bulkEmailBody ? bulkEmailBody.length : 0 }} chars</span>
             </div>
@@ -255,9 +255,9 @@
           <div class="preview-email-envelope">
             <!-- Email Meta Header -->
             <div class="email-meta-section">
-              <div class="meta-row">
+              <!-- <div class="meta-row">
                 <span class="meta-label">From:</span>
-                <span class="meta-value"><strong>Choice Campaigns Admissions</strong> &lt;worksufs&#64;gmail.com&gt;</span>
+                <span class="meta-value"><strong>choicecampaigns</strong> &lt;sreelakshmichoicecampaigns8&#64;gmail.com&gt;</span>
               </div>
               <div class="meta-row">
                 <span class="meta-label">To:</span>
@@ -269,7 +269,7 @@
                 <span class="meta-label">Subject:</span>
                 <span class="meta-value subject-value">{{ getLivePreviewSubject() }}</span>
               </div>
-            </div>
+            </div> -->
 
             <!-- Email Body Preview Canvas -->
             <div class="email-canvas-body">

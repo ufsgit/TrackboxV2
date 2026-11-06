@@ -248,7 +248,7 @@ Trackbox CRM Team`;
           <p>You are about to dispatch personalized emails via Brevo to ${targetDesc}.</p>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px;">
             <div><strong>Subject:</strong> ${this.bulkEmailSubject}</div>
-            <div style="margin-top: 4px; color: #64748b; font-size: 0.85rem;">Sender: worksufs@gmail.com</div>
+            <div style="margin-top: 4px; color: #64748b; font-size: 0.85rem;">Sender: sreelakshmichoicecampaigns8@gmail.com</div>
           </div>
           <p style="margin-top: 12px; font-size: 0.85rem; color: #059669;">
             <i class="bi bi-shield-check me-1"></i> Each email will be logged in the lead's timeline with real Brevo delivery tracking.

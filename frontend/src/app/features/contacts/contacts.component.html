@@ -45,13 +45,13 @@
         </span>
       </button>
 
-      <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
+      <!-- <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
         <i class="bi bi-envelope-fill"></i>
         <span>Send Email</span>
         <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
           {{ selectedContactIds.size }}
         </span>
-      </button>
+      </button> -->
 
       <button *ngIf="false" class="leads-btn leads-btn-excel" routerLink="/excel-import" title="Excel Import">
         <i class="bi bi-file-earmark-excel-fill"></i>
@@ -262,13 +262,13 @@
           <i class="bi bi-arrow-left-right"></i>
           <span>Transfer {{ selectedContactIds.size }} leads</span>
         </button>
-        <button class="selection-email-btn" (click)="openBulkEmailModal()">
+        <!-- <button class="selection-email-btn" (click)="openBulkEmailModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
             <polyline points="22,6 12,13 2,6"/>
           </svg>
           <span>Email {{ selectedContactIds.size }} leads</span>
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -2387,7 +2387,7 @@
           <div class="identity-sub-row">
             <span class="sender-tag">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="meta-inline-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              From: <strong class="sender-email">worksufs&#64;gmail.com</strong>
+              From: <strong class="sender-email">sreelakshmichoicecampaigns8&#64;gmail.com</strong>
             </span>
             <span class="meta-separator">&bull;</span>
             <span class="protocol-tag">Personalized Cloud Delivery via Brevo API</span>
@@ -2579,7 +2579,7 @@
             <div class="textarea-footer-strip">
               <span class="variables-info-note">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="info-note-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                Variables resolve dynamically per recipient from CRM lead records
+                <!-- Variables resolve dynamically per recipient from CRM lead records -->
               </span>
               <span class="body-char-counter">{{ bulkEmailBody ? bulkEmailBody.length : 0 }} chars</span>
             </div>
@@ -2616,7 +2616,7 @@
             <div class="email-meta-section">
               <div class="meta-row">
                 <span class="meta-label">From:</span>
-                <span class="meta-value"><strong>Choice Campaigns Admissions</strong> &lt;worksufs&#64;gmail.com&gt;</span>
+                <span class="meta-value"><strong>choicecampaigns</strong> &lt;sreelakshmichoicecampaigns8&#64;gmail.com&gt;</span>
               </div>
               <div class="meta-row">
                 <span class="meta-label">To:</span>

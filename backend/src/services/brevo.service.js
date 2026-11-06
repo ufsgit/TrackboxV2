@@ -15,8 +15,8 @@ class BrevoService {
 
   getSender() {
     return {
-      email: (process.env.BREVO_SENDER_EMAIL || 'worksufs@gmail.com').trim(),
-      name: (process.env.BREVO_SENDER_NAME || 'Trackbox CRM').trim()
+      email: (process.env.BREVO_SENDER_EMAIL || 'sreelakshmichoicecampaigns8@gmail.com').trim(),
+      name: (process.env.BREVO_SENDER_NAME || 'choicecampaigns').trim()
     };
   }
 
