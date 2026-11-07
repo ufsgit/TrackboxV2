@@ -23,6 +23,7 @@ export class ExcelImportComponent implements OnInit {
   departments: any[] = [];
   employees: any[] = [];
   leadStatuses: any[] = [];
+  channels: any[] = [];
   dummyLossReasons = ['Price too high', 'Bought from competitor', 'No longer needed', 'Missing features', 'Poor communication'];
 
   newContact: any = {
@@ -32,7 +33,8 @@ export class ExcelImportComponent implements OnInit {
     assigned_employee: '',
     remark: '',
     follow_up_date: '',
-    loss_reason: ''
+    loss_reason: '',
+    channel_preference: ''
   };
 
   loading = false;
@@ -49,6 +51,20 @@ export class ExcelImportComponent implements OnInit {
     this.loadDepartments();
     this.loadAgents();
     this.loadLeadStatuses();
+    this.loadChannels();
+  }
+
+  loadChannels() {
+    this.settingsService.getChannels().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.channels = res.data || [];
+        }
+      },
+      error: (err: any) => {
+        console.error('Failed to load channels/sources:', err);
+      }
+    });
   }
 
   loadAgents() {
@@ -203,7 +219,9 @@ export class ExcelImportComponent implements OnInit {
         assigned_employee: this.newContact.assigned_employee,
         remark: this.newContact.remark,
         follow_up_date: this.newContact.follow_up_date,
-        loss_reason: this.newContact.loss_reason
+        loss_reason: this.newContact.loss_reason,
+        channel_preference: this.newContact.channel_preference,
+        source: this.newContact.channel_preference
       }
     };
 

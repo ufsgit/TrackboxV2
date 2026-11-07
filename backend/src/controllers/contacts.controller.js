@@ -1256,7 +1256,7 @@ const importExcelContacts = async (req, res) => {
         const tags    = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
         const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
         const rowChannel = getCol(row, ['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
-        const finalChannel = rowChannel || selectedChannel || 'WHATS APP';
+        const finalChannel = (selectedChannel || rowChannel || 'whatsapp').trim().slice(0, 100);
 
         // Skip completely empty rows
         if (!name && !phone) {
@@ -1299,10 +1299,10 @@ const importExcelContacts = async (req, res) => {
         const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
         const userList  = [assignedTo];
 
-        // INSERT — include dynamic finalChannel, current_sale_status, and opt_in_source
+        // INSERT — include dynamic finalChannel (channel_preference), current_sale_status, and opt_in_source = 'import'
         const [result] = await conn.query(
           'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, finalChannel || 'import']
+          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import']
         );
         const contactId = result.insertId;
 
