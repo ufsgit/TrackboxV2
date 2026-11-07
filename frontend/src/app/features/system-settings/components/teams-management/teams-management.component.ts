@@ -138,7 +138,7 @@ import Swal from 'sweetalert2';
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
           <div>
             <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Email</label>
-            <input type="email" class="form-control" [(ngModel)]="currentTeam.email" [disabled]="currentTeam.id" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            <input type="email" class="form-control" [(ngModel)]="currentTeam.email" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
           </div>
           <div>
             <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Password</label>

@@ -254,11 +254,11 @@ const createContact = async (req, res) => {
     const bizId = req.user.businessId;
 
     if (phone) {
-      const numericPhone = phone.replace(/\D/g, '');
-      if (numericPhone.length !== 12) {
+      const numericPhone = String(phone).replace(/\D/g, '');
+      if (numericPhone.length !== 10) {
         await conn.rollback();
         conn.release();
-        return res.status(400).json({ success: false, message: 'Phone number must be exactly 12 digits.', data: null });
+        return res.status(400).json({ success: false, message: 'Phone number must be exactly 10 digits.', data: null });
       }
       phone = numericPhone; // Save the validated numeric phone
 
@@ -452,11 +452,11 @@ const updateContact = async (req, res) => {
 
     // Phone validation and duplicate check
     if (updateFields.phone) {
-      const numericPhone = updateFields.phone.replace(/\D/g, '');
-      if (numericPhone.length !== 12) {
+      const numericPhone = String(updateFields.phone).replace(/\D/g, '');
+      if (numericPhone.length !== 10) {
         await conn.rollback();
         conn.release();
-        return res.status(400).json({ success: false, message: 'Phone number must be exactly 12 digits.', data: null });
+        return res.status(400).json({ success: false, message: 'Phone number must be exactly 10 digits.', data: null });
       }
       updateFields.phone = numericPhone;
 
@@ -1476,12 +1476,24 @@ const previewBulkEmail = async (req, res) => {
 const sendBulkEmail = async (req, res) => {
   try {
     const bizId = req.user.businessId;
-    const { channel, status, tag, search, agent, transferred_only, selected_contact_ids, template_id, subject, body } = req.body;
+    const { channel, status, tag, search, agent, transferred_only, selected_contact_ids, template_id, subject, body, attachments, attachment } = req.body;
+
+    const rawAttachments = attachments || attachment || [];
+    const validAttachments = Array.isArray(rawAttachments)
+      ? rawAttachments
+          .map(a => ({
+            name: (a.name || 'attachment').trim(),
+            content: a.content ? String(a.content).replace(/^data:[^;]+;base64,/, '').trim() : undefined,
+            url: a.url ? String(a.url).trim() : undefined
+          }))
+          .filter(a => a.name && (a.content || a.url))
+      : [];
 
     console.log('[sendBulkEmail] Invocation started:', {
       businessId: bizId,
       selected_contact_ids,
-      subject
+      subject,
+      attachmentsCount: validAttachments.length
     });
 
     if (!subject || !subject.trim()) {
@@ -1570,7 +1582,8 @@ const sendBulkEmail = async (req, res) => {
           toName: recipient.name,
           subject: personalizedSubject,
           htmlContent: personalizedBody.replace(/\n/g, '<br/>'),
-          textContent: personalizedBody
+          textContent: personalizedBody,
+          attachment: validAttachments.length > 0 ? validAttachments : undefined
         });
         // Normalize messageId by trimming angle brackets < >
         brevoMsgId = brevoRes.messageId ? brevoRes.messageId.replace(/[<>]/g, '').trim() : null;
@@ -1585,6 +1598,11 @@ const sendBulkEmail = async (req, res) => {
 
       // Save email record into lead_emails linked to student/lead
       try {
+        const attachmentNote = validAttachments.length > 0
+          ? `\n\n📎 Attachments (${validAttachments.length}): ` + validAttachments.map(a => a.name).join(', ')
+          : '';
+        const savedContent = personalizedBody + attachmentNote;
+
         const [insertRes] = await pool.query(`
           INSERT INTO lead_emails (
             business_id, contact_id, campaign_id, brevo_message_id, 
@@ -1598,7 +1616,7 @@ const sendBulkEmail = async (req, res) => {
           sender.email,
           recipient.email,
           personalizedSubject,
-          personalizedBody,
+          savedContent,
           initialStatus,
           failureReason
         ]);
@@ -1621,8 +1639,8 @@ const sendBulkEmail = async (req, res) => {
     return res.json({
       success: isSuccess,
       message: isSuccess
-        ? `${sentCount} email(s) accepted by Brevo, ${failedCount} failed. Delivery status will update shortly.`
-        : `Email delivery failed: ${sendResults[0]?.error || 'Unable to deliver emails via Brevo.'}`,
+        ? 'Email sent successfully'
+        : `Email delivery failed: ${sendResults[0]?.error || 'Unable to deliver emails.'}`,
       data: {
         campaignId,
         totalRecipients: validRecipients.length,

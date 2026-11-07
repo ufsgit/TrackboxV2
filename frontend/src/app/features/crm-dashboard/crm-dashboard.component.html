@@ -29,8 +29,8 @@
         <div class="kpi-d">
           <div *ngIf="loading" class="kpi-skeleton-delta shimmer"></div>
           <ng-container *ngIf="!loading">
-            <b [class.flat]="!k.delta">{{ k.delta ? '▲ ' + k.delta : '– 0%' }}</b>
-            <span>vs last month</span>
+            <!-- <b [class.flat]="!k.delta">{{ k.delta ? '▲ ' + k.delta : '– 0%' }}</b>
+            <span>vs last month</span> -->
           </ng-container>
         </div>
       </article>

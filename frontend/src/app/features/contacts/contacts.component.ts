@@ -1847,9 +1847,13 @@ export class ContactsComponent implements OnInit {
     this.editingContactId = contact.id;
     this.loadChannels();
     const tagsArray = Array.isArray(contact.tags) ? contact.tags : [];
+    let initialPhone = (contact.phone || '').toString().replace(/\D/g, '');
+    if (initialPhone.length > 10) {
+      initialPhone = initialPhone.slice(-10);
+    }
     this.newContact = {
       name: contact.name || '',
-      phone: contact.phone || '',
+      phone: initialPhone,
       email: contact.email || '',
       address: contact.address || '',
       company: contact.company || '',
@@ -1913,13 +1917,13 @@ export class ContactsComponent implements OnInit {
       }
     }
 
-    // Phone validation for exactly 12 digits
-    const numericPhone = this.newContact.phone.replace(/\D/g, '');
-    if (numericPhone.length !== 12) {
-      showPremiumWarning('Invalid Phone Number', 'Phone number must be exactly 12 digits (including country code).');
+    // Phone validation for exactly 10 digits
+    const numericPhone = (this.newContact.phone || '').toString().replace(/\D/g, '');
+    if (!/^\d{10}$/.test(numericPhone)) {
+      showPremiumWarning('Invalid Phone Number', 'Phone number must be exactly 10 digits.');
       return;
     }
-    // Optionally update the phone to be the numeric one, or keep user formatting
+    // Update the phone to be the numeric 10-digit phone
     this.newContact.phone = numericPhone;
 
     const selStatus = this.leadStatuses?.find((s: any) => s.name === this.newContact.status);
@@ -1999,6 +2003,26 @@ export class ContactsComponent implements OnInit {
         );
       }
     });
+  }
+
+  allowOnlyDigits(event: KeyboardEvent): boolean {
+    const charCode = event.which ? event.which : event.keyCode;
+    // Disallow non-numeric characters (0-9 only: charCodes 48-57)
+    if (charCode < 48 || charCode > 57) {
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  onPhoneInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    let digits = (input.value || '').replace(/\D/g, '');
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10);
+    }
+    this.newContact.phone = digits;
+    input.value = digits;
   }
 
   deleteContactFromDetail(id: number) {
@@ -2434,6 +2458,7 @@ Student Admissions & Relations
 Trackbox CRM Team`;
   emailTemplates: any[] = [];
   selectedTemplateId: any = '';
+  bulkEmailAttachments: Array<{ name: string; content: string; size: number; type: string }> = [];
   bulkEmailPreview: any = {
     totalMatched: 0,
     validCount: 0,
@@ -2509,6 +2534,7 @@ Trackbox CRM Team`;
     this.bulkEmailResults = [];
     this.showBulkEmailModal = true;
     this.showInvalidEmailDetails = false;
+    this.bulkEmailAttachments = [];
     this.bulkEmailSubject = "{{first_name}}, let's discuss your next career step!";
     this.bulkEmailBody = `Hi {{first_name}},
 
@@ -2581,6 +2607,96 @@ Trackbox CRM Team`;
     } else {
       this.bulkEmailBody += ' ' + tag;
     }
+  }
+
+  onBulkEmailFilesSelected(event: any): void {
+    const files: FileList = event.target?.files;
+    if (!files || files.length === 0) return;
+
+    const maxFileSize = 10 * 1024 * 1024;
+    const maxTotalSize = 12 * 1024 * 1024;
+
+    let currentTotalSize = this.bulkEmailAttachments.reduce((sum, a) => sum + (a.size || 0), 0);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (file.size > maxFileSize) {
+        Swal.fire('File Too Large', `"${file.name}" exceeds the 10MB limit. Please attach a smaller file.`, 'warning');
+        continue;
+      }
+
+      if (currentTotalSize + file.size > maxTotalSize) {
+        Swal.fire('Total Size Exceeded', `Total attachments cannot exceed 12MB. "${file.name}" was not added.`, 'warning');
+        break;
+      }
+
+      if (this.bulkEmailAttachments.some(a => a.name === file.name)) {
+        continue;
+      }
+
+      currentTotalSize += file.size;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const resultStr = reader.result as string;
+        const base64Data = resultStr.includes(',') ? resultStr.split(',')[1] : resultStr;
+
+        this.bulkEmailAttachments.push({
+          name: file.name,
+          content: base64Data,
+          size: file.size,
+          type: file.type || 'application/octet-stream'
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    event.target.value = '';
+  }
+
+  removeBulkEmailAttachment(index: number): void {
+    if (index >= 0 && index < this.bulkEmailAttachments.length) {
+      this.bulkEmailAttachments.splice(index, 1);
+    }
+  }
+
+  clearAllBulkEmailAttachments(): void {
+    this.bulkEmailAttachments = [];
+  }
+
+  formatBulkEmailFileSize(bytes: number): string {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  getTotalBulkEmailAttachmentSize(): string {
+    const totalBytes = this.bulkEmailAttachments.reduce((sum, a) => sum + (a.size || 0), 0);
+    return this.formatBulkEmailFileSize(totalBytes);
+  }
+
+  getBulkEmailAttachmentTypeClass(filename: string): string {
+    const ext = (filename || '').split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return 'type-image';
+    if (ext === 'pdf') return 'type-pdf';
+    if (['doc', 'docx', 'txt', 'rtf'].includes(ext || '')) return 'type-doc';
+    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return 'type-sheet';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) return 'type-zip';
+    return 'type-generic';
+  }
+
+  getBulkEmailAttachmentBootstrapIcon(filename: string): string {
+    const ext = (filename || '').split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return 'bi-file-earmark-image-fill';
+    if (ext === 'pdf') return 'bi-file-earmark-pdf-fill';
+    if (['doc', 'docx'].includes(ext || '')) return 'bi-file-earmark-word-fill';
+    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return 'bi-file-earmark-excel-fill';
+    if (ext === 'txt') return 'bi-file-earmark-text-fill';
+    if (['zip', 'rar', '7z'].includes(ext || '')) return 'bi-file-earmark-zip-fill';
+    return 'bi-paperclip';
   }
 
   getCleanTemplateName(name: string): string {
@@ -2657,6 +2773,12 @@ Trackbox CRM Team`;
       ? `<strong>${this.selectedContactIds.size} individually selected leads</strong> (${this.bulkEmailPreview.validCount} valid email addresses)`
       : `<strong>${this.bulkEmailPreview.validCount} filtered leads</strong> with valid email addresses`;
 
+    const attachmentSummaryHtml = this.bulkEmailAttachments.length > 0
+      ? `<div style="margin-top: 8px; padding: 6px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 0.85rem; color: #1e40af;">
+           📎 <strong>${this.bulkEmailAttachments.length} Attachment${this.bulkEmailAttachments.length > 1 ? 's' : ''}:</strong> ${this.bulkEmailAttachments.map(a => a.name).join(', ')} (${this.getTotalBulkEmailAttachmentSize()})
+         </div>`
+      : '';
+
     Swal.fire({
       title: 'Confirm Bulk Email Dispatch',
       html: `
@@ -2665,6 +2787,7 @@ Trackbox CRM Team`;
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px;">
             <div><strong>Subject:</strong> ${this.bulkEmailSubject}</div>
             <div style="margin-top: 4px; color: #64748b; font-size: 0.85rem;">Sender: sreelakshmichoicecampaigns8@gmail.com</div>
+            ${attachmentSummaryHtml}
           </div>
           <p style="margin-top: 12px; font-size: 0.85rem; color: #059669;">
             <i class="bi bi-shield-check me-1"></i> Each email will be logged in the lead's timeline with real Brevo delivery tracking.
@@ -2690,7 +2813,13 @@ Trackbox CRM Team`;
           transferred_only: this.transferredOnly ? 'true' : 'false',
           subject: this.bulkEmailSubject.trim(),
           body: this.bulkEmailBody.trim(),
-          template_id: this.selectedTemplateId || null
+          template_id: this.selectedTemplateId || null,
+          attachments: this.bulkEmailAttachments.map(a => ({
+            name: a.name,
+            content: a.content,
+            size: a.size,
+            type: a.type
+          }))
         };
 
         if (this.selectedContactIds.size > 0) {
@@ -2704,29 +2833,27 @@ Trackbox CRM Team`;
             console.log('[sendBulkEmailViaBrevo] API Response received (next):', res);
             this.bulkEmailSending = false;
             if (res.success) {
-              const d = res.data || {};
-              this.bulkEmailCampaignId = d.campaignId;
-              this.bulkEmailResults = d.results || [];
-              this.bulkEmailResultsView = true;
-
-              // Clear lead checkboxes on success
+              this.closeBulkEmailModal();
               this.clearSelection();
 
-              // Auto-refresh once after 10 seconds to catch early Brevo delivery events
-              if (this.bulkEmailRefreshTimer) clearTimeout(this.bulkEmailRefreshTimer);
-              this.bulkEmailRefreshTimer = setTimeout(() => {
-                this.refreshEmailStatusFromBrevo();
-              }, 10000);
+              Swal.fire({
+                title: 'Success!',
+                text: 'Email sent successfully',
+                icon: 'success',
+                confirmButtonColor: '#4f46e5',
+                timer: 3000,
+                timerProgressBar: true
+              });
             } else {
-              const errorMessage = res.message || 'Something went wrong';
+              const errorMessage = res.message || 'Unable to send email.';
               console.warn('[sendBulkEmailViaBrevo] Response indicated unsuccess:', res);
-              Swal.fire('Email Dispatch Warning', errorMessage, 'warning');
+              Swal.fire('Failed to Send', errorMessage, 'warning');
             }
           },
           error: (err: any) => {
             console.error('[sendBulkEmailViaBrevo] API Error callback (error):', err);
             this.bulkEmailSending = false;
-            const apiMessage = err.error?.message || err.message || 'Failed to dispatch emails via Brevo.';
+            const apiMessage = err.error?.message || err.message || 'Failed to send email.';
             Swal.fire('Send Failed', apiMessage, 'error');
           }
         });

@@ -29,9 +29,10 @@ class BrevoService {
    * @param {string} options.htmlContent
    * @param {string} [options.textContent]
    * @param {Object} [options.params]
+   * @param {Array<{ name: string, content?: string, url?: string }>} [options.attachment]
    * @returns {Promise<{ messageId: string }>}
    */
-  async sendEmail({ toEmail, toName, subject, htmlContent, textContent, params }) {
+  async sendEmail({ toEmail, toName, subject, htmlContent, textContent, params, attachment }) {
     const apiKey = this.getApiKey();
     if (!apiKey) {
       throw new Error('BREVO_API_KEY is not configured in environment variables');
@@ -59,6 +60,30 @@ class BrevoService {
 
     if (textContent) {
       payload.textContent = textContent;
+    }
+
+    if (Array.isArray(attachment) && attachment.length > 0) {
+      const validAttachments = attachment
+        .map(att => {
+          const item = {
+            name: att.name || 'attachment'
+          };
+          if (att.content) {
+            // Strip any data URI scheme e.g. "data:application/pdf;base64,"
+            item.content = String(att.content).replace(/^data:[^;]+;base64,/, '').trim();
+          } else if (att.url) {
+            item.url = att.url;
+          }
+          return item;
+        })
+        .filter(item => (item.content || item.url) && item.name);
+
+      if (validAttachments.length > 0) {
+        payload.attachment = validAttachments;
+        console.log(`[BrevoService.sendEmail] Sending email with ${validAttachments.length} attachment(s):`,
+          validAttachments.map(a => ({ name: a.name, hasContent: !!a.content, url: a.url }))
+        );
+      }
     }
 
     try {

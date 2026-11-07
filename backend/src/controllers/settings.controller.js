@@ -105,15 +105,20 @@ const inviteAgent = async (req, res) => {
 
 const updateAgent = async (req, res) => {
   try {
-    const { name, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids, allowed_custom_field_categories } = req.body;
+    const { name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids, allowed_custom_field_categories } = req.body;
     
+    if (email) {
+      const [existingEmail] = await pool.query('SELECT id FROM users WHERE email=? AND id != ?', [email.trim(), req.params.id]);
+      if (existingEmail.length) return res.status(409).json({ success: false, message: 'Email already in use', data: null });
+    }
+
     if (username) {
       const [existing] = await pool.query('SELECT id FROM users WHERE username=? AND business_id=? AND id != ?', [username, req.user.businessId, req.params.id]);
       if (existing.length) return res.status(409).json({ success: false, message: 'Username already in use', data: null });
     }
 
-    let query = 'UPDATE users SET name=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?, allowed_custom_field_categories=?';
-    let params = [name, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null];
+    let query = 'UPDATE users SET name=?, email=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?, allowed_custom_field_categories=?';
+    let params = [name, email ? email.trim() : null, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null];
     
     if (password) {
       const hash = await bcrypt.hash(password, 10);

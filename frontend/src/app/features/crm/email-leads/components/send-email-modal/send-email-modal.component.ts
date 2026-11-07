@@ -71,6 +71,7 @@ Trackbox CRM Team`;
   bulkEmailResults: any[] = [];
   emailTemplates: any[] = [];
   selectedTemplateId: string | null = null;
+  attachments: Array<{ name: string; content: string; size: number; type: string }> = [];
   private bulkEmailRefreshTimer: any = null;
 
   constructor(private api: ApiService) {}
@@ -98,6 +99,7 @@ Trackbox CRM Team`;
     this.bulkEmailResults = [];
     this.showAudienceDrawer = false;
     this.showInvalidListDrawer = false;
+    this.attachments = [];
     
     this.selectedTemplateId = null;
     this.loadEmailTemplates();
@@ -191,6 +193,98 @@ Trackbox CRM Team`;
     }
   }
 
+  onFilesSelected(event: any): void {
+    const files: FileList = event.target?.files;
+    if (!files || files.length === 0) return;
+
+    const maxFileSize = 10 * 1024 * 1024; // 10MB per file
+    const maxTotalSize = 12 * 1024 * 1024; // 12MB total limit
+
+    let currentTotalSize = this.attachments.reduce((sum, a) => sum + (a.size || 0), 0);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (file.size > maxFileSize) {
+        Swal.fire('File Too Large', `"${file.name}" exceeds the 10MB limit. Please attach a smaller file.`, 'warning');
+        continue;
+      }
+
+      if (currentTotalSize + file.size > maxTotalSize) {
+        Swal.fire('Total Size Exceeded', `Total attachments cannot exceed 12MB. "${file.name}" was not added.`, 'warning');
+        break;
+      }
+
+      // Skip duplicate filename
+      if (this.attachments.some(a => a.name === file.name)) {
+        continue;
+      }
+
+      currentTotalSize += file.size;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const resultStr = reader.result as string;
+        const base64Data = resultStr.includes(',') ? resultStr.split(',')[1] : resultStr;
+
+        this.attachments.push({
+          name: file.name,
+          content: base64Data,
+          size: file.size,
+          type: file.type || 'application/octet-stream'
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Reset input so user can choose another file or the same file again if removed
+    event.target.value = '';
+  }
+
+  removeAttachment(index: number): void {
+    if (index >= 0 && index < this.attachments.length) {
+      this.attachments.splice(index, 1);
+    }
+  }
+
+  clearAllAttachments(): void {
+    this.attachments = [];
+  }
+
+  formatFileSize(bytes: number): string {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  getTotalAttachmentSize(): string {
+    const totalBytes = this.attachments.reduce((sum, a) => sum + (a.size || 0), 0);
+    return this.formatFileSize(totalBytes);
+  }
+
+  getAttachmentTypeClass(filename: string): string {
+    const ext = (filename || '').split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return 'type-image';
+    if (ext === 'pdf') return 'type-pdf';
+    if (['doc', 'docx', 'txt', 'rtf'].includes(ext || '')) return 'type-doc';
+    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return 'type-sheet';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) return 'type-zip';
+    return 'type-generic';
+  }
+
+  getAttachmentBootstrapIcon(filename: string): string {
+    const ext = (filename || '').split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return 'bi-file-earmark-image-fill';
+    if (ext === 'pdf') return 'bi-file-earmark-pdf-fill';
+    if (['doc', 'docx'].includes(ext || '')) return 'bi-file-earmark-word-fill';
+    if (['xls', 'xlsx', 'csv'].includes(ext || '')) return 'bi-file-earmark-excel-fill';
+    if (ext === 'txt') return 'bi-file-earmark-text-fill';
+    if (['zip', 'rar', '7z'].includes(ext || '')) return 'bi-file-earmark-zip-fill';
+    return 'bi-paperclip';
+  }
+
   fetchBulkEmailPreview(): void {
     if (this.bulkEmailLoadingPreview) return;
     this.bulkEmailLoadingPreview = true;
@@ -241,17 +335,24 @@ Trackbox CRM Team`;
       ? `<strong>${this.selectedContactIds.size} individually selected leads</strong> (${this.bulkEmailPreview.validCount} valid email addresses)`
       : `<strong>All ${this.bulkEmailPreview.validCount} filtered leads</strong> with valid email addresses`;
 
+    const attachmentSummaryHtml = this.attachments.length > 0
+      ? `<div style="margin-top: 8px; padding: 6px 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 0.85rem; color: #1e40af;">
+           📎 <strong>${this.attachments.length} Attachment${this.attachments.length > 1 ? 's' : ''}:</strong> ${this.attachments.map(a => a.name).join(', ')} (${this.getTotalAttachmentSize()})
+         </div>`
+      : '';
+
     Swal.fire({
-      title: 'Confirm Bulk Email Dispatch',
+      title: 'Confirm Send',
       html: `
         <div style="text-align: left; font-size: 0.95rem;">
-          <p>You are about to dispatch personalized emails via Brevo to ${targetDesc}.</p>
+          <p>You are about to send personalized emails to ${targetDesc}.</p>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-top: 10px;">
             <div><strong>Subject:</strong> ${this.bulkEmailSubject}</div>
             <div style="margin-top: 4px; color: #64748b; font-size: 0.85rem;">Sender: sreelakshmichoicecampaigns8@gmail.com</div>
+            ${attachmentSummaryHtml}
           </div>
           <p style="margin-top: 12px; font-size: 0.85rem; color: #059669;">
-            <i class="bi bi-shield-check me-1"></i> Each email will be logged in the lead's timeline with real Brevo delivery tracking.
+            <i class="bi bi-shield-check me-1"></i> Each email will be logged in the lead's timeline with delivery tracking.
           </p>
         </div>
       `,
@@ -268,7 +369,13 @@ Trackbox CRM Team`;
           status: this.activeStatus || null,
           subject: this.bulkEmailSubject.trim(),
           body: this.bulkEmailBody.trim(),
-          template_id: this.selectedTemplateId || null
+          template_id: this.selectedTemplateId || null,
+          attachments: this.attachments.map(a => ({
+            name: a.name,
+            content: a.content,
+            size: a.size,
+            type: a.type
+          }))
         };
 
         if (!this.isAllAcrossPages && this.selectedContactIds && this.selectedContactIds.size > 0) {
@@ -279,23 +386,24 @@ Trackbox CRM Team`;
           next: (res: any) => {
             this.bulkEmailSending = false;
             if (res.success) {
-              const d = res.data || {};
-              this.bulkEmailCampaignId = d.campaignId;
-              this.bulkEmailResults = d.results || [];
-              this.bulkEmailResultsView = true;
               this.emailSent.emit();
+              this.closeModal();
 
-              if (this.bulkEmailRefreshTimer) clearTimeout(this.bulkEmailRefreshTimer);
-              this.bulkEmailRefreshTimer = setTimeout(() => {
-                this.refreshEmailStatusFromBrevo();
-              }, 10000);
+              Swal.fire({
+                title: 'Success!',
+                text: 'Email sent successfully',
+                icon: 'success',
+                confirmButtonColor: '#4f46e5',
+                timer: 3000,
+                timerProgressBar: true
+              });
             } else {
-              Swal.fire('Email Dispatch Warning', res.message || 'Something went wrong', 'warning');
+              Swal.fire('Failed to Send', res.message || 'Unable to send email.', 'warning');
             }
           },
           error: (err: any) => {
             this.bulkEmailSending = false;
-            const apiMessage = err.error?.message || err.message || 'Failed to dispatch emails via Brevo.';
+            const apiMessage = err.error?.message || err.message || 'Failed to send email.';
             Swal.fire('Send Failed', apiMessage, 'error');
           }
         });
