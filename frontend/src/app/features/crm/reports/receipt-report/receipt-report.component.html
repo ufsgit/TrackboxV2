@@ -154,7 +154,7 @@
       <div class="kpi-content">
         <span class="kpi-header">Receipts Created ({{ selectedYear }})</span>
         <div class="kpi-metric">{{ monthlySummary.totalYearReceipts | number }}</div>
-        <span class="kpi-caption text-truncate">Total annual receipts count</span>
+        <!-- <span class="kpi-caption text-truncate">Total annual receipts count</span> -->
       </div>
       <div class="tile-glow glow-cyan"></div>
     </div>
@@ -167,7 +167,7 @@
       <div class="kpi-content">
         <span class="kpi-header">Total Collections ({{ selectedYear }})</span>
         <div class="kpi-metric text-emerald font-mono">{{ formatCurrency(monthlySummary.totalYearAmount) }}</div>
-        <span class="kpi-caption text-truncate">Full year inflow collected</span>
+        <!-- <span class="kpi-caption text-truncate">Full year inflow collected</span> -->
       </div>
       <div class="tile-glow glow-emerald"></div>
     </div>
@@ -181,7 +181,7 @@
       <div class="kpi-content">
         <span class="kpi-header">Selected Range ({{ getDateRangeLabel() }})</span>
         <div class="kpi-metric font-mono">{{ formatCurrency(kpis.rangeAmount) }}</div>
-        <span class="kpi-caption text-truncate">{{ kpis.rangeCount }} receipts generated</span>
+        <!-- <span class="kpi-caption text-truncate">{{ kpis.rangeCount }} receipts generated</span> -->
       </div>
       <div class="tile-glow glow-amber"></div>
     </div>
@@ -194,9 +194,9 @@
       <div class="kpi-content" *ngIf="peakMonthAmount">
         <span class="kpi-header">Peak Collection ({{ selectedYear }})</span>
         <div class="kpi-metric text-truncate">{{ peakMonthAmount.monthName }}</div>
-        <span class="kpi-caption text-gold fw-semibold text-truncate">
+        <!-- <span class="kpi-caption text-gold fw-semibold text-truncate">
           {{ formatCurrency(peakMonthAmount.totalAmount) }} · {{ peakMonthAmount.receiptCount }} Receipts
-        </span>
+        </span> -->
       </div>
       <div class="kpi-content" *ngIf="!peakMonthAmount">
         <span class="kpi-header">Peak Collection</span>
@@ -221,7 +221,7 @@
               <div class="dot-indicator dot-blue"></div>
               <div>
                 <h3 class="chart-heading">Total Receipts Received (Jan – Dec {{ selectedYear }})</h3>
-                <span class="chart-subheading">Monthly receipt generation volume with peak volume highlighted</span>
+                <!-- <span class="chart-subheading">Monthly receipt generation volume with peak volume highlighted</span> -->
               </div>
             </div>
             <span class="chart-badge badge-blue" *ngIf="peakMonthReceipts">
@@ -255,7 +255,7 @@
               <div class="dot-indicator dot-green"></div>
               <div>
                 <h3 class="chart-heading">Total Collections Inflow (Jan – Dec {{ selectedYear }})</h3>
-                <span class="chart-subheading">Monthly revenue collected via receipts across the 12 calendar months</span>
+                <!-- <span class="chart-subheading">Monthly revenue collected via receipts across the 12 calendar months</span> -->
               </div>
             </div>
             <span class="chart-badge badge-green" *ngIf="peakMonthAmount">

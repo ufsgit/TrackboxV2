@@ -137,7 +137,7 @@
       <div style="display: flex; align-items: center; gap: 12px;">
         <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
         <select class="filter-select" style="min-width: unset; padding: 6px 12px; font-size: 0.82rem;" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
-          <option [value]="10">10 / page</option>
+          <option [value]="15">15 / page</option>
           <option [value]="20">20 / page</option>
           <option [value]="50">50 / page</option>
         </select>

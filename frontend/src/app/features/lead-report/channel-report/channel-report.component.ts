@@ -449,7 +449,7 @@ function easeOutQuint(t: number) { return 1 - Math.pow(1 - t, 5); }
       <div class="flex justify-between items-center gap-16">
         <div class="title-section">
           <h2 class="fw-bold mb-1">Source Report</h2>
-          <p class="text-muted mb-0">Analyze lead volume by Source preference</p>
+    <!--   <p class="text-muted mb-0">Analyze lead volume by Source preference</p>-->
         </div>
         
         <div class="header-actions ms-auto">

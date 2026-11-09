@@ -23,9 +23,9 @@
             </button>
             
             <div class="dept-dropdown" *ngIf="isDepartmentDropdownOpen" (click)="$event.stopPropagation()">
-              <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Leads'" (click)="setDepartment('Leads')">
+              <!-- <a class="dept-dropdown-item" [class.active]="activeDepartment === 'Leads'" (click)="setDepartment('Leads')">
                 <i class="bi bi-envelope"></i> Leads
-              </a>
+              </a> -->
               <a class="dept-dropdown-item" [class.active]="activeDepartment === 'CRM'" (click)="setDepartment('CRM')">
                 <i class="bi bi-briefcase"></i> CRM
               </a>

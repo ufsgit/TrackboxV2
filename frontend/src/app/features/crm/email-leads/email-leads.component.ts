@@ -28,7 +28,7 @@ export class EmailLeadsComponent implements OnInit, OnDestroy {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 15;
   totalLeads = 0;
   totalPages = 1;
 

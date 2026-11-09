@@ -78,6 +78,7 @@
           <span class="col-tag required">Phone *</span>
           <span class="col-tag">Email</span>
           <span class="col-tag">Source</span>
+          <span class="col-tag">Enquiry for </span>
           <span class="col-tag">Tags</span>
           <span class="col-tag">Address</span>
         </div>
@@ -113,6 +114,15 @@
           <select class="field-select" [(ngModel)]="newContact.channel_preference">
             <option value="">-- Select Source --</option>
             <option *ngFor="let ch of channels" [value]="ch.name">{{ ch.name }}</option>
+          </select>
+        </div>
+
+        <!-- Inquiry Form -->
+        <div class="field-group">
+          <label class="field-label">Inquiry Form</label>
+          <select class="field-select" [(ngModel)]="newContact.enquiry_for_id">
+            <option value="">-- Select Inquiry Form --</option>
+            <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
           </select>
         </div>
 
@@ -175,6 +185,7 @@
             <i class="bi bi-info-circle-fill text-primary me-1"></i>
             <strong>{{ excelData.length }} rows</strong> ready &bull; Status: <strong>{{ newContact.status || 'Not selected' }}</strong>
             <span *ngIf="newContact.channel_preference"> &bull; Source: <strong>{{ newContact.channel_preference }}</strong></span>
+            <span *ngIf="getSelectedEnquiryForName()"> &bull; Inquiry: <strong>{{ getSelectedEnquiryForName() }}</strong></span>
           </span>
           <span *ngIf="!selectedFile" class="text-muted">
             <i class="bi bi-arrow-left-circle me-1"></i> Please upload an Excel file

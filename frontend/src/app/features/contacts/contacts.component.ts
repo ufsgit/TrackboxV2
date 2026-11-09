@@ -93,7 +93,7 @@ export class ContactsComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 15;
   totalContacts = 0;
   overallTotalContacts = 0;
   totalPages = 1;

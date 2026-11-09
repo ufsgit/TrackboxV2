@@ -22,7 +22,7 @@ export class AllLeadsComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 15;
   totalLeads = 0;
   totalPages = 1;
 

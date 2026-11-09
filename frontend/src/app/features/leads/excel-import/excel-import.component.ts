@@ -24,6 +24,7 @@ export class ExcelImportComponent implements OnInit {
   employees: any[] = [];
   leadStatuses: any[] = [];
   channels: any[] = [];
+  enquiryFors: any[] = [];
   dummyLossReasons = ['Price too high', 'Bought from competitor', 'No longer needed', 'Missing features', 'Poor communication'];
 
   newContact: any = {
@@ -34,7 +35,8 @@ export class ExcelImportComponent implements OnInit {
     remark: '',
     follow_up_date: '',
     loss_reason: '',
-    channel_preference: ''
+    channel_preference: '',
+    enquiry_for_id: ''
   };
 
   loading = false;
@@ -52,6 +54,26 @@ export class ExcelImportComponent implements OnInit {
     this.loadAgents();
     this.loadLeadStatuses();
     this.loadChannels();
+    this.loadEnquiryFors();
+  }
+
+  loadEnquiryFors() {
+    this.settingsService.getEnquiryFors().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.enquiryFors = res.data || [];
+        }
+      },
+      error: (err: any) => {
+        console.error('Failed to load inquiry forms (enquiry_fors):', err);
+      }
+    });
+  }
+
+  getSelectedEnquiryForName(): string {
+    if (!this.newContact.enquiry_for_id) return '';
+    const found = this.enquiryFors.find(e => String(e.id) === String(this.newContact.enquiry_for_id));
+    return found ? (found.name || '') : '';
   }
 
   loadChannels() {
@@ -221,7 +243,8 @@ export class ExcelImportComponent implements OnInit {
         follow_up_date: this.newContact.follow_up_date,
         loss_reason: this.newContact.loss_reason,
         channel_preference: this.newContact.channel_preference,
-        source: this.newContact.channel_preference
+        source: this.newContact.channel_preference,
+        enquiry_for_id: this.newContact.enquiry_for_id || null
       }
     };
 

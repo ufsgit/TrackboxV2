@@ -460,7 +460,7 @@
       <div class="footer-left-info">
         <span>Showing <strong>{{ paginationStart }} - {{ paginationEnd }}</strong> of <strong>{{ totalContacts }}</strong> leads</span>
         <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="leads-per-page-select">
-          <option [ngValue]="10">10 per page</option>
+          <option [ngValue]="15">15 per page</option>
           <option [ngValue]="20">20 per page</option>
           <option [ngValue]="50">50 per page</option>
           <option [ngValue]="100">100 per page</option>
