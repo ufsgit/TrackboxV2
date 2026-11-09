@@ -24,7 +24,7 @@ BEGIN
     SET v_is_agent = 1;
     SELECT id INTO v_agent_team_id 
     FROM teams 
-    WHERE name = CONCAT('__agent_', p_user_id) AND business_id = p_business_id 
+    WHERE user_id = p_user_id AND business_id = p_business_id 
     LIMIT 1;
   ELSE
     SET v_is_agent = 0;

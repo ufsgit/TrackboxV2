@@ -103,126 +103,141 @@ import Swal from 'sweetalert2';
     </div>
 
     <!-- Team Modal -->
-    <div class="modal-backdrop" *ngIf="showTeamModal">
-      <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
-        <h4 style="margin-top: 0; margin-bottom: 24px; font-weight: 600;">{{ currentTeam.id ? 'Edit Agent' : 'Add Agent' }}</h4>
+    <div class="modal-backdrop" *ngIf="showTeamModal" (click)="closeTeamModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);">
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Branch</label>
-            <select class="form-control" [(ngModel)]="currentTeam.branch_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-              <option value="">Select Branch</option>
-              <option *ngFor="let b of branches" [value]="b.id">{{b.name}}</option>
-            </select>
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Department</label>
-            <select class="form-control" [(ngModel)]="currentTeam.department_id" [disabled]="!currentTeam.branch_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-              <option value="">Select Department</option>
-              <option *ngFor="let d of departments" [value]="d.id" [hidden]="d.branch_id != currentTeam.branch_id">{{d.name}}</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Agent Name</label>
-            <input type="text" class="form-control" [(ngModel)]="currentTeam.name" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Username</label>
-            <input type="text" class="form-control" [(ngModel)]="currentTeam.username" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-          </div>
+        <!-- Sticky Header with Close Button -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; background: #fff; flex-shrink: 0;">
+          <h4 style="margin: 0; font-weight: 700; font-size: 1.25rem; color: #1e293b;">
+            {{ currentTeam.id ? 'Edit Agent' : 'Add Agent' }}
+          </h4>
+          <button type="button" (click)="closeTeamModal()" style="background: #f1f5f9; border: none; color: #64748b; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s;" title="Close" onmouseover="this.style.background='#e2e8f0'; this.style.color='#0f172a'" onmouseout="this.style.background='#f1f5f9'; this.style.color='#64748b'">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Email</label>
-            <input type="email" class="form-control" [(ngModel)]="currentTeam.email" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Password</label>
-            <input type="password" class="form-control" [(ngModel)]="currentTeam.password" autocomplete="new-password" [placeholder]="currentTeam.id ? 'Leave blank to keep current' : ''" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Employee Code</label>
-            <input type="text" class="form-control" [(ngModel)]="currentTeam.employee_code" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Designation</label>
-            <select class="form-control" [(ngModel)]="currentTeam.designation_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-              <option value="">Select Designation</option>
-              <option *ngFor="let des of designations" [value]="des.id">{{des.name}}</option>
-            </select>
-          </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-          <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Scrollable Form Body -->
+        <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
-              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Date of Joining</label>
-              <input type="date" class="form-control" [(ngModel)]="currentTeam.date_of_joining" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-            </div>
-            <div>
-              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Role</label>
-              <select class="form-control" [(ngModel)]="currentTeam.role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="agent">Agent</option>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Branch</label>
+              <select class="form-control" [(ngModel)]="currentTeam.branch_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+                <option value="">Select Branch</option>
+                <option *ngFor="let b of branches" [value]="b.id">{{b.name}}</option>
               </select>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; padding-top: 4px;">
-              <input type="checkbox" id="isActiveSwitch" [(ngModel)]="currentTeam.is_active" style="width: 18px; height: 18px;">
-              <label for="isActiveSwitch" style="font-weight: 500; font-size: 0.9rem; cursor: pointer;">Is Active</label>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Department</label>
+              <select class="form-control" [(ngModel)]="currentTeam.department_id" [disabled]="!currentTeam.branch_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+                <option value="">Select Department</option>
+                <option *ngFor="let d of departments" [value]="d.id" [hidden]="d.branch_id != currentTeam.branch_id">{{d.name}}</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Agent Name</label>
+              <input type="text" class="form-control" [(ngModel)]="currentTeam.name" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Username</label>
+              <input type="text" class="form-control" [(ngModel)]="currentTeam.username" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
             </div>
           </div>
           
-          <div style="display: flex; flex-direction: column;">
-            <label style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px;">Team Members</label>
-            <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 160px; overflow-y: auto; padding: 4px;">
-              <div *ngIf="otherAgents.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:12px;">No other agents available.</div>
-              <label *ngFor="let agent of otherAgents" class="member-checkbox-item">
-                <input type="checkbox" [checked]="isMemberSelected(agent.id)" (change)="toggleMember(agent.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
-                <span style="flex:1; display:flex; justify-content:space-between; align-items:center;">
-                  <span>
-                    {{ agent.name }}
-                    <small *ngIf="agent.branch_name || agent.branch_id" style="color:#64748b; font-size:0.75rem; margin-left:4px; font-weight:normal;">
-                      ({{ agent.branch_name || getBranchName(agent.branch_id) }})
-                    </small>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Email</label>
+              <input type="email" class="form-control" [(ngModel)]="currentTeam.email" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Password</label>
+              <input type="password" class="form-control" [(ngModel)]="currentTeam.password" autocomplete="new-password" [placeholder]="currentTeam.id ? 'Leave blank to keep current' : ''" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Employee Code</label>
+              <input type="text" class="form-control" [(ngModel)]="currentTeam.employee_code" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Designation</label>
+              <select class="form-control" [(ngModel)]="currentTeam.designation_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+                <option value="">Select Designation</option>
+                <option *ngFor="let des of designations" [value]="des.id">{{des.name}}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Date of Joining</label>
+                <input type="date" class="form-control" [(ngModel)]="currentTeam.date_of_joining" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Role</label>
+                <select class="form-control" [(ngModel)]="currentTeam.role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="agent">Agent</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; padding-top: 4px;">
+                <input type="checkbox" id="isActiveSwitch" [(ngModel)]="currentTeam.is_active" style="width: 18px; height: 18px;">
+                <label for="isActiveSwitch" style="font-weight: 500; font-size: 0.9rem; cursor: pointer;">Is Active</label>
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column;">
+              <label style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px;">Team Members</label>
+              <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 160px; overflow-y: auto; padding: 4px;">
+                <div *ngIf="otherAgents.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:12px;">No other agents available.</div>
+                <label *ngFor="let agent of otherAgents" class="member-checkbox-item">
+                  <input type="checkbox" [checked]="isMemberSelected(agent.id)" (change)="toggleMember(agent.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
+                  <span style="flex:1; display:flex; justify-content:space-between; align-items:center;">
+                    <span>
+                      {{ agent.name }}
+                      <small *ngIf="agent.branch_name || agent.branch_id" style="color:#64748b; font-size:0.75rem; margin-left:4px; font-weight:normal;">
+                        ({{ agent.branch_name || getBranchName(agent.branch_id) }})
+                      </small>
+                    </span>
+                    <small style="color:#94a3b8;">{{ agent.role | titlecase }}</small>
                   </span>
-                  <small style="color:#94a3b8;">{{ agent.role | titlecase }}</small>
-                </span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 8px;">
+            <label style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px;">Allowed Custom Field Categories (Leave empty to allow all)</label>
+            <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 160px; overflow-y: auto; padding: 8px;">
+              <div *ngIf="fieldCategories.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:4px;">No categories available.</div>
+              <label *ngFor="let cat of fieldCategories" class="member-checkbox-item">
+                <input type="checkbox" [checked]="isCategoryAllowed(cat.id)" (change)="toggleAllowedCategory(cat.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
+                <span style="flex:1;">{{ cat.name }}</span>
               </label>
             </div>
           </div>
         </div>
         
-        <div style="margin-bottom: 24px;">
-          <label style="font-weight: 500; font-size: 0.9rem; margin-bottom: 8px;">Allowed Custom Field Categories (Leave empty to allow all)</label>
-          <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; max-height: 160px; overflow-y: auto; padding: 8px;">
-            <div *ngIf="fieldCategories.length === 0" style="color:#94a3b8; font-size:0.85rem; padding:4px;">No categories available.</div>
-            <label *ngFor="let cat of fieldCategories" class="member-checkbox-item">
-              <input type="checkbox" [checked]="isCategoryAllowed(cat.id)" (change)="toggleAllowedCategory(cat.id, $event)" style="width:16px; height:16px; accent-color:#4f46e5;">
-              <span style="flex:1;">{{ cat.name }}</span>
-            </label>
-          </div>
-        </div>
-        
-        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-          <button class="btn btn-light" (click)="closeTeamModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; border: none; font-weight: 500;">Cancel</button>
-          <button class="btn btn-primary" (click)="saveTeam()" style="padding: 10px 20px; border-radius: 8px; font-weight: 500;">Save Agent</button>
+        <!-- Sticky Footer with Close and Save Buttons -->
+        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;">
+          <button class="btn btn-light" (click)="closeTeamModal()" style="padding: 10px 20px; border-radius: 8px; background: #fff; border: 1.5px solid #cbd5e1; font-weight: 600; color: #475569; transition: all 0.15s;">Close</button>
+          <button class="btn btn-primary" (click)="saveTeam()" style="padding: 10px 22px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);">
+            <i class="bi bi-check2"></i> Save Agent
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Permissions Modal -->
-    <div class="modal-backdrop" *ngIf="showPermissionsModal">
-      <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 16px;">
-        <!-- Modal Header -->
-        <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 24px 28px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
+    <div class="modal-backdrop" *ngIf="showPermissionsModal" (click)="closePermissionsModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);">
+        <!-- Modal Header (Sticky) -->
+        <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 20px 24px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
               <i class="bi bi-shield-lock" style="color: #fff; font-size: 1.2rem;"></i>
@@ -232,18 +247,24 @@ import Swal from 'sweetalert2';
               <p style="margin: 0; color: rgba(255,255,255,0.75); font-size: 0.82rem;">{{ currentTeam.name }}</p>
             </div>
           </div>
-          <button (click)="closePermissionsModal()" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          <button (click)="closePermissionsModal()" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
 
-        <!-- Table -->
-        <div style="padding: 24px;">
-          <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+        <!-- Table (Scrollable Body) -->
+        <div style="flex: 1 1 auto; overflow-y: auto; padding: 20px 24px;">
+          <!-- Search Feature in CRM Permissions -->
+          <div style="margin-bottom: 14px; position: relative;">
+            <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.85rem;"></i>
+            <input type="text" [(ngModel)]="permissionSearch" placeholder="Search CRM page or feature..." style="width: 100%; padding: 8px 12px 8px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #fff; outline: none;">
+          </div>
+
+          <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
             <table class="table perm-modal-table" style="margin-bottom: 0;">
               <thead>
                 <tr>
-                  <th>Menu / Feature</th>
+                  <th>CRM Menu / Feature</th>
                   <th class="text-center">
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
                       <span>View</span>
@@ -271,11 +292,11 @@ import Swal from 'sweetalert2';
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let menu of permissionsList">
+                <tr *ngFor="let menu of filteredPermissionsList">
                   <td style="font-weight: 500; color: #1e293b; font-size: 0.9rem;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <i class="bi bi-grid" style="color: #94a3b8; font-size: 0.8rem;"></i>
-                      {{ menu.menuName }}
+                      {{ getMenuDisplayName(menu.menuName) }}
                     </div>
                   </td>
                   <td class="text-center">
@@ -291,20 +312,24 @@ import Swal from 'sweetalert2';
                     <input type="checkbox" [(ngModel)]="menu.delete" style="width: 18px; height: 18px; accent-color: #4f46e5; cursor: pointer;">
                   </td>
                 </tr>
+                <tr *ngIf="filteredPermissionsList.length === 0">
+                  <td colspan="5" class="text-center text-muted py-3">No matching CRM pages found.</td>
+                </tr>
               </tbody>
             </table>
           </div>
+        </div>
 
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <button type="button" (click)="grantAll()" style="background: none; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; color: #475569; font-weight: 500;">
-              <i class="bi bi-check2-all"></i> Grant All
+        <!-- Sticky Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; flex-shrink: 0;">
+          <button type="button" (click)="grantAll()" style="background: #fff; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; color: #475569; font-weight: 600;">
+            <i class="bi bi-check2-all"></i> Grant All
+          </button>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-light" (click)="closePermissionsModal()" style="padding: 9px 20px; border-radius: 8px; background: #fff; border: 1.5px solid #cbd5e1; font-weight: 600; color: #475569;">Close</button>
+            <button class="perm-btn" (click)="savePermissions()" style="padding: 9px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 600;">
+              <i class="bi bi-check-lg"></i> Save Permissions
             </button>
-            <div style="display: flex; gap: 10px;">
-              <button class="btn btn-light" (click)="closePermissionsModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; font-weight: 500; border: none;">Cancel</button>
-              <button class="perm-btn" (click)="savePermissions()" style="padding: 10px 22px; border-radius: 8px; font-size: 0.9rem;">
-                <i class="bi bi-check-lg"></i> Save Permissions
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -354,38 +379,53 @@ export class TeamsManagementComponent implements OnInit {
   
   showPermissionsModal: boolean = false;
   permissionsList: any[] = [];
+  permissionSearch: string = '';
+
+  // CRM Module Only Menus (hidden departments like Leads/WhatsApp, Operation, HR, and Leave Request are excluded)
   defaultMenus = [
     'Dashboard',
-    'Inbox',
-    'Broadcasts',
-    'Chatbots',
-    'Templates',
+    'CRM',
     'Reports',
     'Settings',
     'Teams',
     'Branch',
     'Department',
-    'Lead Status',
     'Designation',
+    'Universities',
+    'Courses',
+    'Application Status',
     'Intake',
     'Year',
-    'Application Status',
+    'Lead Status',
     'Enquiry For',
-    'Document Type',
-    'Channel',
-    'Channels Manager',
-    'Users / Agents',
     'Lead Fields',
     'Field Categories',
+    'Document Type',
+    'Channels Manager',
+    'Channel',
     'Source Categories',
     'API & Webhooks',
-    'Integrations',
-    'Courses',
-    'CRM',
-    'Operation',
-    'HR',
-    'Leave Request'
+    'Integrations'
   ];
+
+  get filteredPermissionsList() {
+    if (!this.permissionSearch) return this.permissionsList;
+    const q = this.permissionSearch.toLowerCase().trim();
+    return this.permissionsList.filter(m => 
+      m.menuName.toLowerCase().includes(q) || 
+      this.getMenuDisplayName(m.menuName).toLowerCase().includes(q)
+    );
+  }
+
+  getMenuDisplayName(menuName: string): string {
+    const map: Record<string, string> = {
+      'CRM': 'Leads (CRM)',
+      'Channel': 'Source / Channels',
+      'Year': 'Academic Year',
+      'Teams': 'Teams & Users'
+    };
+    return map[menuName] || menuName;
+  }
   
   searchTerm: string = '';
   filterBranchId: string | number = '';
@@ -514,6 +554,7 @@ export class TeamsManagementComponent implements OnInit {
   openPermissionsModal(member: any) {
     this.currentTeam = member;
     this.permissionsList = [];
+    this.permissionSearch = '';
     
     // Parse existing permissions if any
     let existingPerms = [];
@@ -522,7 +563,12 @@ export class TeamsManagementComponent implements OnInit {
     }
     
     this.defaultMenus.forEach(menu => {
-      const existing = existingPerms.find((p: any) => p.menuName === menu);
+      const existing = existingPerms.find((p: any) => 
+        p.menuName === menu ||
+        (menu === 'CRM' && (p.menuName === 'Leads' || p.menuName === 'CRM / Leads')) ||
+        (menu === 'Channel' && p.menuName === 'Source') ||
+        (menu === 'Year' && p.menuName === 'Academic Year')
+      );
       this.permissionsList.push({
         menuName: menu,
         view: existing ? existing.view : false,

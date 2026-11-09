@@ -65,7 +65,11 @@ export class AuthService {
     }
     // For agents, check specific permissions
     if (user && user.permissions && Array.isArray(user.permissions)) {
-      const perm = user.permissions.find((p: any) => p.menuName === menuName);
+      const perm = user.permissions.find((p: any) => 
+        p.menuName === menuName ||
+        (menuName === 'CRM' && (p.menuName === 'Leads' || p.menuName === 'CRM / Leads')) ||
+        ((menuName === 'Leads' || menuName === 'CRM / Leads') && p.menuName === 'CRM')
+      );
       if (perm) {
         if (action === 'view') return perm.view;
         if (action === 'save') return perm.save;

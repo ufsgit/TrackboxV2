@@ -416,7 +416,14 @@ const deleteDocumentType = async (req, res) => {
 // TEAMS
 const getTeams = async (req, res) => {
   try {
-    const [teams] = await pool.query('SELECT * FROM teams WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    const [teams] = await pool.query(
+      `SELECT t.*, u.name as user_name, u.email as user_email 
+       FROM teams t 
+       LEFT JOIN users u ON t.user_id = u.id 
+       WHERE t.business_id=? 
+       ORDER BY t.id ASC`, 
+      [req.user.businessId]
+    );
     const [members] = await pool.query(
       `SELECT tm.team_id, u.id, u.name, u.email 
        FROM team_members tm 
@@ -426,6 +433,7 @@ const getTeams = async (req, res) => {
     );
     
     const formattedTeams = teams.map(t => {
+      t.name = t.user_name || `Agent ${t.user_id}`;
       t.members = members.filter(m => m.team_id === t.id);
       return t;
     });
@@ -439,8 +447,8 @@ const getTeams = async (req, res) => {
 
 const createTeam = async (req, res) => {
   try {
-    const { name, description, member_ids } = req.body;
-    const [result] = await pool.query('INSERT INTO teams (name, description, business_id) VALUES (?, ?, ?)', [name, description || null, req.user.businessId]);
+    const { user_id, description, member_ids } = req.body;
+    const [result] = await pool.query('INSERT INTO teams (user_id, description, business_id) VALUES (?, ?, ?)', [user_id, description || null, req.user.businessId]);
     const teamId = result.insertId;
 
     if (member_ids && member_ids.length > 0) {
@@ -457,8 +465,8 @@ const createTeam = async (req, res) => {
 
 const updateTeam = async (req, res) => {
   try {
-    const { name, description, member_ids } = req.body;
-    await pool.query('UPDATE teams SET name=?, description=? WHERE id=? AND business_id=?', [name, description || null, req.params.id, req.user.businessId]);
+    const { user_id, description, member_ids } = req.body;
+    await pool.query('UPDATE teams SET user_id=?, description=? WHERE id=? AND business_id=?', [user_id, description || null, req.params.id, req.user.businessId]);
     
     await pool.query('DELETE FROM team_members WHERE team_id=?', [req.params.id]);
     if (member_ids && member_ids.length > 0) {

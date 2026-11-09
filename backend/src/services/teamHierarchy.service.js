@@ -30,8 +30,8 @@ async function getAccessibleUserIds(user, businessId) {
 
       // Find the team owned by currentId
       const [teamRows] = await p.query(
-        `SELECT id FROM teams WHERE name = ? AND business_id = ? LIMIT 1`,
-        [`__agent_${currentId}`, businessId]
+        `SELECT id FROM teams WHERE user_id = ? AND business_id = ? LIMIT 1`,
+        [currentId, businessId]
       );
 
       if (teamRows && teamRows.length > 0) {

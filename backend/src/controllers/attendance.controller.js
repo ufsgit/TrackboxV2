@@ -160,7 +160,7 @@ exports.getReport = async (req, res) => {
         user_id = ? OR 
         user_id IN (
           SELECT user_id FROM team_members 
-          WHERE team_id = (SELECT id FROM teams WHERE name = CONCAT('__agent_', ?) AND business_id = ?)
+          WHERE team_id = (SELECT id FROM teams WHERE user_id = ? AND business_id = ?)
         )
       )`;
       params.push(req.user.userId || req.user.id, req.user.userId || req.user.id, business_id);

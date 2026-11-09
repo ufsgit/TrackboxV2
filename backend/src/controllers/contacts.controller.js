@@ -1153,8 +1153,23 @@ const importExcelContacts = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No lead data provided.', data: null });
     }
 
-    const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason, channel, channel_preference, source } = statusAndAssignment || {};
+    const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason, channel, channel_preference, source, enquiry_for_id, enquiry_for } = statusAndAssignment || {};
     const selectedChannel = (channel_preference || channel || source || '').trim() || null;
+
+    // ── Resolve Inquiry Form (enquiry_fors) ────────────────
+    let globalEnquiryForId = null;
+    const [allEnquiryFors] = await conn.query('SELECT id, name FROM enquiry_fors WHERE business_id = ?', [bizId]);
+    const enquiryMap = new Map();
+    for (const ef of allEnquiryFors) {
+      enquiryMap.set(String(ef.id), ef.id);
+      enquiryMap.set(ef.name.toLowerCase().trim(), ef.id);
+    }
+
+    if (enquiry_for_id && enquiryMap.has(String(enquiry_for_id))) {
+      globalEnquiryForId = enquiryMap.get(String(enquiry_for_id));
+    } else if (enquiry_for && enquiryMap.has(String(enquiry_for).toLowerCase().trim())) {
+      globalEnquiryForId = enquiryMap.get(String(enquiry_for).toLowerCase().trim());
+    }
 
     // ── Resolve assigned user ─────────────────────────────
     let assignedTo = null;
@@ -1258,6 +1273,17 @@ const importExcelContacts = async (req, res) => {
         const rowChannel = getCol(row, ['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
         const finalChannel = (selectedChannel || rowChannel || 'whatsapp').trim().slice(0, 100);
 
+        const rowEnquiry = getCol(row, ['Inquiry Form', 'Inquiry Form Name', 'Enquiry Form', 'Enquiry Form Name', 'Inquiry For', 'Enquiry For', 'Inquiry', 'Enquiry']);
+        let rowEnquiryForId = globalEnquiryForId;
+        if (rowEnquiry) {
+          const cleanEnq = rowEnquiry.trim().toLowerCase();
+          if (enquiryMap.has(cleanEnq)) {
+            rowEnquiryForId = enquiryMap.get(cleanEnq);
+          } else if (enquiryMap.has(rowEnquiry.trim())) {
+            rowEnquiryForId = enquiryMap.get(rowEnquiry.trim());
+          }
+        }
+
         // Skip completely empty rows
         if (!name && !phone) {
           skipped++;
@@ -1299,10 +1325,10 @@ const importExcelContacts = async (req, res) => {
         const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
         const userList  = [assignedTo];
 
-        // INSERT — include dynamic finalChannel (channel_preference), current_sale_status, and opt_in_source = 'import'
+        // INSERT — include dynamic finalChannel (channel_preference), current_sale_status, enquiry_for_id, and opt_in_source = 'import'
         const [result] = await conn.query(
-          'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import']
+          'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source, enquiry_for_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import', rowEnquiryForId || null]
         );
         const contactId = result.insertId;
 
@@ -1326,7 +1352,7 @@ const importExcelContacts = async (req, res) => {
     if (inserted === 0) {
       return res.json({
         success: false,
-        message: '0 leads imported. ' + skipped + ' rows skipped.' + (errors.length ? ' Errors: ' + errors.slice(0, 5).join(' | ') : ' Check that your Excel has columns matching: Name, Phone/Mobile, Email, Address, Tags.'),
+        message: '0 leads imported. ' + skipped + ' rows skipped.' + (errors.length ? ' Errors: ' + errors.slice(0, 5).join(' | ') : ' Check that your Excel has columns matching: Name, Phone/Mobile, Email, Address, Tags, Inquiry Form.'),
         data: { inserted, skipped, errors, invalidEmails, detectedColumns: detectedCols }
       });
     }

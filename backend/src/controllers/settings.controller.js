@@ -56,8 +56,8 @@ const getTeam = async (req, res) => {
       const [tmRows] = await pool.query(
         `SELECT tm.user_id FROM team_members tm
          JOIN teams t ON tm.team_id = t.id
-         WHERE t.name = ? AND t.business_id = ? AND tm.user_id != ?`,
-        [`__agent_${r.id}`, req.user.businessId, r.id]
+         WHERE t.user_id = ? AND t.business_id = ? AND tm.user_id != ?`,
+        [r.id, req.user.businessId, r.id]
       );
       r.member_ids = tmRows.map(m => m.user_id);
       if (typeof r.permissions === 'string') {
@@ -88,8 +88,8 @@ const inviteAgent = async (req, res) => {
     // Create a personal auto-team for this agent and add member_ids + themselves
     if (member_ids && Array.isArray(member_ids) && member_ids.length > 0) {
       const [teamResult] = await pool.query(
-        'INSERT INTO teams (name, description, business_id) VALUES (?, ?, ?)',
-        [`__agent_${newUserId}`, null, req.user.businessId]
+        'INSERT INTO teams (user_id, description, business_id) VALUES (?, ?, ?)',
+        [newUserId, null, req.user.businessId]
       );
       const teamId = teamResult.insertId;
       const allMembers = [...new Set([newUserId, ...member_ids.map(Number)])];
@@ -135,8 +135,8 @@ const updateAgent = async (req, res) => {
     if (member_ids && Array.isArray(member_ids)) {
       // Delete existing auto-team for this agent
       const [existingTeams] = await pool.query(
-        `SELECT id FROM teams WHERE name = ? AND business_id = ?`,
-        [`__agent_${agentId}`, req.user.businessId]
+        `SELECT id FROM teams WHERE user_id = ? AND business_id = ?`,
+        [agentId, req.user.businessId]
       );
       for (const t of existingTeams) {
         await pool.query('DELETE FROM team_members WHERE team_id=?', [t.id]);
@@ -144,8 +144,8 @@ const updateAgent = async (req, res) => {
       }
       if (member_ids.length > 0) {
         const [teamResult] = await pool.query(
-          'INSERT INTO teams (name, description, business_id) VALUES (?, ?, ?)',
-          [`__agent_${agentId}`, null, req.user.businessId]
+          'INSERT INTO teams (user_id, description, business_id) VALUES (?, ?, ?)',
+          [agentId, null, req.user.businessId]
         );
         const teamId = teamResult.insertId;
         const allMembers = [...new Set([agentId, ...member_ids.map(Number)])];
