@@ -20,7 +20,7 @@ async function runMigrations() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       business_id INT,
       name VARCHAR(255),
-      email VARCHAR(255) UNIQUE,
+      email VARCHAR(255),
       password_hash VARCHAR(255),
       role ENUM('superadmin','admin','manager','agent') DEFAULT 'agent',
       is_active BOOLEAN DEFAULT TRUE,
@@ -418,6 +418,26 @@ async function runMigrations() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
   )`);
+
+  // Ensure users email is non-unique
+  try {
+    const [emailIndex] = await pool.query("SHOW INDEX FROM users WHERE Key_name = 'email' AND Non_unique = 0");
+    if (emailIndex.length > 0) {
+      await pool.query("ALTER TABLE users DROP INDEX email");
+    }
+  } catch (e) {
+    // Ignore if already dropped
+  }
+
+  // Ensure idx_users_email exists for fast lookups
+  try {
+    const [idxCheck] = await pool.query("SHOW INDEX FROM users WHERE Key_name = 'idx_users_email'");
+    if (idxCheck.length === 0) {
+      await pool.query("ALTER TABLE users ADD INDEX idx_users_email (email)");
+    }
+  } catch (e) {
+    // Ignore if already exists
+  }
 
   // Add social_account_id to conversations if it does not already exist
   const [columns] = await pool.query("SHOW COLUMNS FROM conversations LIKE 'social_account_id'");

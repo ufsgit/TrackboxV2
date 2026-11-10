@@ -54,7 +54,11 @@ export class LoginComponent {
         this.navigateToDashboard();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Login failed. Please check your credentials.';
+        if (err.status === 0) {
+          this.error = 'Unable to connect to backend server. Please check if backend API is running.';
+        } else {
+          this.error = err.error?.message || 'Login failed. Please check your credentials.';
+        }
         this.loading = false;
       }
     });
