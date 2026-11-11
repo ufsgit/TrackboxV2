@@ -393,11 +393,35 @@ async function runMigrations() {
       is_late BOOLEAN DEFAULT FALSE,
       late_reason TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS company_config (
+      id INT NOT NULL AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL,
+      title VARCHAR(255) DEFAULT NULL,
+      is_email TINYINT(1) DEFAULT '0',
+      logo VARCHAR(500) DEFAULT NULL,
+      favicon VARCHAR(500) DEFAULT NULL,
+      company_status INT DEFAULT '0',
+      PRIMARY KEY (id)
     )`
   ];
 
   for (const query of queries) {
     await pool.query(query);
+  }
+
+  // Seed default company config if empty
+  try {
+    const [cfgRows] = await pool.query('SELECT id FROM company_config LIMIT 1');
+    if (cfgRows.length === 0) {
+      await pool.query(
+        `INSERT INTO company_config (name, title, is_email, logo, favicon, company_status) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['Trackbox', 'Trackbox CRM', 0, 'assets/logos/trackbox-logo.png', 'assets/icons/trackbox-logo.png', 1]
+      );
+      console.log('✅ Default company_config seeded');
+    }
+  } catch (cfgErr) {
+    console.error('Error seeding company_config:', cfgErr.message);
   }
 
   // Create social_accounts table

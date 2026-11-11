@@ -34,34 +34,32 @@
       
       <!-- Top Logo area -->
       <div class="brand-logo">
-        <div class="logo-icon">
-          <!-- We can just use an image or an inline SVG representing globe+book -->
-          <svg viewBox="0 0 100 100" width="70" height="70">
-            <!-- Laurels -->
-            <path d="M 20 80 Q 5 50 25 30" fill="none" stroke="#bc914f" stroke-width="2" stroke-linecap="round"/>
-            <path d="M 80 80 Q 95 50 75 30" fill="none" stroke="#bc914f" stroke-width="2" stroke-linecap="round"/>
-            <!-- Leaves approximations -->
-            <path d="M 17 73 L 13 67 L 20 67 Z" fill="#bc914f"/>
-            <path d="M 12 55 L 7 50 L 15 50 Z" fill="#bc914f"/>
-            <path d="M 15 40 L 10 32 L 18 36 Z" fill="#bc914f"/>
-            
-            <path d="M 83 73 L 87 67 L 80 67 Z" fill="#bc914f"/>
-            <path d="M 88 55 L 93 50 L 85 50 Z" fill="#bc914f"/>
-            <path d="M 85 40 L 90 32 L 82 36 Z" fill="#bc914f"/>
-            
-            <!-- Book -->
-            <path d="M 32 75 L 50 78 L 68 75 L 68 50 L 50 55 L 32 50 Z" fill="#003566"/>
-            <path d="M 50 78 L 50 55" fill="none" stroke="#ffffff" stroke-width="2"/>
-            
-            <!-- Globe -->
-            <circle cx="50" cy="32" r="14" fill="none" stroke="#003566" stroke-width="2"/>
-            <ellipse cx="50" cy="32" rx="6" ry="14" fill="none" stroke="#003566" stroke-width="1.5"/>
-            <path d="M 36 32 L 64 32" fill="none" stroke="#003566" stroke-width="1.5"/>
-            <path d="M 40 22 L 60 22" fill="none" stroke="#003566" stroke-width="1.5"/>
-            <path d="M 40 42 L 60 42" fill="none" stroke="#003566" stroke-width="1.5"/>
-          </svg>
+        <div class="logo-icon" *ngIf="companyLogoUrl; else defaultLogoSvg">
+          <img [src]="companyLogoUrl" [alt]="companyName" style="max-height: 70px; max-width: 160px; object-fit: contain;">
         </div>
-        <h2 class="brand-name">STUDY ABROAD</h2>
+        <ng-template #defaultLogoSvg>
+          <div class="logo-icon">
+            <!-- Default SVG representation -->
+            <svg viewBox="0 0 100 100" width="70" height="70">
+              <path d="M 20 80 Q 5 50 25 30" fill="none" stroke="#bc914f" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 80 80 Q 95 50 75 30" fill="none" stroke="#bc914f" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 17 73 L 13 67 L 20 67 Z" fill="#bc914f"/>
+              <path d="M 12 55 L 7 50 L 15 50 Z" fill="#bc914f"/>
+              <path d="M 15 40 L 10 32 L 18 36 Z" fill="#bc914f"/>
+              <path d="M 83 73 L 87 67 L 80 67 Z" fill="#bc914f"/>
+              <path d="M 88 55 L 93 50 L 85 50 Z" fill="#bc914f"/>
+              <path d="M 85 40 L 90 32 L 82 36 Z" fill="#bc914f"/>
+              <path d="M 32 75 L 50 78 L 68 75 L 68 50 L 50 55 L 32 50 Z" fill="#003566"/>
+              <path d="M 50 78 L 50 55" fill="none" stroke="#ffffff" stroke-width="2"/>
+              <circle cx="50" cy="32" r="14" fill="none" stroke="#003566" stroke-width="2"/>
+              <ellipse cx="50" cy="32" rx="6" ry="14" fill="none" stroke="#003566" stroke-width="1.5"/>
+              <path d="M 36 32 L 64 32" fill="none" stroke="#003566" stroke-width="1.5"/>
+              <path d="M 40 22 L 60 22" fill="none" stroke="#003566" stroke-width="1.5"/>
+              <path d="M 40 42 L 60 42" fill="none" stroke="#003566" stroke-width="1.5"/>
+            </svg>
+          </div>
+        </ng-template>
+        <h2 class="brand-name">{{ companyTitle || companyName }}</h2>
         <p class="brand-slogan">Dream &bull; Discover &bull; Succeed</p>
       </div>
 

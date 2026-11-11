@@ -45,7 +45,7 @@
         </span>
       </button>
 
-      <!-- <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
+      <!-- <button *ngIf="isEmailEnabled" class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
         <i class="bi bi-envelope-fill"></i>
         <span>Send Email</span>
         <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
@@ -439,7 +439,7 @@
                   </svg>
                 </a>
 
-                <button class="leads-action-icon-btn email-action-btn"
+                <button *ngIf="isEmailEnabled" class="leads-action-icon-btn email-action-btn"
                         (click)="selectedContactIds.clear(); selectedContactIds.add(contact.id); openBulkEmailModal()"
                         aria-label="Send Email"
                         title="Send Email">
@@ -619,7 +619,7 @@
           <button type="button" class="btn-action-pill chat" (click)="goToChatFromDetail()" title="Open WhatsApp / Chat">
             <i class="bi bi-chat-dots-fill"></i> <span>Message</span>
           </button>
-          <button type="button" class="btn-action-pill mail" (click)="sendEmailFromDetail()" title="Send email to this lead">
+          <button *ngIf="isEmailEnabled" type="button" class="btn-action-pill mail" (click)="sendEmailFromDetail()" title="Send email to this lead">
             <i class="bi bi-envelope-fill"></i> <span>Send Mail</span>
           </button>
           <button type="button" class="btn-action-pill edit" (click)="openEditFromDetail()" title="Edit lead details">

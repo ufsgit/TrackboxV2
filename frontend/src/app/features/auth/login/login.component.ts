@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { CompanyConfigService } from '../../../core/services/company-config.service';
 
 @Component({
   selector: 'app-login',
@@ -18,10 +19,26 @@ export class LoginComponent {
   loading = false;
   error = '';
 
-  constructor(private authService: AuthService, private router: Router) {
+  constructor(
+    private authService: AuthService, 
+    private router: Router,
+    public companyConfigService: CompanyConfigService
+  ) {
     if (this.authService.isLoggedIn()) {
       this.navigateToDashboard();
     }
+  }
+
+  get companyLogoUrl(): string {
+    return this.companyConfigService.getLogoUrl();
+  }
+
+  get companyName(): string {
+    return this.companyConfigService.getCompanyName();
+  }
+
+  get companyTitle(): string {
+    return this.companyConfigService.getPageTitle();
   }
 
   private navigateToDashboard() {

@@ -43,6 +43,16 @@ app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Static files
+const assetStaticOptions = {
+  setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+};
+app.use('/assets', express.static(path.join(__dirname, 'src', 'assets'), assetStaticOptions));
+app.use('/src/assets', express.static(path.join(__dirname, 'src', 'assets'), assetStaticOptions));
+app.use('/backend/src/assets', express.static(path.join(__dirname, 'src', 'assets'), assetStaticOptions));
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res, filePath) => {
     // Allow any origin to fetch uploaded media (required for cross-origin and ngrok)
@@ -121,6 +131,7 @@ app.post('/api/webhooks/ivr/incoming', handleIncomingCall);
 app.post('/api/webhooks/ivr/keypress', handleKeyPress);
 
 // API routes
+app.use('/api/company-config', require('./src/routes/company-config.routes'));
 app.use('/api/auth', require('./src/routes/auth.routes'));
 app.use('/api/contacts', require('./src/routes/contacts.routes'));
 app.use('/api', require('./src/routes/leads.routes'));

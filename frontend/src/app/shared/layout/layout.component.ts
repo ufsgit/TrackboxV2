@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 import { SocketService } from '../../core/services/socket.service';
 import { AttendanceService } from '../../core/services/attendance.service';
+import { CompanyConfigService } from '../../core/services/company-config.service';
 import { FormsModule } from '@angular/forms';
 import { Observable, filter } from 'rxjs';
 import Swal from 'sweetalert2';
@@ -82,6 +83,18 @@ export class LayoutComponent implements OnInit {
   tutorialSearchQuery: string = '';
 
   currentRoutedComponent: any = null;
+
+  get isEmailEnabled(): boolean {
+    return this.companyConfigService.isEmailEnabled();
+  }
+
+  get companyLogoUrl(): string {
+    return this.companyConfigService.getLogoUrl();
+  }
+
+  get companyName(): string {
+    return this.companyConfigService.getCompanyName();
+  }
 
   onOutletActivate(component: any) {
     this.currentRoutedComponent = component;
@@ -635,7 +648,8 @@ export class LayoutComponent implements OnInit {
     private socket: SocketService,
     private cdr: ChangeDetectorRef,
     private attendanceService: AttendanceService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    public companyConfigService: CompanyConfigService
   ) {
     this.user$ = this.authService.currentUser$;
     

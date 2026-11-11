@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ApiService } from '../../../core/services/api.service';
 import { SystemSettingsService } from '../../../core/services/system-settings.service';
+import { CompanyConfigService } from '../../../core/services/company-config.service';
 import { SendEmailModalComponent } from './components/send-email-modal/send-email-modal.component';
 
 @Component({
@@ -42,10 +43,17 @@ export class EmailLeadsComponent implements OnInit, OnDestroy {
 
   constructor(
     private api: ApiService,
-    private settingsService: SystemSettingsService
+    private settingsService: SystemSettingsService,
+    private companyConfigService: CompanyConfigService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    if (!this.companyConfigService.isEmailEnabled()) {
+      this.router.navigate(['/crm-dashboard']);
+      return;
+    }
+
     this.searchSubscription = this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged()

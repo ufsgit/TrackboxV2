@@ -19,6 +19,7 @@ import { ApplicationsService } from '../../core/services/applications.service';
 import { ReceiptsService } from '../../core/services/receipts.service';
 import { VisasService } from '../../core/services/visas.service';
 import { SystemSettingsService } from '../../core/services/system-settings.service';
+import { CompanyConfigService } from '../../core/services/company-config.service';
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 import { AnimationService } from '../../core/services/animation.service';
@@ -683,8 +684,13 @@ export class ContactsComponent implements OnInit {
     private confettiService: ConfettiService,
     private courseService: CourseService,
     private socketService: SocketService,
+    public companyConfigService: CompanyConfigService,
     @Inject(DOCUMENT) private document: Document
   ) {}
+
+  get isEmailEnabled(): boolean {
+    return this.companyConfigService.isEmailEnabled();
+  }
 
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin', 'manager');
