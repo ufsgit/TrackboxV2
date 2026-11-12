@@ -708,6 +708,7 @@ export class ContactsComponent implements OnInit {
     this.loadCourses();
     this.loadUniversities();
     this.loadEmailTemplates();
+    this.loadCountryCodes();
 
     // Handle deep-link from report pages: ?contactId=X&action=profile|followup
     this.route.queryParams.subscribe(params => {
@@ -868,6 +869,24 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  countryCodes: any[] = [];
+  selectedCountryCode: string = '+91';
+
+  loadCountryCodes(): void {
+    this.settingsService.getCountryCodes().subscribe({
+      next: (res: any) => {
+        if (res && res.success) {
+          this.countryCodes = res.data || [];
+          const def = this.countryCodes.find(c => c.is_default);
+          if (def && !this.selectedCountryCode) {
+            this.selectedCountryCode = def.country_code;
+          }
+        }
+      },
+      error: (err: any) => console.error('Failed to load country codes:', err)
+    });
+  }
+
   loadLeadStatuses() {
     this.settingsService.getStatuses().subscribe({
       next: (res: any) => {
@@ -920,7 +939,9 @@ export class ContactsComponent implements OnInit {
       page: this.currentPage,
       limit: this.pageSize
     };
-    if (this.activeStatus?.trim() !== 'NO DATE' && this.activeStatus?.trim() !== 'No Follow Up') {
+    const sVal = (this.activeStatus || '').trim().toLowerCase();
+    const isNotFollowUp = sVal === 'status is not follow up' || sVal === 'not follow up' || sVal === 'no follow up' || sVal === 'no date';
+    if (!isNotFollowUp) {
       params.has_followup = 1;
     }
     if (this.searchQuery) params.search = this.searchQuery;
@@ -1834,8 +1855,9 @@ export class ContactsComponent implements OnInit {
   openAddModal() {
     this.editingContactId = null;
     this.loadChannels();
+    this.selectedCountryCode = '+91';
     this.newContact = {
-      name: '', phone: '', email: '', address: '', company: '', enquiry_for_id: null,
+      name: '', phone: '', country_code: '+91', email: '', address: '', company: '', enquiry_for_id: null,
       status: '', remark: '', follow_up_date: '',
       tags: 'lead', channel_preference: '', assigned_to: '',
       branch: '', department: '', assign_type: 'employee', assigned_employee: '', loss_reason: '',
@@ -1853,13 +1875,24 @@ export class ContactsComponent implements OnInit {
     this.editingContactId = contact.id;
     this.loadChannels();
     const tagsArray = Array.isArray(contact.tags) ? contact.tags : [];
-    let initialPhone = (contact.phone || '').toString().replace(/\D/g, '');
-    if (initialPhone.length > 10) {
-      initialPhone = initialPhone.slice(-10);
+    let initialPhone = (contact.phone || '').toString().replace(/\s+/g, '');
+    let initialCountryCode = contact.country_code || '+91';
+    if (initialPhone.startsWith('+')) {
+      for (const cc of this.countryCodes) {
+        if (initialPhone.startsWith(cc.country_code)) {
+          initialCountryCode = cc.country_code;
+          initialPhone = initialPhone.slice(cc.country_code.length);
+          break;
+        }
+      }
     }
+    initialPhone = initialPhone.replace(/\D/g, '');
+    this.selectedCountryCode = initialCountryCode;
+
     this.newContact = {
       name: contact.name || '',
       phone: initialPhone,
+      country_code: initialCountryCode,
       email: contact.email || '',
       address: contact.address || '',
       company: contact.company || '',
@@ -1923,14 +1956,44 @@ export class ContactsComponent implements OnInit {
       }
     }
 
-    // Phone validation for exactly 10 digits
-    const numericPhone = (this.newContact.phone || '').toString().replace(/\D/g, '');
-    if (!/^\d{10}$/.test(numericPhone)) {
-      showPremiumWarning('Invalid Phone Number', 'Phone number must be exactly 10 digits.');
-      return;
+    // Phone cleaning & validation
+    const rawCleanPhone = (this.newContact.phone || '').toString().replace(/\s+/g, '');
+    const numericPhone = rawCleanPhone.replace(/\D/g, '');
+
+    if (this.selectedCountryCode === '+91') {
+      if (numericPhone.length === 9) {
+        showPremiumWarning(
+          'Invalid Phone Number',
+          'The phone number contains only 9 digits. India (+91) requires a valid 10-digit mobile number.'
+        );
+        return;
+      }
+      if (numericPhone.length !== 10) {
+        showPremiumWarning(
+          'Invalid Phone Number',
+          `Phone number must be exactly 10 digits for India (+91). You entered ${numericPhone.length} digits.`
+        );
+        return;
+      }
+    } else {
+      const expectedLen = this.getSelectedCountryLength();
+      if (expectedLen && numericPhone.length !== expectedLen) {
+        showPremiumWarning(
+          'Invalid Phone Number',
+          `Phone number must be ${expectedLen} digits for ${this.selectedCountryCode}. You entered ${numericPhone.length} digits.`
+        );
+        return;
+      } else if (numericPhone.length < 7 || numericPhone.length > 15) {
+        showPremiumWarning(
+          'Invalid Phone Number',
+          'Phone number must be between 7 and 15 digits.'
+        );
+        return;
+      }
     }
-    // Update the phone to be the numeric 10-digit phone
+    // Update the phone to be the numeric phone and assign country code
     this.newContact.phone = numericPhone;
+    this.newContact.country_code = this.selectedCountryCode;
 
     const selStatus = this.leadStatuses?.find((s: any) => s.name === this.newContact.status);
     if (selStatus) {
@@ -2012,6 +2075,8 @@ export class ContactsComponent implements OnInit {
   }
 
   allowOnlyDigits(event: KeyboardEvent): boolean {
+    // Allow copy/paste/select all shortcuts
+    if (event.ctrlKey || event.metaKey) return true;
     const charCode = event.which ? event.which : event.keyCode;
     // Disallow non-numeric characters (0-9 only: charCodes 48-57)
     if (charCode < 48 || charCode > 57) {
@@ -2021,14 +2086,72 @@ export class ContactsComponent implements OnInit {
     return true;
   }
 
+  onPhonePaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const clipboardData = event.clipboardData || (window as any).clipboardData;
+    const pastedText = clipboardData ? clipboardData.getData('text') : '';
+    this.handlePastedPhone(pastedText);
+  }
+
+  handlePastedPhone(rawText: string): void {
+    if (!rawText) return;
+    // 1. Automatically remove all spaces in between
+    let cleaned = rawText.replace(/\s+/g, '').trim();
+
+    // 2. Check if pasted string starts with a country code (e.g. +91 9876543210 or +1 555...)
+    if (cleaned.startsWith('+')) {
+      for (const cc of this.countryCodes) {
+        if (cleaned.startsWith(cc.country_code)) {
+          this.selectedCountryCode = cc.country_code;
+          this.newContact.country_code = cc.country_code;
+          cleaned = cleaned.slice(cc.country_code.length);
+          break;
+        }
+      }
+    }
+
+    // 3. If India (+91) and leading zero trunk is present (e.g. 09876543210), strip it
+    if (this.selectedCountryCode === '+91' && cleaned.startsWith('0') && cleaned.length === 11) {
+      cleaned = cleaned.slice(1);
+    }
+
+    // 4. Extract digits
+    const digits = cleaned.replace(/\D/g, '');
+    const maxLen = this.getSelectedCountryLength();
+    this.newContact.phone = maxLen ? digits.slice(0, maxLen) : digits;
+  }
+
   onPhoneInput(event: any): void {
     const input = event.target as HTMLInputElement;
-    let digits = (input.value || '').replace(/\D/g, '');
-    if (digits.length > 10) {
-      digits = digits.slice(0, 10);
+    // Automatically remove all spaces
+    let val = (input.value || '').replace(/\s+/g, '');
+
+    // If pasted or typed with leading +
+    if (val.startsWith('+')) {
+      for (const cc of this.countryCodes) {
+        if (val.startsWith(cc.country_code)) {
+          this.selectedCountryCode = cc.country_code;
+          this.newContact.country_code = cc.country_code;
+          val = val.slice(cc.country_code.length);
+          break;
+        }
+      }
     }
-    this.newContact.phone = digits;
-    input.value = digits;
+
+    // Strip leading 0 for India (+91)
+    if (this.selectedCountryCode === '+91' && val.startsWith('0') && val.length === 11) {
+      val = val.slice(1);
+    }
+
+    const digits = val.replace(/\D/g, '');
+    const maxLen = this.getSelectedCountryLength();
+    this.newContact.phone = maxLen ? digits.slice(0, maxLen) : digits;
+    input.value = this.newContact.phone;
+  }
+
+  getSelectedCountryLength(): number {
+    const found = this.countryCodes.find(c => c.country_code === this.selectedCountryCode);
+    return found?.phone_length || 10;
   }
 
   deleteContactFromDetail(id: number) {
@@ -2340,7 +2463,9 @@ export class ContactsComponent implements OnInit {
     // We fetch a larger limit to ensure we get most leads for the calendar view. 
     // In a production scenario with millions of leads, we'd want a dedicated endpoint.
     const params: any = { limit: 5000 };
-    if (this.activeStatus?.trim() !== 'NO DATE' && this.activeStatus?.trim() !== 'No Follow Up') {
+    const sVal = (this.activeStatus || '').trim().toLowerCase();
+    const isNotFollowUp = sVal === 'status is not follow up' || sVal === 'not follow up' || sVal === 'no follow up' || sVal === 'no date';
+    if (!isNotFollowUp) {
       params.has_followup = 1;
     }
     if (this.searchQuery) params.search = this.searchQuery;

@@ -60,10 +60,13 @@ const deleteReceiptType = async (req, res) => {
   }
 };
 
-// GET /api/receipts/contact/:contactId
+// GET /api/receipts/contact/:contactId or GET /api/receipts?contact_id=:contactId
 const getContactReceipts = async (req, res) => {
   try {
-    const { contactId } = req.params;
+    const contactId = req.params.contactId || req.query.contact_id || req.query.contactId;
+    if (!contactId) {
+      return res.status(400).json({ success: false, message: 'Contact ID is required' });
+    }
     const businessId = req.user?.businessId || req.user?.business_id || 1;
     const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
 

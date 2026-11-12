@@ -108,28 +108,28 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   monthlyLoading: boolean = false;
   months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
   series = [
-    { name: 'Leads', color: '#2F7BF5', values: [12, 18, 22, 25, 30, 30] },
-    { name: 'Applications', color: '#1FB874', values: [10, 15, 19, 22, 27, 28] },
-    { name: 'Won', color: '#8B5CF6', values: [0, 0, 0, 0, 0, 1] },
+    { name: 'Leads', color: '#2F7BF5', values: [0, 0, 0, 0, 0, 0] },
+    { name: 'Applications', color: '#1FB874', values: [0, 0, 0, 0, 0, 0] },
+    { name: 'Won', color: '#8B5CF6', values: [0, 0, 0, 0, 0, 0] },
   ];
-  chartMax = 40;
-  ticks = [0, 10, 20, 30, 40];
+  chartMax = 10;
+  ticks = [0, 2, 4, 6, 8, 10];
 
   sources = [
-    { name: 'Website', value: 38, color: '#2F7BF5' },
-    { name: 'Instagram / Meta', value: 32, color: '#F0568C' },
-    { name: 'Google Ads', value: 24, color: '#1FB874' },
-    { name: 'WhatsApp', value: 18, color: '#F2C230' },
-    { name: 'Referral', value: 15, color: '#8B5CF6' },
-    { name: 'Walk-in', value: 10, color: '#9AA7BD' },
+    { name: 'Website', value: 0, color: '#2F7BF5' },
+    { name: 'Instagram / Meta', value: 0, color: '#F0568C' },
+    { name: 'Google Ads', value: 0, color: '#1FB874' },
+    { name: 'WhatsApp', value: 0, color: '#F2C230' },
+    { name: 'Referral', value: 0, color: '#8B5CF6' },
+    { name: 'Walk-in', value: 0, color: '#9AA7BD' },
   ];
 
   team = [
-    ['Rohan Sharma', 38, 38, 0, 0],
-    ['Aisha Patel', 32, 31, 0, 1],
-    ['Mohit Kumar', 28, 28, 0, 0],
-    ['Sneha Nair', 22, 22, 0, 0],
-    ['David Thomas', 17, 17, 0, 0],
+    ['Rohan Sharma', 0, 0, 0, 0],
+    ['Aisha Patel', 0, 0, 0, 0],
+    ['Mohit Kumar', 0, 0, 0, 0],
+    ['Sneha Nair', 0, 0, 0, 0],
+    ['David Thomas', 0, 0, 0, 0],
   ].map(([name, leads, pending, today, won], i) => ({
     name: name as string,
     leads: leads as number,
@@ -179,7 +179,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   navigateToFunnel(f: any): void {
     if (!f) return;
     if (f.label === 'Total Leads') {
-      this.router.navigate(['/contacts']);
+      this.router.navigate(['/total-leads']);
     } else if (f.label === 'Pending') {
       this.router.navigate(['/contacts'], { queryParams: { status: 'Pending' } });
     } else if (f.label === 'Won') {
@@ -427,13 +427,13 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   deltas: any = {
-    total: '12%',
-    pending: '18%',
+    total: '0%',
+    pending: '0%',
     today: '0%',
     upcoming: '0%',
-    won: '100%',
+    won: '0%',
     lost: '0%',
-    conversion: '0.7%'
+    conversion: '0%'
   };
 
   private build(): void {
@@ -460,8 +460,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         color: 'var(--blue)', 
         tint: 'var(--t-blue)', 
         delta: this.deltas.total, 
-        spark: [.4, .5, .55, .8, 1], 
-        link: '/contacts' 
+        spark: [0, 0, 0, 0, 0], 
+        link: '/total-leads' 
       },
       { 
         label: 'Applications', 
@@ -469,8 +469,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         icon: 'i-doc', 
         color: '#10B981', 
         tint: 'rgba(16, 185, 129, 0.08)', 
-        delta: '18%', 
-        spark: [.4, .5, .6, .8, 1], 
+        delta: '0%', 
+        spark: [0, 0, 0, 0, 0], 
         link: '/reports/applications'
       },
       { 
@@ -479,8 +479,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         icon: 'i-letter', 
         color: '#8B5CF6', 
         tint: 'rgba(139, 92, 246, 0.08)', 
-        delta: '15%', 
-        spark: [.3, .4, .65, .75, 1], 
+        delta: '0%', 
+        spark: [0, 0, 0, 0, 0], 
         link: '/reports/offer-letters'
       },
       { 
@@ -489,8 +489,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         icon: 'i-coin', 
         color: '#F59E0B', 
         tint: 'rgba(245, 158, 11, 0.08)', 
-        delta: '20%', 
-        spark: [.35, .5, .6, .7, 1], 
+        delta: '0%', 
+        spark: [0, 0, 0, 0, 0], 
         link: '/reports/fees-paid'
       },
       { 
@@ -499,8 +499,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         icon: 'i-plane', 
         color: '#0EA5E9', 
         tint: 'rgba(14, 165, 233, 0.08)', 
-        delta: '22%', 
-        spark: [.4, .55, .65, .8, 1], 
+        delta: '0%', 
+        spark: [0, 0, 0, 0, 0], 
         link: '/reports/visa-submitted'
       },
       { 
@@ -509,8 +509,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         icon: 'i-check-circle', 
         color: '#10B981', 
         tint: 'rgba(16, 185, 129, 0.08)', 
-        delta: '19%', 
-        spark: [.45, .5, .6, .75, 1], 
+        delta: '0%', 
+        spark: [0, 0, 0, 0, 0], 
         link: '/reports/visa-approved'
       },
       { 
@@ -519,8 +519,8 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         icon: 'i-grad', 
         color: '#6366F1', 
         tint: 'rgba(99, 102, 241, 0.08)', 
-        delta: '17%', 
-        spark: [.3, .45, .55, .7, 1], 
+        delta: '0%', 
+        spark: [0, 0, 0, 0, 0], 
         link: '/reports/completion-enrolled-report'
       },
     ].map(k => ({ ...k, display: String(k.value) }));

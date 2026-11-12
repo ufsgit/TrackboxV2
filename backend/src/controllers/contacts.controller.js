@@ -111,10 +111,17 @@ const getContacts = async (req, res) => {
       }
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
+    const sLower = (status || '').trim().toLowerCase();
+    const isNoFollowUpFilter = sLower === 'status is not follow up' || 
+                               sLower === 'not follow up' || 
+                               sLower === 'no follow up' || 
+                               sLower === 'no_followup' || 
+                               sLower === 'no date';
+
     if (has_followup === '1' || has_followup === 'true') {
       where += ' AND c.follow_up_date IS NOT NULL';
     }
-    if (status === 'No Follow Up' || status === 'no_followup' || (status && status.trim() === 'NO DATE')) {
+    if (isNoFollowUpFilter) {
       where += ' AND c.follow_up_date IS NULL';
     } else if (status) {
       where += ' AND c.status_name = ?';
@@ -250,20 +257,76 @@ const createContact = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    let { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name } = req.body;
+    let { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, country_code } = req.body;
     const bizId = req.user.businessId;
 
     if (phone) {
-      const numericPhone = String(phone).replace(/\D/g, '');
-      if (numericPhone.length !== 10) {
-        await conn.rollback();
-        conn.release();
-        return res.status(400).json({ success: false, message: 'Phone number must be exactly 10 digits.', data: null });
+      // 1. Remove all spaces automatically
+      phone = String(phone).replace(/\s+/g, '').trim();
+
+      // Normalize country code (default to India +91)
+      country_code = country_code ? String(country_code).trim() : '+91';
+      if (!country_code.startsWith('+')) country_code = '+' + country_code;
+
+      // If user pasted a phone that starts with '+' or dial code, extract country_code if matches
+      if (phone.startsWith('+')) {
+        if (phone.startsWith(country_code)) {
+          phone = phone.slice(country_code.length);
+        } else {
+          const dialMatch = phone.match(/^\+(\d{1,4})/);
+          if (dialMatch) {
+            const [matchedRows] = await conn.query('SELECT country_code FROM country_codes WHERE country_code = ? LIMIT 1', ['+' + dialMatch[1]]);
+            if (matchedRows.length > 0) {
+              country_code = '+' + dialMatch[1];
+              phone = phone.slice(country_code.length);
+            }
+          }
+        }
       }
-      phone = numericPhone; // Save the validated numeric phone
+
+      // If India (+91) and starts with '0' trunk prefix (e.g. 09876543210), strip the leading 0
+      if (country_code === '+91' && phone.startsWith('0') && phone.length === 11) {
+        phone = phone.slice(1);
+      }
+
+      const numericPhone = phone.replace(/\D/g, '');
+
+      // Explicit Validation
+      if (country_code === '+91') {
+        if (numericPhone.length === 9) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Phone number contains only 9 digits. A valid 10-digit mobile number is required for India (+91).', 
+            data: null 
+          });
+        }
+        if (numericPhone.length !== 10) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: `Phone number must be exactly 10 digits for India (+91). Entered ${numericPhone.length} digits.`, 
+            data: null 
+          });
+        }
+      } else {
+        if (numericPhone.length < 7 || numericPhone.length > 15) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: `Phone number is invalid for country code ${country_code}. Must be between 7 and 15 digits.`, 
+            data: null 
+          });
+        }
+      }
+
+      phone = `${country_code}${numericPhone}`;
 
       // Check for duplicate by last 10 digits
-      const last10 = phone.slice(-10);
+      const last10 = numericPhone.slice(-10);
       const dupQuery = `
         SELECT c.id, u.name as agent_name 
         FROM contacts c 
@@ -340,8 +403,8 @@ const createContact = async (req, res) => {
     }
 
     const [result] = await conn.query(
-      'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, follow_up, user_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [bizId, name, phone, email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, formattedFollowUpDate, enquiry_for_id || null, branch_id || null, branch_name || null, department_id || null, department_name || null, status_id || null, status_name || null, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, req.user.userId, formattedFollowUpDate ? 1 : 0, JSON.stringify(userList)]
+      'INSERT INTO contacts (business_id, name, phone, country_code, email, tags, channel_preference, assigned_to, address, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, follow_up, user_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [bizId, name, phone, country_code || '+91', email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, formattedFollowUpDate, enquiry_for_id || null, branch_id || null, branch_name || null, department_id || null, department_name || null, status_id || null, status_name || null, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, req.user.userId, formattedFollowUpDate ? 1 : 0, JSON.stringify(userList)]
     );
     const contactId = result.insertId;
 
@@ -452,15 +515,66 @@ const updateContact = async (req, res) => {
 
     // Phone validation and duplicate check
     if (updateFields.phone) {
-      const numericPhone = String(updateFields.phone).replace(/\D/g, '');
-      if (numericPhone.length !== 10) {
-        await conn.rollback();
-        conn.release();
-        return res.status(400).json({ success: false, message: 'Phone number must be exactly 10 digits.', data: null });
-      }
-      updateFields.phone = numericPhone;
+      let rawPhone = String(updateFields.phone).replace(/\s+/g, '').trim();
+      let cCode = updateFields.country_code ? String(updateFields.country_code).trim() : (oldContact.country_code || '+91');
+      if (!cCode.startsWith('+')) cCode = '+' + cCode;
 
-      const last10 = updateFields.phone.slice(-10);
+      if (rawPhone.startsWith('+')) {
+        if (rawPhone.startsWith(cCode)) {
+          rawPhone = rawPhone.slice(cCode.length);
+        } else {
+          const dialMatch = rawPhone.match(/^\+(\d{1,4})/);
+          if (dialMatch) {
+            const [matchedRows] = await conn.query('SELECT country_code FROM country_codes WHERE country_code = ? LIMIT 1', ['+' + dialMatch[1]]);
+            if (matchedRows.length > 0) {
+              cCode = '+' + dialMatch[1];
+              rawPhone = rawPhone.slice(cCode.length);
+            }
+          }
+        }
+      }
+
+      if (cCode === '+91' && rawPhone.startsWith('0') && rawPhone.length === 11) {
+        rawPhone = rawPhone.slice(1);
+      }
+
+      const numericPhone = rawPhone.replace(/\D/g, '');
+
+      if (cCode === '+91') {
+        if (numericPhone.length === 9) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Phone number contains only 9 digits. A valid 10-digit mobile number is required for India (+91).', 
+            data: null 
+          });
+        }
+        if (numericPhone.length !== 10) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: `Phone number must be exactly 10 digits for India (+91). Entered ${numericPhone.length} digits.`, 
+            data: null 
+          });
+        }
+      } else {
+        if (numericPhone.length < 7 || numericPhone.length > 15) {
+          await conn.rollback();
+          conn.release();
+          return res.status(400).json({ 
+            success: false, 
+            message: `Phone number is invalid for country code ${cCode}. Must be between 7 and 15 digits.`, 
+            data: null 
+          });
+        }
+      }
+
+      updateFields.phone = `${cCode}${numericPhone}`;
+      updateFields.country_code = cCode;
+
+      const last10 = numericPhone.slice(-10);
       const dupQuery = `
         SELECT c.id, u.name as agent_name 
         FROM contacts c 
@@ -1404,7 +1518,14 @@ const buildContactFilterWhere = (bizId, user, { channel, status, tag, search, ag
     where += ' AND c.channel_preference = ?';
     params.push(channel);
   }
-  if (status === 'No Follow Up' || status === 'no_followup' || (status && status.trim() === 'NO DATE')) {
+  const sLower = (status || '').trim().toLowerCase();
+  const isNoFollowUpFilter = sLower === 'status is not follow up' || 
+                             sLower === 'not follow up' || 
+                             sLower === 'no follow up' || 
+                             sLower === 'no_followup' || 
+                             sLower === 'no date';
+
+  if (isNoFollowUpFilter) {
     where += ' AND c.follow_up_date IS NULL';
   } else if (status) {
     where += ' AND c.status_name = ?';
@@ -2121,8 +2242,147 @@ const bulkTransferContacts = async (req, res) => {
   }
 };
 
+const getTotalLeads = async (req, res) => {
+  try {
+    const { 
+      page, 
+      limit, 
+      search, 
+      status, 
+      agent, 
+      has_followup, 
+      has_payment,
+      sortBy = 'created_at',
+      sortOrder = 'DESC'
+    } = req.query;
+
+    const { offset, limit: lim, page: p } = paginate(page, limit);
+    const bizId = req.user.businessId || req.user.business_id || 1;
+
+    let where = 'WHERE c.business_id = ?';
+    const params = [bizId];
+
+    // Hierarchy / Accessibility scope
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        where += ' AND 1 = 0 ';
+      } else if (agent === 'unassigned') {
+        where += ' AND c.assigned_to IS NULL ';
+      } else if (agent) {
+        const reqAgentId = Number(agent);
+        if (accessibleUserIds.includes(reqAgentId)) {
+          where += ' AND c.assigned_to = ? ';
+          params.push(reqAgentId);
+        } else {
+          where += ' AND 1 = 0 ';
+        }
+      } else {
+        where += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IS NULL)`;
+        params.push(...accessibleUserIds);
+      }
+    } else {
+      // Admin / Superadmin
+      if (agent === 'unassigned') {
+        where += ' AND c.assigned_to IS NULL';
+      } else if (agent) {
+        where += ' AND c.assigned_to = ?';
+        params.push(agent);
+      }
+    }
+
+    // Status filter
+    if (status === 'none' || status === 'no_status') {
+      where += ' AND (c.status_name IS NULL OR TRIM(c.status_name) = "")';
+    } else if (status) {
+      const sLower = status.trim().toLowerCase();
+      if (sLower === 'status is not follow up' || sLower === 'not follow up' || sLower === 'no follow up' || sLower === 'no_followup' || sLower === 'no date') {
+        where += ' AND c.follow_up_date IS NULL';
+      } else {
+        where += ' AND c.status_name = ?';
+        params.push(status);
+      }
+    }
+
+    // Follow-up date filter
+    if (has_followup === '1' || has_followup === 'true') {
+      where += ' AND c.follow_up_date IS NOT NULL';
+    } else if (has_followup === '0' || has_followup === 'false') {
+      where += ' AND c.follow_up_date IS NULL';
+    }
+
+    // Payment / Receipts filter
+    if (has_payment === '1' || has_payment === 'true') {
+      where += ' AND EXISTS (SELECT 1 FROM receipts r WHERE r.contact_id = c.id AND r.amount > 0)';
+    } else if (has_payment === '0' || has_payment === 'false') {
+      where += ' AND NOT EXISTS (SELECT 1 FROM receipts r WHERE r.contact_id = c.id AND r.amount > 0)';
+    }
+
+    // Search filter
+    if (search && search.trim()) {
+      where += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)';
+      const s = `%${search.trim()}%`;
+      params.push(s, s, s);
+    }
+
+    // Metrics / summary counts
+    const [[counts]] = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN c.follow_up_date IS NOT NULL THEN 1 END) as with_followup,
+        COUNT(CASE WHEN c.follow_up_date IS NULL THEN 1 END) as without_followup,
+        COUNT(CASE WHEN c.assigned_to IS NULL THEN 1 END) as unassigned_count,
+        COUNT(CASE WHEN c.status_name IS NULL OR TRIM(c.status_name) = '' THEN 1 END) as no_status_count,
+        COUNT(CASE WHEN EXISTS (SELECT 1 FROM receipts r WHERE r.contact_id = c.id AND r.amount > 0) THEN 1 END) as with_payment_count,
+        COALESCE(SUM((SELECT SUM(r.amount) FROM receipts r WHERE r.contact_id = c.id)), 0) as total_payment_collected
+      FROM contacts c ${where}
+    `, params);
+
+    // Paginated leads with payment and assignment details
+    const [rows] = await pool.query(`
+      SELECT 
+        c.*,
+        u.name as assigned_employee_name,
+        e.name as enquiry_for_name,
+        (SELECT remarks FROM follow_ups WHERE contact_id = c.id ORDER BY follow_up_id DESC LIMIT 1) as latest_remark,
+        COALESCE((SELECT SUM(r.amount) FROM receipts r WHERE r.contact_id = c.id), 0) as total_payment_amount,
+        (SELECT COUNT(*) FROM receipts r WHERE r.contact_id = c.id) as payment_count,
+        (SELECT r.receipt_type_name FROM receipts r WHERE r.contact_id = c.id ORDER BY r.receipt_date DESC, r.id DESC LIMIT 1) as latest_payment_type,
+        (SELECT r.receipt_date FROM receipts r WHERE r.contact_id = c.id ORDER BY r.receipt_date DESC, r.id DESC LIMIT 1) as latest_payment_date
+      FROM contacts c
+      LEFT JOIN users u ON c.assigned_to = u.id
+      LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
+      ${where}
+      ORDER BY c.created_at DESC, c.id DESC
+      LIMIT ? OFFSET ?
+    `, [...params, lim, offset]);
+
+    res.json({
+      success: true,
+      data: rows,
+      total: counts?.total || 0,
+      page: p,
+      limit: lim,
+      totalPages: Math.max(1, Math.ceil((counts?.total || 0) / lim)),
+      metrics: {
+        total: counts?.total || 0,
+        with_followup: counts?.with_followup || 0,
+        without_followup: counts?.without_followup || 0,
+        unassigned: counts?.unassigned_count || 0,
+        no_status: counts?.no_status_count || 0,
+        with_payment: counts?.with_payment_count || 0,
+        total_payment_collected: Number(counts?.total_payment_collected || 0)
+      }
+    });
+  } catch (err) {
+    console.error('[getTotalLeads] error:', err);
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
 module.exports = { 
   getContacts, 
+  getTotalLeads,
   getContact, 
   createContact, 
   updateContact, 

@@ -530,6 +530,17 @@ const deleteChannel = async (req, res) => {
   }
 };
 
+// COUNTRY CODES
+const getCountryCodes = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM country_codes ORDER BY sort_order ASC, country_name ASC');
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    console.error('getCountryCodes error: ', err);
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
@@ -541,5 +552,6 @@ module.exports = {
   getEnquiryFors, createEnquiryFor, updateEnquiryFor, deleteEnquiryFor,
   getDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType,
   getTeams, createTeam, updateTeam, deleteTeam,
-  getChannels, createChannel, updateChannel, deleteChannel
+  getChannels, createChannel, updateChannel, deleteChannel,
+  getCountryCodes
 };

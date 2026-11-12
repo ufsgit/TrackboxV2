@@ -41,6 +41,7 @@ export const routes: Routes = [
       { path: 'leaderboard', loadComponent: () => import('./features/crm/sales-performance/leaderboard/leaderboard.component').then(m => m.LeaderboardComponent) },
       { path: 'incentives', loadComponent: () => import('./features/crm/sales-performance/incentives/incentives.component').then(m => m.IncentivesComponent) },
       { path: 'underperformers', loadComponent: () => import('./features/crm/sales-performance/underperformers/underperformers.component').then(m => m.UnderperformersComponent) },
+      { path: 'total-leads', loadComponent: () => import('./features/crm/total-leads/total-leads.component').then(m => m.TotalLeadsComponent) },
       { path: 'pending-followup', loadComponent: () => import('./features/crm/reports/pending-followup/pending-followup.component').then(m => m.PendingFollowupComponent) },
       { path: 'todays-leads', loadComponent: () => import('./features/crm/reports/todays-leads/todays-leads.component').then(m => m.TodaysLeadsComponent) },
       { path: 'upcoming-followups', loadComponent: () => import('./features/crm/reports/upcoming-followups/upcoming-followups.component').then(m => m.UpcomingFollowupsComponent) },

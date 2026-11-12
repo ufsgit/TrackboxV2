@@ -8765,3 +8765,45 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ── Phone Input Group & Country Code Selector ─────────────── */
+.phone-input-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  gap: 8px;
+}
+
+.country-code-select {
+  width: 155px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-weight: 700;
+  font-size: 0.86rem;
+  background-color: #f8fafc;
+  color: #1e293b;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.country-code-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  background-color: #ffffff;
+}
+
+.phone-number-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-error-hint {
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+}

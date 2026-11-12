@@ -71,4 +71,7 @@ router.post('/channels', c.createChannel);
 router.put('/channels/:id', c.updateChannel);
 router.delete('/channels/:id', c.deleteChannel);
 
+// Country Codes
+router.get('/country-codes', c.getCountryCodes);
+
 module.exports = router;

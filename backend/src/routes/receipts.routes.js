@@ -8,6 +8,7 @@ router.get('/types', c.getReceiptTypes);
 router.post('/types', c.createReceiptType);
 router.put('/types/:id', c.updateReceiptType);
 router.delete('/types/:id', c.deleteReceiptType);
+router.get('/', c.getContactReceipts);
 router.get('/contact/:contactId', c.getContactReceipts);
 router.post('/', c.createReceipt);
 router.put('/:id', c.updateReceipt);

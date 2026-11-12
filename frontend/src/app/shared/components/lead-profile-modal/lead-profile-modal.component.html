@@ -1,168 +1,180 @@
-<div class="custom-modal detail-modal-wrapper" *ngIf="isOpen" style="position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); animation: fadeIn 0.2s ease-out;">
-  <div class="modal-backdrop" (click)="closeModal()" style="position: absolute; inset: 0;"></div>
+<div class="custom-modal detail-modal-wrapper" *ngIf="isOpen">
+  <div class="modal-backdrop" (click)="closeModal()"></div>
   
-  <div class="modal-card detail-modal-card" style="position: relative; z-index: 2001; width: 100vw; max-width: none; height: 100vh; border-radius: 0; background: #f8fafc; overflow: hidden; display: flex; flex-direction: column; box-shadow: none; animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+  <div class="modal-card detail-modal-card">
 
     <!-- Loading State -->
-    <div class="detail-loading" *ngIf="detailLoading" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #64748b;">
+    <div class="detail-loading" *ngIf="detailLoading">
       <div class="spinner-border text-primary" style="width: 2.5rem; height: 2.5rem;"></div>
-      <p style="font-weight: 600;">Loading lead profile...</p>
+      <p style="font-weight: 600; margin-top: 12px; color: #64748b;">Loading lead profile...</p>
     </div>
 
     <ng-container *ngIf="!detailLoading && (selectedContact || initialFollowupData)">
       
-      <!-- Modal Header with Summary -->
-      <div class="detail-modal-header" style="padding: 24px 32px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-        <div class="header-main-info" style="display: flex; align-items: center; gap: 20px;">
-          <div class="detail-avatar" style="width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);">
+      <!-- Modal Header with Summary & Actions (Exact match to Contacts Lead Profile) -->
+      <div class="detail-modal-header">
+        <div class="header-main-info">
+          <div class="detail-avatar">
             {{ (getLeadName() || 'L').charAt(0) | uppercase }}
           </div>
           <div class="header-text">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-              <h3 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #0f172a;">{{ getLeadName() }}</h3>
-              <div class="header-badges" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <span class="tag-pill" *ngFor="let tag of selectedContact?.tags" style="background: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">{{ tag }}</span>
-                <span *ngIf="!selectedContact?.tags || selectedContact.tags.length === 0" style="background: #f1f5f9; color: #64748b; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">lead</span>
-                <span *ngIf="getFollowupStatus()" [ngClass]="getStatusClass(getFollowupStatus())" style="font-size: 0.75rem; font-weight: 700;">
-                  {{ getFollowupStatus() }}
-                </span>
+            <div class="name-status-row">
+              <h3>{{ getLeadName() }}</h3>
+              <div class="header-badges">
+                <span class="tag-pill" *ngFor="let tag of selectedContact?.tags">{{ tag }}</span>
+                <span class="tag-pill lead-pill" *ngIf="!selectedContact?.tags || selectedContact.tags.length === 0">Lead</span>
               </div>
             </div>
-            <!-- Meta Chips: Phone, Email, Assignee -->
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.85rem; color: #64748b;">
-              <span *ngIf="getPhone()" style="display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; color: #334155;">
-                <i class="bi bi-telephone-fill" style="color: #6366f1;"></i> {{ getPhone() }}
+            <!-- Meta Chips: Phone & Email -->
+            <div class="header-meta-chips" *ngIf="getPhone() || selectedContact?.email">
+              <span class="meta-chip" *ngIf="getPhone()">
+                <i class="bi bi-telephone-fill"></i> {{ getPhone() }}
               </span>
-              <span *ngIf="selectedContact?.email" style="display: inline-flex; align-items: center; gap: 6px; background: #f8fafc; padding: 3px 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 600; color: #334155;">
-                <i class="bi bi-envelope-fill" style="color: #6366f1;"></i> {{ selectedContact.email }}
-              </span>
-              <span *ngIf="getAssignee()" style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; padding: 3px 10px; border-radius: 8px; border: 1px solid #bfdbfe; font-weight: 700; color: #2563eb;">
-                <i class="bi bi-person-badge"></i> Assignee: {{ getAssignee() }}
+              <span class="meta-chip" *ngIf="selectedContact?.email">
+                <i class="bi bi-envelope-fill"></i> {{ selectedContact.email }}
               </span>
             </div>
           </div>
         </div>
         
-        <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
-          <button class="btn btn-outline-secondary btn-sm" (click)="closeModal()" style="padding: 8px 16px; border-radius: 10px; font-weight: 600;">
-            <i class="bi bi-x-circle me-1"></i> Cancel
+        <!-- Header Actions: Message, Send Mail, Edit, Delete, Cancel, Close -->
+        <div class="header-actions">
+          <button type="button" class="btn-action-pill chat" (click)="goToChat()" title="Open WhatsApp / Chat">
+            <i class="bi bi-chat-dots-fill"></i> <span>Message</span>
           </button>
-          <button class="close-btn ms-2" (click)="closeModal()" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
+          <button type="button" class="btn-action-pill mail" (click)="sendMail()" title="Send email to this lead">
+            <i class="bi bi-envelope-fill"></i> <span>Send Mail</span>
+          </button>
+          <button type="button" class="btn-action-pill edit" (click)="openEdit()" title="Edit lead details">
+            <i class="bi bi-pencil-square"></i> <span>Edit</span>
+          </button>
+          <button type="button" class="btn-action-pill delete" (click)="deleteContact()" title="Delete lead">
+            <i class="bi bi-trash3-fill"></i> <span>Delete</span>
+          </button>
+          <button type="button" class="btn-action-pill cancel" (click)="closeModal()" title="Cancel and return">
+            <i class="bi bi-x-circle"></i> <span>Cancel</span>
+          </button>
+          <button type="button" class="btn-modal-close" (click)="closeModal()" title="Close modal">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Tabs Navigation -->
-      <div class="detail-tabs" style="display: flex; background: white; padding: 0 32px; border-bottom: 1px solid #e2e8f0; gap: 28px;">
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">Profile</button>
-
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">Timeline</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">Application</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">Documents</button>
-        <button class="tab-btn" [class.active]="detailActiveTab === 'Receipt'" (click)="detailActiveTab = 'Receipt'">
-          Receipt <span class="badge bg-secondary ms-1" *ngIf="selectedContactReceipts.length">{{ selectedContactReceipts.length }}</span>
+      <!-- Tabs Navigation (Clean & Cohesive) -->
+      <div class="detail-tabs">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">
+          <i class="bi bi-person"></i> <span>Profile</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">
+          <i class="bi bi-clock-history"></i> <span>Timeline</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">
+          <i class="bi bi-mortarboard"></i> <span>Application</span>
+          <span class="tab-count-badge" *ngIf="selectedContactApplications">{{ selectedContactApplications.length }}</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">
+          <i class="bi bi-folder2-open"></i> <span>Documents</span>
+          <span class="tab-count-badge" *ngIf="contactDocuments">{{ contactDocuments.length }}</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Receipt'" (click)="detailActiveTab = 'Receipt'">
+          <i class="bi bi-receipt me-1"></i> <span>Receipt</span>
+          <span class="tab-count-badge" *ngIf="selectedContactReceipts">{{ selectedContactReceipts.length }}</span>
         </button>
       </div>
 
       <!-- Tab Content Area -->
-      <div class="detail-modal-body" style="flex: 1; overflow-y: auto; padding: 32px;">
+      <div class="detail-modal-body">
         
-        <!-- PROFILE TAB -->
+        <!-- ==================== PROFILE TAB ==================== -->
         <div *ngIf="detailActiveTab === 'Profile'" class="tab-pane">
           <div class="row">
-            <!-- Pending Follow-up Details Card from Pending Follow-up Screen -->
+            <!-- Follow-up Details from Pending Follow-up -->
             <div class="col-12 mb-4" *ngIf="getDueDate() || getAssignee() || getLeadStatus() || getRemarks() || getFollowupStatus()">
-              <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px;">
-                  <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
-                    <i class="bi bi-clock-history" style="color: #6366f1;"></i> Pending Follow-up Details
+              <div class="detail-section-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0">
+                    <i class="bi bi-clock-history text-primary me-2"></i> Pending Follow-up Details
                   </h5>
-                  <span *ngIf="getFollowupStatus()" [ngClass]="getStatusClass(getFollowupStatus())" style="font-size: 0.8rem; font-weight: 700;">
+                  <span *ngIf="getFollowupStatus()" [ngClass]="getStatusClass(getFollowupStatus())">
                     {{ getFollowupStatus() }}
                   </span>
                 </div>
-                <div class="detail-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px 32px;">
+                <div class="detail-grid">
                   <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">ASSIGNEE / AGENT</label>
-                    <div style="font-size: 0.95rem; font-weight: 700; color: #2563eb; margin-top: 4px;">{{ getAssignee() || 'Unassigned' }}</div>
+                    <label>ASSIGNEE / AGENT</label>
+                    <span class="fw-bold text-primary">{{ getAssignee() || 'Unassigned' }}</span>
                   </div>
                   <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">FOLLOW-UP DUE DATE</label>
-                    <div style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-top: 4px;">{{ getDueDate() || '—' }}</div>
+                    <label>DUE DATE</label>
+                    <span>{{ (getDueDate() | date:'yyyy-MM-dd') || getDueDate() || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">LEAD STATUS</label>
-                    <div style="margin-top: 4px;">
-                      <span *ngIf="getLeadStatus()" style="font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
-                        {{ getLeadStatus() }}
-                      </span>
-                      <span *ngIf="!getLeadStatus()" style="color: #94a3b8;">—</span>
-                    </div>
+                    <label>LEAD STATUS</label>
+                    <span>{{ getLeadStatus() || '—' }}</span>
                   </div>
                   <div class="detail-item" style="grid-column: 1 / -1;" *ngIf="getRemarks()">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">REMARKS / NOTES</label>
-                    <div style="font-size: 0.92rem; color: #334155; background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 6px; line-height: 1.5;">
-                      {{ getRemarks() }}
-                    </div>
+                    <label>REMARKS / NOTES</label>
+                    <span class="d-block p-2 rounded bg-light border text-muted small mt-1">{{ getRemarks() }}</span>
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- Core Information -->
             <div class="col-12 mb-4">
-              <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
-                <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                  <i class="bi bi-person-lines-fill" style="color: #6366f1;"></i> Core Information
-                </h5>
-                <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px;">
+              <div class="detail-section-card">
+                <h5><i class="bi bi-person-lines-fill me-2 text-primary"></i> Core Information</h5>
+                <div class="detail-grid">
                   <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">PHONE</label>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.phone || '—' }}</span>
+                    <label>PHONE</label>
+                    <span>{{ getPhone() || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">EMAIL</label>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.email || '—' }}</span>
+                    <label>EMAIL</label>
+                    <span>{{ selectedContact?.email || '—' }}</span>
                   </div>
-                  <!-- <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">LEAD SOURCE</label>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.leadSource || '—' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">ASSIGNED TO</label>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.assigned_employee_name || selectedContact.assigned_to || 'Unassigned' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">INTERESTED PRODUCTS</label>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ selectedContact.interestedProducts || '—' }}</span>
-                  </div> -->
                 </div>
               </div>
             </div>
 
             <!-- Custom Fields Section -->
-            <div class="col-12" *ngIf="selectedContact.custom_fields && selectedContact.custom_fields.length > 0">
-              <div class="detail-section-card" style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
-                <h5 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-                  <i class="bi bi-sliders" style="color: #6366f1;"></i> Custom Fields
-                </h5>
-                <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px;">
+            <div class="col-12">
+              <div class="detail-section-card">
+                <div class="detail-grid" *ngIf="selectedContact?.custom_fields && selectedContact.custom_fields.length > 0">
                   <div class="detail-item" *ngFor="let field of selectedContact.custom_fields">
-                    <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">{{ field.label || field.name }}</label>
-                    <span style="font-size: 0.95rem; font-weight: 600; color: #0f172a; margin-left: 8px;">{{ formatFieldValue(field) || '—' }}</span>
+                    <label>{{ field.label || field.name }}</label>
+                    <span>{{ formatFieldValue(field) || '—' }}</span>
                   </div>
+                </div>
+                <div class="text-muted small p-3" *ngIf="!selectedContact?.custom_fields || selectedContact.custom_fields.length === 0">
+                  No custom fields defined yet.
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- TIMELINE TAB -->
+        <!-- ==================== TIMELINE TAB ==================== -->
         <div *ngIf="detailActiveTab === 'Timeline'" class="tab-pane">
-          <app-timeline [contactId]="selectedContact.id"></app-timeline>
+          <app-timeline [contactId]="selectedContact?.id || contactId"></app-timeline>
         </div>
 
-        <!-- APPLICATION TAB -->
-        <div *ngIf="detailActiveTab === 'Application'" class="tab-pane">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h5 class="mb-0 text-dark fw-bold">Applications</h5>
+        <!-- ==================== APPLICATION TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'Application'" class="tab-pane application-tab-pane">
+          <div class="tab-section-header">
+            <div class="tab-title-group">
+              <div class="section-icon-bubble indigo">
+                <i class="bi bi-mortarboard-fill"></i>
+              </div>
+              <div>
+                <h5 class="section-title">Applications</h5>
+                <span class="section-sub">Manage target universities, degree programs, and track admission milestones</span>
+              </div>
+            </div>
+            <button type="button" class="btn-tab-action btn-add-app" (click)="openAddApplicationModal()">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span>Add Application</span>
+            </button>
           </div>
 
           <div *ngIf="loadingApplications" class="text-center py-5">
@@ -170,37 +182,82 @@
             <p class="mt-2 text-muted small">Loading applications...</p>
           </div>
 
-          <div *ngIf="!loadingApplications && selectedContactApplications.length === 0" class="text-center py-5 bg-white rounded-4 border p-4">
-            <i class="bi bi-folder2-open text-muted" style="font-size: 3rem;"></i>
-            <h6 class="text-dark fw-bold mt-2">No applications found</h6>
-            <p class="text-muted small mb-0">No application records found for this lead.</p>
+          <!-- Empty State -->
+          <div *ngIf="!loadingApplications && selectedContactApplications.length === 0" class="tab-empty-card">
+            <div class="empty-icon-bubble indigo">
+              <i class="bi bi-mortarboard"></i>
+            </div>
+            <h6 class="empty-title">No Applications Registered Yet</h6>
+            <p class="empty-sub">
+              Add target universities, degree programs, and track admission milestones for {{ getLeadName() }}.
+            </p>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 py-2 mt-2" (click)="openAddApplicationModal()">
+              <i class="bi bi-plus-lg me-1"></i> Add First Application
+            </button>
           </div>
 
-          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="timeline-container mt-2">
-            <div class="timeline-item" *ngFor="let app of selectedContactApplications" style="margin-bottom: 20px;">
-              <div class="p-4 rounded-4 border bg-white shadow-sm">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h5 class="fw-bold text-dark mb-1">{{ app.university }}</h5>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ app.course }}</span>
-                  </div>
-                  <span class="badge px-3 py-2 rounded-pill" [style.background-color]="(app.status_color || '#6366f1') + '20'" [style.color]="app.status_color || '#6366f1'" [style.border]="'1px solid ' + (app.status_color || '#6366f1') + '40'">
-                    {{ app.status_name || 'Pending' }}
+          <!-- Applications List -->
+          <div *ngIf="!loadingApplications && selectedContactApplications.length > 0" class="applications-card-list">
+            <div class="app-record-card" *ngFor="let app of selectedContactApplications"
+                 [style.borderLeftColor]="app.status_color || '#6366f1'">
+              <div class="app-card-top">
+                <div class="app-card-title-box">
+                  <span class="uni-badge">
+                    <i class="bi bi-buildings"></i> {{ app.university }}
                   </span>
+                  <h5 class="course-name">{{ app.course }}</h5>
                 </div>
-                <div class="d-flex gap-4 mt-3 pt-3 border-top text-muted small">
-                  <div><i class="bi bi-geo-alt me-1"></i>{{ app.country }}</div>
-                  <div><i class="bi bi-calendar me-1"></i>{{ app.intake_name || 'N/A' }} {{ app.year_name || '' }}</div>
-                </div>
+                
+                <span class="badge px-3 py-2 rounded-pill fw-bold" 
+                      [style.background-color]="(app.status_color || '#6366f1') + '20'" 
+                      [style.color]="app.status_color || '#6366f1'" 
+                      [style.border]="'1px solid ' + (app.status_color || '#6366f1') + '40'">
+                  {{ app.status_name || 'Active' }}
+                </span>
+              </div>
+
+              <!-- Badges Row -->
+              <div class="app-badges-row">
+                <span class="info-chip" *ngIf="app.country">
+                  <i class="bi bi-geo-alt-fill text-primary"></i> {{ app.country }}
+                </span>
+                <span class="info-chip" *ngIf="app.intake_name || app.year_name">
+                  <i class="bi bi-calendar3-event text-warning"></i> {{ app.intake_name || '' }} {{ app.year_name || '' }}
+                </span>
+                <span class="desc-chip" *ngIf="app.description">
+                  <i class="bi bi-chat-quote"></i> {{ app.description }}
+                </span>
+              </div>
+
+              <!-- Actions -->
+              <div class="app-card-actions">
+                <button type="button" class="btn-card-action edit" (click)="openEditApplicationModal(app)">
+                  <i class="bi bi-pencil-square"></i> Edit
+                </button>
+                <button type="button" class="btn-card-action delete" (click)="deleteApplication(app.id)">
+                  <i class="bi bi-trash3"></i> Delete
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- DOCUMENTS TAB -->
+        <!-- ==================== DOCUMENTS TAB ==================== -->
         <div *ngIf="detailActiveTab === 'Documents'" class="tab-pane">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h5 class="mb-0 text-dark fw-bold">Documents</h5>
+          <div class="tab-section-header">
+            <div class="tab-title-group">
+              <div class="section-icon-bubble blue">
+                <i class="bi bi-folder2-open"></i>
+              </div>
+              <div>
+                <h5 class="section-title">Documents</h5>
+                <span class="section-sub">Upload, view, and organize customer documents</span>
+              </div>
+            </div>
+            <button type="button" class="btn-tab-action btn-upload-doc" (click)="openUploadDocumentModal()">
+              <i class="bi bi-cloud-arrow-up-fill"></i>
+              <span>Upload Document</span>
+            </button>
           </div>
 
           <div *ngIf="loadingDocuments" class="text-center py-5">
@@ -208,22 +265,31 @@
             <p class="mt-2 text-muted small">Loading documents...</p>
           </div>
 
-          <div *ngIf="!loadingDocuments && contactDocuments.length === 0" class="text-center p-5 text-muted bg-white rounded-4 border">
-            <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
-            <p class="mt-2 mb-0">No documents uploaded yet.</p>
+          <!-- Empty State -->
+          <div *ngIf="!loadingDocuments && contactDocuments.length === 0" class="tab-empty-card">
+            <div class="empty-icon-bubble blue">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <h6 class="empty-title">No Documents Uploaded Yet</h6>
+            <p class="empty-sub">Upload passports, transcripts, scorecards, or certificates for this lead.</p>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 py-2 mt-2" (click)="openUploadDocumentModal()">
+              <i class="bi bi-upload me-1"></i> Upload Document
+            </button>
           </div>
 
+          <!-- Documents Grid -->
           <div *ngIf="!loadingDocuments && contactDocuments.length > 0" class="row g-3">
             <div class="col-md-6" *ngFor="let doc of contactDocuments">
               <div class="d-flex align-items-center justify-content-between p-3 bg-white rounded-3 border shadow-sm">
-                <a [href]="doc.file_url.startsWith('http') ? doc.file_url : (baseUrl + doc.file_url)" target="_blank" class="d-flex align-items-center gap-3 text-decoration-none text-dark flex-grow-1 overflow-hidden me-2">
-                  <i class="bi bi-file-earmark-pdf text-danger fs-2 flex-shrink-0"></i>
+                <a [href]="doc.file_url?.startsWith('http') ? doc.file_url : (baseUrl + doc.file_url)" target="_blank" class="d-flex align-items-center gap-3 text-decoration-none text-dark flex-grow-1 overflow-hidden me-2">
+                  <i class="bi fs-2 flex-shrink-0" [ngClass]="doc.file_type === 'pdf' ? 'bi-file-earmark-pdf text-danger' : (doc.file_type === 'doc' ? 'bi-file-word text-primary' : 'bi-file-earmark-text text-secondary')"></i>
                   <div class="text-truncate">
                     <h6 class="mb-0 fw-bold text-truncate" [title]="doc.file_name">{{ doc.file_name }}</h6>
                     <span class="text-muted small">{{ doc.file_size }} &bull; {{ doc.document_type }}</span>
+                    <small class="text-muted d-block text-truncate" *ngIf="doc.notes">{{ doc.notes }}</small>
                   </div>
                 </a>
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteDocument(doc, $event)" title="Delete Document" style="width: 32px; height: 32px;">
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center" (click)="deleteDocument(doc, $event)" title="Delete Document" style="width: 34px; height: 34px;">
                   <i class="bi bi-trash3" style="font-size: 0.85rem;"></i>
                 </button>
               </div>
@@ -231,40 +297,380 @@
           </div>
         </div>
 
+        <!-- ==================== RECEIPT TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'Receipt'" class="tab-pane receipt-tab-pane">
+          <div class="tab-section-header">
+            <div class="tab-title-group">
+              <div class="section-icon-bubble emerald">
+                <i class="bi bi-receipt-cutoff"></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <h5 class="section-title mb-0">Payment Receipts</h5>
+                  <span class="total-chip" *ngIf="totalReceiptAmount > 0">
+                    Total: ₹{{ totalReceiptAmount | number:'1.2-2' }}
+                  </span>
+                </div>
+                <span class="section-sub">Record client payments, tuition deposits, and fees</span>
+              </div>
+            </div>
 
-        <!-- RECEIPT TAB -->
-        <div *ngIf="detailActiveTab === 'Receipt'" class="tab-pane">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h5 class="mb-0 text-dark fw-bold">Payment Receipts</h5>
+            <button type="button" class="btn-tab-action btn-add-receipt" (click)="openAddReceiptModal()">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span>Add Receipt</span>
+            </button>
           </div>
 
           <div *ngIf="loadingReceipts" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
+            <div class="spinner-border text-success" role="status"></div>
             <p class="mt-2 text-muted small">Loading receipts...</p>
           </div>
 
-          <div *ngIf="!loadingReceipts && selectedContactReceipts.length === 0" class="text-center py-5 bg-white rounded-4 border p-4">
-            <i class="bi bi-receipt text-muted" style="font-size: 3rem;"></i>
-            <h6 class="text-dark fw-bold mt-2">No receipts recorded</h6>
-            <p class="text-muted small mb-0">No receipt transactions found for this lead.</p>
+          <!-- Empty State -->
+          <div *ngIf="!loadingReceipts && selectedContactReceipts.length === 0" class="tab-empty-card">
+            <div class="empty-icon-bubble emerald">
+              <i class="bi bi-receipt"></i>
+            </div>
+            <h6 class="empty-title">No Receipts Recorded Yet</h6>
+            <p class="empty-sub">Record client payments, tuition deposits, or registration fees for {{ getLeadName() }}.</p>
+            <button type="button" class="btn btn-success btn-sm rounded-pill px-4 py-2 mt-2" (click)="openAddReceiptModal()">
+              <i class="bi bi-plus-lg me-1"></i> Add First Receipt
+            </button>
           </div>
 
+          <!-- Receipts List -->
           <div *ngIf="!loadingReceipts && selectedContactReceipts.length > 0" class="d-flex flex-column gap-3">
             <div *ngFor="let r of selectedContactReceipts" class="p-4 rounded-4 border bg-white shadow-sm d-flex justify-content-between align-items-center">
               <div>
-                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 mb-2">{{ r.receipt_type_name || 'Receipt' }}</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 mb-2">{{ r.receipt_type_title || r.receipt_type_name || 'Receipt' }}</span>
                 <h4 class="fw-black text-dark mb-1">₹{{ r.amount | number:'1.2-2' }}</h4>
-                <div class="d-flex gap-3 text-muted small">
+                <div class="d-flex gap-3 text-muted small flex-wrap">
                   <div><i class="bi bi-calendar me-1"></i>{{ r.receipt_date | date:'mediumDate' }}</div>
-                  <div><i class="bi bi-person me-1"></i>Collected by: {{ r.collected_by_name || 'Staff' }}</div>
-                  <div *ngIf="r.remarks"><i class="bi bi-chat-left-text me-1"></i>{{ r.remarks }}</div>
+                  <div><i class="bi bi-person me-1"></i>Collected by: {{ r.created_by_name || r.collected_by_name || 'Staff' }}</div>
+                  <div *ngIf="r.description || r.remarks"><i class="bi bi-chat-left-text me-1"></i>{{ r.description || r.remarks }}</div>
                 </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-light border px-3 py-2 rounded-3 text-primary fw-semibold" (click)="openEditReceiptModal(r)">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </button>
+                <button type="button" class="btn btn-sm btn-light border px-3 py-2 rounded-3 text-danger fw-semibold" (click)="deleteReceipt(r.id)">
+                  <i class="bi bi-trash3 me-1"></i> Delete
+                </button>
               </div>
             </div>
           </div>
         </div>
+
       </div>
     </ng-container>
 
+  </div>
+</div>
+
+<!-- ==================== ADD / EDIT APPLICATION MODAL ==================== -->
+<div class="custom-modal child-modal-wrapper" *ngIf="showAddApplicationModal">
+  <div class="modal-backdrop" (click)="showAddApplicationModal = false"></div>
+  <div class="modal-card child-modal-card">
+    <div class="child-modal-header indigo">
+      <div class="d-flex align-items-center gap-2">
+        <div class="child-icon-bubble indigo">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold text-dark">{{ currentApplication.id ? 'Edit Application' : 'Add Application' }}</h4>
+          <p class="text-muted small mb-0">Specify institution, academic program, admissions intake, and stage</p>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" (click)="showAddApplicationModal = false">&times;</button>
+    </div>
+
+    <div class="child-modal-body">
+      <div class="row g-3">
+        <!-- University Name -->
+        <div class="col-md-7">
+          <label class="form-label text-muted fw-bold small text-uppercase">University Name *</label>
+          <select class="form-select custom-input" [(ngModel)]="currentApplication.university">
+            <option value="">Select University</option>
+            <option *ngIf="currentApplication.university && !universities.some" [value]="currentApplication.university">
+              {{ currentApplication.university }}
+            </option>
+            <option *ngFor="let u of universities" [value]="u.name">{{ u.name }}</option>
+          </select>
+        </div>
+
+        <!-- Destination Country -->
+        <div class="col-md-5">
+          <label class="form-label text-muted fw-bold small text-uppercase">Country *</label>
+          <input type="text" class="form-control custom-input" [(ngModel)]="currentApplication.country" placeholder="e.g. New Zealand">
+        </div>
+
+        <!-- Course / Degree Program -->
+        <div class="col-12">
+          <label class="form-label text-muted fw-bold small text-uppercase">Course / Degree Program *</label>
+          <input type="text" list="appCourseList" class="form-control custom-input" [(ngModel)]="currentApplication.course" placeholder="e.g. Master of Science in Data Analytics">
+          <datalist id="appCourseList">
+            <option *ngFor="let c of courses" [value]="c.name"></option>
+          </datalist>
+        </div>
+
+        <!-- Intake -->
+        <div class="col-md-4">
+          <label class="form-label text-muted fw-bold small text-uppercase">Intake Season</label>
+          <select class="form-select custom-input" [(ngModel)]="currentApplication.intake_id">
+            <option value="">Select Intake</option>
+            <option *ngFor="let i of intakes" [value]="i.id">{{ i.name }}</option>
+          </select>
+        </div>
+
+        <!-- Academic Year -->
+        <div class="col-md-4">
+          <label class="form-label text-muted fw-bold small text-uppercase">Academic Year</label>
+          <select class="form-select custom-input" [(ngModel)]="currentApplication.year_id">
+            <option value="">Select Year</option>
+            <option *ngFor="let y of years" [value]="y.id">{{ y.name }}</option>
+          </select>
+        </div>
+
+        <!-- Application Status -->
+        <div class="col-md-4">
+          <label class="form-label text-muted fw-bold small text-uppercase">Status</label>
+          <select class="form-select custom-input" [(ngModel)]="currentApplication.status_id">
+            <option value="">Select Status</option>
+            <option *ngFor="let s of appStatuses" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label text-muted fw-bold small text-uppercase">Notes / Description</label>
+          <textarea class="form-control custom-input" rows="3" [(ngModel)]="currentApplication.description" placeholder="Application remarks, portal login notes, or conditions..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="child-modal-footer">
+      <button type="button" class="btn btn-light px-3 py-2 fw-semibold" (click)="showAddApplicationModal = false">Cancel</button>
+      <button type="button" class="btn btn-primary px-4 py-2 fw-bold" (click)="saveApplication()" [disabled]="savingApplication">
+        <span *ngIf="savingApplication" class="spinner-border spinner-border-sm me-1"></span>
+        {{ currentApplication.id ? 'Update Application' : 'Save Application' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== UPLOAD DOCUMENT MODAL ==================== -->
+<div class="custom-modal child-modal-wrapper" *ngIf="showUploadDocumentModal">
+  <div class="modal-backdrop" (click)="closeUploadDocumentModal()"></div>
+  <div class="modal-card child-modal-card">
+    <div class="child-modal-header blue">
+      <div class="d-flex align-items-center gap-2">
+        <div class="child-icon-bubble blue">
+          <i class="bi bi-cloud-arrow-up-fill"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold text-dark">Upload Document</h4>
+          <p class="text-muted small mb-0">Attach files, certificates, or scorecards to this lead</p>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" (click)="closeUploadDocumentModal()">&times;</button>
+    </div>
+
+    <div class="child-modal-body">
+      <!-- Document Type -->
+      <div class="mb-3">
+        <label class="form-label text-muted fw-bold small text-uppercase">Document Type *</label>
+        <select class="form-select custom-input" [(ngModel)]="uploadDocData.documentType">
+          <option value="">Select Document Type</option>
+          <option *ngFor="let opt of documentOptions" [value]="opt">{{ opt }}</option>
+        </select>
+      </div>
+
+      <!-- File Picker -->
+      <div class="mb-3">
+        <label class="form-label text-muted fw-bold small text-uppercase">File *</label>
+        <div class="upload-dropzone">
+          <input type="file" (change)="onFileSelected($event)" class="upload-file-input">
+          <i class="bi bi-file-earmark-arrow-up text-primary fs-1 mb-2"></i>
+          <h6 class="mb-1 text-dark fw-bold">{{ uploadDocData.fileName || 'Click or drag file here to upload' }}</h6>
+          <p class="text-muted small mb-0">PDF, DOC, DOCX, PNG, JPG accepted</p>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="mb-2">
+        <label class="form-label text-muted fw-bold small text-uppercase">Notes (Optional)</label>
+        <textarea class="form-control custom-input" rows="2" [(ngModel)]="uploadDocData.notes" placeholder="Additional details or instructions..."></textarea>
+      </div>
+    </div>
+
+    <div class="child-modal-footer">
+      <button type="button" class="btn btn-light px-3 py-2 fw-semibold" (click)="closeUploadDocumentModal()">Cancel</button>
+      <button type="button" class="btn btn-primary px-4 py-2 fw-bold" (click)="saveDocument()">Save Document</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADD / EDIT RECEIPT MODAL ==================== -->
+<div class="custom-modal child-modal-wrapper" *ngIf="showAddReceiptModal">
+  <div class="modal-backdrop" (click)="showAddReceiptModal = false"></div>
+  <div class="modal-card child-modal-card">
+    <div class="child-modal-header emerald">
+      <div class="d-flex align-items-center gap-2">
+        <div class="child-icon-bubble emerald">
+          <i class="bi bi-receipt-cutoff"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold text-dark">{{ currentReceipt.id ? 'Edit Receipt' : 'Add New Receipt' }}</h4>
+          <p class="text-muted small mb-0">Record payments, application fees, or tuition deposits</p>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" (click)="showAddReceiptModal = false">&times;</button>
+    </div>
+
+    <div class="child-modal-body">
+      <div class="row g-3">
+        <!-- Receipt Type -->
+        <div class="col-12">
+          <label class="form-label text-muted fw-bold small text-uppercase">Receipt Type</label>
+          <select class="form-select custom-input" [(ngModel)]="currentReceipt.receipt_type_id">
+            <option value="">-- Select Existing Type --</option>
+            <option *ngFor="let t of receiptTypes" [value]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+
+        <div class="col-12" *ngIf="!currentReceipt.receipt_type_id">
+          <label class="form-label text-muted fw-bold small text-uppercase">Or Enter New Type Name</label>
+          <input type="text" class="form-control custom-input" [(ngModel)]="currentReceipt.receipt_type_name" placeholder="e.g. Tuition Deposit, Application Fee">
+        </div>
+
+        <!-- Amount -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Amount (₹) *</label>
+          <div class="input-group">
+            <span class="input-group-text fw-bold text-success bg-light border-end-0">₹</span>
+            <input type="number" step="0.01" class="form-control custom-input border-start-0 fw-bold" [(ngModel)]="currentReceipt.amount" placeholder="0.00">
+          </div>
+        </div>
+
+        <!-- Receipt Date -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Receipt Date *</label>
+          <input type="date" class="form-control custom-input" [(ngModel)]="currentReceipt.receipt_date">
+        </div>
+
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label text-muted fw-bold small text-uppercase">Description / Remarks</label>
+          <textarea class="form-control custom-input" rows="3" [(ngModel)]="currentReceipt.description" placeholder="Payment mode (Cash, UPI, Bank), reference number, or remarks..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="child-modal-footer">
+      <button type="button" class="btn btn-light px-3 py-2 fw-semibold" (click)="showAddReceiptModal = false">Cancel</button>
+      <button type="button" class="btn btn-success px-4 py-2 fw-bold" (click)="saveReceipt()" [disabled]="savingReceipt">
+        <span *ngIf="savingReceipt" class="spinner-border spinner-border-sm me-1"></span>
+        {{ currentReceipt.id ? 'Update Receipt' : 'Save Receipt' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EDIT LEAD MODAL DIALOG ==================== -->
+<div class="custom-modal child-modal-wrapper" *ngIf="showEditModal">
+  <div class="modal-backdrop" (click)="closeEditModal()"></div>
+  <div class="modal-card child-modal-card">
+    <div class="child-modal-header blue">
+      <div class="d-flex align-items-center gap-2">
+        <div class="child-icon-bubble blue">
+          <i class="bi bi-pencil-square"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold text-dark">Edit Lead Details</h4>
+          <p class="text-muted small mb-0">Update contact, assignment, or follow-up details</p>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" (click)="closeEditModal()">&times;</button>
+    </div>
+
+    <div class="child-modal-body">
+      <div class="row g-3">
+        <!-- Lead Name -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Full Name *</label>
+          <input type="text" class="form-control custom-input" [(ngModel)]="editForm.name" placeholder="Lead Name">
+        </div>
+
+        <!-- Phone -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Phone *</label>
+          <div class="phone-input-group">
+            <select class="form-select country-code-select" 
+                    [(ngModel)]="selectedCountryCode" 
+                    (change)="editForm.country_code = selectedCountryCode"
+                    title="Select Country Code">
+              <option *ngFor="let c of countryCodes" [value]="c.country_code">
+                {{ c.flag_emoji }} {{ c.country_code }} ({{ c.country_name }})
+              </option>
+            </select>
+            <input type="tel" 
+                   class="form-control custom-input phone-number-input" 
+                   [(ngModel)]="editForm.phone" 
+                   (keypress)="allowOnlyDigits($event)" 
+                   (input)="onPhoneInput($event)" 
+                   (paste)="onPhonePaste($event)" 
+                   [placeholder]="selectedCountryCode === '+91' ? '10-digit number' : 'Phone Number'">
+          </div>
+          <div *ngIf="editForm.phone && editForm.phone.length === 9 && selectedCountryCode === '+91'" class="phone-error-hint">
+            <i class="bi bi-exclamation-circle-fill me-1"></i> 9 digits entered &mdash; 10 digits required for India (+91)
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Email</label>
+          <input type="email" class="form-control custom-input" [(ngModel)]="editForm.email" placeholder="Email Address">
+        </div>
+
+        <!-- Lead Status -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Lead Status</label>
+          <select class="form-select custom-input" [(ngModel)]="editForm.status">
+            <option value="">Select Status</option>
+            <option *ngFor="let s of leadStatuses" [value]="s.name">{{ s.name }}</option>
+          </select>
+        </div>
+
+        <!-- Follow-up Date -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Follow-up Date</label>
+          <input type="date" class="form-control custom-input" [(ngModel)]="editForm.follow_up_date">
+        </div>
+
+        <!-- Assignee / Agent -->
+        <div class="col-md-6">
+          <label class="form-label text-muted fw-bold small text-uppercase">Assignee / Agent</label>
+          <select class="form-select custom-input" [(ngModel)]="editForm.assigned_to">
+            <option value="">Unassigned</option>
+            <option *ngFor="let a of agentsList" [value]="a.id">{{ a.name }}</option>
+          </select>
+        </div>
+
+        <!-- Remarks -->
+        <div class="col-12">
+          <label class="form-label text-muted fw-bold small text-uppercase">Remarks / Notes</label>
+          <textarea class="form-control custom-input" rows="3" [(ngModel)]="editForm.remark" placeholder="Enter follow-up remarks or notes..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="child-modal-footer">
+      <button type="button" class="btn btn-light px-3 py-2 fw-semibold" (click)="closeEditModal()">Cancel</button>
+      <button type="button" class="btn btn-primary px-4 py-2 fw-bold" (click)="saveEdit()" [disabled]="savingEdit">
+        <span *ngIf="savingEdit" class="spinner-border spinner-border-sm me-1"></span>
+        Save Changes
+      </button>
+    </div>
   </div>
 </div>

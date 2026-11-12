@@ -152,4 +152,9 @@ export class SystemSettingsService {
   createUniversity(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/universities`, data); }
   updateUniversity(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/universities/${id}`, data); }
   deleteUniversity(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/universities/${id}`); }
+
+  // --- COUNTRY CODES ---
+  getCountryCodes(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/country-codes`);
+  }
 }

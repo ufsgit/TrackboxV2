@@ -177,7 +177,7 @@
             <li><a class="dropdown-item" [class.active]="activeStatus === 'Not Interested'" (click)="activeStatus = 'Not Interested'; applyFilters(); isStatusDropdownOpen = false">Not Interested</a></li>
             <li><a class="dropdown-item" [class.active]="activeStatus === 'Converted'" (click)="activeStatus = 'Converted'; applyFilters(); isStatusDropdownOpen = false">Converted</a></li>
           </ng-template>
-          <li><a class="dropdown-item" [class.active]="activeStatus === 'No Follow Up'" (click)="activeStatus = 'No Follow Up'; applyFilters(); isStatusDropdownOpen = false">No Follow Up</a></li>
+          <li><a class="dropdown-item" [class.active]="activeStatus === 'Status is Not Follow Up' || activeStatus === 'Not Follow Up' || activeStatus === 'No Follow Up'" (click)="activeStatus = 'Status is Not Follow Up'; applyFilters(); isStatusDropdownOpen = false">Status is Not Follow Up</a></li>
         </ul>
       </div>
 
@@ -1288,7 +1288,26 @@
 
           <div class="field-row">
             <label>Phone <span class="required">*</span></label>
-            <input type="tel" class="form-control premium-input" [(ngModel)]="newContact.phone" (keypress)="allowOnlyDigits($event)" (input)="onPhoneInput($event)" maxlength="10" placeholder="Enter 10-digit phone number">
+            <div class="phone-input-group">
+              <select class="form-select country-code-select" 
+                      [(ngModel)]="selectedCountryCode" 
+                      (change)="newContact.country_code = selectedCountryCode"
+                      title="Select Country Code">
+                <option *ngFor="let c of countryCodes" [value]="c.country_code">
+                  {{ c.flag_emoji }} {{ c.country_code }} ({{ c.country_name }})
+                </option>
+              </select>
+              <input type="tel" 
+                     class="form-control premium-input phone-number-input" 
+                     [(ngModel)]="newContact.phone" 
+                     (keypress)="allowOnlyDigits($event)" 
+                     (input)="onPhoneInput($event)" 
+                     (paste)="onPhonePaste($event)" 
+                     [placeholder]="selectedCountryCode === '+91' ? 'Enter 10-digit phone number' : 'Enter phone number'">
+            </div>
+            <div *ngIf="newContact.phone && newContact.phone.length === 9 && selectedCountryCode === '+91'" class="phone-error-hint">
+              <i class="bi bi-exclamation-circle-fill me-1"></i> 9 digits entered &mdash; 10 digits required for India (+91)
+            </div>
           </div>
 
           <div class="field-row">

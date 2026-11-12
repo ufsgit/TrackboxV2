@@ -1,0 +1,637 @@
+<div class="total-leads-container">
+
+  <!-- ── Top Header ─────────────────────────────────────────── -->
+  <header class="page-header">
+    <div class="header-left">
+      <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <a routerLink="/crm-dashboard" class="breadcrumb-link">
+          <i class="bi bi-grid-fill me-1"></i> Dashboard
+        </a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Total Leads</span>
+      </nav>
+      <div class="title-row">
+        <div class="title-icon-bubble">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div>
+          <h1 class="page-title">Total Leads</h1>
+          <p class="page-subtitle">
+            All leads directory across your entire system &mdash; including leads with or without follow-up dates, statuses, and assignments.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="leads-btn leads-btn-green" (click)="openAddModal()" title="Add New Lead">
+        <i class="bi bi-plus-lg"></i>
+        <span>Add Lead</span>
+      </button>
+      <button type="button" class="btn-refresh" (click)="loadLeads()" [disabled]="loading" title="Refresh leads list">
+        <i class="bi bi-arrow-clockwise" [class.spin]="loading"></i>
+        <span>Refresh</span>
+      </button>
+      <a routerLink="/crm-dashboard" class="btn-back-dashboard">
+        <i class="bi bi-arrow-left"></i>
+        <span>Back to Dashboard</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ── Metric Cards ───────────────────────────────────────── -->
+  <section class="metrics-grid" aria-label="Leads Overview">
+    <!-- Card 1: Total Leads -->
+    <div class="metric-card metric-blue">
+      <div class="metric-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Total Leads</span>
+        <span class="metric-value">{{ (metrics.total || totalLeads) | number }}</span>
+        <span class="metric-sub">Complete Directory</span>
+      </div>
+    </div>
+
+    <!-- Card 2: With Follow-up -->
+    <div class="metric-card metric-green">
+      <div class="metric-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">With Follow-up Date</span>
+        <span class="metric-value">{{ metrics.with_followup | number }}</span>
+        <span class="metric-sub">Scheduled follow-ups</span>
+      </div>
+    </div>
+
+    <!-- Card 3: No Follow-up -->
+    <div class="metric-card metric-orange">
+      <div class="metric-icon"><i class="bi bi-calendar-x-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Without Follow-up Date</span>
+        <span class="metric-value">{{ metrics.without_followup | number }}</span>
+        <span class="metric-sub">No follow-up set</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Unassigned -->
+    <div class="metric-card metric-purple">
+      <div class="metric-icon"><i class="bi bi-person-x-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Unassigned Leads</span>
+        <span class="metric-value">{{ metrics.unassigned | number }}</span>
+        <span class="metric-sub">Pending agent allocation</span>
+      </div>
+    </div>
+
+    <!-- Card 5: Payment Collected -->
+    <div class="metric-card metric-emerald">
+      <div class="metric-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Total Payments</span>
+        <span class="metric-value">₹{{ (metrics.total_payment_collected || 0) | number:'1.0-0' }}</span>
+        <span class="metric-sub">{{ metrics.with_payment | number }} Leads with Payments</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Filters & Search Toolbar ────────────────────────────── -->
+  <section class="filters-card">
+    <div class="filters-wrap">
+      <!-- Search -->
+      <div class="search-input-wrap">
+        <i class="bi bi-search search-icon"></i>
+        <input 
+          type="text" 
+          class="form-search-input" 
+          placeholder="Search by name, phone, or email..." 
+          [(ngModel)]="searchTerm" 
+          (ngModelChange)="onSearchChange()">
+        <button *ngIf="searchTerm" type="button" class="btn-clear-search" (click)="searchTerm = ''; onSearchChange()">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+      </div>
+
+      <!-- Filter: Status -->
+      <div class="filter-item">
+        <label class="filter-label"><i class="bi bi-funnel me-1"></i>Status</label>
+        <select class="form-select custom-select" [(ngModel)]="activeStatus" (change)="onFilterChange()">
+          <option value="">All Statuses</option>
+          <option value="none">No Status / Empty</option>
+          <option *ngFor="let s of statuses" [value]="s.name">{{ s.name }}</option>
+        </select>
+      </div>
+
+      <!-- Filter: Follow-up Date -->
+      <div class="filter-item">
+        <label class="filter-label"><i class="bi bi-calendar-event me-1"></i>Follow-up Date</label>
+        <select class="form-select custom-select" [(ngModel)]="activeFollowup" (change)="onFilterChange()">
+          <option value="">All Leads</option>
+          <option value="1">With Follow-up Date</option>
+          <option value="0">Without Follow-up Date</option>
+        </select>
+      </div>
+
+      <!-- Filter: Assigned Agent -->
+      <div class="filter-item">
+        <label class="filter-label"><i class="bi bi-person-badge me-1"></i>Agent</label>
+        <select class="form-select custom-select" [(ngModel)]="activeAgent" (change)="onFilterChange()">
+          <option value="">All Agents</option>
+          <option value="unassigned">Unassigned Leads</option>
+          <option *ngFor="let a of agents" [value]="a.id">{{ a.name }}</option>
+        </select>
+      </div>
+
+      <!-- Filter: Payment Status -->
+      <div class="filter-item">
+        <label class="filter-label"><i class="bi bi-receipt me-1"></i>Payment</label>
+        <select class="form-select custom-select" [(ngModel)]="activePayment" (change)="onFilterChange()">
+          <option value="">All Leads</option>
+          <option value="1">Has Payments</option>
+          <option value="0">No Payments</option>
+        </select>
+      </div>
+
+      <!-- Reset Filters Button -->
+      <div class="filter-reset-wrap" *ngIf="hasActiveFilters()">
+        <button type="button" class="btn-reset-filters" (click)="resetAllFilters()">
+          <i class="bi bi-x-lg me-1"></i> Reset
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Main Table Card ────────────────────────────────────── -->
+  <section class="table-card">
+    <div class="table-card-header">
+      <div class="header-left-meta">
+        <h2 class="table-title">Leads Directory</h2>
+        <span class="records-badge">
+          {{ totalLeads | number }} {{ totalLeads === 1 ? 'Lead' : 'Leads' }}
+        </span>
+      </div>
+
+      <div class="header-right-meta">
+        <!-- Page size selector -->
+        <div class="page-size-selector">
+          <label>Show</label>
+          <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="page-size-select">
+            <option *ngFor="let opt of pageSizeOptions" [value]="opt">{{ opt }}</option>
+          </select>
+          <label>per page</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-wrapper">
+      <table class="custom-styled-table">
+        <thead>
+          <tr>
+            <th class="th-num">#</th>
+            <th class="th-lead">Lead Details</th>
+            <th class="th-email">Email</th>
+            <th class="th-agent">Assigned To</th>
+            <th class="th-status">Status</th>
+            <th class="th-followup">Follow-up Date</th>
+            <th class="th-payment">Payment Details</th>
+            <th class="th-actions text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading State -->
+          <tr *ngIf="loading">
+            <td colspan="8" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+              <p class="mt-3 text-muted fw-bold mb-0">Loading leads from server...</p>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="!loading && leads.length === 0">
+            <td colspan="8" class="text-center py-5">
+              <div class="empty-state-box">
+                <div class="empty-icon-wrap">
+                  <i class="bi bi-folder2-open"></i>
+                </div>
+                <h3 class="empty-title">No leads found</h3>
+                <p class="empty-sub">
+                  {{ hasActiveFilters() ? 'Try adjusting your search query or reset your filters.' : 'There are currently no leads in the database.' }}
+                </p>
+                <button *ngIf="hasActiveFilters()" type="button" class="btn btn-primary btn-sm mt-2 rounded-pill px-3" (click)="resetAllFilters()">
+                  Reset All Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Data Rows -->
+          <tr *ngFor="let lead of leads; let i = index" class="lead-data-row" (click)="openFollowupModal(lead)" title="Click to update follow-up">
+            <!-- # Index -->
+            <td class="td-num">
+              {{ (currentPage - 1) * pageSize + i + 1 }}
+            </td>
+
+            <!-- Lead Info -->
+            <td class="td-lead">
+              <div class="lead-info-cell" (click)="openLeadProfile(lead, $event)" title="Click to view lead profile">
+                <div class="lead-avatar-circle" [ngClass]="getAvatarColor(lead.id)">
+                  {{ getLeadInitials(lead.name) }}
+                </div>
+                <div class="lead-meta">
+                  <span class="lead-fullname">{{ lead.name || 'Unnamed Lead' }}</span>
+                  <span class="lead-phone">
+                    <i class="bi bi-telephone-fill me-1"></i>{{ lead.phone || 'No phone' }}
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Email -->
+            <td class="td-email">
+              <span *ngIf="lead.email && lead.email.trim()" class="lead-email-text" [title]="lead.email">
+                <i class="bi bi-envelope me-1 text-muted"></i>{{ lead.email }}
+              </span>
+              <span *ngIf="!lead.email || !lead.email.trim()" class="chip-no-email">
+                No email
+              </span>
+            </td>
+
+            <!-- Assigned Agent -->
+            <td class="td-agent">
+              <span *ngIf="lead.assigned_employee_name" class="agent-chip">
+                <i class="bi bi-person-check-fill me-1 text-primary"></i>
+                {{ lead.assigned_employee_name }}
+              </span>
+              <span *ngIf="!lead.assigned_employee_name && lead.assigned_to" class="agent-chip">
+                <i class="bi bi-person-check-fill me-1 text-primary"></i>
+                {{ getEmployeeName(lead.assigned_to) }}
+              </span>
+              <span *ngIf="!lead.assigned_employee_name && !lead.assigned_to" class="chip-unassigned">
+                <i class="bi bi-person-dash me-1"></i> Unassigned
+              </span>
+            </td>
+
+            <!-- Status -->
+            <td class="td-status">
+              <span *ngIf="lead.status_name" 
+                    class="status-pill-badge"
+                    [style.backgroundColor]="getStatusColor(lead.status_name) + '18'"
+                    [style.color]="getStatusColor(lead.status_name)"
+                    [style.borderColor]="getStatusColor(lead.status_name) + '40'">
+                {{ lead.status_name }}
+              </span>
+              <span *ngIf="!lead.status_name" class="chip-no-status">
+                No Status
+              </span>
+            </td>
+
+            <!-- Follow-up Date -->
+            <td class="td-followup">
+              <span *ngIf="lead.follow_up_date" class="followup-badge">
+                <i class="bi bi-calendar2-check-fill me-1"></i>
+                {{ lead.follow_up_date | date:'dd MMM yyyy' }}
+              </span>
+              <span *ngIf="!lead.follow_up_date" class="chip-no-followup">
+                <i class="bi bi-calendar-x me-1"></i> No Follow-up
+              </span>
+            </td>
+
+            <!-- Payment Details (CLICKABLE TO OPEN PAYMENT PROFILE) -->
+            <td class="td-payment">
+              <ng-container *ngIf="lead.payment_count > 0 || lead.total_payment_amount > 0">
+                <button type="button" 
+                        class="btn-payment-pill" 
+                        (click)="openPaymentDetails(lead, $event)" 
+                        title="Click to view payment profile and receipts">
+                  <div class="payment-pill-icon">
+                    <i class="bi bi-receipt-cutoff"></i>
+                  </div>
+                  <div class="payment-pill-text">
+                    <span class="payment-amount">₹{{ (lead.total_payment_amount || 0) | number:'1.2-2' }}</span>
+                    <span class="payment-count">{{ lead.payment_count }} Receipt{{ lead.payment_count === 1 ? '' : 's' }}</span>
+                  </div>
+                  <i class="bi bi-chevron-right payment-pill-arrow"></i>
+                </button>
+              </ng-container>
+              <ng-container *ngIf="!lead.payment_count && !lead.total_payment_amount">
+                <span class="chip-no-payment">
+                  <i class="bi bi-dash-circle me-1"></i> No Payment
+                </span>
+              </ng-container>
+            </td>
+
+            <!-- Actions -->
+            <td class="td-actions text-end">
+              <div class="action-btn-group">
+                <button type="button" 
+                        class="btn-action-profile" 
+                        (click)="openLeadProfile(lead, $event)" 
+                        title="View Full Lead Profile">
+                  <i class="bi bi-person-lines-fill"></i>
+                  <span>Profile</span>
+                </button>
+                <button type="button" 
+                        class="btn-action-followup" 
+                        (click)="openFollowupModal(lead, $event)" 
+                        title="Update Status / Follow-up">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Server-side Pagination Footer ──────────────────────── -->
+    <div class="table-pagination-footer" *ngIf="!loading && totalLeads > 0">
+      <div class="pagination-info">
+        Showing 
+        <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> 
+        to 
+        <strong>{{ (currentPage * pageSize > totalLeads) ? totalLeads : (currentPage * pageSize) }}</strong> 
+        of 
+        <strong>{{ totalLeads | number }}</strong> leads
+      </div>
+
+      <div class="pagination-controls">
+        <!-- First Page -->
+        <button type="button" 
+                class="pagination-btn" 
+                [disabled]="currentPage === 1" 
+                (click)="goToPage(1)" 
+                title="First Page">
+          <i class="bi bi-chevron-double-left"></i>
+        </button>
+
+        <!-- Previous Page -->
+        <button type="button" 
+                class="pagination-btn" 
+                [disabled]="currentPage === 1" 
+                (click)="goToPage(currentPage - 1)" 
+                title="Previous Page">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <!-- Page Numbers -->
+        <button *ngFor="let p of pages" 
+                type="button" 
+                class="pagination-btn" 
+                [class.active]="p === currentPage" 
+                (click)="goToPage(p)">
+          {{ p }}
+        </button>
+
+        <!-- Next Page -->
+        <button type="button" 
+                class="pagination-btn" 
+                [disabled]="currentPage === totalPages" 
+                (click)="goToPage(currentPage + 1)" 
+                title="Next Page">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+
+        <!-- Last Page -->
+        <button type="button" 
+                class="pagination-btn" 
+                [disabled]="currentPage === totalPages" 
+                (click)="goToPage(totalPages)" 
+                title="Last Page">
+          <i class="bi bi-chevron-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ── Lead Profile Modal (Displays Profile or Receipt Tab) ── -->
+<app-lead-profile-modal 
+  [contactId]="profileContactId" 
+  [isOpen]="showProfileModal" 
+  [initialTab]="profileInitialTab" 
+  (close)="closeProfileModal()" 
+  (contactUpdated)="onContactUpdated()">
+</app-lead-profile-modal>
+
+<!-- ── Update Follow-up / Status Modal ───────────────────── -->
+<app-update-lead-status-modal 
+  [isOpen]="showFollowupModal" 
+  [contactId]="followupContactId" 
+  [contactName]="followupContactName" 
+  [initialData]="followupInitialData" 
+  (close)="closeFollowupModal()" 
+  (saved)="onContactUpdated(); closeFollowupModal()" 
+  (openProfile)="openProfileFromFollowup($event)">
+</app-update-lead-status-modal>
+
+<!-- ── Add / Edit Lead Fullscreen Modal (Matches Leads Page) ──────── -->
+<div class="lead-fullscreen-page" *ngIf="showModal">
+  <div class="lead-fullscreen-container">
+
+    <!-- Header -->
+    <div class="modal-header-fs" style="padding-top: 16px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+          <i class="bi bi-person-vcard" style="color:#fff;font-size:1.3rem;"></i>
+        </div>
+        <div>
+          <h4 style="margin:0;font-weight:800;font-size:1.35rem;color:#0f172a;letter-spacing:-0.02em;">{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
+          <p style="margin:2px 0 0;font-size:0.82rem;color:#64748b;font-weight:500;">Fill in the lead details below</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="closeAddModal()" style="font-size:1.4rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition:all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">&times;</button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="modal-body-scroll">
+
+      <!-- ── Lead Information ── -->
+      <div class="modal-section-card">
+        <div class="section-divider"><i class="bi bi-person-fill"></i> Lead Information</div>
+        <div class="fields-grid">
+          <div class="field-row">
+            <label>Full Name <span class="required">*</span></label>
+            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.name" placeholder="Enter full name">
+          </div>
+
+          <div class="field-row">
+            <label>Phone <span class="required">*</span></label>
+            <div class="phone-input-group">
+              <select class="form-select country-code-select" 
+                      [(ngModel)]="selectedCountryCode" 
+                      (change)="newContact.country_code = selectedCountryCode"
+                      title="Select Country Code">
+                <option *ngFor="let c of countryCodes" [value]="c.country_code">
+                  {{ c.flag_emoji }} {{ c.country_code }} ({{ c.country_name }})
+                </option>
+              </select>
+              <input type="tel" 
+                     class="form-control premium-input phone-number-input" 
+                     [(ngModel)]="newContact.phone" 
+                     (keypress)="allowOnlyDigits($event)" 
+                     (input)="onPhoneInput($event)" 
+                     (paste)="onPhonePaste($event)" 
+                     [placeholder]="selectedCountryCode === '+91' ? 'Enter 10-digit phone number' : 'Enter phone number'">
+            </div>
+            <div *ngIf="newContact.phone && newContact.phone.length === 9 && selectedCountryCode === '+91'" class="phone-error-hint">
+              <i class="bi bi-exclamation-circle-fill me-1"></i> 9 digits entered &mdash; 10 digits required for India (+91)
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label>Email</label>
+            <input type="email" class="form-control premium-input" [(ngModel)]="newContact.email" placeholder="email@example.com">
+          </div>
+
+          <div class="field-row">
+            <label>Tags <span style="font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;">(comma sep.)</span></label>
+            <input type="text" class="form-control premium-input" [(ngModel)]="newContact.tags" placeholder="e.g. lead, vip, warm">
+          </div>
+
+          <div class="field-row">
+            <label>Enquiry For</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.enquiry_for_id" style="display:block;">
+              <option [ngValue]="null">-- Select Enquiry For --</option>
+              <option *ngFor="let eq of enquiryFors" [value]="eq.id">{{ eq.name }}</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label>Source</label>
+            <select class="form-select premium-input" [(ngModel)]="newContact.channel_preference" style="display:block;">
+              <option value="">-- Select Source --</option>
+              <option *ngIf="newContact.channel_preference && !isChannelInList(newContact.channel_preference)" [value]="newContact.channel_preference">
+                {{ newContact.channel_preference }}
+              </option>
+              <option *ngFor="let ch of channels" [value]="ch.name">{{ ch.name }}</option>
+            </select>
+          </div>
+
+          <div class="field-row full-width">
+            <label>Address</label>
+            <textarea class="form-control premium-input" rows="1" [(ngModel)]="newContact.address" placeholder="Enter address..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Additional Details / Custom Fields ── -->
+      <div *ngIf="groupedLeadFields.length > 0">
+        <div *ngFor="let group of groupedLeadFields" class="modal-section-card">
+          <div class="section-divider"><i class="bi bi-folder2-open"></i> {{ group.categoryName }}</div>
+          <div class="fields-grid">
+            <div *ngFor="let field of group.fields" class="field-row" [class.full-width]="group.fields.length === 1">
+              <label>
+                {{ field.label }}
+                <span class="required" *ngIf="field.is_required">*</span>
+              </label>
+
+              <input *ngIf="field.field_type === 'text' || field.field_type === 'email' || field.field_type === 'phone'"
+                [type]="field.field_type === 'email' ? 'email' : field.field_type === 'phone' ? 'tel' : 'text'"
+                class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
+
+              <input *ngIf="field.field_type === 'number'"
+                type="number" class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
+
+              <textarea *ngIf="field.field_type === 'textarea'"
+                class="form-control premium-input" rows="2"
+                [(ngModel)]="newContact.custom_field_values[field.id]"></textarea>
+
+              <input *ngIf="field.field_type === 'date'" type="date"
+                class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
+
+              <input *ngIf="field.field_type === 'dob'" type="date"
+                class="form-control premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]" [max]="today">
+
+              <select *ngIf="field.field_type === 'dropdown'"
+                class="form-select premium-input"
+                [(ngModel)]="newContact.custom_field_values[field.id]">
+                <option value="">Select option...</option>
+                <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Status & Assignment ── -->
+      <ng-container *ngIf="!editingContactId">
+        <div class="modal-section-card">
+          <div class="section-divider"><i class="bi bi-arrow-right-circle-fill"></i> Status &amp; Assignment</div>
+          <div class="fields-grid">
+
+            <!-- Status Dropdown -->
+            <div class="field-row">
+              <label>Status <span class="required">*</span></label>
+              <select class="form-select premium-input" [(ngModel)]="newContact.status" style="display:block;">
+                <option value="">-- Select --</option>
+                <ng-container *ngFor="let s of leadStatuses">
+                  <option *ngIf="s.name.trim() !== 'NO DATE'" [value]="s.name">{{ s.name }}</option>
+                </ng-container>
+              </select>
+            </div>
+
+            <!-- Transfer For Department fields -->
+            <ng-container *ngIf="isTransferStatus(newContact.status)">
+              <div class="field-row">
+                <label>Branch <span class="required">*</span></label>
+                <select class="form-select premium-input" [(ngModel)]="newContact.branch" (change)="newContact.department=''; newContact.assigned_employee=''" style="display:block;">
+                  <option value="">-- Select Branch --</option>
+                  <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <label>Department <span class="required">*</span></label>
+                <select class="form-select premium-input" [(ngModel)]="newContact.department" (change)="newContact.assigned_employee=''" style="display:block;">
+                  <option value="">-- Select Department --</option>
+                  <option *ngFor="let d of getFilteredDepartments(newContact.branch)" [value]="d.name">{{ d.name }}</option>
+                </select>
+              </div>
+              <div class="field-row" *ngIf="newContact.department">
+                <label>Employee <span class="required">*</span></label>
+                <select class="form-select premium-input" [(ngModel)]="newContact.assigned_employee" style="display:block;">
+                  <option value="">-- Select Employee --</option>
+                  <option *ngFor="let e of getFilteredEmployees(newContact.branch, newContact.department)" [value]="e.name">{{ e.name }}</option>
+                </select>
+              </div>
+              
+              <div class="field-row full-width">
+                <label>Remark / Note <span class="required">*</span></label>
+                <textarea class="form-control premium-input" [(ngModel)]="newContact.remark" rows="3" style="resize: vertical;" placeholder="Add a remark or note..."></textarea>
+              </div>
+            </ng-container>
+
+            <!-- Follow-up Date -->
+            <div class="field-row" *ngIf="isFollowupStatus(newContact.status)">
+              <label>Follow Up Date</label>
+              <input type="date" class="form-control premium-input" [(ngModel)]="newContact.follow_up_date" [min]="today">
+            </div>
+            
+            <!-- Sales Loss -->
+            <div class="field-row" *ngIf="newContact.status === 'Sales Loss'">
+              <label>Loss Reason</label>
+              <select class="form-select premium-input" [(ngModel)]="newContact.loss_reason" style="display:block;">
+                <option value="">-- Select Reason --</option>
+                <option *ngFor="let r of dummyLossReasons" [value]="r">{{ r }}</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer-fs">
+      <button class="btn btn-light px-5 py-2" (click)="closeAddModal()" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;color:#475569;font-size:0.9rem;transition:all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">Cancel</button>
+      <button class="btn px-5 py-2" (click)="saveContact()" [disabled]="savingLead" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-size:0.9rem;box-shadow:0 4px 12px rgba(16,185,129,0.35);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(16,185,129,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(16,185,129,0.35)'">
+        <span *ngIf="savingLead" class="spinner-border spinner-border-sm me-2"></span>
+        <i *ngIf="!savingLead" class="bi bi-check2-circle me-2"></i>
+        {{ editingContactId ? 'Update Lead' : 'Save Lead' }}
+      </button>
+    </div>
+  </div>
+</div>
+
