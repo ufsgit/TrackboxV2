@@ -618,13 +618,15 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_crm_dashboard_kpis`(
   IN p_range VARCHAR(50)
 )
 BEGIN
+  -- -------------------------------------------------------------
   -- Variable Declarations
-  
+  -- -------------------------------------------------------------
   DECLARE v_agent_team_id INT DEFAULT NULL;
   DECLARE v_is_agent INT DEFAULT 0;
   DECLARE v_date_filter_mode VARCHAR(20) DEFAULT 'all_time';
 
   DECLARE v_total_leads INT DEFAULT 0;
+  DECLARE v_fees_paid INT DEFAULT 0;
   DECLARE v_pending_leads INT DEFAULT 0;
   DECLARE v_pending_followups INT DEFAULT 0;
   DECLARE v_todays_followups INT DEFAULT 0;
@@ -696,7 +698,7 @@ BEGIN
   END IF;
 
   -- -------------------------------------------------------------
-  -- 4. Calculate Current Period KPIs with Date & Role Filtering
+  -- 4. Calculate Current Period Leads KPIs
   -- -------------------------------------------------------------
   SELECT 
     COUNT(*),
@@ -730,7 +732,22 @@ BEGIN
   SET v_pending_leads = GREATEST(0, v_total_leads - COALESCE(v_won_deals, 0) - COALESCE(v_lost_deals, 0));
 
   -- -------------------------------------------------------------
-  -- 5. Calculate Follow-up KPIs (State-driven based on current date)
+  -- 5. Calculate Fees Paid: Total Count of All Receipts Recorded
+  -- (Counts every receipt, allowing multiple receipts per contact)
+  -- -------------------------------------------------------------
+  SELECT COUNT(r.id)
+  INTO v_fees_paid
+  FROM receipts r
+  LEFT JOIN contacts c ON r.contact_id = c.id
+  WHERE r.business_id = p_business_id
+    AND (
+      v_is_agent = 0 
+      OR c.assigned_to IN (SELECT user_id FROM tmp_scoped_agents)
+      OR r.created_by = p_user_id
+    );
+
+  -- -------------------------------------------------------------
+  -- 6. Calculate Follow-up KPIs
   -- -------------------------------------------------------------
   SELECT
     SUM(CASE 
@@ -757,7 +774,7 @@ BEGIN
     );
 
   -- -------------------------------------------------------------
-  -- 6. IF CONDITION: Conversion Rate Computation
+  -- 7. Conversion Rate Computation
   -- -------------------------------------------------------------
   IF v_total_leads > 0 THEN
     SET v_conversion_rate = ROUND((v_won_deals / v_total_leads) * 100, 1);
@@ -766,7 +783,7 @@ BEGIN
   END IF;
 
   -- -------------------------------------------------------------
-  -- 7. Calculate Last Month Baseline for Dynamic Trend Deltas
+  -- 8. Calculate Last Month Baseline for Dynamic Trend Deltas
   -- -------------------------------------------------------------
   SELECT 
     COUNT(*),
@@ -792,7 +809,7 @@ BEGIN
     AND MONTH(c.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH));
 
   -- -------------------------------------------------------------
-  -- 8. IF CONDITIONS: Calculate Dynamic Trends vs Last Month
+  -- 9. Trend Deltas
   -- -------------------------------------------------------------
   IF v_last_month_total > 0 THEN
     SET v_delta_total = CONCAT(ROUND(((v_total_leads - v_last_month_total) / v_last_month_total) * 100), '%');
@@ -835,23 +852,24 @@ BEGIN
   END IF;
 
   -- -------------------------------------------------------------
-  -- 9. Single Consolidated Result Set with All 7 KPIs
+  -- 10. Single Consolidated Result Set Output
   -- -------------------------------------------------------------
   SELECT 
-    COALESCE(v_total_leads, 0) AS totalLeads,
-    COALESCE(v_pending_leads, 0) AS pendingLeads,
-    COALESCE(v_pending_followups, 0) AS pendingFollowUps,
-    COALESCE(v_todays_followups, 0) AS todaysFollowUps,
+    COALESCE(v_total_leads, 0)        AS totalLeads,
+    COALESCE(v_fees_paid, 0)          AS feesPaid,
+    COALESCE(v_pending_leads, 0)      AS pendingLeads,
+    COALESCE(v_pending_followups, 0)  AS pendingFollowUps,
+    COALESCE(v_todays_followups, 0)   AS todaysFollowUps,
     COALESCE(v_upcoming_followups, 0) AS upcomingFollowUps,
-    COALESCE(v_won_deals, 0) AS wonDeals,
-    COALESCE(v_lost_deals, 0) AS lostDeals,
-    COALESCE(v_conversion_rate, 0.0) AS conversionRate,
-    v_delta_total AS deltaTotal,
-    v_delta_pending AS deltaPending,
-    v_delta_today AS deltaToday,
-    v_delta_upcoming AS deltaUpcoming,
-    v_delta_won AS deltaWon,
-    v_delta_lost AS deltaLost,
+    COALESCE(v_won_deals, 0)          AS wonDeals,
+    COALESCE(v_lost_deals, 0)         AS lostDeals,
+    COALESCE(v_conversion_rate, 0.0)  AS conversionRate,
+    v_delta_total                     AS deltaTotal,
+    v_delta_pending                   AS deltaPending,
+    v_delta_today                     AS deltaToday,
+    v_delta_upcoming                  AS deltaUpcoming,
+    v_delta_won                       AS deltaWon,
+    v_delta_lost                      AS deltaLost,
     CONCAT(COALESCE(v_conversion_rate, 0.0), '%') AS deltaConversion;
 
   DROP TEMPORARY TABLE IF EXISTS tmp_scoped_agents;
@@ -1678,6 +1696,181 @@ BEGIN
 
   DROP TEMPORARY TABLE IF EXISTS tmp_team_agents;
 
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_pipeline_report_kpis`(
+  IN p_business_id INT,
+  IN p_user_id INT,
+  IN p_user_role VARCHAR(50),
+  IN p_range VARCHAR(50),
+  IN p_start_date DATE,
+  IN p_end_date DATE
+)
+BEGIN
+  -- -------------------------------------------------------------
+  -- 1. Variable Declarations
+  -- -------------------------------------------------------------
+  DECLARE v_user_branch_id INT DEFAULT NULL;
+  DECLARE v_agent_team_id INT DEFAULT NULL;
+  DECLARE v_is_admin INT DEFAULT 0;
+  DECLARE v_is_manager INT DEFAULT 0;
+  DECLARE v_start_date DATETIME;
+  DECLARE v_end_date DATETIME;
+
+  -- -------------------------------------------------------------
+  -- 2. Date Range Setup
+  -- -------------------------------------------------------------
+  IF p_range = 'today' THEN
+    SET v_start_date = CONCAT(CURDATE(), ' 00:00:00');
+    SET v_end_date = CONCAT(CURDATE(), ' 23:59:59');
+  ELSEIF p_range = 'this_week' THEN
+    SET v_start_date = CONCAT(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), ' 00:00:00');
+    SET v_end_date = NOW();
+  ELSEIF p_range = 'this_month' THEN
+    SET v_start_date = CONCAT(DATE_FORMAT(CURDATE(), '%Y-%m-01'), ' 00:00:00');
+    SET v_end_date = NOW();
+  ELSEIF p_range = 'last_30_days' THEN
+    SET v_start_date = DATE_SUB(NOW(), INTERVAL 30 DAY);
+    SET v_end_date = NOW();
+  ELSEIF p_range = 'this_year' THEN
+    SET v_start_date = CONCAT(YEAR(CURDATE()), '-01-01 00:00:00');
+    SET v_end_date = NOW();
+  ELSEIF p_range = 'custom' AND p_start_date IS NOT NULL AND p_end_date IS NOT NULL THEN
+    SET v_start_date = CONCAT(p_start_date, ' 00:00:00');
+    SET v_end_date = CONCAT(p_end_date, ' 23:59:59');
+  ELSE
+    SET v_start_date = '1970-01-01 00:00:00';
+    SET v_end_date = '2099-12-31 23:59:59';
+  END IF;
+
+  -- -------------------------------------------------------------
+  -- 3. Resolve Logged-in User Branch & Role
+  -- -------------------------------------------------------------
+  SELECT branch_id INTO v_user_branch_id 
+  FROM users 
+  WHERE id = p_user_id AND business_id = p_business_id 
+  LIMIT 1;
+
+  IF LOWER(TRIM(p_user_role)) IN ('admin', 'superadmin') THEN
+    SET v_is_admin = 1;
+  ELSEIF LOWER(TRIM(p_user_role)) = 'manager' THEN
+    SET v_is_manager = 1;
+  END IF;
+
+  -- -------------------------------------------------------------
+  -- 4. Temporary Table for Scoped Agent IDs
+  -- -------------------------------------------------------------
+  DROP TEMPORARY TABLE IF EXISTS tmp_report_scoped_agents;
+  CREATE TEMPORARY TABLE tmp_report_scoped_agents (
+    agent_id INT PRIMARY KEY
+  ) ENGINE=MEMORY;
+
+  IF v_is_admin = 0 THEN
+    IF v_is_manager = 1 THEN
+      -- Case 1: Branch Manager -> All users belonging to their Branch
+      INSERT IGNORE INTO tmp_report_scoped_agents (agent_id)
+      SELECT id FROM users 
+      WHERE business_id = p_business_id 
+        AND branch_id = v_user_branch_id;
+        
+      -- Also include themselves
+      INSERT IGNORE INTO tmp_report_scoped_agents (agent_id) VALUES (p_user_id);
+
+    ELSE
+      -- Case 2: User with Team Members vs User without Team Members
+      SELECT id INTO v_agent_team_id 
+      FROM teams 
+      WHERE user_id = p_user_id AND business_id = p_business_id 
+      LIMIT 1;
+
+      IF v_agent_team_id IS NOT NULL THEN
+        -- Include user + all assigned team members
+        INSERT IGNORE INTO tmp_report_scoped_agents (agent_id)
+        SELECT user_id FROM team_members WHERE team_id = v_agent_team_id
+        UNION
+        SELECT p_user_id;
+      ELSE
+        -- Case 3: No team members assigned -> User sees ONLY themselves
+        INSERT IGNORE INTO tmp_report_scoped_agents (agent_id) VALUES (p_user_id);
+      END IF;
+    END IF;
+  END IF;
+
+  -- -------------------------------------------------------------
+  -- 5. RESULT SET 1: Base Summary (Applications + Fees Paid)
+  -- -------------------------------------------------------------
+  SELECT 
+    -- Total Applications
+    (
+      SELECT COUNT(a.id)
+      FROM applications a
+      LEFT JOIN contacts c ON a.contact_id = c.id
+      WHERE a.business_id = p_business_id
+        AND a.created_at BETWEEN v_start_date AND v_end_date
+        AND (
+          v_is_admin = 1 
+          OR c.assigned_to IN (SELECT agent_id FROM tmp_report_scoped_agents)
+          OR a.created_by IN (SELECT agent_id FROM tmp_report_scoped_agents)
+        )
+    ) AS total_applications,
+
+    -- Fees Paid Count (All Receipts)
+    (
+      SELECT COUNT(r.id)
+      FROM receipts r
+      LEFT JOIN contacts c ON r.contact_id = c.id
+      WHERE r.business_id = p_business_id
+        AND COALESCE(r.receipt_date, r.created_at) BETWEEN v_start_date AND v_end_date
+        AND (
+          v_is_admin = 1 
+          OR c.assigned_to IN (SELECT agent_id FROM tmp_report_scoped_agents)
+          OR r.created_by IN (SELECT agent_id FROM tmp_report_scoped_agents)
+        )
+    ) AS fees_paid_count,
+
+    -- Fees Paid Total Amount
+    (
+      SELECT COALESCE(SUM(r.amount), 0)
+      FROM receipts r
+      LEFT JOIN contacts c ON r.contact_id = c.id
+      WHERE r.business_id = p_business_id
+        AND COALESCE(r.receipt_date, r.created_at) BETWEEN v_start_date AND v_end_date
+        AND (
+          v_is_admin = 1 
+          OR c.assigned_to IN (SELECT agent_id FROM tmp_report_scoped_agents)
+          OR r.created_by IN (SELECT agent_id FROM tmp_report_scoped_agents)
+        )
+    ) AS fees_paid_amount;
+
+  -- -------------------------------------------------------------
+  -- 6. RESULT SET 2: Dynamic Active Application Statuses
+  -- -------------------------------------------------------------
+  SELECT 
+    s.id AS status_id,
+    s.name AS status_name,
+    COALESCE(s.color, '#475569') AS status_color,
+    COUNT(a.id) AS application_count
+  FROM application_statuses s
+  LEFT JOIN applications a 
+    ON a.status_id = s.id 
+   AND a.business_id = p_business_id
+   AND a.created_at BETWEEN v_start_date AND v_end_date
+   AND (
+     v_is_admin = 1 
+     OR a.contact_id IN (
+       SELECT c.id FROM contacts c 
+       WHERE c.assigned_to IN (SELECT agent_id FROM tmp_report_scoped_agents)
+     )
+     OR a.created_by IN (SELECT agent_id FROM tmp_report_scoped_agents)
+   )
+  WHERE s.business_id = p_business_id 
+    AND s.is_active = 1
+  GROUP BY s.id, s.name, s.color
+  ORDER BY s.id ASC;
+
+  DROP TEMPORARY TABLE IF EXISTS tmp_report_scoped_agents;
 END$$
 DELIMITER ;
 

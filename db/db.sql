@@ -106,37 +106,6 @@ LOCK TABLES `analytics` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `application_histories`
---
-
-DROP TABLE IF EXISTS `application_histories`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `application_histories` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `application_id` int NOT NULL,
-  `user_id` int DEFAULT NULL,
-  `action` varchar(255) NOT NULL,
-  `changes` json DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `application_id` (`application_id`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `application_histories_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `application_histories_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `application_histories`
---
-
-LOCK TABLES `application_histories` WRITE;
-/*!40000 ALTER TABLE `application_histories` DISABLE KEYS */;
-/*!40000 ALTER TABLE `application_histories` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `application_history`
 --
 
@@ -155,7 +124,7 @@ CREATE TABLE `application_history` (
   KEY `changed_by` (`changed_by`),
   CONSTRAINT `application_history_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE,
   CONSTRAINT `application_history_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -164,6 +133,7 @@ CREATE TABLE `application_history` (
 
 LOCK TABLES `application_history` WRITE;
 /*!40000 ALTER TABLE `application_history` DISABLE KEYS */;
+INSERT INTO `application_history` VALUES (5,2,132,'Application Created','Initial application created.','2026-11-13 08:11:42');
 /*!40000 ALTER TABLE `application_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -189,7 +159,7 @@ CREATE TABLE `application_status_change` (
   KEY `changed_by` (`changed_by`),
   CONSTRAINT `application_status_change_ibfk_1` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE,
   CONSTRAINT `application_status_change_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -198,40 +168,8 @@ CREATE TABLE `application_status_change` (
 
 LOCK TABLES `application_status_change` WRITE;
 /*!40000 ALTER TABLE `application_status_change` DISABLE KEYS */;
+INSERT INTO `application_status_change` VALUES (5,2,'2026-11-13 13:41:42',NULL,NULL,4,'enrolled',132,'2026-11-13 08:11:42');
 /*!40000 ALTER TABLE `application_status_change` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `application_status_changes`
---
-
-DROP TABLE IF EXISTS `application_status_changes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `application_status_changes` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `application_id` int NOT NULL,
-  `status_change_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `old_status_id` int DEFAULT NULL,
-  `old_status_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `new_status_id` int NOT NULL,
-  `new_status_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `changed_by` int DEFAULT NULL,
-  `remarks` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_application_id` (`application_id`),
-  KEY `idx_status_change_date` (`status_change_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `application_status_changes`
---
-
-LOCK TABLES `application_status_changes` WRITE;
-/*!40000 ALTER TABLE `application_status_changes` DISABLE KEYS */;
-/*!40000 ALTER TABLE `application_status_changes` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -251,7 +189,7 @@ CREATE TABLE `application_statuses` (
   PRIMARY KEY (`id`),
   KEY `business_id` (`business_id`),
   CONSTRAINT `application_statuses_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -260,7 +198,7 @@ CREATE TABLE `application_statuses` (
 
 LOCK TABLES `application_statuses` WRITE;
 /*!40000 ALTER TABLE `application_statuses` DISABLE KEYS */;
-INSERT INTO `application_statuses` VALUES (1,1,'offer recieved','#10B981',1,'2026-11-13 04:14:24'),(2,1,'visa applied ','#10B981',1,'2026-11-13 04:14:37'),(3,1,'visa approved ','#10B981',1,'2026-11-13 04:14:45'),(4,1,'enrolled','#10B981',1,'2026-11-13 04:14:52');
+INSERT INTO `application_statuses` VALUES (1,1,'offer recieved','#b0aa03',1,'2026-11-13 04:14:24'),(2,1,'visa applied ','#16bd00',1,'2026-11-13 04:14:37'),(3,1,'visa approved ','#5a8a00',1,'2026-11-13 04:14:45'),(4,1,'enrolled','#005ec2',1,'2026-11-13 04:14:52');
 /*!40000 ALTER TABLE `application_statuses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -324,7 +262,7 @@ CREATE TABLE `applications` (
   CONSTRAINT `applications_ibfk_3` FOREIGN KEY (`year_id`) REFERENCES `years` (`id`) ON DELETE SET NULL,
   CONSTRAINT `applications_ibfk_4` FOREIGN KEY (`status_id`) REFERENCES `application_statuses` (`id`) ON DELETE SET NULL,
   CONSTRAINT `applications_ibfk_5` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -333,6 +271,7 @@ CREATE TABLE `applications` (
 
 LOCK TABLES `applications` WRITE;
 /*!40000 ALTER TABLE `applications` DISABLE KEYS */;
+INSERT INTO `applications` VALUES (2,1,'New Zealand','test','ca',1,1,4,'',NULL,'2026-11-13 08:11:42','2026-11-13 08:11:42',6);
 /*!40000 ALTER TABLE `applications` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -758,7 +697,7 @@ CREATE TABLE `contacts` (
 
 LOCK TABLES `contacts` WRITE;
 /*!40000 ALTER TABLE `contacts` DISABLE KEYS */;
-INSERT INTO `contacts` VALUES (1,1,'Diya Patel 1','+919800000001','+91','lead_1@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-11-11 10:20:14',502,'Suite #2, Business Tower, Sector 2',1,NULL,1,'ufs',1,'marketing',2,'lost',3,'2026-11-13',1,0,NULL,NULL,1,'2026-11-13 09:42:33',502,NULL,'[70, \"502\"]','Medium',NULL,2),(2,1,'Rohan Verma 2','+919800000002','+91','lead_2@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-11-10 10:20:14',70,'Suite #3, Business Tower, Sector 3',NULL,NULL,NULL,'South Branch',NULL,'Operations',NULL,'In Progress',2,'2026-11-14',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(3,1,'Ananya Nair 3','+919800000003','+91','lead_3@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-11-09 10:20:14',70,'Suite #4, Business Tower, Sector 4',NULL,NULL,NULL,'Head Office',NULL,'Marketing',NULL,'Follow Up',3,'2026-11-15',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(4,1,'Vikram Kumar dev','+919800000004','+91','lead_4@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-11-08 10:20:14',131,'Suite #5, Business Tower, Sector 5',NULL,NULL,1,'ufs',1,'marketing',3,'pending',5,'2026-11-16',1,0,NULL,NULL,0,NULL,NULL,NULL,'[70, \"131\"]','Medium',NULL,0),(5,1,'Pooja Singh 5','+919800000005','+91','lead_5@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-11-07 10:20:14',70,'Suite #6, Business Tower, Sector 6',NULL,NULL,NULL,'South Branch',NULL,'Support',NULL,'New',0,'2026-11-17',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(6,1,'Rahul Reddy 6','+919800000006','+91','lead_6@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-11-06 10:20:14',70,'Suite #7, Business Tower, Sector 7',NULL,NULL,NULL,'Head Office',NULL,'Operations',NULL,'Contacted',1,'2026-11-18',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(7,1,'Sneha Mehta 7','+919800000007','+91','lead_7@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-11-05 10:20:14',70,'Suite #8, Business Tower, Sector 8',NULL,NULL,NULL,'North Branch',NULL,'Marketing',NULL,'In Progress',2,'2026-11-19',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(8,1,'Arjun Sharma 8','+919800000008','+91','lead_8@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-11-04 10:20:14',70,'Suite #9, Business Tower, Sector 9',NULL,NULL,NULL,'South Branch',NULL,'Sales',NULL,'Follow Up',3,'2026-11-20',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(9,1,'Kavya Patel 9','+919800000009','+91','lead_9@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-11-03 10:20:14',70,'Suite #10, Business Tower, Sector 10',NULL,NULL,NULL,'Head Office',NULL,'Support',NULL,'Qualified',4,'2026-11-21',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(10,1,'Aarav Verma 10','+919800000010','+91','lead_10@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-11-02 10:20:14',70,'Suite #11, Business Tower, Sector 11',NULL,NULL,NULL,'North Branch',NULL,'Operations',NULL,'New',0,'2026-11-22',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(11,1,'Diya Nair 11','+919800000011','+91','lead_11@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-11-01 10:20:14',70,'Suite #12, Business Tower, Sector 12',NULL,NULL,NULL,'South Branch',NULL,'Marketing',NULL,'Contacted',1,'2026-11-23',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(12,1,'Rohan Kumar 12','+919800000012','+91','lead_12@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-10-31 10:20:14',70,'Suite #13, Business Tower, Sector 13',NULL,NULL,NULL,'Head Office',NULL,'Sales',NULL,'In Progress',2,'2026-11-24',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(13,1,'Ananya Singh 13','+919800000013','+91','lead_13@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-10-30 10:20:14',70,'Suite #14, Business Tower, Sector 14',NULL,NULL,NULL,'North Branch',NULL,'Support',NULL,'Follow Up',3,'2026-11-25',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(14,1,'Vikram Reddy 14','+919800000014','+91','lead_14@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-10-29 10:20:14',70,'Suite #15, Business Tower, Sector 15',NULL,NULL,NULL,'South Branch',NULL,'Operations',NULL,'Qualified',4,'2026-11-12',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(15,1,'Pooja Mehta 15','+919800000015','+91','lead_15@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-10-28 10:20:14',70,'Suite #16, Business Tower, Sector 16',NULL,NULL,NULL,'Head Office',NULL,'Marketing',NULL,'New',0,'2026-11-13',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(16,1,'Rahul Sharma 16','+919800000016','+91','lead_16@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-10-27 10:20:14',70,'Suite #17, Business Tower, Sector 17',NULL,NULL,NULL,'North Branch',NULL,'Sales',NULL,'Contacted',1,'2026-11-14',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(17,1,'Sneha Patel 17','+919800000017','+91','lead_17@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-10-26 10:20:14',70,'Suite #18, Business Tower, Sector 18',NULL,NULL,NULL,'South Branch',NULL,'Support',NULL,'In Progress',2,'2026-11-15',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(18,1,'Arjun Verma 18','+919800000018','+91','lead_18@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-10-25 10:20:14',70,'Suite #19, Business Tower, Sector 19',NULL,NULL,NULL,'Head Office',NULL,'Operations',NULL,'Follow Up',3,'2026-11-16',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(19,1,'Kavya Nair 19','+919800000019','+91','lead_19@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-10-24 10:20:14',70,'Suite #20, Business Tower, Sector 20',NULL,NULL,NULL,'North Branch',NULL,'Marketing',NULL,'Qualified',4,'2026-11-17',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(20,1,'Aarav Kumar 20','+919800000020','+91','lead_20@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-10-23 10:20:14',70,'Suite #21, Business Tower, Sector 21',NULL,NULL,NULL,'South Branch',NULL,'Sales',NULL,'New',0,'2026-11-18',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0);
+INSERT INTO `contacts` VALUES (1,1,'Diya Patel 1','+919800000001','+91','lead_1@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-11-11 10:20:14',502,'Suite #2, Business Tower, Sector 2',1,NULL,1,'ufs',1,'marketing',2,'lost',3,'2026-11-13',1,0,NULL,NULL,1,'2026-11-13 09:42:33',502,NULL,'[70, \"502\"]','Medium',NULL,2),(2,1,'Rohan Verma 2','+919800000002','+91','lead_2@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-11-10 10:20:14',70,'Suite #3, Business Tower, Sector 3',NULL,NULL,NULL,'South Branch',NULL,'Operations',NULL,'In Progress',2,'2026-11-14',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(3,1,'Ananya Nair 3','+919800000003','+91','lead_3@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-11-09 10:20:14',70,'Suite #4, Business Tower, Sector 4',NULL,NULL,NULL,'Head Office',NULL,'Marketing',NULL,'Follow Up',3,'2026-11-15',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(4,1,'Vikram Kumar dev','+919800000004','+91','lead_4@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-11-08 10:20:14',131,'Suite #5, Business Tower, Sector 5',NULL,NULL,1,'ufs',1,'marketing',3,'pending',5,'2026-11-16',1,0,NULL,NULL,0,NULL,NULL,NULL,'[70, \"131\"]','Medium',NULL,0),(5,1,'Pooja Singh 5','+919800000005','+91','lead_5@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-11-07 10:20:14',70,'Suite #6, Business Tower, Sector 6',NULL,NULL,NULL,'South Branch',NULL,'Support',NULL,'New',0,'2026-11-17',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(6,1,'Rahul Reddy 6','+919800000006','+91','lead_6@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-11-06 10:20:14',132,'Suite #7, Business Tower, Sector 7',NULL,NULL,1,'ufs',1,'marketing',3,'pending',2,'2026-11-18',1,0,NULL,NULL,0,NULL,NULL,NULL,'[70, \"132\"]','High',NULL,0),(7,1,'Sneha Mehta 7','+919800000007','+91','lead_7@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-11-05 10:20:14',70,'Suite #8, Business Tower, Sector 8',NULL,NULL,NULL,'North Branch',NULL,'Marketing',NULL,'In Progress',2,'2026-11-19',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(8,1,'Arjun Sharma 8','+919800000008','+91','lead_8@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-11-04 10:20:14',70,'Suite #9, Business Tower, Sector 9',NULL,NULL,NULL,'South Branch',NULL,'Sales',NULL,'Follow Up',3,'2026-11-20',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(9,1,'Kavya Patel 9','+919800000009','+91','lead_9@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-11-03 10:20:14',70,'Suite #10, Business Tower, Sector 10',NULL,NULL,NULL,'Head Office',NULL,'Support',NULL,'Qualified',4,'2026-11-21',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(10,1,'Aarav Verma 10','+919800000010','+91','lead_10@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-11-02 10:20:14',70,'Suite #11, Business Tower, Sector 11',NULL,NULL,NULL,'North Branch',NULL,'Operations',NULL,'New',0,'2026-11-22',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(11,1,'Diya Nair 11','+919800000011','+91','lead_11@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-11-01 10:20:14',70,'Suite #12, Business Tower, Sector 12',NULL,NULL,NULL,'South Branch',NULL,'Marketing',NULL,'Contacted',1,'2026-11-23',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(12,1,'Rohan Kumar 12','+919800000012','+91','lead_12@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-10-31 10:20:14',70,'Suite #13, Business Tower, Sector 13',NULL,NULL,NULL,'Head Office',NULL,'Sales',NULL,'In Progress',2,'2026-11-24',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(13,1,'Ananya Singh 13','+919800000013','+91','lead_13@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-10-30 10:20:14',70,'Suite #14, Business Tower, Sector 14',NULL,NULL,NULL,'North Branch',NULL,'Support',NULL,'Follow Up',3,'2026-11-25',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(14,1,'Vikram Reddy 14','+919800000014','+91','lead_14@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-10-29 10:20:14',70,'Suite #15, Business Tower, Sector 15',NULL,NULL,NULL,'South Branch',NULL,'Operations',NULL,'Qualified',4,'2026-11-12',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(15,1,'Pooja Mehta 15','+919800000015','+91','lead_15@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-10-28 10:20:14',70,'Suite #16, Business Tower, Sector 16',NULL,NULL,NULL,'Head Office',NULL,'Marketing',NULL,'New',0,'2026-11-13',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(16,1,'Rahul Sharma 16','+919800000016','+91','lead_16@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-10-27 10:20:14',70,'Suite #17, Business Tower, Sector 17',NULL,NULL,NULL,'North Branch',NULL,'Sales',NULL,'Contacted',1,'2026-11-14',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(17,1,'Sneha Patel 17','+919800000017','+91','lead_17@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'link','whatsapp','2026-10-26 10:20:14',70,'Suite #18, Business Tower, Sector 18',NULL,NULL,NULL,'South Branch',NULL,'Support',NULL,'In Progress',2,'2026-11-15',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0),(18,1,'Arjun Verma 18','+919800000018','+91','lead_18@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'whatsapp','whatsapp','2026-10-25 10:20:14',70,'Suite #19, Business Tower, Sector 19',NULL,NULL,NULL,'Head Office',NULL,'Operations',NULL,'Follow Up',3,'2026-11-16',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'High',NULL,0),(19,1,'Kavya Nair 19','+919800000019','+91','lead_19@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'import','whatsapp','2026-10-24 10:20:14',70,'Suite #20, Business Tower, Sector 20',NULL,NULL,NULL,'North Branch',NULL,'Marketing',NULL,'Qualified',4,'2026-11-17',0,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Medium',NULL,0),(20,1,'Aarav Kumar 20','+919800000020','+91','lead_20@trackboxcrm.test','[\"New Lead\", \"Bulk Import\"]',1,'2026-11-12 10:20:14',NULL,'manual','whatsapp','2026-10-23 10:20:14',70,'Suite #21, Business Tower, Sector 21',NULL,NULL,NULL,'South Branch',NULL,'Sales',NULL,'New',0,'2026-11-18',1,0,NULL,NULL,0,NULL,NULL,NULL,NULL,'Low',NULL,0);
 /*!40000 ALTER TABLE `contacts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1225,7 +1164,7 @@ CREATE TABLE `follow_ups` (
   PRIMARY KEY (`follow_up_id`),
   KEY `fk_contact_followup_contact` (`contact_id`),
   CONSTRAINT `fk_contact_followup_contact` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1234,7 +1173,7 @@ CREATE TABLE `follow_ups` (
 
 LOCK TABLES `follow_ups` WRITE;
 /*!40000 ALTER TABLE `follow_ups` DISABLE KEYS */;
-INSERT INTO `follow_ups` VALUES (1,1,'Diya Patel 1',NULL,'2026-11-12 17:46:18',70,'Administrator',70,'Administrator',NULL,'Contacted',NULL,'North Branch',NULL,'Support',''),(3,1,'Diya Patel 1','2026-11-13','2026-11-13 09:42:32',70,'Administrator',502,'Priya Sharma',2,'lost',1,'ufs',1,'marketing','newww '),(4,4,'Vikram Kumar dev','2026-11-16','2026-11-13 09:48:48',70,'Administrator',131,'Rahul Menon',3,'pending',1,'ufs',1,'marketing','');
+INSERT INTO `follow_ups` VALUES (1,1,'Diya Patel 1',NULL,'2026-11-12 17:46:18',70,'Administrator',70,'Administrator',NULL,'Contacted',NULL,'North Branch',NULL,'Support',''),(3,1,'Diya Patel 1','2026-11-13','2026-11-13 09:42:32',70,'Administrator',502,'Priya Sharma',2,'lost',1,'ufs',1,'marketing','newww '),(4,4,'Vikram Kumar dev','2026-11-16','2026-11-13 09:48:48',70,'Administrator',131,'Rahul Menon',3,'pending',1,'ufs',1,'marketing',''),(5,6,'Rahul Reddy 6','2026-11-18','2026-11-13 13:40:50',70,'Administrator',132,'Deepa Nair',3,'pending',1,'ufs',1,'marketing','');
 /*!40000 ALTER TABLE `follow_ups` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1254,7 +1193,7 @@ CREATE TABLE `intakes` (
   PRIMARY KEY (`id`),
   KEY `business_id` (`business_id`),
   CONSTRAINT `intakes_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1263,6 +1202,7 @@ CREATE TABLE `intakes` (
 
 LOCK TABLES `intakes` WRITE;
 /*!40000 ALTER TABLE `intakes` DISABLE KEYS */;
+INSERT INTO `intakes` VALUES (1,1,'2026',1,'2026-11-13 04:53:00');
 /*!40000 ALTER TABLE `intakes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1558,7 +1498,7 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_business_id` (`business_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1779,7 +1719,7 @@ CREATE TABLE `receipt_types` (
   PRIMARY KEY (`id`),
   KEY `business_id` (`business_id`),
   CONSTRAINT `receipt_types_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1788,6 +1728,7 @@ CREATE TABLE `receipt_types` (
 
 LOCK TABLES `receipt_types` WRITE;
 /*!40000 ALTER TABLE `receipt_types` DISABLE KEYS */;
+INSERT INTO `receipt_types` VALUES (1,1,'application fees','2026-11-13 04:35:19'),(2,1,'registration fees','2026-11-13 04:35:30');
 /*!40000 ALTER TABLE `receipt_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1819,7 +1760,7 @@ CREATE TABLE `receipts` (
   CONSTRAINT `receipts_ibfk_2` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
   CONSTRAINT `receipts_ibfk_3` FOREIGN KEY (`receipt_type_id`) REFERENCES `receipt_types` (`id`) ON DELETE SET NULL,
   CONSTRAINT `receipts_ibfk_4` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1828,6 +1769,7 @@ CREATE TABLE `receipts` (
 
 LOCK TABLES `receipts` WRITE;
 /*!40000 ALTER TABLE `receipts` DISABLE KEYS */;
+INSERT INTO `receipts` VALUES (1,1,1,1,'application fees',1323.00,'2026-11-13','paid',70,'Administrator','2026-11-13 07:50:01'),(2,4,1,2,'registration fees',567890.00,'2026-11-13',NULL,70,'Administrator','2026-11-13 07:50:16'),(3,6,1,1,'application fees',123.00,'2026-11-13','2',132,'Deepa Nair','2026-11-13 08:11:07');
 /*!40000 ALTER TABLE `receipts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2047,7 +1989,7 @@ CREATE TABLE `team_members` (
   KEY `user_id` (`user_id`),
   CONSTRAINT `team_members_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`) ON DELETE CASCADE,
   CONSTRAINT `team_members_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2056,7 +1998,7 @@ CREATE TABLE `team_members` (
 
 LOCK TABLES `team_members` WRITE;
 /*!40000 ALTER TABLE `team_members` DISABLE KEYS */;
-INSERT INTO `team_members` VALUES (1,1,502,'2026-11-13 04:11:58'),(2,1,131,'2026-11-13 04:11:58'),(3,1,132,'2026-11-13 04:11:58');
+INSERT INTO `team_members` VALUES (7,3,502,'2026-11-13 07:46:18'),(8,3,131,'2026-11-13 07:46:18'),(9,3,132,'2026-11-13 07:46:18');
 /*!40000 ALTER TABLE `team_members` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2078,7 +2020,7 @@ CREATE TABLE `teams` (
   KEY `fk_teams_user_id` (`user_id`),
   CONSTRAINT `fk_teams_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `teams_ibfk_1` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2087,7 +2029,7 @@ CREATE TABLE `teams` (
 
 LOCK TABLES `teams` WRITE;
 /*!40000 ALTER TABLE `teams` DISABLE KEYS */;
-INSERT INTO `teams` VALUES (1,1,502,NULL,'2026-11-13 04:11:58');
+INSERT INTO `teams` VALUES (3,1,502,NULL,'2026-11-13 07:46:18');
 /*!40000 ALTER TABLE `teams` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2209,6 +2151,7 @@ CREATE TABLE `users` (
   `department_id` int DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
   `password_hash` varchar(255) DEFAULT NULL,
   `role` enum('superadmin','admin','manager','agent') DEFAULT 'agent',
   `is_active` tinyint(1) DEFAULT '1',
@@ -2224,6 +2167,7 @@ CREATE TABLE `users` (
   `company_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `unique_user_phone` (`phone`),
   KEY `business_id` (`business_id`),
   KEY `fk_users_branch` (`branch_id`),
   KEY `fk_users_department` (`department_id`),
@@ -2240,7 +2184,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (70,1,NULL,NULL,'Administrator','admin@trackbox.com','$2b$10$YLMl/gnBCALernNeRSly0OVKF3moUzJIz0xG9K0Q.mMfPLzK1t1pm','admin',1,'2026-11-11 07:08:03','admin','active',NULL,NULL,NULL,NULL,NULL,0,NULL),(71,1,NULL,NULL,'UFS Developer','ufs@trackbox.com','$2b$10$YLMl/gnBCALernNeRSly0OVKF3moUzJIz0xG9K0Q.mMfPLzK1t1pm','superadmin',1,'2026-11-11 07:08:03','ufs','active',NULL,NULL,NULL,NULL,NULL,1,NULL),(131,1,1,1,'Rahul Menon','rahul.menon@trackboxcrm.com',NULL,'agent',1,'2026-11-11 07:50:21','rahul_uk','active',121,'UK-01',NULL,NULL,'[]',0,NULL),(132,1,1,1,'Deepa Nair','deepa.nair@trackboxcrm.com',NULL,'agent',1,'2026-11-11 07:50:21','deepa_uk','active',122,'UK-02',NULL,NULL,'[]',0,NULL),(502,1,1,1,'Priya Sharma','priya.sharma@trackboxcrm.com','$2b$10$1234567890abcdefghijklmnop','manager',1,'2026-11-11 07:49:27','priya_canada','active',402,'EMP-CAN-02','2024-09-01',NULL,'[]',0,NULL);
+INSERT INTO `users` VALUES (70,1,NULL,NULL,'Administrator','admin@trackbox.com',NULL,'$2b$10$YLMl/gnBCALernNeRSly0OVKF3moUzJIz0xG9K0Q.mMfPLzK1t1pm','admin',1,'2026-11-11 07:08:03','admin','active',NULL,NULL,NULL,NULL,NULL,0,NULL),(71,1,NULL,NULL,'UFS Developer','ufs@trackbox.com',NULL,'$2b$10$YLMl/gnBCALernNeRSly0OVKF3moUzJIz0xG9K0Q.mMfPLzK1t1pm','superadmin',1,'2026-11-11 07:08:03','ufs','active',NULL,NULL,NULL,NULL,NULL,1,NULL),(131,1,1,1,'Rahul Menon','rahul.menon@trackboxcrm.com','8129025108',NULL,'agent',1,'2026-11-11 07:50:21','rahul_uk','active',121,'UK-01',NULL,NULL,'[]',0,NULL),(132,1,1,1,'Deepa Nair','deepa.nair@trackboxcrm.com',NULL,'$2b$10$FSy1q0DNQHMdw.zInrZLY./JZ0YcyoPHXCzBV4Yd9IAT3VysOJH5G','agent',1,'2026-11-11 07:50:21','deepa_uk','active',122,'UK-02',NULL,NULL,'[]',0,NULL),(502,1,1,1,'Priya Sharma','priya.sharma@trackboxcrm.com','8129025765','$2b$10$1234567890abcdefghijklmnop','manager',1,'2026-11-11 07:49:27','priya_canada','active',402,'EMP-CAN-02','2024-09-01',NULL,'[]',0,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2354,6 +2298,80 @@ LOCK TABLES `website_widgets` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `whatsapp_messages`
+--
+
+DROP TABLE IF EXISTS `whatsapp_messages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `whatsapp_messages` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `business_id` int DEFAULT NULL,
+  `contact_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `session_id` varchar(100) DEFAULT NULL,
+  `direction` enum('inbound','outbound') NOT NULL DEFAULT 'inbound',
+  `wa_message_id` varchar(150) DEFAULT NULL,
+  `message` text NOT NULL,
+  `status` enum('sent','delivered','read','failed') DEFAULT 'delivered',
+  `sent_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_contact_id` (`contact_id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_business_id` (`business_id`),
+  KEY `idx_wa_message_id` (`wa_message_id`),
+  CONSTRAINT `fk_whatsapp_messages_business` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_whatsapp_messages_contact` FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_whatsapp_messages_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `whatsapp_messages`
+--
+
+LOCK TABLES `whatsapp_messages` WRITE;
+/*!40000 ALTER TABLE `whatsapp_messages` DISABLE KEYS */;
+/*!40000 ALTER TABLE `whatsapp_messages` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `whatsapp_qr_sessions`
+--
+
+DROP TABLE IF EXISTS `whatsapp_qr_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `whatsapp_qr_sessions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `session_id` varchar(100) NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `business_id` int DEFAULT NULL,
+  `phone_number` varchar(30) DEFAULT NULL,
+  `creds_json` longtext,
+  `status` enum('pending','connected','disconnected') DEFAULT 'pending',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `session_id` (`session_id`),
+  KEY `idx_wqr_phone` (`phone_number`),
+  KEY `idx_wqr_user` (`user_id`),
+  CONSTRAINT `whatsapp_qr_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `whatsapp_qr_sessions`
+--
+
+LOCK TABLES `whatsapp_qr_sessions` WRITE;
+/*!40000 ALTER TABLE `whatsapp_qr_sessions` DISABLE KEYS */;
+/*!40000 ALTER TABLE `whatsapp_qr_sessions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `years`
 --
 
@@ -2365,7 +2383,7 @@ CREATE TABLE `years` (
   `name` varchar(255) NOT NULL,
   `business_id` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2374,6 +2392,7 @@ CREATE TABLE `years` (
 
 LOCK TABLES `years` WRITE;
 /*!40000 ALTER TABLE `years` DISABLE KEYS */;
+INSERT INTO `years` VALUES (1,'2026',1);
 /*!40000 ALTER TABLE `years` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -2386,4 +2405,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-13 10:02:56
+-- Dump completed on 2026-11-13 14:29:58
