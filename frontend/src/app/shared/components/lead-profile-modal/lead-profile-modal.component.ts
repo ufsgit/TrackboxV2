@@ -52,6 +52,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   courses: any[] = [];
   intakes: any[] = [];
   years: any[] = [];
+  selectedCourseDetails: any = null;
 
   // Documents Tab
   contactDocuments: any[] = [];
@@ -97,15 +98,22 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   savingEdit: boolean = false;
   countryCodes: any[] = [];
   selectedCountryCode: string = '+91';
+  enquiryFors: any[] = [];
+  channels: any[] = [];
+  leadFields: any[] = [];
+  groupedLeadFields: any[] = [];
+  today: string = new Date().toISOString().split('T')[0];
+
   editForm: any = {
     name: '',
     phone: '',
     country_code: '+91',
     email: '',
-    status: '',
-    follow_up_date: '',
-    remark: '',
-    assigned_to: ''
+    tags: '',
+    enquiry_for_id: null,
+    channel_preference: '',
+    address: '',
+    custom_field_values: {} as Record<string, string>
   };
   leadStatuses: any[] = [];
   agentsList: any[] = [];
@@ -128,6 +136,9 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     this.loadReceiptTypes();
     this.loadEditOptions();
     this.loadCountryCodes();
+    this.loadEnquiryFors();
+    this.loadChannels();
+    this.loadLeadFields();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -265,6 +276,54 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     });
   }
 
+  loadEnquiryFors(): void {
+    this.settingsService.getEnquiryFors().subscribe({
+      next: (res: any) => {
+        if (res && res.success) {
+          this.enquiryFors = res.data || [];
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  loadChannels(): void {
+    this.settingsService.getChannels().subscribe({
+      next: (res: any) => {
+        if (res && res.success) {
+          this.channels = res.data || [];
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  loadLeadFields(): void {
+    this.api.get('/settings/lead-fields').subscribe({
+      next: (res: any) => {
+        if (res && res.success) {
+          this.leadFields = res.data || [];
+          const grouped: any = {};
+          this.leadFields.forEach((f: any) => {
+            const cat = f.category_name || 'Additional Details';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(f);
+          });
+          this.groupedLeadFields = Object.keys(grouped).map(catName => ({
+            categoryName: catName,
+            fields: grouped[catName]
+          }));
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  isChannelInList(name: string): boolean {
+    if (!name || !this.channels) return false;
+    return this.channels.some((c: any) => c.name?.toLowerCase() === name.toLowerCase());
+  }
+
   // --- Top Actions: WhatsApp Message, Email, Edit, Delete ---
 
   goToChat() {
@@ -394,7 +453,10 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
 
   openEdit() {
     if (!this.selectedContact) return;
-    this.loadEditOptions();
+    this.loadChannels();
+    this.loadEnquiryFors();
+    this.loadLeadFields();
+    this.loadCountryCodes();
 
     let phone = (this.selectedContact.phone || '').toString().replace(/\s+/g, '');
     let countryCode = this.selectedContact.country_code || '+91';
@@ -411,26 +473,45 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     phone = phone.replace(/\D/g, '');
     this.selectedCountryCode = countryCode;
 
-    let formattedDate = '';
-    if (this.selectedContact.follow_up_date) {
-      const d = new Date(this.selectedContact.follow_up_date);
-      if (!isNaN(d.getTime())) {
-        formattedDate = d.toISOString().split('T')[0];
-      } else {
-        formattedDate = String(this.selectedContact.follow_up_date).split('T')[0];
-      }
-    }
+    const tagsArray = Array.isArray(this.selectedContact.tags)
+      ? this.selectedContact.tags
+      : (typeof this.selectedContact.tags === 'string' && this.selectedContact.tags.startsWith('['))
+        ? JSON.parse(this.selectedContact.tags || '[]')
+        : (this.selectedContact.tags ? [this.selectedContact.tags] : []);
 
     this.editForm = {
       name: this.selectedContact.name || '',
       phone: phone,
       country_code: countryCode,
       email: this.selectedContact.email || '',
-      status: this.selectedContact.status_name || this.selectedContact.status || '',
-      follow_up_date: formattedDate,
-      remark: this.selectedContact.latest_remark || this.selectedContact.remark || '',
-      assigned_to: this.selectedContact.assigned_to || ''
+      tags: tagsArray.join(', '),
+      enquiry_for_id: this.selectedContact.enquiry_for_id || null,
+      channel_preference: this.selectedContact.channel_preference || '',
+      address: this.selectedContact.address || '',
+      custom_field_values: {} as Record<string, string>
     };
+
+    if (this.selectedContact.custom_fields && Array.isArray(this.selectedContact.custom_fields)) {
+      this.selectedContact.custom_fields.forEach((f: any) => {
+        this.editForm.custom_field_values[f.field_id || f.id] = f.value || '';
+      });
+    } else {
+      this.leadFields.forEach(f => {
+        this.editForm.custom_field_values[f.id] = '';
+      });
+      if (this.selectedContact.id) {
+        this.api.get(`/contacts/${this.selectedContact.id}`).subscribe({
+          next: (res: any) => {
+            if (res && res.success && res.data?.custom_fields) {
+              res.data.custom_fields.forEach((f: any) => {
+                this.editForm.custom_field_values[f.field_id || f.id] = f.value || '';
+              });
+            }
+          }
+        });
+      }
+    }
+
     this.showEditModal = true;
   }
 
@@ -440,8 +521,8 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
 
   saveEdit() {
     if (!this.selectedContact?.id) return;
-    if (!this.editForm.name || !this.editForm.name.trim()) {
-      Swal.fire('Validation Error', 'Lead name is required.', 'warning');
+    if (!this.editForm.name || !this.editForm.name.trim() || !this.editForm.phone) {
+      Swal.fire('Validation Error', 'Full Name and Phone are required.', 'warning');
       return;
     }
 
@@ -488,11 +569,21 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       }
     }
 
-    this.editForm.phone = numericPhone;
-    this.editForm.country_code = this.selectedCountryCode;
+    const payload: any = {
+      name: this.editForm.name.trim(),
+      phone: numericPhone,
+      country_code: this.selectedCountryCode,
+      email: this.editForm.email || null,
+      tags: this.editForm.tags ? this.editForm.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
+      channel_preference: this.editForm.channel_preference || null,
+      enquiry_for_id: this.editForm.enquiry_for_id || null,
+      address: this.editForm.address || null,
+      custom_field_values: this.editForm.custom_field_values,
+      is_follow_up: false
+    };
 
     this.savingEdit = true;
-    this.api.put(`/contacts/${this.selectedContact.id}`, this.editForm).subscribe({
+    this.api.put(`/contacts/${this.selectedContact.id}`, payload).subscribe({
       next: () => {
         this.savingEdit = false;
         this.showEditModal = false;
@@ -559,6 +650,28 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     });
   }
 
+  getSelectedAppStatusColor(): string {
+    if (!this.currentApplication?.status_id) return '#94a3b8';
+    const s = this.appStatuses.find((x: any) => x.id == this.currentApplication.status_id);
+    return s?.color || '#6366f1';
+  }
+
+  getSelectedAppStatusName(): string {
+    if (!this.currentApplication?.status_id) return 'Not Selected';
+    const s = this.appStatuses.find((x: any) => x.id == this.currentApplication.status_id);
+    return s?.name || 'Not Selected';
+  }
+
+  onCourseSelect(): void {
+    const course = this.courses.find(c => c.name === this.currentApplication.course);
+    this.selectedCourseDetails = course || null;
+  }
+
+  isUniversityInList(name: string): boolean {
+    if (!name || !this.universities) return true;
+    return this.universities.some(u => u.name && u.name.toLowerCase() === name.toLowerCase());
+  }
+
   openAddApplicationModal() {
     this.currentApplication = {
       id: null,
@@ -571,6 +684,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       status_id: this.appStatuses.length > 0 ? this.appStatuses[0].id : '',
       description: ''
     };
+    this.selectedCourseDetails = null;
     this.loadUniversities();
     this.loadCourses();
     this.showAddApplicationModal = true;
@@ -588,6 +702,8 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       status_id: app.status_id || '',
       description: app.description || ''
     };
+    const course = this.courses ? this.courses.find(c => c.name === this.currentApplication.course) : null;
+    this.selectedCourseDetails = course || null;
     this.loadUniversities();
     this.loadCourses();
     this.showAddApplicationModal = true;

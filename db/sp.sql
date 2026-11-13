@@ -456,6 +456,161 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_clean_database`()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE target_table VARCHAR(255);
+    
+    -- Tables to preserve: users, company_config, businesses
+    DECLARE table_cursor CURSOR FOR
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = DATABASE() 
+          AND table_type = 'BASE TABLE'
+          AND table_name NOT IN ('users', 'company_config', 'businesses');
+          
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    -- 1. Disable safe updates and foreign key checks
+    SET SQL_SAFE_UPDATES = 0;
+    SET FOREIGN_KEY_CHECKS = 0;
+
+    -- 2. Loop through all tables and wipe their data
+    OPEN table_cursor;
+
+    read_loop: LOOP
+        FETCH table_cursor INTO target_table;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Delete rows safely
+        SET @stmt = CONCAT('DELETE FROM `', target_table, '`');
+        PREPARE s FROM @stmt;
+        EXECUTE s;
+        DEALLOCATE PREPARE s;
+
+        -- Reset auto-increment to 1
+        SET @stmt_ai = CONCAT('ALTER TABLE `', target_table, '` AUTO_INCREMENT = 1');
+        PREPARE s_ai FROM @stmt_ai;
+        EXECUTE s_ai;
+        DEALLOCATE PREPARE s_ai;
+    END LOOP;
+
+    CLOSE table_cursor;
+
+    -- 3. Ensure business ID = 1 exists so users can log in
+    INSERT INTO businesses (id, name, whatsapp_number, plan, green_tick_status)
+    VALUES (1, 'Demo Business', '+15556377030', 'pro', 'verified')
+    ON DUPLICATE KEY UPDATE name = VALUES(name);
+
+    -- 4. Restore foreign key checks & safe updates
+    SET FOREIGN_KEY_CHECKS = 1;
+    SET SQL_SAFE_UPDATES = 1;
+
+    -- 5. Return 1
+    SELECT 1 AS status;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_generate_dummy_contacts`(
+    IN p_total_records INT,
+    IN p_business_id INT
+)
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE v_batch_size INT DEFAULT 1000;
+    DECLARE v_biz_id INT DEFAULT 1;
+    DECLARE v_assigned_user INT DEFAULT NULL;
+
+    -- Default to 10,000 if not provided
+    IF p_total_records IS NULL OR p_total_records <= 0 THEN
+        SET p_total_records = 10000;
+    END IF;
+
+    -- Validate or assign business_id
+    IF p_business_id IS NOT NULL THEN
+        SET v_biz_id = p_business_id;
+    ELSE
+        SELECT `id` INTO v_biz_id FROM `businesses` LIMIT 1;
+    END IF;
+
+    -- Pick an existing user from the business for assigned_to
+    SELECT `id` INTO v_assigned_user FROM `users` WHERE `business_id` = v_biz_id LIMIT 1;
+
+    -- Optimize insertion performance
+    SET autocommit = 0;
+    START TRANSACTION;
+
+    WHILE i <= p_total_records DO
+        INSERT INTO `contacts` (
+            `business_id`,
+            `name`,
+            `phone`,
+            `email`,
+            `tags`,
+            `opted_in`,
+            `opt_in_date`,
+            `opt_in_source`,
+            `channel_preference`,
+            `created_at`,
+            `assigned_to`,
+            `address`,
+            `branch_name`,
+            `department_name`,
+            `status_name`,
+            `follow_up_count`,
+            `follow_up_date`,
+            `follow_up`,
+            `priority`,
+            `current_sale_status`
+        ) VALUES (
+            v_biz_id,
+            CONCAT(
+                ELT(1 + (i % 10), 'Aarav', 'Diya', 'Rohan', 'Ananya', 'Vikram', 'Pooja', 'Rahul', 'Sneha', 'Arjun', 'Kavya'),
+                ' ',
+                ELT(1 + (i % 8), 'Sharma', 'Patel', 'Verma', 'Nair', 'Kumar', 'Singh', 'Reddy', 'Mehta'),
+                ' ',
+                i
+            ),
+            CONCAT('+9198', LPAD(i, 8, '0')),
+            CONCAT('lead_', i, '@trackboxcrm.test'),
+            JSON_ARRAY('New Lead', 'Bulk Import'),
+            1,
+            NOW(),
+            ELT(1 + (i % 4), 'manual', 'link', 'whatsapp', 'import'),
+            'whatsapp',
+            DATE_SUB(NOW(), INTERVAL (i % 365) DAY),
+            v_assigned_user,
+            CONCAT('Suite #', (i % 500) + 1, ', Business Tower, Sector ', (i % 25) + 1),
+            ELT(1 + (i % 3), 'Head Office', 'North Branch', 'South Branch'),
+            ELT(1 + (i % 4), 'Sales', 'Support', 'Operations', 'Marketing'),
+            ELT(1 + (i % 5), 'New', 'Contacted', 'In Progress', 'Follow Up', 'Qualified'),
+            (i % 5),
+            DATE_ADD(CURDATE(), INTERVAL (i % 14) DAY),
+            IF((i % 2) = 0, 1, 0),
+            ELT(1 + (i % 3), 'High', 'Medium', 'Low'),
+            0
+        );
+
+        -- Commit every 1,000 records for fast bulk insert & lower memory footprint
+        IF (i % v_batch_size) = 0 THEN
+            COMMIT;
+            START TRANSACTION;
+        END IF;
+
+        SET i = i + 1;
+    END WHILE;
+
+    COMMIT;
+    SET autocommit = 1;
+
+    SELECT CONCAT('Successfully inserted ', p_total_records, ' dummy contacts for Business ID: ', v_biz_id) AS `result`;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_crm_dashboard_kpis`(
   IN p_business_id INT,
   IN p_user_id INT,
