@@ -1,0 +1,154 @@
+<div class="whatsapp-qr-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon-box">
+        <i class="bi bi-qr-code-scan"></i>
+      </div>
+      <div>
+        <h2 class="page-title">WhatsApp QR Connect</h2>
+        <p class="page-subtitle">Scan QR code using WhatsApp on your phone to link and assign messages to your staff user.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-container">
+    <div class="main-card">
+
+      <!-- 1. LOADING STATE -->
+      <div *ngIf="state === 'loading'" class="state-container">
+        <div class="spinner-border text-success" role="status" style="width: 3.5rem; height: 3.5rem;">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4 class="mt-4 fw-bold">Initializing WhatsApp Engine</h4>
+        <p class="text-muted">Connecting securely to WhatsApp servers to fetch your QR code...</p>
+      </div>
+
+      <!-- 2. QR READY STATE -->
+      <div *ngIf="state === 'qr_ready'" class="state-container">
+        <div class="qr-layout">
+          <div class="qr-box">
+            <img [src]="qrImage" alt="WhatsApp QR Code" class="qr-image" />
+          </div>
+
+          <div class="instructions-box">
+            <h4 class="instruction-title">To connect your WhatsApp:</h4>
+            <ol class="steps-list">
+              <li>Open <strong>WhatsApp</strong> on your phone</li>
+              <li>Tap <strong>Settings</strong> or <strong>Menu (3 dots)</strong> & select <strong>Linked Devices</strong></li>
+              <li>Tap <strong>Link a Device</strong></li>
+              <li>Point your camera at this QR code to scan</li>
+            </ol>
+
+            <div class="alert alert-info d-flex align-items-center gap-2 mt-4" style="border-radius: 10px;">
+              <i class="bi bi-shield-lock-fill fs-5"></i>
+              <span style="font-size: 0.85rem;">The scanned WhatsApp phone number must match an active staff member in the system.</span>
+            </div>
+
+            <button class="btn btn-outline-secondary btn-sm mt-2" (click)="refreshQr()">
+              <i class="bi bi-arrow-clockwise me-1"></i> Refresh QR Code
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. USER NOT FOUND ERROR STATE -->
+      <div *ngIf="state === 'user_not_found'" class="state-container text-center py-4">
+        <div class="icon-circle bg-danger-subtle text-danger mb-3">
+          <i class="bi bi-person-x-fill" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="fw-bold text-danger">{{ errorMessage }}</h3>
+        <p class="text-muted mt-2" *ngIf="scannedPhone">
+          Scanned phone number: <strong class="text-dark">{{ scannedPhone }}</strong>
+        </p>
+        <p class="text-secondary" style="max-width: 480px; margin: 0 auto;">
+          Please make sure this phone number is registered under a staff account in your system settings before linking.
+        </p>
+        <div class="mt-4">
+          <button class="btn btn-primary px-4 py-2" (click)="refreshQr()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Try Again with Different Number
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. USER FOUND: VERIFICATION & CONFIRMATION STATE -->
+      <div *ngIf="state === 'user_found' && verifiedUser" class="state-container text-center py-3">
+        <div class="icon-circle bg-success-subtle text-success mb-3">
+          <i class="bi bi-check-circle-fill" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="fw-bold text-dark">Staff User Verified</h3>
+        <p class="text-muted">Please confirm this staff member to assign all incoming and outgoing WhatsApp messages.</p>
+
+        <!-- User Profile Card -->
+        <div class="user-details-card mt-4 mb-4 text-start">
+          <div class="user-card-header">
+            <div class="avatar-circle">
+              {{ verifiedUser.name.charAt(0).toUpperCase() }}
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold">{{ verifiedUser.name }}</h5>
+              <span class="badge bg-primary-subtle text-primary text-uppercase">{{ verifiedUser.role }}</span>
+            </div>
+          </div>
+
+          <hr class="my-3 text-muted opacity-25">
+
+          <div class="user-card-grid">
+            <div class="detail-item">
+              <span class="detail-label"><i class="bi bi-telephone-fill me-1 text-success"></i> Phone Number</span>
+              <span class="detail-val">{{ verifiedUser.phone || scannedPhone }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label"><i class="bi bi-envelope-fill me-1 text-primary"></i> Email</span>
+              <span class="detail-val">{{ verifiedUser.email }}</span>
+            </div>
+            <div class="detail-item" *ngIf="verifiedUser.employeeCode">
+              <span class="detail-label"><i class="bi bi-badge-ad me-1 text-secondary"></i> Employee Code</span>
+              <span class="detail-val">{{ verifiedUser.employeeCode }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+          <button class="btn btn-outline-danger px-4 py-2" (click)="disconnect()">
+            <i class="bi bi-x-circle me-1"></i> Cancel
+          </button>
+          <button class="btn btn-success px-4 py-2 fw-semibold" (click)="confirmAssignment()" [disabled]="isConfirming">
+            <span *ngIf="isConfirming" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!isConfirming" class="bi bi-check2-circle me-1"></i> Confirm & Assign WhatsApp Messages
+          </button>
+        </div>
+      </div>
+
+      <!-- 5. ASSIGNED & CONNECTED SUCCESS STATE -->
+      <div *ngIf="state === 'assigned'" class="state-container text-center py-4">
+        <div class="icon-circle bg-success text-white mb-3 shadow">
+          <i class="bi bi-whatsapp" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="fw-bold text-success">WhatsApp Connected & Assigned</h3>
+        <p class="text-muted mt-2" *ngIf="verifiedUser">
+          All WhatsApp messages for <strong>{{ verifiedUser.phone || scannedPhone }}</strong> are actively routed and assigned to <strong>{{ verifiedUser.name }}</strong>.
+        </p>
+
+        <div class="mt-4 d-flex justify-content-center gap-3">
+          <button class="btn btn-outline-danger px-4 py-2" (click)="disconnect()">
+            <i class="bi bi-power me-1"></i> Disconnect Session
+          </button>
+        </div>
+      </div>
+
+      <!-- 6. ERROR STATE -->
+      <div *ngIf="state === 'error'" class="state-container text-center py-4">
+        <div class="icon-circle bg-warning-subtle text-warning mb-3">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="fw-bold text-dark">Connection Notice</h3>
+        <p class="text-danger mt-2">{{ errorMessage }}</p>
+        <button class="btn btn-primary px-4 py-2 mt-3" (click)="refreshQr()">
+          <i class="bi bi-arrow-clockwise me-1"></i> Retry Connection
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

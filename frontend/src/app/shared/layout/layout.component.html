@@ -414,6 +414,10 @@
                     <span class="smp-icon icon-blue"><i class="bi bi-plug-fill"></i></span>
                     <span class="smp-label">Integrations</span>
                   </a>
+                  <a routerLink="/whatsapp-qr" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-green"><i class="bi bi-qr-code-scan"></i></span>
+                    <span class="smp-label">WhatsApp QR</span>
+                  </a>
                   <a *ngIf="isUfsUser" routerLink="/settings" [queryParams]="{tab: 'help-video'}" class="smp-item" (click)="isSettingsOpen = false">
                     <span class="smp-icon icon-red"><i class="bi bi-camera-video-fill"></i></span>
                     <span class="smp-label">Help Videos</span>
@@ -773,6 +777,9 @@
         </a>
         <a routerLink="/settings" [queryParams]="{tab: 'integrations'}" class="popup-item" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-plug"></i> Integrations
+        </a>
+        <a routerLink="/whatsapp-qr" class="popup-item" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-qr-code-scan"></i> WhatsApp QR
         </a>
 
       </div>

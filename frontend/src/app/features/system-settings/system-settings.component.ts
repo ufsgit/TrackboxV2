@@ -283,6 +283,16 @@ export class SystemSettingsComponent implements OnInit {
       permission: 'Integrations'
     },
     {
+      id: 'whatsapp-qr',
+      title: 'WhatsApp QR Connect',
+      category: 'general',
+      categoryLabel: 'Communication',
+      description: 'Connect WhatsApp messaging by scanning QR code directly from your device.',
+      icon: 'bi-qr-code-scan',
+      gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      route: '/whatsapp-qr'
+    },
+    {
       id: 'help-video',
       title: 'Help Video Management',
       category: 'general',

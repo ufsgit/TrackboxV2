@@ -19,6 +19,7 @@ const { handleOptInLink } = require('./src/controllers/contacts.controller');
 const { startBroadcastJob } = require('./src/jobs/broadcastJob');
 const { startDripJob } = require('./src/jobs/dripJob');
 const { startSmsJob } = require('./src/jobs/smsJob');
+const { initWhatsappQrSocket } = require('./src/sockets/whatsapp/whatsappQr.socket');
 const r2Service = require('./src/services/r2.service');
 
 const app = express();
@@ -165,6 +166,7 @@ app.use('/api/receipts', require('./src/routes/receipts.routes'));
 app.use('/api/visas', require('./src/routes/visas.routes'));
 app.use('/api/help-video', require('./src/routes/help-video.routes'));
 app.use('/api/export', require('./src/routes/excel-export'));
+app.use('/api/whatsapp-qr', require('./src/routes/whatsapp/whatsappQr.routes'));
 // app.use('/api/operations', require('./src/routes/operations.routes'));
 
 // Socket.IO
@@ -186,6 +188,7 @@ const PORT = process.env.PORT || 3000;
 async function bootstrap() {
   try {
     await runMigrations();
+    initWhatsappQrSocket(io);
     startBroadcastJob(io);
     startDripJob(io);
     startSmsJob();

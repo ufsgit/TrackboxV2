@@ -851,6 +851,23 @@ async function runMigrations() {
     INDEX idx_help_biz (business_id)
   )`);
 
+  // WhatsApp QR Session Auth Table
+  await pool.query(`CREATE TABLE IF NOT EXISTS whatsapp_qr_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(100) NOT NULL UNIQUE,
+    user_id INT NULL,
+    business_id INT NULL,
+    phone_number VARCHAR(30) NULL,
+    creds_json LONGTEXT NULL,
+    status ENUM('pending', 'connected', 'disconnected') DEFAULT 'pending',
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_wqr_phone (phone_number),
+    INDEX idx_wqr_user (user_id)
+  )`);
+
   console.log('✅ Database migrations completed');
 
   await seedData();
