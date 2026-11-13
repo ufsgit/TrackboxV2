@@ -25,6 +25,29 @@ async function getAccessibleUserIds(user, businessId) {
   try {
     const p = pool.promise ? pool.promise() : pool;
 
+    // Branch Manager: Has access to all users belonging to their Branch
+    if (role === 'manager') {
+      const [uRows] = await p.query(
+        `SELECT branch_id FROM users WHERE id = ? AND business_id = ? LIMIT 1`,
+        [userId, businessId]
+      );
+      if (uRows.length && uRows[0].branch_id) {
+        const branchId = uRows[0].branch_id;
+        const [branchUsers] = await p.query(
+          `SELECT id FROM users WHERE branch_id = ? AND business_id = ?`,
+          [branchId, businessId]
+        );
+        for (const bu of branchUsers) {
+          const bUserId = Number(bu.id);
+          accessibleIds.add(bUserId);
+          if (!visited.has(bUserId)) {
+            visited.add(bUserId);
+            queue.push(bUserId);
+          }
+        }
+      }
+    }
+
     while (queue.length > 0) {
       const currentId = queue.shift();
 

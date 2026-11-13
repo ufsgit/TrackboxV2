@@ -97,6 +97,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   private t0 = 0;
 
   kpis: any[] = [];
+  applicationStatusKpis: any[] = [];
   funnel: any[] = [];
   funnelH = 0;
   hoveredStage: number | null = null;
@@ -240,8 +241,23 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
 
   rawPipelineStages: any[] = [];
 
+  public loadApplicationStatusKpis(): void {
+    this.api.get('/analytics/application-status-kpis').subscribe({
+      next: (res: any) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.applicationStatusKpis = res.data;
+          this.build();
+        }
+      },
+      error: (err: any) => {
+        console.error('Error fetching application status KPIs:', err);
+      }
+    });
+  }
+
   public loadDashboardData(): void {
     this.syncing = true;
+    this.loadApplicationStatusKpis();
     this.api.get('/analytics/crm-dashboard', { 
       range: this.range,
       year: this.monthlySelectedYear,
@@ -452,7 +468,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
       enrolled: 0
     };
 
-    this.kpis = [
+    const baseKpis = [
       { 
         label: 'Total Leads', 
         value: s.total, 
@@ -474,16 +490,6 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         link: '/reports/applications'
       },
       { 
-        label: 'Offer Received', 
-        value: eduStats.offerLetters ?? 0, 
-        icon: 'i-letter', 
-        color: '#8B5CF6', 
-        tint: 'rgba(139, 92, 246, 0.08)', 
-        delta: '0%', 
-        spark: [0, 0, 0, 0, 0], 
-        link: '/reports/offer-letters'
-      },
-      { 
         label: 'Fees Paid', 
         value: eduStats.feesPaid ?? 0, 
         icon: 'i-coin', 
@@ -492,38 +498,42 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
         delta: '0%', 
         spark: [0, 0, 0, 0, 0], 
         link: '/reports/fees-paid'
-      },
-      { 
-        label: 'Visa Applied', 
-        value: eduStats.visaSubmitted ?? 0, 
-        icon: 'i-plane', 
-        color: '#0EA5E9', 
-        tint: 'rgba(14, 165, 233, 0.08)', 
-        delta: '0%', 
-        spark: [0, 0, 0, 0, 0], 
-        link: '/reports/visa-submitted'
-      },
-      { 
-        label: 'Visa Received', 
-        value: eduStats.visaApproved ?? 0, 
-        icon: 'i-check-circle', 
-        color: '#10B981', 
-        tint: 'rgba(16, 185, 129, 0.08)', 
-        delta: '0%', 
-        spark: [0, 0, 0, 0, 0], 
-        link: '/reports/visa-approved'
-      },
-      { 
-        label: 'Completion / Enrolled', 
-        value: eduStats.enrolled ?? 0, 
-        icon: 'i-grad', 
-        color: '#6366F1', 
-        tint: 'rgba(99, 102, 241, 0.08)', 
-        delta: '0%', 
-        spark: [0, 0, 0, 0, 0], 
-        link: '/reports/completion-enrolled-report'
-      },
-    ].map(k => ({ ...k, display: String(k.value) }));
+      }
+    ];
+
+    const statusPalette = ['#8B5CF6', '#0EA5E9', '#10B981', '#6366F1', '#EC4899', '#F97316', '#14B8A6'];
+    const statusIcons: { [key: string]: string } = {
+      'offer': 'i-letter',
+      'applied': 'i-plane',
+      'visa': 'i-check-circle',
+      'approved': 'i-check-circle',
+      'enrolled': 'i-grad'
+    };
+
+    const dynamicStatusKpis = (this.applicationStatusKpis || []).map((st: any, idx: number) => {
+      const lower = (st.name || '').toLowerCase();
+      let icon = 'i-doc';
+      for (const [k, ic] of Object.entries(statusIcons)) {
+        if (lower.includes(k)) {
+          icon = ic;
+          break;
+        }
+      }
+      const color = st.color && st.color !== '#475569' ? st.color : statusPalette[idx % statusPalette.length];
+      return {
+        label: st.name,
+        value: Number(st.count) || 0,
+        icon: icon,
+        color: color,
+        tint: color + '15',
+        delta: '0%',
+        spark: [0, 0, 0, 0, 0],
+        link: '/reports/applications',
+        queryParams: { statusId: st.id, status: st.name }
+      };
+    });
+
+    this.kpis = [...baseKpis, ...dynamicStatusKpis].map(k => ({ ...k, display: String(k.value) }));
 
     // Build Lead Status Pipeline Funnel from backend SP stages (or fallback)
     const stages = (this.rawPipelineStages && this.rawPipelineStages.length > 0)

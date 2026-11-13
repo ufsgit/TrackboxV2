@@ -57,7 +57,7 @@
         <div class="card-val-row">
           <div *ngIf="loading" class="kpi-skeleton-val shimmer"></div>
           <ng-container *ngIf="!loading">
-            <span class="card-val">{{ getTabBadgeCount(tab.type) | number }}</span>
+            <span class="card-val">{{ getTabBadgeCount(tab) | number }}</span>
             <span class="card-sub-badge" *ngIf="tab.type === 'fees-paid' && summary.feesPaidAmount > 0">
               ₹{{ summary.feesPaidAmount | number }}
             </span>

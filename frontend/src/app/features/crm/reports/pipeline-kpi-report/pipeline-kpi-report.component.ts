@@ -55,13 +55,9 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
 
   private sub: Subscription = new Subscription();
 
-  tabs = [
-    { type: 'applications', label: 'Applications', icon: 'bi-file-earmark-person', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' },
-    { type: 'offer-letters', label: 'Offer Received', icon: 'bi-envelope-paper-heart', color: '#8B5CF6', tint: 'rgba(139, 92, 246, 0.1)' },
-    { type: 'fees-paid', label: 'Fees Paid', icon: 'bi-cash-coin', color: '#F59E0B', tint: 'rgba(245, 158, 11, 0.1)' },
-    { type: 'visa-submitted', label: 'Visa Applied', icon: 'bi-send-check', color: '#0EA5E9', tint: 'rgba(14, 165, 233, 0.1)' },
-    { type: 'visa-approved', label: 'Visa Received', icon: 'bi-check-circle-fill', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' },
-    { type: 'enrolled', label: 'Completion / Enrolled', icon: 'bi-mortarboard-fill', color: '#6366F1', tint: 'rgba(99, 102, 241, 0.1)' },
+  tabs: any[] = [
+    { type: 'applications', label: 'Applications', icon: 'bi-file-earmark-person', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)', count: 0 },
+    { type: 'fees-paid', label: 'Fees Paid', icon: 'bi-cash-coin', color: '#F59E0B', tint: 'rgba(245, 158, 11, 0.1)', count: 0 }
   ];
 
   constructor(
@@ -70,6 +66,91 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
     private router: Router,
     private location: Location
   ) {}
+
+  hexToRgba(hex: string, alpha: number = 0.12): string {
+    if (!hex) return 'rgba(99, 102, 241, 0.12)';
+    let c = hex.replace('#', '');
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    if (c.length === 6) {
+      const num = parseInt(c, 16);
+      return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+    }
+    return 'rgba(99, 102, 241, 0.12)';
+  }
+
+  loadPipelineSummary(): void {
+    const params: any = {
+      dateRange: this.dateRange
+    };
+    if (this.dateRange === 'custom') {
+      if (this.customStartDate) params.startDate = this.customStartDate;
+      if (this.customEndDate) params.endDate = this.customEndDate;
+    }
+
+    this.api.get('/reports/application-pipeline-summary', params).subscribe({
+      next: (res: any) => {
+        if (res && res.success && res.data) {
+          const d = res.data;
+          this.summary = {
+            applications: Number(d.summary?.totalApplications || 0),
+            offerLetters: 0,
+            feesPaid: Number(d.summary?.feesPaidCount || 0),
+            feesPaidAmount: Number(d.summary?.feesPaidAmount || 0),
+            visaSubmitted: 0,
+            visaApproved: 0,
+            enrolled: 0
+          };
+
+          const statusPalette = ['#3B82F6', '#8B5CF6', '#EC4899', '#0EA5E9', '#F59E0B', '#10B981', '#6366F1'];
+          const statusIcons: Record<string, string> = {
+            'offer': 'bi-envelope-paper-heart',
+            'visa applied': 'bi-send-check',
+            'visa submit': 'bi-send-check',
+            'visa': 'bi-shield-check',
+            'enrolled': 'bi-mortarboard-fill',
+            'completion': 'bi-award-fill',
+            'paid': 'bi-cash-coin',
+            'fee': 'bi-cash-coin',
+            'registered': 'bi-person-check',
+            'admit': 'bi-building-check'
+          };
+
+          const dynamicTabs: any[] = [
+            { type: 'applications', label: 'Applications', icon: 'bi-file-earmark-person', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)', count: this.summary.applications },
+            { type: 'fees-paid', label: 'Fees Paid', icon: 'bi-cash-coin', color: '#F59E0B', tint: 'rgba(245, 158, 11, 0.1)', count: this.summary.feesPaid }
+          ];
+
+          if (d.statuses && Array.isArray(d.statuses)) {
+            d.statuses.forEach((s: any, idx: number) => {
+              const lower = (s.status_name || '').toLowerCase();
+              let icon = 'bi-check2-circle';
+              for (const [k, ic] of Object.entries(statusIcons)) {
+                if (lower.includes(k)) {
+                  icon = ic;
+                  break;
+                }
+              }
+              const color = s.status_color && s.status_color !== '#475569' ? s.status_color : statusPalette[idx % statusPalette.length];
+              dynamicTabs.push({
+                type: 'status-' + s.status_id,
+                status_id: s.status_id,
+                label: s.status_name,
+                icon: icon,
+                color: color,
+                tint: this.hexToRgba(color, 0.12),
+                count: Number(s.count || 0)
+              });
+            });
+          }
+
+          this.tabs = dynamicTabs;
+        }
+      },
+      error: (err: any) => {
+        console.error('Failed to load application pipeline summary:', err);
+      }
+    });
+  }
 
   
   get currentUrl(): string {
@@ -123,9 +204,28 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
         else if (path.includes('visa-submitted')) this.activeType = 'visa-submitted';
         else if (path.includes('visa-approved')) this.activeType = 'visa-approved';
         else if (path.includes('enrolled') || path.includes('completion')) this.activeType = 'enrolled';
-        else if (path.includes('applications')) this.activeType = 'applications';
+        else if (path.includes('applications')) {
+          if (!this.activeType.startsWith('status-')) {
+            this.activeType = 'applications';
+          }
+        }
         this.restoreReportState();
         this.fetchData();
+      })
+    );
+
+    this.sub.add(
+      this.route.queryParams.subscribe(qp => {
+        if (qp && qp['statusId']) {
+          this.activeType = 'status-' + qp['statusId'];
+          this.fetchData();
+        } else if (qp && qp['status']) {
+          const match = this.tabs.find(t => (t.label || '').toLowerCase() === qp['status'].toLowerCase());
+          if (match) {
+            this.activeType = match.type;
+            this.fetchData();
+          }
+        }
       })
     );
   }
@@ -138,10 +238,17 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
     if (this.activeType === type) return;
     this.saveReportState();
     this.activeType = type;
+    this.currentPage = 1;
     this.restoreReportState();
     
-    // Update browser URL smoothly
-    this.router.navigate([`/reports/${type}`], { replaceUrl: true });
+    if (type === 'applications' || type === 'fees-paid') {
+      this.router.navigate([`/reports/${type}`], { replaceUrl: true });
+    } else if (type.startsWith('status-')) {
+      const sid = type.replace('status-', '');
+      this.router.navigate([`/reports/applications`], { queryParams: { statusId: sid }, replaceUrl: true });
+    } else {
+      this.router.navigate([`/reports/${type}`], { replaceUrl: true });
+    }
     this.fetchData();
   }
 
@@ -152,12 +259,18 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
       this.loading = true;
     }
 
+    this.loadPipelineSummary();
+
     const params: any = {
       type: this.activeType,
       dateRange: this.dateRange,
       page: this.currentPage,
       limit: this.pageSize
     };
+
+    if (this.activeType.startsWith('status-')) {
+      params.statusId = this.activeType.replace('status-', '');
+    }
 
     if (this.searchQuery && this.searchQuery.trim()) {
       params.search = this.searchQuery.trim();
@@ -178,7 +291,7 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
           this.totalCount = res.data.totalCount || 0;
           this.totalPages = res.data.totalPages || 1;
           if (res.data.summary) {
-            this.summary = res.data.summary;
+            this.summary = { ...this.summary, ...res.data.summary };
           }
         } else {
           this.items = [];
@@ -247,20 +360,20 @@ export class PipelineKpiReportComponent implements OnInit, OnDestroy {
     this.router.navigate(['/crm-dashboard']);
   }
 
-  getTabBadgeCount(type: string): number | string {
-    switch (type) {
-      case 'applications': return this.summary.applications;
-      case 'offer-letters': return this.summary.offerLetters;
-      case 'fees-paid': return this.summary.feesPaid;
-      case 'visa-submitted': return this.summary.visaSubmitted;
-      case 'visa-approved': return this.summary.visaApproved;
-      case 'enrolled': return this.summary.enrolled;
-      default: return 0;
+  getTabBadgeCount(target: any): number | string {
+    if (target && typeof target === 'object' && target.count !== undefined) {
+      return target.count;
     }
+    const type = typeof target === 'string' ? target : target?.type;
+    const found = this.tabs.find(t => t.type === type);
+    if (found && found.count !== undefined) return found.count;
+    if (type === 'applications') return this.summary.applications;
+    if (type === 'fees-paid') return this.summary.feesPaid;
+    return 0;
   }
 
   getActiveTabInfo() {
-    return this.tabs.find(t => t.type === this.activeType) || this.tabs[0];
+    return this.tabs.find(t => t.type === this.activeType) || this.tabs[0] || { label: 'Applications', icon: 'bi-file-earmark-person', color: '#10B981', tint: 'rgba(16, 185, 129, 0.1)' };
   }
 
   getInitials(name: string): string {

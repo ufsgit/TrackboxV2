@@ -1,11 +1,13 @@
 const router = require('express').Router();
 const c = require('../controllers/contacts.controller');
+const settingsController = require('../controllers/settings.controller');
 const authenticate = require('../middleware/authenticate');
 const upload = require('../middleware/upload');
 
 router.use(authenticate);
 router.get('/', c.getContacts);
 router.get('/total-leads', c.getTotalLeads);
+router.get('/agents', settingsController.getTeam);
 router.get('/export', c.exportContacts);
 router.get('/tags', c.getUniqueTags);
 router.post('/', c.createContact);

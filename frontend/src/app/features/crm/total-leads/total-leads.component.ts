@@ -219,27 +219,22 @@ export class TotalLeadsComponent implements OnInit {
   }
 
   loadAgents(): void {
-    this.api.get('/contacts/agents').subscribe({
-      next: (res: any) => {
-        if (res && res.data) {
-          this.agents = res.data;
-        } else if (Array.isArray(res)) {
-          this.agents = res;
-        }
-      },
-      error: () => {}
-    });
-
     this.api.get('/settings/team').subscribe({
       next: (res: any) => {
-        if (res && res.success && Array.isArray(res.data)) {
-          this.employees = res.data;
-          if (!this.agents || this.agents.length === 0) {
-            this.agents = res.data;
-          }
-        }
+        const team = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+        this.agents = team;
+        this.employees = team;
       },
-      error: () => {}
+      error: () => {
+        this.api.get('/contacts/agents').subscribe({
+          next: (res: any) => {
+            const team = (res && res.data) ? res.data : (Array.isArray(res) ? res : []);
+            this.agents = team;
+            this.employees = team;
+          },
+          error: () => {}
+        });
+      }
     });
   }
 

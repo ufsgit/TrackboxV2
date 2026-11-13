@@ -17,7 +17,7 @@
         <div>
           <h1 class="page-title">Total Leads</h1>
           <p class="page-subtitle">
-            All leads directory across your entire system &mdash; including leads with or without follow-up dates, statuses, and assignments.
+            <!-- All leads directory across your entire system &mdash; including leads with or without follow-up dates, statuses, and assignments. -->
           </p>
         </div>
       </div>
@@ -47,7 +47,7 @@
       <div class="metric-content">
         <span class="metric-label">Total Leads</span>
         <span class="metric-value">{{ (metrics.total || totalLeads) | number }}</span>
-        <span class="metric-sub">Complete Directory</span>
+        <!-- <span class="metric-sub">Complete Directory</span> -->
       </div>
     </div>
 
@@ -57,7 +57,7 @@
       <div class="metric-content">
         <span class="metric-label">With Follow-up Date</span>
         <span class="metric-value">{{ metrics.with_followup | number }}</span>
-        <span class="metric-sub">Scheduled follow-ups</span>
+        <!-- <span class="metric-sub">Scheduled follow-ups</span> -->
       </div>
     </div>
 
@@ -67,7 +67,7 @@
       <div class="metric-content">
         <span class="metric-label">Without Follow-up Date</span>
         <span class="metric-value">{{ metrics.without_followup | number }}</span>
-        <span class="metric-sub">No follow-up set</span>
+        <!-- <span class="metric-sub">No follow-up set</span> -->
       </div>
     </div>
 
@@ -77,7 +77,7 @@
       <div class="metric-content">
         <span class="metric-label">Unassigned Leads</span>
         <span class="metric-value">{{ metrics.unassigned | number }}</span>
-        <span class="metric-sub">Pending agent allocation</span>
+        <!-- <span class="metric-sub">Pending agent allocation</span> -->
       </div>
     </div>
 
@@ -87,7 +87,7 @@
       <div class="metric-content">
         <span class="metric-label">Total Payments</span>
         <span class="metric-value">₹{{ (metrics.total_payment_collected || 0) | number:'1.0-0' }}</span>
-        <span class="metric-sub">{{ metrics.with_payment | number }} Leads with Payments</span>
+        <!-- <span class="metric-sub">{{ metrics.with_payment | number }} Leads with Payments</span> -->
       </div>
     </div>
   </section>

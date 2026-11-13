@@ -363,19 +363,17 @@ const getCrmDashboardStats = async (req, res) => {
       }
     }
 
-    const [[{ feesPaid = 0 } = {}]] = await pool.query(
-      `SELECT COUNT(DISTINCT r.contact_id) as feesPaid
-       FROM receipts r
-       LEFT JOIN contacts c ON r.contact_id = c.id
-       LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
-       WHERE r.business_id = ? 
-         AND (
-           LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%'
-           OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%'
-           OR r.receipt_type_id = 1
-         ) ${feeAgentClause}`,
-      feeParams
-    );
+    let feesPaid = kpiData.feesPaid !== undefined ? Number(kpiData.feesPaid) : null;
+    if (feesPaid === null) {
+      const [[{ count = 0 } = {}]] = await pool.query(
+        `SELECT COUNT(r.id) as count
+         FROM receipts r
+         LEFT JOIN contacts c ON r.contact_id = c.id
+         WHERE r.business_id = ? ${feeAgentClause}`,
+        feeParams
+      );
+      feesPaid = Number(count) || 0;
+    }
 
     res.json({
       success: true,
@@ -637,10 +635,67 @@ const getMonthlyPerformance = async (req, res) => {
   }
 };
 
+const getApplicationStatusKpis = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+
+    let agentClause = '';
+    const params = [bizId];
+
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        agentClause = 'AND 1 = 0';
+      } else {
+        const placeholders = accessibleUserIds.map(() => '?').join(',');
+        agentClause = `AND (c.assigned_to IN (${placeholders}) OR a.created_by IN (${placeholders}))`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
+    params.push(bizId);
+
+    const query = `
+      SELECT 
+        s.id,
+        s.name,
+        s.color,
+        COUNT(a.id) AS count
+      FROM application_statuses s
+      LEFT JOIN (
+        SELECT a.id, a.status_id 
+        FROM applications a
+        LEFT JOIN contacts c ON a.contact_id = c.id
+        WHERE a.business_id = ?
+          ${agentClause}
+      ) a ON a.status_id = s.id
+      WHERE s.business_id = ?
+        AND s.is_active = 1
+      GROUP BY s.id, s.name, s.color
+      ORDER BY s.id ASC
+    `;
+
+    const [rows] = await pool.query(query, params);
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        color: r.color || '#10B981',
+        count: Number(r.count) || 0
+      }))
+    });
+  } catch (err) {
+    console.error('getApplicationStatusKpis error:', err);
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
 module.exports = { 
   getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, 
   getChatbotAnalytics, getContactGrowth, getCrmDashboardStats,
-  getMonthlyPerformance,
+  getMonthlyPerformance, getApplicationStatusKpis,
   getEmployeeProductivity, getStudentPipeline, getFollowUpReport,
   getTeamProductivity, getTodaysActivity, getRawData
 };

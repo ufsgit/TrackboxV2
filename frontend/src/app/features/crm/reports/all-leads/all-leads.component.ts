@@ -114,8 +114,13 @@ export class AllLeadsComponent implements OnInit {
   }
 
   loadAgents() {
-    this.api.get('/contacts/agents').subscribe({
-      next: (res: any) => { this.agents = res.data || []; }
+    this.api.get('/settings/team').subscribe({
+      next: (res: any) => { this.agents = res.data || []; },
+      error: () => {
+        this.api.get('/contacts/agents').subscribe({
+          next: (res: any) => { this.agents = res.data || []; }
+        });
+      }
     });
   }
 

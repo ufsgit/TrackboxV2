@@ -257,7 +257,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       error: () => {}
     });
 
-    this.api.get('/contacts/agents').subscribe({
+    this.api.get('/settings/team').subscribe({
       next: (res: any) => {
         if (res && res.data) {
           this.agentsList = res.data;
@@ -266,7 +266,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
         }
       },
       error: () => {
-        this.api.get('/settings/team').subscribe({
+        this.api.get('/contacts/agents').subscribe({
           next: (res: any) => {
             if (res && res.data) this.agentsList = res.data;
           },

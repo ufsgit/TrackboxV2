@@ -32,7 +32,7 @@ const getTeam = async (req, res) => {
   try {
     const accessibleUserIds = await getAccessibleUserIds(req.user, req.user.businessId);
 
-    let query = `SELECT u.id, u.name, u.email, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, u.allowed_custom_field_categories, b.name as branch_name, d.name as department_name, des.name as designation_name
+    let query = `SELECT u.id, u.name, u.email, u.phone, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, u.allowed_custom_field_categories, b.name as branch_name, d.name as department_name, des.name as designation_name
        FROM users u 
        LEFT JOIN branches b ON u.branch_id = b.id 
        LEFT JOIN departments d ON u.department_id = d.id 
@@ -70,16 +70,23 @@ const getTeam = async (req, res) => {
 
 const inviteAgent = async (req, res) => {
   try {
-    const { name, email, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active, member_ids, allowed_custom_field_categories } = req.body;
+    const { name, email, phone, username, employee_code, designation_id, date_of_joining, role, password, branch_id, department_id, is_active, member_ids, allowed_custom_field_categories } = req.body;
     
     if (username) {
       const [existingUsername] = await pool.query('SELECT id FROM users WHERE username=? AND business_id=?', [username, req.user.businessId]);
       if (existingUsername.length) return res.status(409).json({ success: false, message: 'Username already in use', data: null });
     }
+    if (phone && String(phone).trim()) {
+      const cleanPhone = String(phone).trim();
+      const [existingPhone] = await pool.query('SELECT id, name FROM users WHERE phone=?', [cleanPhone]);
+      if (existingPhone.length) {
+        return res.status(409).json({ success: false, message: `Phone number is already in use by ${existingPhone[0].name}`, data: null });
+      }
+    }
     const hash = await bcrypt.hash(password || 'Trackbox@123', 10);
     const [result] = await pool.query(
-      'INSERT INTO users (business_id, name, email, username, employee_code, designation_id, date_of_joining, password_hash, role, branch_id, department_id, is_active, allowed_custom_field_categories) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.businessId, name, email, username || null, employee_code || null, designation_id || null, date_of_joining || null, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null]
+      'INSERT INTO users (business_id, name, email, phone, username, employee_code, designation_id, date_of_joining, password_hash, role, branch_id, department_id, is_active, allowed_custom_field_categories) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.businessId, name, email, (phone && String(phone).trim()) ? String(phone).trim() : null, username || null, employee_code || null, designation_id || null, date_of_joining || null, hash, role || 'agent', branch_id || null, department_id || null, is_active === false ? 0 : 1, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null]
     );
     const newUserId = result.insertId;
 
@@ -95,7 +102,7 @@ const inviteAgent = async (req, res) => {
       await pool.query('INSERT INTO team_members (team_id, user_id) VALUES ?', [values]);
     }
     
-    const [rows] = await pool.query('SELECT id, name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at, allowed_custom_field_categories FROM users WHERE id=?', [newUserId]);
+    const [rows] = await pool.query('SELECT id, name, email, phone, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, created_at, allowed_custom_field_categories FROM users WHERE id=?', [newUserId]);
     rows[0].member_ids = member_ids || [];
     res.status(201).json({ success: true, data: rows[0], message: 'Agent invited' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }
@@ -103,15 +110,23 @@ const inviteAgent = async (req, res) => {
 
 const updateAgent = async (req, res) => {
   try {
-    const { name, email, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids, allowed_custom_field_categories } = req.body;
+    const { name, email, phone, username, employee_code, designation_id, date_of_joining, role, is_active, branch_id, department_id, password, member_ids, allowed_custom_field_categories } = req.body;
 
     if (username) {
       const [existing] = await pool.query('SELECT id FROM users WHERE username=? AND business_id=? AND id != ?', [username, req.user.businessId, req.params.id]);
       if (existing.length) return res.status(409).json({ success: false, message: 'Username already in use', data: null });
     }
 
-    let query = 'UPDATE users SET name=?, email=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?, allowed_custom_field_categories=?';
-    let params = [name, email ? email.trim() : null, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null];
+    if (phone && String(phone).trim()) {
+      const cleanPhone = String(phone).trim();
+      const [existingPhone] = await pool.query('SELECT id, name FROM users WHERE phone=? AND id != ?', [cleanPhone, req.params.id]);
+      if (existingPhone.length) {
+        return res.status(409).json({ success: false, message: `Phone number is already in use by ${existingPhone[0].name}`, data: null });
+      }
+    }
+
+    let query = 'UPDATE users SET name=?, email=?, phone=?, username=?, employee_code=?, designation_id=?, date_of_joining=?, role=?, is_active=?, branch_id=?, department_id=?, allowed_custom_field_categories=?';
+    let params = [name, email ? email.trim() : null, (phone && String(phone).trim()) ? String(phone).trim() : null, username || null, employee_code || null, designation_id || null, date_of_joining || null, role, is_active === false ? 0 : 1, branch_id || null, department_id || null, allowed_custom_field_categories ? JSON.stringify(allowed_custom_field_categories) : null];
     
     if (password) {
       const hash = await bcrypt.hash(password, 10);

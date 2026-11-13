@@ -299,23 +299,27 @@
 
         <!-- ==================== RECEIPT TAB ==================== -->
         <div *ngIf="detailActiveTab === 'Receipt'" class="tab-pane receipt-tab-pane">
-          <div class="tab-section-header">
-            <div class="tab-title-group">
-              <div class="section-icon-bubble emerald">
+          <!-- Receipt Section Header (Matching Contacts Exactly) -->
+          <div class="tab-section-header receipt-section-header">
+            <div class="receipt-title-group">
+              <div class="receipt-icon-bubble emerald">
                 <i class="bi bi-receipt-cutoff"></i>
               </div>
               <div>
-                <div class="d-flex align-items-center gap-2">
-                  <h5 class="section-title mb-0">Payment Receipts</h5>
+                <div class="receipt-heading-row">
+                  <h5 class="receipt-main-title">Payment Receipts</h5>
+                  <span class="count-chip" *ngIf="selectedContactReceipts">
+                    {{ selectedContactReceipts.length }} {{ selectedContactReceipts.length === 1 ? 'Receipt' : 'Receipts' }}
+                  </span>
                   <span class="total-chip" *ngIf="totalReceiptAmount > 0">
                     Total: ₹{{ totalReceiptAmount | number:'1.2-2' }}
                   </span>
                 </div>
-                <span class="section-sub">Record client payments, tuition deposits, and fees</span>
+                <span class="receipt-sub">Record client payments, fees, tuition deposits, and track collection audit</span>
               </div>
             </div>
 
-            <button type="button" class="btn-tab-action btn-add-receipt" (click)="openAddReceiptModal()">
+            <button type="button" class="btn-add-receipt" (click)="openAddReceiptModal()">
               <i class="bi bi-plus-circle-fill"></i>
               <span>Add Receipt</span>
             </button>
@@ -327,36 +331,53 @@
           </div>
 
           <!-- Empty State -->
-          <div *ngIf="!loadingReceipts && selectedContactReceipts.length === 0" class="tab-empty-card">
-            <div class="empty-icon-bubble emerald">
-              <i class="bi bi-receipt"></i>
+          <div *ngIf="!loadingReceipts && selectedContactReceipts.length === 0" class="receipt-empty-state">
+            <div class="receipt-hero-card">
+              <div class="receipt-hero-icon emerald">
+                <i class="bi bi-receipt-cutoff"></i>
+              </div>
+              <h6 class="receipt-hero-title">No Receipts Recorded Yet</h6>
+              <p class="receipt-hero-desc">Record client payments, fees, or deposits for {{ getLeadName() }}.</p>
+              <button type="button" class="btn-create-first-receipt" (click)="openAddReceiptModal()">
+                <i class="bi bi-plus-lg me-1"></i> Record First Receipt
+              </button>
             </div>
-            <h6 class="empty-title">No Receipts Recorded Yet</h6>
-            <p class="empty-sub">Record client payments, tuition deposits, or registration fees for {{ getLeadName() }}.</p>
-            <button type="button" class="btn btn-success btn-sm rounded-pill px-4 py-2 mt-2" (click)="openAddReceiptModal()">
-              <i class="bi bi-plus-lg me-1"></i> Add First Receipt
-            </button>
           </div>
 
-          <!-- Receipts List -->
-          <div *ngIf="!loadingReceipts && selectedContactReceipts.length > 0" class="d-flex flex-column gap-3">
-            <div *ngFor="let r of selectedContactReceipts" class="p-4 rounded-4 border bg-white shadow-sm d-flex justify-content-between align-items-center">
-              <div>
-                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 mb-2">{{ r.receipt_type_title || r.receipt_type_name || 'Receipt' }}</span>
-                <h4 class="fw-black text-dark mb-1">₹{{ r.amount | number:'1.2-2' }}</h4>
-                <div class="d-flex gap-3 text-muted small flex-wrap">
-                  <div><i class="bi bi-calendar me-1"></i>{{ r.receipt_date | date:'mediumDate' }}</div>
-                  <div><i class="bi bi-person me-1"></i>Collected by: {{ r.created_by_name || r.collected_by_name || 'Staff' }}</div>
-                  <div *ngIf="r.description || r.remarks"><i class="bi bi-chat-left-text me-1"></i>{{ r.description || r.remarks }}</div>
+          <!-- When receipts exist (Matching Image 2 Card Design) -->
+          <div *ngIf="!loadingReceipts && selectedContactReceipts.length > 0" class="receipts-card-list">
+            <div class="receipt-record-card" *ngFor="let r of selectedContactReceipts">
+              <div class="receipt-card-top">
+                <div class="receipt-type-group">
+                  <span class="receipt-type-pill">
+                    <i class="bi bi-tag-fill"></i> {{ r.receipt_type_title || r.receipt_type_name || 'Receipt' }}
+                  </span>
+                  <div class="receipt-amount-display">
+                    ₹{{ r.amount | number:'1.2-2' }}
+                  </div>
+                </div>
+
+                <div class="receipt-card-actions">
+                  <button type="button" class="btn-receipt-edit" (click)="openEditReceiptModal(r)" title="Edit receipt">
+                    <i class="bi bi-pencil-square"></i> <span>Edit</span>
+                  </button>
+                  <button type="button" class="btn-receipt-delete" (click)="deleteReceipt(r.id)" title="Delete receipt">
+                    <i class="bi bi-trash3"></i> <span>Delete</span>
+                  </button>
                 </div>
               </div>
-              <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-sm btn-light border px-3 py-2 rounded-3 text-primary fw-semibold" (click)="openEditReceiptModal(r)">
-                  <i class="bi bi-pencil me-1"></i> Edit
-                </button>
-                <button type="button" class="btn btn-sm btn-light border px-3 py-2 rounded-3 text-danger fw-semibold" (click)="deleteReceipt(r.id)">
-                  <i class="bi bi-trash3 me-1"></i> Delete
-                </button>
+
+              <!-- Metadata Chips Row -->
+              <div class="receipt-meta-row">
+                <span class="receipt-chip">
+                  <i class="bi bi-calendar-event text-primary"></i> {{ r.receipt_date | date:'mediumDate' }}
+                </span>
+                <span class="receipt-chip staff" *ngIf="r.created_by_name || r.collected_by_name">
+                  <i class="bi bi-person-check-fill text-success"></i> Collected by: <strong>{{ r.created_by_name || r.collected_by_name }}</strong>
+                </span>
+                <span class="receipt-chip notes" *ngIf="r.description || r.remarks">
+                  <i class="bi bi-chat-left-text text-muted"></i> {{ r.description || r.remarks }}
+                </span>
               </div>
             </div>
           </div>
@@ -574,120 +595,137 @@
 </div>
 
 <!-- ==================== UPLOAD DOCUMENT MODAL ==================== -->
-<div class="custom-modal child-modal-wrapper" *ngIf="showUploadDocumentModal">
+<div class="upload-modal-wrapper" *ngIf="showUploadDocumentModal">
   <div class="modal-backdrop" (click)="closeUploadDocumentModal()"></div>
-  <div class="modal-card child-modal-card">
-    <div class="child-modal-header blue">
-      <div class="d-flex align-items-center gap-2">
-        <div class="child-icon-bubble blue">
-          <i class="bi bi-cloud-arrow-up-fill"></i>
-        </div>
-        <div>
-          <h4 class="mb-0 fw-bold text-dark">Upload Document</h4>
-          <p class="text-muted small mb-0">Attach files, certificates, or scorecards to this lead</p>
-        </div>
+  <div class="upload-modal-card">
+    <div class="upload-modal-header">
+      <div class="upload-icon-box">
+        <i class="bi bi-cloud-arrow-up-fill"></i>
       </div>
-      <button type="button" class="btn-modal-close" (click)="closeUploadDocumentModal()">&times;</button>
+      <div class="upload-title-block">
+        <h5>Upload Document</h5>
+        <p>Add a new file to this contact's records</p>
+      </div>
+      <button type="button" class="upload-close-btn" (click)="closeUploadDocumentModal()" title="Close">
+        <i class="bi bi-x"></i>
+      </button>
     </div>
 
-    <div class="child-modal-body">
+    <div class="upload-modal-body">
       <!-- Document Type -->
-      <div class="mb-3">
-        <label class="form-label text-muted fw-bold small text-uppercase">Document Type *</label>
-        <select class="form-select custom-input" [(ngModel)]="uploadDocData.documentType">
-          <option value="">Select Document Type</option>
-          <option *ngFor="let opt of documentOptions" [value]="opt">{{ opt }}</option>
-        </select>
+      <div class="mb-4">
+        <label class="upload-label">Document Type <span class="text-danger">*</span></label>
+        <div class="upload-select-wrapper">
+          <select class="form-select upload-select" [(ngModel)]="uploadDocData.documentType">
+            <option value="">Select Document Type</option>
+            <option *ngFor="let opt of documentOptions" [value]="opt">{{ opt }}</option>
+          </select>
+          <i class="bi bi-chevron-down upload-chevron"></i>
+        </div>
       </div>
 
       <!-- File Picker -->
-      <div class="mb-3">
-        <label class="form-label text-muted fw-bold small text-uppercase">File *</label>
-        <div class="upload-dropzone">
-          <input type="file" (change)="onFileSelected($event)" class="upload-file-input">
-          <i class="bi bi-file-earmark-arrow-up text-primary fs-1 mb-2"></i>
-          <h6 class="mb-1 text-dark fw-bold">{{ uploadDocData.fileName || 'Click or drag file here to upload' }}</h6>
-          <p class="text-muted small mb-0">PDF, DOC, DOCX, PNG, JPG accepted</p>
+      <div class="mb-4">
+        <label class="upload-label">File <span class="text-danger">*</span></label>
+        <div class="upload-dropzone-modern">
+          <input type="file" id="fileUploadInputNative" (change)="onFileSelected($event)" class="upload-file-input">
+          <div style="position: relative; z-index: 1;">
+            <i class="bi bi-file-earmark-arrow-up upload-file-icon"></i>
+            <h6 class="upload-dropzone-title">{{ uploadDocData.fileName || 'Click to select file' }}</h6>
+            <p class="upload-dropzone-subtitle">{{ uploadDocData.fileName ? 'File chosen' : 'or drag and drop it here' }}</p>
+          </div>
         </div>
       </div>
 
       <!-- Notes -->
-      <div class="mb-2">
-        <label class="form-label text-muted fw-bold small text-uppercase">Notes (Optional)</label>
-        <textarea class="form-control custom-input" rows="2" [(ngModel)]="uploadDocData.notes" placeholder="Additional details or instructions..."></textarea>
+      <div class="mb-4">
+        <label class="upload-label">Notes (Optional)</label>
+        <textarea class="form-control upload-textarea" rows="3" [(ngModel)]="uploadDocData.notes" placeholder="Add any details or instructions here..."></textarea>
       </div>
-    </div>
 
-    <div class="child-modal-footer">
-      <button type="button" class="btn btn-light px-3 py-2 fw-semibold" (click)="closeUploadDocumentModal()">Cancel</button>
-      <button type="button" class="btn btn-primary px-4 py-2 fw-bold" (click)="saveDocument()">Save Document</button>
+      <!-- Actions -->
+      <div class="upload-actions">
+        <button type="button" class="upload-btn-cancel" (click)="closeUploadDocumentModal()">Cancel</button>
+        <button type="button" class="upload-btn-submit" (click)="saveDocument()">Save Document</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- ==================== ADD / EDIT RECEIPT MODAL ==================== -->
-<div class="custom-modal child-modal-wrapper" *ngIf="showAddReceiptModal">
+<div class="receipt-modal-wrapper" *ngIf="showAddReceiptModal">
   <div class="modal-backdrop" (click)="showAddReceiptModal = false"></div>
-  <div class="modal-card child-modal-card">
-    <div class="child-modal-header emerald">
-      <div class="d-flex align-items-center gap-2">
-        <div class="child-icon-bubble emerald">
+  <div class="receipt-modal-card">
+    
+    <div class="receipt-top-accent"></div>
+
+    <div class="receipt-modal-header">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="receipt-icon-badge">
           <i class="bi bi-receipt-cutoff"></i>
         </div>
-        <div>
-          <h4 class="mb-0 fw-bold text-dark">{{ currentReceipt.id ? 'Edit Receipt' : 'Add New Receipt' }}</h4>
-          <p class="text-muted small mb-0">Record payments, application fees, or tuition deposits</p>
+        <div class="receipt-title-block">
+          <h4>{{ currentReceipt?.id ? 'Edit Receipt' : 'Add New Receipt' }}</h4>
+          <p>{{ currentReceipt?.id ? 'Update payment, fee, or deposit details' : 'Record payment, fee, or deposit for ' + getLeadName() }}</p>
         </div>
       </div>
-      <button type="button" class="btn-modal-close" (click)="showAddReceiptModal = false">&times;</button>
+      <button type="button" class="receipt-close-btn" (click)="showAddReceiptModal = false" title="Close">&times;</button>
     </div>
 
-    <div class="child-modal-body">
-      <div class="row g-3">
-        <!-- Receipt Type -->
-        <div class="col-12">
-          <label class="form-label text-muted fw-bold small text-uppercase">Receipt Type</label>
-          <select class="form-select custom-input" [(ngModel)]="currentReceipt.receipt_type_id">
+    <div class="receipt-modal-body">
+      <div class="d-flex flex-column gap-3">
+        <!-- Receipt Type Dropdown -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label text-muted fw-bold small text-uppercase mb-0">Receipt Type</label>
+            <a routerLink="/system-settings/receipt-types" (click)="showAddReceiptModal = false" style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+              <i class="bi bi-gear-fill"></i> Manage Types
+            </a>
+          </div>
+          <select class="form-select custom-input" [(ngModel)]="currentReceipt.receipt_type_id" style="border-radius: 10px; font-weight: 600; width: 100%;">
             <option value="">-- Select Existing Type --</option>
             <option *ngFor="let t of receiptTypes" [value]="t.id">{{ t.name }}</option>
           </select>
         </div>
 
-        <div class="col-12" *ngIf="!currentReceipt.receipt_type_id">
-          <label class="form-label text-muted fw-bold small text-uppercase">Or Enter New Type Name</label>
-          <input type="text" class="form-control custom-input" [(ngModel)]="currentReceipt.receipt_type_name" placeholder="e.g. Tuition Deposit, Application Fee">
+        <!-- Custom / Or New Receipt Type Textbox if needed -->
+        <div *ngIf="!currentReceipt.receipt_type_id">
+          <label class="form-label text-muted fw-bold small text-uppercase mb-1">Or Enter New Receipt Type</label>
+          <input type="text" class="form-control custom-input" [(ngModel)]="currentReceipt.receipt_type_name" placeholder="e.g. Tuition Fee, Application Deposit, Registration" style="border-radius: 10px; width: 100%;">
         </div>
 
-        <!-- Amount -->
-        <div class="col-md-6">
-          <label class="form-label text-muted fw-bold small text-uppercase">Amount (₹) *</label>
-          <div class="input-group">
-            <span class="input-group-text fw-bold text-success bg-light border-end-0">₹</span>
-            <input type="number" step="0.01" class="form-control custom-input border-start-0 fw-bold" [(ngModel)]="currentReceipt.amount" placeholder="0.00">
+        <!-- Amount Textbox -->
+        <div>
+          <label class="form-label text-muted fw-bold small text-uppercase mb-1" style="display: block;">Amount (₹) *</label>
+          <div class="input-group" style="display: flex; align-items: stretch;">
+            <span class="input-group-text" style="border-radius: 10px 0 0 10px; background: #f8fafc; font-weight: 700; color: #059669; border: 1px solid #cbd5e1; border-right: none; padding: 10px 16px; font-size: 1.1rem;">₹</span>
+            <input type="number" step="0.01" class="form-control custom-input" [(ngModel)]="currentReceipt.amount" placeholder="0.00" style="border-radius: 0 10px 10px 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; border-left: none; width: 100%;">
           </div>
         </div>
 
-        <!-- Receipt Date -->
-        <div class="col-md-6">
-          <label class="form-label text-muted fw-bold small text-uppercase">Receipt Date *</label>
-          <input type="date" class="form-control custom-input" [(ngModel)]="currentReceipt.receipt_date">
+        <!-- Date -->
+        <div>
+          <label class="form-label text-muted fw-bold small text-uppercase mb-1" style="display: block;">Receipt Date *</label>
+          <input type="date" class="form-control custom-input" [(ngModel)]="currentReceipt.receipt_date" style="border-radius: 10px; width: 100%;">
         </div>
 
-        <!-- Description -->
-        <div class="col-12">
-          <label class="form-label text-muted fw-bold small text-uppercase">Description / Remarks</label>
-          <textarea class="form-control custom-input" rows="3" [(ngModel)]="currentReceipt.description" placeholder="Payment mode (Cash, UPI, Bank), reference number, or remarks..."></textarea>
+        <!-- Description / Notes -->
+        <div>
+          <label class="form-label text-muted fw-bold small text-uppercase mb-1" style="display: block;">Description / Notes</label>
+          <textarea class="form-control custom-input" rows="3" [(ngModel)]="currentReceipt.description" placeholder="Payment mode (Cash, UPI, Bank), reference number, or remarks..." style="border-radius: 10px; width: 100%;"></textarea>
         </div>
       </div>
     </div>
 
-    <div class="child-modal-footer">
-      <button type="button" class="btn btn-light px-3 py-2 fw-semibold" (click)="showAddReceiptModal = false">Cancel</button>
-      <button type="button" class="btn btn-success px-4 py-2 fw-bold" (click)="saveReceipt()" [disabled]="savingReceipt">
+    <div class="receipt-modal-footer">
+      <button type="button" class="btn btn-light px-3 py-2" (click)="showAddReceiptModal = false" style="border-radius: 10px; font-weight: 600; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 24px; cursor: pointer;">Cancel</button>
+      <button type="button" class="btn btn-success px-4 py-2" (click)="saveReceipt()" [disabled]="savingReceipt" style="border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); padding: 10px 28px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
         <span *ngIf="savingReceipt" class="spinner-border spinner-border-sm me-1"></span>
-        {{ currentReceipt.id ? 'Update Receipt' : 'Save Receipt' }}
+        <i *ngIf="!savingReceipt" class="bi bi-check-circle-fill"></i>
+        {{ currentReceipt?.id ? 'Update Receipt' : 'Save Receipt' }}
       </button>
     </div>
+
   </div>
 </div>
 

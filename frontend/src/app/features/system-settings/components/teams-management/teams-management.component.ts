@@ -78,7 +78,10 @@ import Swal from 'sweetalert2';
               <div>{{ getBranchName(member.branch_id) }}</div>
               <small class="text-muted">{{ getDeptName(member.department_id) }}</small>
             </td>
-            <td>{{ member.email }}</td>
+            <td>
+              <div>{{ member.email }}</div>
+              <small class="text-muted" *ngIf="member.phone"><i class="bi bi-telephone me-1"></i>{{ member.phone }}</small>
+            </td>
             <td><span class="role-badge">{{ member.role | uppercase }}</span></td>
             <td>
               <span class="status-badge" [ngClass]="member.is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
@@ -152,16 +155,23 @@ import Swal from 'sweetalert2';
               <input type="email" class="form-control" [(ngModel)]="currentTeam.email" autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
             </div>
             <div>
-              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Password</label>
-              <input type="password" class="form-control" [(ngModel)]="currentTeam.password" autocomplete="new-password" [placeholder]="currentTeam.id ? 'Leave blank to keep current' : ''" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Phone Number</label>
+              <input type="tel" class="form-control" [(ngModel)]="currentTeam.phone" placeholder="e.g. +91 9876543210" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Password</label>
+              <input type="password" class="form-control" [(ngModel)]="currentTeam.password" autocomplete="new-password" [placeholder]="currentTeam.id ? 'Leave blank to keep current' : ''" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
+            <div>
               <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Employee Code</label>
               <input type="text" class="form-control" [(ngModel)]="currentTeam.employee_code" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
             </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
               <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Designation</label>
               <select class="form-control" [(ngModel)]="currentTeam.designation_id" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
@@ -169,14 +179,14 @@ import Swal from 'sweetalert2';
                 <option *ngFor="let des of designations" [value]="des.id">{{des.name}}</option>
               </select>
             </div>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Date of Joining</label>
+              <input type="date" class="form-control" [(ngModel)]="currentTeam.date_of_joining" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
+            </div>
           </div>
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
             <div style="display: flex; flex-direction: column; gap: 16px;">
-              <div>
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Date of Joining</label>
-                <input type="date" class="form-control" [(ngModel)]="currentTeam.date_of_joining" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
-              </div>
               <div>
                 <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;">Role</label>
                 <select class="form-control" [(ngModel)]="currentTeam.role" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc;">
@@ -535,13 +545,14 @@ export class TeamsManagementComponent implements OnInit {
   }
 
   openTeamModal() { 
-    this.currentTeam = { branch_id: '', department_id: '', name: '', username: '', email: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [], allowed_custom_field_categories: [] }; 
+    this.currentTeam = { branch_id: '', department_id: '', name: '', username: '', email: '', phone: '', password: '', role: 'agent', is_active: true, employee_code: '', designation_id: '', date_of_joining: '', member_ids: [], allowed_custom_field_categories: [] }; 
     this.showTeamModal = true; 
   }
 
   editTeamModal(team: any) {
     this.currentTeam = { 
       ...team, 
+      phone: team.phone || '',
       date_of_joining: team.date_of_joining ? new Date(team.date_of_joining).toISOString().split('T')[0] : '',
       member_ids: team.member_ids || [],
       allowed_custom_field_categories: team.allowed_custom_field_categories ? 

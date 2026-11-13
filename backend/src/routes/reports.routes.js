@@ -28,6 +28,7 @@ router.get('/conversation', c.getConversationReport);
 
 // Application Reports
 router.get('/applications/status-summary', c.getApplicationStatusSummaryReport);
+router.get('/application-pipeline-summary', c.getApplicationPipelineSummary);
 router.get('/pipeline-kpis', c.getPipelineKpiReport);
 
 // Work and Employee Reports

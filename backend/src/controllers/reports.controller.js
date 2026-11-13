@@ -3098,6 +3098,135 @@ const getLeadFlowReport = async (req, res) => {
   }
 };
 
+const getApplicationPipelineSummary = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const userId = Number(req.user.userId || req.user.id);
+    const role = req.user.role || 'admin';
+    const { dateRange = 'all', startDate = null, endDate = null } = req.query;
+
+    let summary = {
+      totalApplications: 0,
+      feesPaidCount: 0,
+      feesPaidAmount: 0
+    };
+    let statuses = [];
+
+    // Attempt to execute the dedicated Stored Procedure
+    try {
+      const [results] = await pool.query(
+        'CALL sp_get_pipeline_report_kpis(?, ?, ?, ?, ?, ?)',
+        [bizId, userId, role, dateRange, startDate || null, endDate || null]
+      );
+      if (results && results.length >= 2) {
+        const baseRow = results[0][0] || {};
+        summary = {
+          totalApplications: Number(baseRow.total_applications || 0),
+          feesPaidCount: Number(baseRow.fees_paid_count || 0),
+          feesPaidAmount: Number(baseRow.fees_paid_amount || 0)
+        };
+        statuses = (results[1] || []).map(s => ({
+          status_id: s.status_id,
+          status_name: s.status_name,
+          status_color: s.status_color || '#475569',
+          count: Number(s.application_count || 0)
+        }));
+        return res.json({ success: true, data: { summary, statuses }, message: 'OK' });
+      }
+    } catch (spErr) {
+      console.warn('sp_get_pipeline_report_kpis fallback:', spErr.message);
+    }
+
+    // Direct fallback if SP has not yet been executed in MySQL
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    let agentScopeClause = '';
+    let receiptAgentScopeClause = '';
+    const agentScopeParams = [];
+    let statusScopeClause = '';
+    const statusScopeParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        agentScopeClause = 'AND 1 = 0';
+        receiptAgentScopeClause = 'AND 1 = 0';
+        statusScopeClause = 'AND 1 = 0';
+      } else {
+        agentScopeClause = `AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR a.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        receiptAgentScopeClause = `AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR r.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        statusScopeClause = `AND (a.contact_id IN (SELECT id FROM contacts WHERE assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})) OR a.created_by IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        agentScopeParams.push(...accessibleUserIds, ...accessibleUserIds);
+        statusScopeParams.push(...accessibleUserIds, ...accessibleUserIds);
+      }
+    }
+
+    const buildDateFilter = (field) => {
+      let clause = '';
+      const params = [];
+      if (dateRange === 'today') clause = `AND DATE(${field}) = CURDATE()`;
+      else if (dateRange === 'this_week') clause = `AND YEARWEEK(${field}, 1) = YEARWEEK(CURDATE(), 1)`;
+      else if (dateRange === 'this_month') clause = `AND MONTH(${field}) = MONTH(CURDATE()) AND YEAR(${field}) = YEAR(CURDATE())`;
+      else if (dateRange === 'last_30_days') clause = `AND ${field} >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`;
+      else if (dateRange === 'this_year') clause = `AND YEAR(${field}) = YEAR(CURDATE())`;
+      else if (dateRange === 'custom' && startDate && endDate) {
+        clause = `AND DATE(${field}) BETWEEN ? AND ?`;
+        params.push(startDate, endDate);
+      }
+      return { clause, params };
+    };
+
+    const appDateFilter = buildDateFilter('a.created_at');
+    const recDateFilter = buildDateFilter('COALESCE(r.receipt_date, r.created_at)');
+
+    const [[appCountRow]] = await pool.query(
+      `SELECT COUNT(a.id) as cnt FROM applications a LEFT JOIN contacts c ON a.contact_id = c.id WHERE a.business_id = ? ${agentScopeClause} ${appDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...appDateFilter.params]
+    );
+
+    const [[feesCountRow]] = await pool.query(
+      `SELECT COUNT(r.id) as cnt, COALESCE(SUM(r.amount), 0) as totalAmount 
+       FROM receipts r 
+       LEFT JOIN contacts c ON r.contact_id = c.id 
+       WHERE r.business_id = ? ${receiptAgentScopeClause} ${recDateFilter.clause}`,
+      [bizId, ...agentScopeParams, ...recDateFilter.params]
+    );
+
+    const [statusRows] = await pool.query(
+      `SELECT 
+         s.id as status_id,
+         s.name as status_name,
+         COALESCE(s.color, '#475569') as status_color,
+         COUNT(a.id) as application_count
+       FROM application_statuses s
+       LEFT JOIN applications a 
+         ON a.status_id = s.id 
+        AND a.business_id = ?
+        ${statusScopeClause}
+        ${appDateFilter.clause}
+       WHERE s.business_id = ? AND s.is_active = 1
+       GROUP BY s.id, s.name, s.color
+       ORDER BY s.id ASC`,
+      [bizId, ...statusScopeParams, ...appDateFilter.params, bizId]
+    );
+
+    summary = {
+      totalApplications: Number(appCountRow?.cnt || 0),
+      feesPaidCount: Number(feesCountRow?.cnt || 0),
+      feesPaidAmount: Number(feesCountRow?.totalAmount || 0)
+    };
+
+    statuses = statusRows.map(s => ({
+      status_id: s.status_id,
+      status_name: s.status_name,
+      status_color: s.status_color || '#475569',
+      count: Number(s.application_count || 0)
+    }));
+
+    res.json({ success: true, data: { summary, statuses }, message: 'OK' });
+  } catch (error) {
+    console.error('getApplicationPipelineSummary error:', error);
+    res.status(500).json({ success: false, message: error.message, data: null });
+  }
+};
+
 const getPipelineKpiReport = async (req, res) => {
   try {
     const bizId = req.user.businessId;
@@ -3173,7 +3302,7 @@ const getPipelineKpiReport = async (req, res) => {
        FROM receipts r 
        LEFT JOIN contacts c ON r.contact_id = c.id 
        LEFT JOIN receipt_types rt ON r.receipt_type_id = rt.id
-       WHERE r.business_id = ? AND (LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%' OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%')
+       WHERE r.business_id = ?
        ${receiptAgentScopeClause} ${recDateFilter.clause}`,
       [bizId, ...agentScopeParams, ...recDateFilter.params]
     );
@@ -3234,7 +3363,6 @@ const getPipelineKpiReport = async (req, res) => {
 
       const whereBase = `
         WHERE r.business_id = ?
-        AND (LOWER(TRIM(COALESCE(r.receipt_type_name, ''))) LIKE '%application fee%' OR LOWER(TRIM(COALESCE(rt.name, ''))) LIKE '%application fee%')
         ${receiptAgentScopeClause}
         ${recDateFilter.clause}
         ${searchClause}
@@ -3255,7 +3383,7 @@ const getPipelineKpiReport = async (req, res) => {
            r.id as receipt_id,
            r.amount,
            r.receipt_date,
-           COALESCE(r.receipt_type_name, rt.name, 'Application Fees') as receipt_type_name,
+           COALESCE(r.receipt_type_name, rt.name, 'Receipt') as receipt_type_name,
            r.description,
            r.created_at,
            c.id as contact_id,
@@ -3279,7 +3407,12 @@ const getPipelineKpiReport = async (req, res) => {
     } else {
       // Applications & Application-Status based reports
       let stageFilter = '';
-      if (type === 'offer-letters') {
+      if (req.query.statusId || (type && type.startsWith('status-'))) {
+        const sid = Number(req.query.statusId || type.replace('status-', ''));
+        if (!isNaN(sid) && sid > 0) {
+          stageFilter = `AND a.status_id = ${sid}`;
+        }
+      } else if (type === 'offer-letters') {
         stageFilter = `AND LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%offer%'`;
       } else if (type === 'visa-submitted') {
         stageFilter = `AND (LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa applied%' OR LOWER(TRIM(COALESCE(s.name, ''))) LIKE '%visa submit%')`;
@@ -4384,6 +4517,7 @@ module.exports = {
   getConversationReport,
   getDailyReport,
   getLeadFlowReport,
+  getApplicationPipelineSummary,
   getPipelineKpiReport,
   getReceiptsReport,
   getMonthlyReceiptAnalysis,
