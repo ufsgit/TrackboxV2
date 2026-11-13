@@ -11,11 +11,21 @@ const { saveOrUpdateSession, disconnectSession } = require('../../models/whatsap
 const activeSockets = new Map();
 // In-memory pending verification data: Map<sessionId, { user, phoneNumber, businessId }>
 const pendingVerifications = new Map();
+// Sessions that have been rejected (e.g. user does not exist) to prevent auto-reconnect loops
+const rejectedSessions = new Set();
+// Cache mapping LID to real phone JID: Map<lidClean, phoneJidClean>
+const lidPhoneMap = new Map();
 
 /**
  * Initializes or restarts a Baileys WhatsApp WebSocket instance
  */
 async function startBaileysSession(sessionId, io) {
+  // If this session was previously rejected, do not start or reconnect
+  if (rejectedSessions.has(sessionId)) {
+    console.log(`[Baileys Session] Skipping start: Session ${sessionId} was rejected.`);
+    return null;
+  }
+
   if (activeSockets.has(sessionId)) {
     console.log(`[Baileys Session] Socket already active for session: ${sessionId}`);
     return activeSockets.get(sessionId);
@@ -36,6 +46,27 @@ async function startBaileysSession(sessionId, io) {
   activeSockets.set(sessionId, sock);
 
   sock.ev.on('creds.update', saveCreds);
+
+  // Sync and cache contacts (LID to phone number mapping)
+  sock.ev.on('contacts.upsert', (contacts) => {
+    for (const c of contacts) {
+      if (c.id && c.lid) {
+        const cleanLid = c.lid.split('@')[0];
+        const cleanPhone = c.id.split('@')[0];
+        lidPhoneMap.set(cleanLid, cleanPhone);
+      }
+    }
+  });
+
+  sock.ev.on('contacts.update', (updates) => {
+    for (const u of updates) {
+      if (u.id && u.lid) {
+        const cleanLid = u.lid.split('@')[0];
+        const cleanPhone = u.id.split('@')[0];
+        lidPhoneMap.set(cleanLid, cleanPhone);
+      }
+    }
+  });
 
   // Connection Lifecycle
   sock.ev.on('connection.update', async (update) => {
@@ -85,18 +116,32 @@ async function startBaileysSession(sessionId, io) {
 
       // If user does not exist in users table
       if (!matchedUser) {
-        console.warn(`[Baileys Session] No user found with phone: ${rawPhone}`);
+        console.warn(`[Baileys Session] No user found with phone: ${rawPhone}. Rejecting and logging out.`);
+        rejectedSessions.add(sessionId);
 
-        // Emit error to frontend
+        // Emit error to frontend immediately
         io.to(`session_${sessionId}`).emit('whatsapp_verify_result', {
           success: false,
           message: 'User with this number does not exist',
           phoneNumber: rawPhone
         });
 
-        // Disconnect immediately as required
-        cleanupSession(sessionId);
-        await disconnectSession(sessionId);
+        // Small delay to allow WhatsApp's WebSocket handshake to stabilize,
+        // ensuring the logout packet is successfully delivered to the phone to revoke the session
+        setTimeout(async () => {
+          try {
+            console.log(`[Baileys Session] Sending explicit logout to WhatsApp for ${sessionId}...`);
+            await sock.logout('User does not exist');
+          } catch (e) {
+            console.warn(`[Baileys Session] Logout error for ${sessionId}:`, e.message);
+          } finally {
+            cleanupSession(sessionId);
+            await disconnectSession(sessionId);
+            // Delete DB auth tokens completely so no leftover credentials persist
+            await pool.query('DELETE FROM whatsapp_qr_sessions WHERE session_id = ?', [sessionId]).catch(() => {});
+          }
+        }, 600);
+
         return;
       }
 
@@ -124,13 +169,15 @@ async function startBaileysSession(sessionId, io) {
 
     if (connection === 'close') {
       const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+      const isRejected = rejectedSessions.has(sessionId);
+      const shouldReconnect = !isLoggedOut && !isRejected;
 
       console.log(`[Baileys Session] Connection closed for ${sessionId}. Status code: ${statusCode}. Reconnecting: ${shouldReconnect}`);
 
       cleanupSession(sessionId);
 
-      if (statusCode === DisconnectReason.loggedOut) {
+      if (isLoggedOut || isRejected) {
         await disconnectSession(sessionId);
         io.to(`session_${sessionId}`).emit('whatsapp_status_update', {
           sessionId,
@@ -155,9 +202,59 @@ async function startBaileysSession(sessionId, io) {
     for (const msg of messages) {
       if (!msg.message || msg.key.fromMe) continue;
 
-      const from = msg.key.remoteJid;
+      // Debug full msg.key to inspect real phone properties sent by WhatsApp
+      console.log('----------------------------------------------------');
+      console.log('[DEBUG WA MSG KEY]:', JSON.stringify(msg.key));
+      console.log('[DEBUG PUSH NAME]:', msg.pushName);
+
+      // Check all possible places Baileys provides the real phone number
+      const remoteJid = msg.key?.remoteJid || '';
+      const participant = msg.key?.participant || msg.participant || '';
+      const remoteJidAlt = msg.key?.remoteJidAlt || '';
+      const participantPn = msg.key?.participantPn || msg.key?.senderPn || '';
+
+      let senderJid = '';
+
+      // 1. Check direct phone fields first
+      if (participantPn && participantPn.includes('@s.whatsapp.net')) {
+        senderJid = participantPn;
+      } else if (remoteJidAlt && remoteJidAlt.includes('@s.whatsapp.net')) {
+        senderJid = remoteJidAlt;
+      } else if (remoteJid && remoteJid.includes('@s.whatsapp.net')) {
+        senderJid = remoteJid;
+      } else if (participant && participant.includes('@s.whatsapp.net')) {
+        senderJid = participant;
+      }
+
+      // 2. If it is an @lid, check our contacts cache map
+      if (!senderJid || senderJid.includes('@lid')) {
+        const targetLid = (remoteJid.includes('@lid') ? remoteJid : participant).split('@')[0];
+        if (lidPhoneMap.has(targetLid)) {
+          senderJid = `${lidPhoneMap.get(targetLid)}@s.whatsapp.net`;
+          console.log(`[DEBUG LID RESOLVED]: ${targetLid} -> ${senderJid}`);
+        }
+      }
+
+      // 3. Fallback to signalRepository if available
+      if (!senderJid || senderJid.includes('@lid')) {
+        try {
+          const resolved = await sock?.signalRepository?.lidToJid?.(remoteJid);
+          if (resolved && resolved.includes('@s.whatsapp.net')) {
+            senderJid = resolved;
+          }
+        } catch (e) {}
+      }
+
+      // Fallback to whatever JID exists if still unresolved
+      if (!senderJid) {
+        senderJid = remoteJid || participant;
+      }
+
+      console.log('[DEBUG FINAL SENDER JID USED]:', senderJid);
+      console.log('----------------------------------------------------');
+
       // Skip group chats or broadcast status updates
-      if (from.endsWith('@g.us') || from.includes('broadcast')) continue;
+      if (senderJid.endsWith('@g.us') || senderJid.includes('broadcast')) continue;
 
       const text = msg.message?.conversation ||
                    msg.message?.extendedTextMessage?.text ||
@@ -184,7 +281,7 @@ async function startBaileysSession(sessionId, io) {
         userId,
         businessId,
         messageData: {
-          from,
+          from: senderJid,
           text,
           pushName: msg.pushName,
           timestamp: msg.messageTimestamp ? msg.messageTimestamp * 1000 : Date.now(),
@@ -243,15 +340,21 @@ function cleanupSession(sessionId) {
  * Explicit disconnect requested by user/admin
  */
 async function disconnectUserSession(sessionId) {
+  rejectedSessions.delete(sessionId);
   cleanupSession(sessionId);
   pendingVerifications.delete(sessionId);
   await disconnectSession(sessionId);
+}
+
+function clearRejectedSession(sessionId) {
+  rejectedSessions.delete(sessionId);
 }
 
 module.exports = {
   startBaileysSession,
   confirmSessionAssignment,
   disconnectUserSession,
+  clearRejectedSession,
   activeSockets,
   pendingVerifications
 };

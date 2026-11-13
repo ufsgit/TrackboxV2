@@ -52,9 +52,40 @@ function getPhoneVariants(phone) {
   return Array.from(variants);
 }
 
+/**
+ * Parses a phone number or WhatsApp JID to extract the 10-digit number and country code.
+ */
+function parsePhoneAndCountryCode(phone) {
+  let cleaned = normalizePhone(phone);
+  if (!cleaned) return { phone: '', countryCode: '+91' };
+
+  let countryCode = '+91';
+  let tenDigit = cleaned;
+
+  // Handle standard India (+91)
+  if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    countryCode = '+91';
+    tenDigit = cleaned.substring(2);
+  } else if (cleaned.length > 10) {
+    // If other country code (e.g. 1 for US, 44 for UK, 971 for UAE)
+    tenDigit = cleaned.slice(-10);
+    const prefix = cleaned.slice(0, cleaned.length - 10);
+    countryCode = prefix ? `+${prefix}` : '+91';
+  } else if (cleaned.length === 10) {
+    countryCode = '+91';
+    tenDigit = cleaned;
+  }
+
+  return {
+    phone: tenDigit,
+    countryCode
+  };
+}
+
 module.exports = {
   normalizePhone,
   extractTenDigitPhone,
-  getPhoneVariants
+  getPhoneVariants,
+  parsePhoneAndCountryCode
 };
 

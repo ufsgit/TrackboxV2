@@ -1,10 +1,11 @@
-const { startBaileysSession, confirmSessionAssignment, disconnectUserSession } = require('../../services/whatsapp/baileysSession.service');
+const { startBaileysSession, confirmSessionAssignment, disconnectUserSession, clearRejectedSession } = require('../../services/whatsapp/baileysSession.service');
 
 function initWhatsappQrSocket(io) {
   io.on('connection', (socket) => {
     // Client joins room for their specific session
     socket.on('join_whatsapp_qr', async (data) => {
       const sessionId = data?.sessionId || socket.id;
+      clearRejectedSession(sessionId);
       socket.join(`session_${sessionId}`);
       console.log(`[WhatsApp Socket] Client joined session_${sessionId}`);
 
@@ -20,6 +21,7 @@ function initWhatsappQrSocket(io) {
     // Client requests a new/fresh QR code
     socket.on('request_whatsapp_qr', async (data) => {
       const sessionId = data?.sessionId || socket.id;
+      clearRejectedSession(sessionId);
       try {
         await startBaileysSession(sessionId, io);
       } catch (err) {

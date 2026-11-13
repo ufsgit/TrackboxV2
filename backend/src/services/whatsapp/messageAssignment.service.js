@@ -1,5 +1,5 @@
 const pool = require('../../db/pool');
-const { getPhoneVariants, normalizePhone } = require('../../utils/whatsapp/phoneNormalizer');
+const { getPhoneVariants, parsePhoneAndCountryCode } = require('../../utils/whatsapp/phoneNormalizer');
 
 /**
  * Handles incoming messages from the Baileys client and assigns them
@@ -19,18 +19,18 @@ async function assignIncomingMessage({ sessionId, userId, businessId, messageDat
 
     // Normalize customer phone (strip @s.whatsapp.net etc)
     const rawCustomerPhone = String(from).replace(/@.+/, '');
-    const cleanCustomerPhone = normalizePhone(rawCustomerPhone);
+    const { phone: tenDigitPhone, countryCode } = parsePhoneAndCountryCode(rawCustomerPhone);
     const phoneVariants = getPhoneVariants(rawCustomerPhone);
 
-    // 1. Check if contact already exists in contacts table using phone variants (+91, 10-digit, etc.)
+    // 1. Check if contact already exists in contacts table using phone variants
     let contactId = null;
     let existingContact = null;
 
     if (phoneVariants.length > 0) {
       const placeholders = phoneVariants.map(() => '?').join(',');
       const [existingContacts] = await pool.query(
-        `SELECT id, assigned_to, name, phone FROM contacts 
-         WHERE (phone IN (${placeholders}) OR REPLACE(REPLACE(phone, '+', ''), ' ', '') IN (${placeholders}))
+        `SELECT id, assigned_to, name, phone, branch_id, department_id FROM contacts 
+         WHERE (phone IN (${placeholders}) OR RIGHT(phone, 10) IN (${placeholders}))
          AND business_id = ? 
          LIMIT 1`,
         [...phoneVariants, ...phoneVariants, businessId || 1]
@@ -54,18 +54,42 @@ async function assignIncomingMessage({ sessionId, userId, businessId, messageDat
     } 
     // CASE B: NEW CUSTOMER (Not in contacts table)
     else {
-      // Standardize stored phone number to 10 digits or clean international
-      const storedPhone = cleanCustomerPhone.length === 12 && cleanCustomerPhone.startsWith('91')
-        ? cleanCustomerPhone.substring(2)
-        : cleanCustomerPhone;
+      // Fetch staff user's branch and department details
+      const [staffRows] = await pool.query(
+        `SELECT u.id, u.branch_id, b.name as branch_name, u.department_id, d.name as department_name
+         FROM users u
+         LEFT JOIN branches b ON u.branch_id = b.id
+         LEFT JOIN departments d ON u.department_id = d.id
+         WHERE u.id = ? LIMIT 1`,
+        [userId]
+      );
+
+      const staff = staffRows[0] || {};
+      const branchId = staff.branch_id || null;
+      const branchName = staff.branch_name || null;
+      const departmentId = staff.department_id || null;
+      const departmentName = staff.department_name || null;
 
       const [insertContact] = await pool.query(
-        `INSERT INTO contacts (business_id, name, phone, tags, opted_in, assigned_to, opt_in_source, channel_preference) 
-         VALUES (?, ?, ?, ?, 1, ?, 'whatsapp', 'whatsapp')`,
-        [businessId || 1, pushName || storedPhone, storedPhone, JSON.stringify(['whatsapp-qr']), userId]
+        `INSERT INTO contacts 
+         (business_id, name, phone, country_code, email, tags, opted_in, assigned_to, 
+          branch_id, branch_name, department_id, department_name, opt_in_source, channel_preference) 
+         VALUES (?, ?, ?, ?, NULL, ?, 1, ?, ?, ?, ?, ?, 'whatsapp', 'whatsapp')`,
+        [
+          businessId || 1,
+          pushName || tenDigitPhone,
+          tenDigitPhone,
+          countryCode || '+91',
+          JSON.stringify(['whatsapp-qr']),
+          userId,
+          branchId,
+          branchName,
+          departmentId,
+          departmentName
+        ]
       );
       contactId = insertContact.insertId;
-      console.log(`[Message Assignment] New contact created: Contact ID: ${contactId}, Name: ${pushName || storedPhone}, Phone: ${storedPhone}, Assigned To User: ${userId}`);
+      console.log(`[Message Assignment] New contact created: Contact ID: ${contactId}, Name: ${pushName || tenDigitPhone}, Phone: ${tenDigitPhone}, Country Code: ${countryCode}, Branch: ${branchName || 'N/A'}, Dept: ${departmentName || 'N/A'}, Assigned To User: ${userId}`);
     }
 
     // 2. Prevent duplicate messages if already inserted (using wa_message_id)

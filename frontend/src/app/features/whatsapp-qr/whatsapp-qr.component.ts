@@ -112,7 +112,10 @@ export class WhatsappQrComponent implements OnInit, OnDestroy {
     this.qrImage = null;
     this.errorMessage = '';
     this.verifiedUser = null;
-    this.socketService.emit('request_whatsapp_qr', { sessionId: this.sessionId });
+    
+    // Generate a fresh unique session ID for a new QR pairing
+    this.sessionId = 'sess_' + Math.random().toString(36).substring(2, 10);
+    this.socketService.emit('join_whatsapp_qr', { sessionId: this.sessionId });
   }
 
   confirmAssignment(): void {
