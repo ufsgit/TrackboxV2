@@ -1,0 +1,78 @@
+<div class="wa-msg-overlay" *ngIf="isOpen" (click)="close()">
+  <div class="wa-msg-container" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="wa-msg-header">
+      <div class="wa-msg-user-info">
+        <div class="wa-avatar">
+          <span>{{ (contact?.name || 'W').charAt(0).toUpperCase() }}</span>
+        </div>
+        <div class="wa-user-details">
+          <div class="wa-user-name">{{ contact?.name || 'WhatsApp Contact' }}</div>
+          <div class="wa-user-phone">
+            <i class="bi bi-whatsapp"></i> {{ contact?.country_code || '+91' }} {{ contact?.phone }}
+            <span *ngIf="contact?.assigned_employee_name" class="wa-staff-badge">
+              • {{ contact?.assigned_employee_name }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <button class="wa-close-btn" (click)="close()" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body / Chat stream -->
+    <div class="wa-msg-body" #scrollContainer (scroll)="onScroll($event)">
+      <!-- Top Loading spinner when fetching older messages -->
+      <div *ngIf="loadingMore" class="wa-loading-more-bar">
+        <div class="wa-spinner-pill">
+          <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+          <span class="wa-spinner-text">Loading older messages...</span>
+        </div>
+      </div>
+
+      <div *ngIf="loading" class="wa-loading-state">
+        <div class="wa-central-spinner-box">
+          <div class="spinner-border text-success" style="width: 2rem; height: 2rem;" role="status"></div>
+          <span class="mt-2 text-muted fw-medium">Loading chat...</span>
+        </div>
+      </div>
+
+      <div *ngIf="!loading && messages.length === 0" class="wa-empty-state">
+        <div class="wa-empty-icon">
+          <i class="bi bi-chat-dots"></i>
+        </div>
+        <div class="wa-empty-title">No WhatsApp messages yet</div>
+        <p class="wa-empty-subtitle">Inbound text messages from this contact will appear here.</p>
+      </div>
+
+      <div *ngIf="!loading && messages.length > 0" class="wa-chat-thread">
+        <div *ngFor="let msg of messages" 
+             class="wa-bubble-wrapper"
+             [ngClass]="msg.direction === 'inbound' ? 'wa-incoming' : 'wa-outgoing'">
+          <div class="wa-bubble">
+            <div class="wa-msg-text">{{ msg.message }}</div>
+            <div class="wa-msg-meta">
+              <span class="wa-msg-time">{{ msg.sent_at || msg.created_at | date:'hh:mm a, dd MMM' }}</span>
+              <span *ngIf="msg.direction === 'outbound'" class="wa-msg-status">
+                <i class="bi bi-check2-all text-primary"></i>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer / Notice -->
+    <div class="wa-msg-footer">
+      <div class="wa-footer-notice">
+        <i class="bi bi-shield-check"></i>
+        <span>Direct WhatsApp QR synced messages (Read-only viewer)</span>
+      </div>
+    </div>
+  </div>
+</div>
+

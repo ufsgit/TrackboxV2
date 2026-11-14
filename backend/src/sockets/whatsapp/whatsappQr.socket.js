@@ -1,6 +1,9 @@
 const { startBaileysSession, confirmSessionAssignment, disconnectUserSession, clearRejectedSession } = require('../../services/whatsapp/baileysSession.service');
 
+let globalIo = null;
+
 function initWhatsappQrSocket(io) {
+  globalIo = io;
   io.on('connection', (socket) => {
     // Client joins room for their specific session
     socket.on('join_whatsapp_qr', async (data) => {
@@ -56,7 +59,12 @@ function initWhatsappQrSocket(io) {
   });
 }
 
+function getWhatsappQrIO() {
+  return globalIo;
+}
+
 module.exports = {
-  initWhatsappQrSocket
+  initWhatsappQrSocket,
+  getWhatsappQrIO
 };
 

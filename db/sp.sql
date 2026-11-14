@@ -69,6 +69,27 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_whatsapp_messages`(
+    IN p_contact_id INT,
+    IN p_limit INT,
+    IN p_offset INT
+)
+BEGIN
+    SELECT 
+        `id`,
+        `direction`,
+        `message`,
+        `status`,
+        `sent_at`,
+        `created_at`
+    FROM `whatsapp_messages`
+    WHERE `contact_id` = p_contact_id
+    ORDER BY `id` DESC
+    LIMIT p_limit OFFSET p_offset;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_daily_report_export`(
     IN p_business_id INT,
     IN p_user_id INT,           -- Logged-in user ID

@@ -28,13 +28,14 @@ import { CourseService, Course } from '../../core/services/course.service';
 import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { UpdateLeadStatusModalComponent } from '../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
+import { WhatsappQrMsgComponent } from '../whatsapp-qr-msg/whatsapp-qr-msg.component';
 import { SocketService } from '../../core/services/socket.service';
 import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-contacts',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChatModalComponent, TimelineComponent, UpdateLeadStatusModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ChatModalComponent, TimelineComponent, UpdateLeadStatusModalComponent, WhatsappQrMsgComponent],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
 })
@@ -48,6 +49,10 @@ export class ContactsComponent implements OnInit {
   activeChannel = '';
   activeStatus = '';
   activeAgent = '';
+
+  // WhatsApp QR Messages Modal State
+  isWaMsgModalOpen = false;
+  selectedWaContact: any = null;
   activeEnquiryFor = '';
   allTags: string[] = [];
   transferredOnly: boolean = false;
@@ -695,6 +700,7 @@ export class ContactsComponent implements OnInit {
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin', 'manager');
     this.initEmailStatusSocket();
+    this.initWhatsappUnreadSocket();
     this.loadContacts();
     this.loadTags();
     this.loadLeadFields();
@@ -2629,6 +2635,47 @@ Trackbox CRM Team`;
         }
       }
     });
+  }
+
+  initWhatsappUnreadSocket() {
+    this.socketService.connect();
+    this.socketService.on('whatsapp_unread_changed').subscribe((data: any) => {
+      if (!data) return;
+      const contactId = data.contactId;
+      const hasUnread = data.has_unread_wa === 1 || data.has_unread_wa === true;
+      if (this.contacts && this.contacts.length > 0) {
+        const found = this.contacts.find(c => String(c.id) === String(contactId));
+        if (found) {
+          found.has_unread_wa = hasUnread ? 1 : 0;
+        }
+      }
+      if (this.selectedContact && String(this.selectedContact.id) === String(contactId)) {
+        this.selectedContact.has_unread_wa = hasUnread ? 1 : 0;
+      }
+    });
+  }
+
+  openWaMessages(contact: any, event?: Event) {
+    if (event) event.stopPropagation();
+    this.selectedWaContact = contact;
+    this.isWaMsgModalOpen = true;
+  }
+
+  closeWaMessages() {
+    this.isWaMsgModalOpen = false;
+    this.selectedWaContact = null;
+  }
+
+  onWaMsgMarkedRead(contactId: number) {
+    if (this.contacts) {
+      const found = this.contacts.find(c => String(c.id) === String(contactId));
+      if (found) {
+        found.has_unread_wa = 0;
+      }
+    }
+    if (this.selectedContact && String(this.selectedContact.id) === String(contactId)) {
+      this.selectedContact.has_unread_wa = 0;
+    }
   }
 
   loadEmailTemplates() {

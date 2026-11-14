@@ -252,13 +252,24 @@ const getContact = async (req, res) => {
   }
 };
 
-const createContact = async (req, res) => {
+const createContact = async (reqOrData, res) => {
+  const isHttp = Boolean(res && typeof res.status === 'function');
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
-    let { name, phone, email, tags, channel_preference, assigned_to, address, custom_field_values, status, remark, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, country_code } = req.body;
-    const bizId = req.user.businessId;
+    const data = isHttp ? (reqOrData.body || {}) : (reqOrData || {});
+    let { 
+      name, phone, email, tags, channel_preference, assigned_to, address, 
+      custom_field_values, status, remark, follow_up_date, enquiry_for_id, 
+      branch_id, branch_name, department_id, department_name, 
+      status_id, status_name, country_code,
+      opted_in, opt_in_date, opt_out_date, opt_in_source, has_unread_wa,
+      priority, probability_id, loss_reason
+    } = data;
+
+    const bizId = isHttp ? (reqOrData.user?.businessId || 1) : (data.business_id || 1);
+    const actingUserId = isHttp ? reqOrData.user?.userId : (assigned_to || data.created_by_user || null);
 
     if (phone) {
       // 1. Remove all spaces automatically
@@ -296,30 +307,39 @@ const createContact = async (req, res) => {
         if (numericPhone.length === 9) {
           await conn.rollback();
           conn.release();
-          return res.status(400).json({ 
-            success: false, 
-            message: 'Phone number contains only 9 digits. A valid 10-digit mobile number is required for India (+91).', 
-            data: null 
-          });
+          if (isHttp) {
+            return res.status(400).json({ 
+              success: false, 
+              message: 'Phone number contains only 9 digits. A valid 10-digit mobile number is required for India (+91).', 
+              data: null 
+            });
+          }
+          throw new Error('Phone number contains only 9 digits. A valid 10-digit mobile number is required for India (+91).');
         }
         if (numericPhone.length !== 10) {
           await conn.rollback();
           conn.release();
-          return res.status(400).json({ 
-            success: false, 
-            message: `Phone number must be exactly 10 digits for India (+91). Entered ${numericPhone.length} digits.`, 
-            data: null 
-          });
+          if (isHttp) {
+            return res.status(400).json({ 
+              success: false, 
+              message: `Phone number must be exactly 10 digits for India (+91). Entered ${numericPhone.length} digits.`, 
+              data: null 
+            });
+          }
+          throw new Error(`Phone number must be exactly 10 digits for India (+91). Entered ${numericPhone.length} digits.`);
         }
       } else {
         if (numericPhone.length < 7 || numericPhone.length > 15) {
           await conn.rollback();
           conn.release();
-          return res.status(400).json({ 
-            success: false, 
-            message: `Phone number is invalid for country code ${country_code}. Must be between 7 and 15 digits.`, 
-            data: null 
-          });
+          if (isHttp) {
+            return res.status(400).json({ 
+              success: false, 
+              message: `Phone number is invalid for country code ${country_code}. Must be between 7 and 15 digits.`, 
+              data: null 
+            });
+          }
+          throw new Error(`Phone number is invalid for country code ${country_code}. Must be between 7 and 15 digits.`);
         }
       }
 
@@ -338,15 +358,19 @@ const createContact = async (req, res) => {
         await conn.rollback();
         conn.release();
         const agentName = dupRows[0].agent_name || 'Unassigned';
-        return res.status(409).json({ 
-          success: false, 
-          message: `The contact already exists. Assigned to: ${agentName}`, 
-          data: null 
-        });
+        if (isHttp) {
+          return res.status(409).json({ 
+            success: false, 
+            message: `The contact already exists. Assigned to: ${agentName}`, 
+            data: null 
+          });
+        }
+        const [existing] = await pool.query('SELECT * FROM contacts WHERE id = ?', [dupRows[0].id]);
+        return existing[0];
       }
     }
 
-    if (!assigned_to || !branch_id || !department_id) {
+    if ((!assigned_to || !branch_id || !department_id) && actingUserId) {
       const query = `
         SELECT u.branch_id, b.name as branch_name, u.department_id, d.name as department_name 
         FROM users u 
@@ -354,9 +378,9 @@ const createContact = async (req, res) => {
         LEFT JOIN departments d ON u.department_id = d.id 
         WHERE u.id = ?
       `;
-      const [uRows] = await conn.query(query, [req.user.userId]);
+      const [uRows] = await conn.query(query, [actingUserId]);
       if (uRows.length > 0) {
-        if (!assigned_to) assigned_to = req.user.userId;
+        if (!assigned_to) assigned_to = actingUserId;
         if (!branch_id) { 
           branch_id = uRows[0].branch_id; 
           branch_name = uRows[0].branch_name; 
@@ -369,8 +393,8 @@ const createContact = async (req, res) => {
     }
 
     let assignTo = assigned_to || null;
-    if (req.user.role === 'agent') {
-      assignTo = req.user.userId;
+    if (isHttp && reqOrData.user?.role === 'agent') {
+      assignTo = reqOrData.user.userId;
     }
     let userList = assignTo ? [assignTo] : [];
     
@@ -403,16 +427,35 @@ const createContact = async (req, res) => {
     }
 
     const [result] = await conn.query(
-      'INSERT INTO contacts (business_id, name, phone, country_code, email, tags, channel_preference, assigned_to, address, follow_up_date, enquiry_for_id, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, follow_up, user_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [bizId, name, phone, country_code || '+91', email || null, JSON.stringify(tags || []), channel_preference || 'whatsapp', assignTo, address || null, formattedFollowUpDate, enquiry_for_id || null, branch_id || null, branch_name || null, department_id || null, department_name || null, status_id || null, status_name || null, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, req.user.userId, formattedFollowUpDate ? 1 : 0, JSON.stringify(userList)]
+      `INSERT INTO contacts (
+        business_id, name, phone, country_code, email, tags, 
+        opted_in, opt_in_date, opt_out_date, opt_in_source, channel_preference, has_unread_wa,
+        assigned_to, address, enquiry_for_id, loss_reason, 
+        branch_id, branch_name, department_id, department_name, 
+        status_id, status_name, follow_up_date, follow_up,
+        current_sale_status, sale_won, sale_won_date, sale_won_by, 
+        sale_lost, sale_lost_date, sale_lost_by, 
+        created_by_user, user_list, priority, probability_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        bizId, name, phone, country_code || '+91', email || null, JSON.stringify(tags || []),
+        opted_in !== undefined ? (opted_in ? 1 : 0) : 0,
+        opt_in_date || null, opt_out_date || null, opt_in_source || 'manual', channel_preference || 'whatsapp', has_unread_wa ? 1 : 0,
+        assignTo, address || null, enquiry_for_id || null, loss_reason || null,
+        branch_id || null, branch_name || null, department_id || null, department_name || null,
+        status_id || null, status_name || null, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0,
+        current_sale_status, sale_won, sale_won_date, sale_won_by,
+        sale_lost, sale_lost_date, sale_lost_by,
+        actingUserId, JSON.stringify(userList), priority || null, probability_id || null
+      ]
     );
     const contactId = result.insertId;
 
     // Fetch by_user_name and to_user_name
     let byUserName = null;
     let toUserName = null;
-    if (req.user.userId) {
-      const [u] = await conn.query('SELECT name FROM users WHERE id = ?', [req.user.userId]);
+    if (actingUserId) {
+      const [u] = await conn.query('SELECT name FROM users WHERE id = ?', [actingUserId]);
       if (u.length) byUserName = u[0].name;
     }
     if (assignTo) {
@@ -423,7 +466,7 @@ const createContact = async (req, res) => {
     // Save initial follow up
     await conn.query(
       'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [contactId, name, formattedFollowUpDate, req.user.userId, byUserName, assignTo, toUserName, status_id || null, status_name || null, branch_id || null, branch_name || null, department_id || null, department_name || null, remark || 'Contact created']
+      [contactId, name, formattedFollowUpDate, actingUserId, byUserName, assignTo, toUserName, status_id || null, status_name || null, branch_id || null, branch_name || null, department_id || null, department_name || null, remark || 'Contact created']
     );
 
     // Save custom field values
@@ -443,7 +486,7 @@ const createContact = async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM contacts WHERE id = ?', [contactId]);
     
     if (assignTo) {
-      const io = req.app.get('io');
+      const io = isHttp && reqOrData.app ? reqOrData.app.get('io') : null;
       await pool.query(
         `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -455,11 +498,17 @@ const createContact = async (req, res) => {
       }
     }
 
-    res.status(201).json({ success: true, data: rows[0], message: 'Contact created' });
+    if (isHttp) {
+      return res.status(201).json({ success: true, data: rows[0], message: 'Contact created' });
+    }
+    return rows[0];
   } catch (err) {
     if (conn) await conn.rollback();
-    console.log('error from contacts',err);
-    res.status(500).json({ success: false, message: err.message, data: null });
+    console.log('error from contacts', err);
+    if (isHttp) {
+      return res.status(500).json({ success: false, message: err.message, data: null });
+    }
+    throw err;
   } finally {
     if (conn) conn.release();
   }
