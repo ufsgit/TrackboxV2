@@ -69,6 +69,29 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_qualifications`(
+  IN p_contact_id INT,
+  IN p_business_id INT
+)
+BEGIN
+  SELECT 
+    q.id,
+    q.qualification,
+    q.institution,
+    q.completion_year,
+    q.percentage_cgpa,
+    q.backlogs,
+    q.study_gap,
+    q.is_highest,
+    q.sort_order
+  FROM contact_qualifications q
+  WHERE q.contact_id = p_contact_id 
+    AND q.business_id = p_business_id
+  ORDER BY q.sort_order ASC, q.id ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_whatsapp_messages`(
     IN p_contact_id INT,
     IN p_limit INT,
@@ -86,6 +109,28 @@ BEGIN
     WHERE `contact_id` = p_contact_id
     ORDER BY `id` DESC
     LIMIT p_limit OFFSET p_offset;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_work_experiences`(
+  IN p_contact_id INT,
+  IN p_business_id INT
+)
+BEGIN
+  SELECT 
+    w.id,
+    w.employer,
+    w.position,
+    w.experience,
+    w.from_date,
+    w.to_date,
+    w.is_current,
+    w.sort_order
+  FROM contact_work_experiences w
+  WHERE w.contact_id = p_contact_id 
+    AND w.business_id = p_business_id
+  ORDER BY w.sort_order ASC, w.from_date DESC, w.id ASC;
 END$$
 DELIMITER ;
 
@@ -473,6 +518,203 @@ BEGIN
           OR (v_role = 'agent' AND c.assigned_to = p_user_id)
       )
     ORDER BY date DESC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `save_contact_qualifications`(
+  IN p_contact_id INT,
+  IN p_business_id INT,
+  IN p_created_by INT,
+  IN p_items_json JSON
+)
+BEGIN
+  -- 1. Delete rows removed by the user in the frontend (if any items were provided)
+  IF JSON_LENGTH(p_items_json) > 0 THEN
+    DELETE FROM contact_qualifications
+    WHERE contact_id = p_contact_id 
+      AND business_id = p_business_id
+      AND id NOT IN (
+        SELECT jt.id 
+        FROM JSON_TABLE(
+          p_items_json,
+          '$[*]' COLUMNS (
+            id INT PATH '$.id'
+          )
+        ) AS jt
+        WHERE jt.id IS NOT NULL AND jt.id > 0
+      );
+  ELSE
+    -- If an empty array [] is sent, delete all records for this contact
+    DELETE FROM contact_qualifications
+    WHERE contact_id = p_contact_id AND business_id = p_business_id;
+  END IF;
+
+  -- 2. Bulk Upsert (INSERT new rows, UPDATE existing rows without touching created_at/created_by)
+  IF JSON_LENGTH(p_items_json) > 0 THEN
+    INSERT INTO contact_qualifications (
+      id,
+      contact_id,
+      business_id,
+      qualification,
+      institution,
+      completion_year,
+      percentage_cgpa,
+      backlogs,
+      study_gap,
+      is_highest,
+      sort_order,
+      created_by
+    )
+    SELECT 
+      NULLIF(jt.id, 0),
+      p_contact_id,
+      p_business_id,
+      TRIM(jt.qualification),
+      TRIM(jt.institution),
+      jt.completion_year,
+      jt.percentage_cgpa,
+      COALESCE(jt.backlogs, '0'),
+      jt.study_gap,
+      COALESCE(jt.is_highest, 0),
+      COALESCE(jt.sort_order, 0),
+      p_created_by
+    FROM JSON_TABLE(
+      p_items_json,
+      '$[*]' COLUMNS (
+        id INT PATH '$.id',
+        qualification VARCHAR(255) PATH '$.qualification',
+        institution VARCHAR(255) PATH '$.institution',
+        completion_year VARCHAR(20) PATH '$.completion_year',
+        percentage_cgpa VARCHAR(50) PATH '$.percentage_cgpa',
+        backlogs VARCHAR(100) PATH '$.backlogs',
+        study_gap TEXT PATH '$.study_gap',
+        is_highest TINYINT PATH '$.is_highest',
+        sort_order INT PATH '$.sort_order'
+      )
+    ) AS jt
+    ON DUPLICATE KEY UPDATE
+      qualification   = VALUES(qualification),
+      institution     = VALUES(institution),
+      completion_year = VALUES(completion_year),
+      percentage_cgpa = VALUES(percentage_cgpa),
+      backlogs        = VALUES(backlogs),
+      study_gap       = VALUES(study_gap),
+      is_highest      = VALUES(is_highest),
+      sort_order      = VALUES(sort_order);
+  END IF;
+
+  -- 3. Return fresh list with only required display fields
+  SELECT 
+    q.id,
+    q.qualification,
+    q.institution,
+    q.completion_year,
+    q.percentage_cgpa,
+    q.backlogs,
+    q.study_gap,
+    q.is_highest,
+    q.sort_order
+  FROM contact_qualifications q
+  WHERE q.contact_id = p_contact_id 
+    AND q.business_id = p_business_id
+  ORDER BY q.sort_order ASC, q.id ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `save_contact_work_experiences`(
+  IN p_contact_id INT,
+  IN p_business_id INT,
+  IN p_created_by INT,
+  IN p_items_json JSON
+)
+BEGIN
+  -- 1. Delete rows removed by the user in the frontend (if any items were provided)
+  IF JSON_LENGTH(p_items_json) > 0 THEN
+    DELETE FROM contact_work_experiences
+    WHERE contact_id = p_contact_id 
+      AND business_id = p_business_id
+      AND id NOT IN (
+        SELECT jt.id 
+        FROM JSON_TABLE(
+          p_items_json,
+          '$[*]' COLUMNS (
+            id INT PATH '$.id'
+          )
+        ) AS jt
+        WHERE jt.id IS NOT NULL AND jt.id > 0
+      );
+  ELSE
+    -- If empty array [] is sent, delete all records for this contact
+    DELETE FROM contact_work_experiences
+    WHERE contact_id = p_contact_id AND business_id = p_business_id;
+  END IF;
+
+  -- 2. Bulk Upsert (INSERT new rows, UPDATE existing rows without touching created_at/created_by)
+  IF JSON_LENGTH(p_items_json) > 0 THEN
+    INSERT INTO contact_work_experiences (
+      id,
+      contact_id,
+      business_id,
+      employer,
+      position,
+      experience,
+      from_date,
+      to_date,
+      is_current,
+      sort_order,
+      created_by
+    )
+    SELECT 
+      NULLIF(jt.id, 0),
+      p_contact_id,
+      p_business_id,
+      TRIM(jt.employer),
+      TRIM(jt.position),
+      jt.experience,
+      jt.from_date,
+      CASE WHEN jt.is_current = 1 THEN NULL ELSE jt.to_date END,
+      COALESCE(jt.is_current, 0),
+      COALESCE(jt.sort_order, 0),
+      p_created_by
+    FROM JSON_TABLE(
+      p_items_json,
+      '$[*]' COLUMNS (
+        id INT PATH '$.id',
+        employer VARCHAR(255) PATH '$.employer',
+        position VARCHAR(255) PATH '$.position',
+        experience TEXT PATH '$.experience',
+        from_date DATE PATH '$.from_date',
+        to_date DATE PATH '$.to_date',
+        is_current TINYINT PATH '$.is_current',
+        sort_order INT PATH '$.sort_order'
+      )
+    ) AS jt
+    ON DUPLICATE KEY UPDATE
+      employer   = VALUES(employer),
+      position   = VALUES(position),
+      experience = VALUES(experience),
+      from_date  = VALUES(from_date),
+      to_date    = VALUES(to_date),
+      is_current = VALUES(is_current),
+      sort_order = VALUES(sort_order);
+  END IF;
+
+  -- 3. Return fresh list with only required display fields
+  SELECT 
+    w.id,
+    w.employer,
+    w.position,
+    w.experience,
+    w.from_date,
+    w.to_date,
+    w.is_current,
+    w.sort_order
+  FROM contact_work_experiences w
+  WHERE w.contact_id = p_contact_id 
+    AND w.business_id = p_business_id
+  ORDER BY w.sort_order ASC, w.from_date DESC, w.id ASC;
 END$$
 DELIMITER ;
 
