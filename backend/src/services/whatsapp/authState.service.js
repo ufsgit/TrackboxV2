@@ -1,19 +1,25 @@
 const pool = require('../../db/pool');
 const { initAuthCreds, BufferJSON, proto } = require('@whiskeysockets/baileys');
 
+// In-memory cache for credentials during the unconfirmed pairing phase.
+// This ensures that before a staff user clicks "Confirm & Assign", NO rows
+// are inserted into MySQL, and NO auto-increment IDs are burned.
+const memoryAuthState = new Map();
+
 /**
  * Custom MySQL Auth State implementation for Baileys.
- * Stores auth credentials and keys safely into the MySQL whatsapp_qr_sessions table.
+ * Holds credentials in memory until confirmed, and only updates MySQL once confirmed.
  */
 async function useMySQLAuthState(sessionId) {
-  // Load existing session record
+  // Load existing confirmed session record from MySQL
   const [rows] = await pool.query(
-    'SELECT creds_json FROM whatsapp_qr_sessions WHERE session_id = ?',
+    'SELECT creds_json, status, is_active FROM whatsapp_qr_sessions WHERE session_id = ?',
     [sessionId]
   );
 
   let creds;
   let keys = {};
+  let isConfirmedInDb = rows.length > 0 && rows[0].status === 'connected' && rows[0].is_active === 1;
 
   if (rows.length > 0 && rows[0].creds_json) {
     try {
@@ -25,6 +31,11 @@ async function useMySQLAuthState(sessionId) {
       creds = initAuthCreds();
       keys = {};
     }
+  } else if (memoryAuthState.has(sessionId)) {
+    // Session in pairing phase: use memory state
+    const mem = memoryAuthState.get(sessionId);
+    creds = mem.creds;
+    keys = mem.keys;
   } else {
     creds = initAuthCreds();
     keys = {};
@@ -32,15 +43,31 @@ async function useMySQLAuthState(sessionId) {
 
   const saveState = async () => {
     try {
-      const serialized = JSON.stringify({ creds, keys }, BufferJSON.replacer);
-      await pool.query(
-        `INSERT INTO whatsapp_qr_sessions (session_id, creds_json, status, is_active)
-         VALUES (?, ?, 'pending', 1)
-         ON DUPLICATE KEY UPDATE creds_json = VALUES(creds_json), updated_at = NOW()`,
-        [sessionId, serialized]
-      );
+      // 1. Always keep the in-memory state updated
+      memoryAuthState.set(sessionId, { creds, keys });
+
+      // 2. Check if the session is confirmed in MySQL
+      if (!isConfirmedInDb) {
+        const [check] = await pool.query(
+          'SELECT id, status, is_active FROM whatsapp_qr_sessions WHERE session_id = ? LIMIT 1',
+          [sessionId]
+        );
+        if (check.length > 0 && check[0].status === 'connected' && check[0].is_active === 1) {
+          isConfirmedInDb = true;
+        }
+      }
+
+      // 3. ONLY execute an UPDATE in MySQL if the session has officially been confirmed!
+      // This uses a pure UPDATE which NEVER touches or burns AUTO_INCREMENT IDs.
+      if (isConfirmedInDb) {
+        const serialized = JSON.stringify({ creds, keys }, BufferJSON.replacer);
+        await pool.query(
+          'UPDATE whatsapp_qr_sessions SET creds_json = ?, updated_at = NOW() WHERE session_id = ?',
+          [serialized, sessionId]
+        );
+      }
     } catch (err) {
-      console.error('[WhatsApp AuthState] Error saving auth state to MySQL:', err);
+      console.error('[WhatsApp AuthState] Error updating auth state in MySQL:', err);
     }
   };
 
@@ -81,7 +108,20 @@ async function useMySQLAuthState(sessionId) {
   };
 }
 
+function getMemoryCreds(sessionId) {
+  if (memoryAuthState.has(sessionId)) {
+    return JSON.stringify(memoryAuthState.get(sessionId), BufferJSON.replacer);
+  }
+  return null;
+}
+
+function clearMemoryCreds(sessionId) {
+  memoryAuthState.delete(sessionId);
+}
+
 module.exports = {
-  useMySQLAuthState
+  useMySQLAuthState,
+  getMemoryCreds,
+  clearMemoryCreds
 };
 

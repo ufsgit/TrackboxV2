@@ -5,23 +5,23 @@ const pool = require('../../db/pool');
  * If a session already exists for this user_id, it updates that record to guarantee
  * only 1 active session per user.
  */
-async function saveOrUpdateSession({ sessionId, userId, businessId, phoneNumber, credsJson, status = 'pending', isActive = 1 }) {
-  // 1. If updating an active session by sessionId
-  const [existingBySession] = await pool.query(
-    'SELECT id, user_id FROM whatsapp_qr_sessions WHERE session_id = ? LIMIT 1',
-    [sessionId]
-  );
-
-  // 2. If userId is provided, ensure any previous session record for this user is cleaned up
+async function saveOrUpdateSession({ sessionId, userId, businessId, phoneNumber, credsJson, status = 'connected', isActive = 1 }) {
+  // 1. If userId is provided, ensure any previous session record for this user is deleted
   if (userId) {
-    // Delete any old session row for this user that isn't the current sessionId
     await pool.query(
       'DELETE FROM whatsapp_qr_sessions WHERE user_id = ? AND session_id != ?',
       [userId, sessionId]
     );
   }
 
+  // 2. Check if a row already exists for this sessionId
+  const [existingBySession] = await pool.query(
+    'SELECT id FROM whatsapp_qr_sessions WHERE session_id = ? LIMIT 1',
+    [sessionId]
+  );
+
   if (existingBySession.length > 0) {
+    // Pure UPDATE: Never increments or burns auto_increment IDs
     await pool.query(
       `UPDATE whatsapp_qr_sessions 
        SET user_id = COALESCE(?, user_id),
@@ -35,37 +35,38 @@ async function saveOrUpdateSession({ sessionId, userId, businessId, phoneNumber,
       [userId || null, businessId || null, phoneNumber || null, credsJson || null, status, isActive, sessionId]
     );
     return existingBySession[0].id;
-  } else {
-    // If not existing by sessionId, check if we can update the user's row or insert a new one
-    if (userId) {
-      const [existingForUser] = await pool.query(
-        'SELECT id FROM whatsapp_qr_sessions WHERE user_id = ? LIMIT 1',
-        [userId]
-      );
-      if (existingForUser.length > 0) {
-        await pool.query(
-          `UPDATE whatsapp_qr_sessions 
-           SET session_id = ?,
-               business_id = COALESCE(?, business_id),
-               phone_number = COALESCE(?, phone_number),
-               creds_json = COALESCE(?, creds_json),
-               status = ?,
-               is_active = ?,
-               updated_at = NOW()
-           WHERE id = ?`,
-          [sessionId, businessId || null, phoneNumber || null, credsJson || null, status, isActive, existingForUser[0].id]
-        );
-        return existingForUser[0].id;
-      }
-    }
-
-    const [insertResult] = await pool.query(
-      `INSERT INTO whatsapp_qr_sessions (session_id, user_id, business_id, phone_number, creds_json, status, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [sessionId, userId || null, businessId || null, phoneNumber || null, credsJson || null, status, isActive]
-    );
-    return insertResult.insertId;
   }
+
+  // 3. Check if user already has an existing row
+  if (userId) {
+    const [existingForUser] = await pool.query(
+      'SELECT id FROM whatsapp_qr_sessions WHERE user_id = ? LIMIT 1',
+      [userId]
+    );
+    if (existingForUser.length > 0) {
+      await pool.query(
+        `UPDATE whatsapp_qr_sessions 
+         SET session_id = ?,
+             business_id = COALESCE(?, business_id),
+             phone_number = COALESCE(?, phone_number),
+             creds_json = COALESCE(?, creds_json),
+             status = ?,
+             is_active = ?,
+             updated_at = NOW()
+         WHERE id = ?`,
+        [sessionId, businessId || null, phoneNumber || null, credsJson || null, status, isActive, existingForUser[0].id]
+      );
+      return existingForUser[0].id;
+    }
+  }
+
+  // 4. Clean single INSERT upon confirmation (burns exactly 1 ID)
+  const [insertResult] = await pool.query(
+    `INSERT INTO whatsapp_qr_sessions (session_id, user_id, business_id, phone_number, creds_json, status, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [sessionId, userId || null, businessId || null, phoneNumber || null, credsJson || null, status, isActive]
+  );
+  return insertResult.insertId;
 }
 
 /**

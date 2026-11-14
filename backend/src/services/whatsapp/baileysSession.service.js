@@ -1,7 +1,7 @@
 const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const pool = require('../../db/pool');
-const { useMySQLAuthState } = require('./authState.service');
+const { useMySQLAuthState, getMemoryCreds, clearMemoryCreds } = require('./authState.service');
 const { generateQrDataUrl } = require('../../utils/whatsapp/qrImageHelper');
 const { getPhoneVariants } = require('../../utils/whatsapp/phoneNormalizer');
 const { assignIncomingMessage } = require('./messageAssignment.service');
@@ -171,6 +171,7 @@ async function startBaileysSession(sessionId, io) {
       const statusCode = (lastDisconnect?.error)?.output?.statusCode;
       const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
       const isTimedOut = statusCode === DisconnectReason.connectionTimedOut || statusCode === 408;
+      const isConnectionReplaced = statusCode === DisconnectReason.connectionReplaced || statusCode === 440;
       const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
       const isRejected = rejectedSessions.has(sessionId);
 
@@ -186,10 +187,14 @@ async function startBaileysSession(sessionId, io) {
       // Only reconnect if:
       // 1. It is a 515 restartRequired during active pairing
       // 2. OR it is an already confirmed, connected session in MySQL suffering a temporary network blip
-      // NEVER reconnect for timed out QR codes (408), logged out (401), or rejected sessions
-      const shouldReconnect = !isLoggedOut && !isTimedOut && !isRejected && (isRestartRequired || isDbConnected);
+      // NEVER reconnect for connection replaced (440), timed out QR codes (408), logged out (401), or rejected sessions
+      const shouldReconnect = !isLoggedOut && !isTimedOut && !isRejected && !isConnectionReplaced && (isRestartRequired || isDbConnected);
 
       console.log(`[Baileys Session] Connection closed for ${sessionId}. Status code: ${statusCode}. Reconnecting: ${shouldReconnect}`);
+
+      if (isConnectionReplaced) {
+        console.warn(`[Baileys Session] Session ${sessionId} connection replaced in another instance (Code 440). Stopping auto-reconnect.`);
+      }
 
       if (isLoggedOut || isRejected || isTimedOut) {
         // If logged out from phone (401) or rejected: permanently delete session from DB
@@ -325,15 +330,21 @@ async function confirmSessionAssignment(sessionId, userId) {
     await disconnectSession(s.session_id);
   }
 
-  // 2. Update DB session record (1 unique session per user)
+  // 2. Fetch the memory-cached creds generated during the scan
+  const credsJson = getMemoryCreds(sessionId);
+
+  // 3. Perform a single clean INSERT / UPDATE into MySQL (with user_id guaranteed)
   await saveOrUpdateSession({
     sessionId,
     userId: pending.user.id,
     businessId: pending.businessId,
     phoneNumber: pending.phoneNumber,
+    credsJson,
     status: 'connected',
     isActive: 1
   });
+
+  clearMemoryCreds(sessionId);
 
   return {
     success: true,
