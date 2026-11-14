@@ -43,7 +43,27 @@ export class WhatsappQrComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.initSocketConnection();
+    this.checkActiveSession();
+  }
+
+  checkActiveSession(): void {
+    this.state = 'loading';
+    this.api.get('/whatsapp-qr/my-session').subscribe({
+      next: (res: any) => {
+        if (res?.hasActiveSession && res?.data) {
+          this.sessionId = res.data.sessionId;
+          this.scannedPhone = res.data.phoneNumber;
+          this.verifiedUser = res.data.user;
+          this.state = 'assigned';
+          this.cdr.detectChanges();
+        } else {
+          this.initSocketConnection();
+        }
+      },
+      error: () => {
+        this.initSocketConnection();
+      }
+    });
   }
 
   initSocketConnection(): void {

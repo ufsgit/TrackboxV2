@@ -20,6 +20,7 @@ const { startBroadcastJob } = require('./src/jobs/broadcastJob');
 const { startDripJob } = require('./src/jobs/dripJob');
 const { startSmsJob } = require('./src/jobs/smsJob');
 const { initWhatsappQrSocket } = require('./src/sockets/whatsapp/whatsappQr.socket');
+const { autoResumeActiveSessions } = require('./src/services/whatsapp/baileysSession.service');
 const r2Service = require('./src/services/r2.service');
 
 const app = express();
@@ -189,6 +190,7 @@ async function bootstrap() {
   try {
     await runMigrations();
     initWhatsappQrSocket(io);
+    await autoResumeActiveSessions(io);
     startBroadcastJob(io);
     startDripJob(io);
     startSmsJob();

@@ -169,22 +169,42 @@ async function startBaileysSession(sessionId, io) {
 
     if (connection === 'close') {
       const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+      const isTimedOut = statusCode === DisconnectReason.connectionTimedOut || statusCode === 408;
+      const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
       const isRejected = rejectedSessions.has(sessionId);
-      const shouldReconnect = !isLoggedOut && !isRejected;
-
-      console.log(`[Baileys Session] Connection closed for ${sessionId}. Status code: ${statusCode}. Reconnecting: ${shouldReconnect}`);
 
       cleanupSession(sessionId);
 
-      if (isLoggedOut || isRejected) {
-        await disconnectSession(sessionId);
+      // Check if this session was officially confirmed and active in DB
+      const [dbRows] = await pool.query(
+        'SELECT status, is_active FROM whatsapp_qr_sessions WHERE session_id = ? LIMIT 1',
+        [sessionId]
+      ).catch(() => [[]]);
+      const isDbConnected = dbRows.length > 0 && dbRows[0].status === 'connected' && dbRows[0].is_active === 1;
+
+      // Only reconnect if:
+      // 1. It is a 515 restartRequired during active pairing
+      // 2. OR it is an already confirmed, connected session in MySQL suffering a temporary network blip
+      // NEVER reconnect for timed out QR codes (408), logged out (401), or rejected sessions
+      const shouldReconnect = !isLoggedOut && !isTimedOut && !isRejected && (isRestartRequired || isDbConnected);
+
+      console.log(`[Baileys Session] Connection closed for ${sessionId}. Status code: ${statusCode}. Reconnecting: ${shouldReconnect}`);
+
+      if (isLoggedOut || isRejected || isTimedOut) {
+        // If logged out from phone (401) or rejected: permanently delete session from DB
+        if (isLoggedOut || isRejected) {
+          console.log(`[Baileys Session] Device logged out or rejected. Deleting session from DB: ${sessionId}`);
+          await pool.query('DELETE FROM whatsapp_qr_sessions WHERE session_id = ?', [sessionId]).catch(() => {});
+        } else if (!isDbConnected) {
+          await disconnectSession(sessionId);
+        }
+
         io.to(`session_${sessionId}`).emit('whatsapp_status_update', {
           sessionId,
           status: 'disconnected'
         });
       } else if (shouldReconnect) {
-        // Automatically reconnect on 515 (restartRequired) and transient connection drops
         console.log(`[Baileys Session] Reconnecting session ${sessionId} in 500ms...`);
         setTimeout(() => {
           startBaileysSession(sessionId, io).catch((err) => {
@@ -199,13 +219,21 @@ async function startBaileysSession(sessionId, io) {
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
 
+    // Check DB: Messages must ONLY be processed if this session has been confirmed & active in MySQL
+    const [confirmedSessionRows] = await pool.query(
+      'SELECT user_id, business_id, status, is_active FROM whatsapp_qr_sessions WHERE session_id = ? LIMIT 1',
+      [sessionId]
+    ).catch(() => [[]]);
+
+    if (confirmedSessionRows.length === 0 || confirmedSessionRows[0].status !== 'connected' || confirmedSessionRows[0].is_active !== 1) {
+      // Session has NOT been confirmed yet by the user on the UI, or was deleted from MySQL
+      return;
+    }
+
+    const { user_id: userId, business_id: businessId } = confirmedSessionRows[0];
+
     for (const msg of messages) {
       if (!msg.message || msg.key.fromMe) continue;
-
-      // Debug full msg.key to inspect real phone properties sent by WhatsApp
-      console.log('----------------------------------------------------');
-      console.log('[DEBUG WA MSG KEY]:', JSON.stringify(msg.key));
-      console.log('[DEBUG PUSH NAME]:', msg.pushName);
 
       // Check all possible places Baileys provides the real phone number
       const remoteJid = msg.key?.remoteJid || '';
@@ -231,7 +259,6 @@ async function startBaileysSession(sessionId, io) {
         const targetLid = (remoteJid.includes('@lid') ? remoteJid : participant).split('@')[0];
         if (lidPhoneMap.has(targetLid)) {
           senderJid = `${lidPhoneMap.get(targetLid)}@s.whatsapp.net`;
-          console.log(`[DEBUG LID RESOLVED]: ${targetLid} -> ${senderJid}`);
         }
       }
 
@@ -250,31 +277,12 @@ async function startBaileysSession(sessionId, io) {
         senderJid = remoteJid || participant;
       }
 
-      console.log('[DEBUG FINAL SENDER JID USED]:', senderJid);
-      console.log('----------------------------------------------------');
-
       // Skip group chats or broadcast status updates
       if (senderJid.endsWith('@g.us') || senderJid.includes('broadcast')) continue;
 
       const text = msg.message?.conversation ||
                    msg.message?.extendedTextMessage?.text ||
                    msg.message?.imageMessage?.caption || '';
-
-      const pending = pendingVerifications.get(sessionId);
-      let userId = pending?.user?.id;
-      let businessId = pending?.businessId;
-
-      // If not in memory pending map, look up the confirmed session from DB
-      if (!userId) {
-        const [sessionRows] = await pool.query(
-          'SELECT user_id, business_id FROM whatsapp_qr_sessions WHERE session_id = ? AND is_active = 1 LIMIT 1',
-          [sessionId]
-        );
-        if (sessionRows.length > 0) {
-          userId = sessionRows[0].user_id;
-          businessId = sessionRows[0].business_id;
-        }
-      }
 
       await assignIncomingMessage({
         sessionId,
@@ -307,7 +315,17 @@ async function confirmSessionAssignment(sessionId, userId) {
     throw new Error('User ID does not match the verified phone session');
   }
 
-  // Update DB session record
+  // 1. If this user had a prior active session, cleanly close that older socket
+  const [existingUserSessions] = await pool.query(
+    'SELECT session_id FROM whatsapp_qr_sessions WHERE user_id = ? AND session_id != ?',
+    [userId, sessionId]
+  );
+  for (const s of existingUserSessions) {
+    cleanupSession(s.session_id);
+    await disconnectSession(s.session_id);
+  }
+
+  // 2. Update DB session record (1 unique session per user)
   await saveOrUpdateSession({
     sessionId,
     userId: pending.user.id,
@@ -337,17 +355,62 @@ function cleanupSession(sessionId) {
 }
 
 /**
- * Explicit disconnect requested by user/admin
+ * Explicit disconnect requested by user/admin from the web app
+ * Sends logout to phone so WhatsApp unlinks it, then deletes from DB.
  */
 async function disconnectUserSession(sessionId) {
   rejectedSessions.delete(sessionId);
-  cleanupSession(sessionId);
   pendingVerifications.delete(sessionId);
-  await disconnectSession(sessionId);
+
+  // 1. If socket is active, send logout to WhatsApp so phone unlinks immediately
+  if (activeSockets.has(sessionId)) {
+    const s = activeSockets.get(sessionId);
+    try {
+      console.log(`[Baileys Session] Sending logout stanza to phone for session: ${sessionId}`);
+      await s.logout('Disconnected from Trackbox');
+    } catch (e) {
+      console.warn(`[Baileys Session] Logout notice failed (socket may already be closed):`, e.message);
+    }
+  }
+
+  // 2. Clean up socket from memory
+  cleanupSession(sessionId);
+
+  // 3. Permanently delete session row from database
+  await pool.query('DELETE FROM whatsapp_qr_sessions WHERE session_id = ?', [sessionId]).catch(() => {});
 }
 
 function clearRejectedSession(sessionId) {
   rejectedSessions.delete(sessionId);
+}
+
+/**
+ * Automatically resumes all active connected WhatsApp sessions upon server startup
+ */
+async function autoResumeActiveSessions(io) {
+  try {
+    const [activeSessions] = await pool.query(
+      `SELECT session_id, user_id, phone_number 
+       FROM whatsapp_qr_sessions 
+       WHERE status = 'connected' AND is_active = 1`
+    );
+
+    if (activeSessions.length === 0) {
+      console.log('[Baileys AutoResume] No active WhatsApp sessions to resume.');
+      return;
+    }
+
+    console.log(`[Baileys AutoResume] Resuming ${activeSessions.length} active WhatsApp session(s)...`);
+
+    for (const session of activeSessions) {
+      console.log(`[Baileys AutoResume] Resuming session: ${session.session_id} (User: ${session.user_id}, Phone: ${session.phone_number})`);
+      startBaileysSession(session.session_id, io).catch((err) => {
+        console.error(`[Baileys AutoResume] Failed to resume session ${session.session_id}:`, err.message);
+      });
+    }
+  } catch (err) {
+    console.error('[Baileys AutoResume] Error loading active sessions on startup:', err.message);
+  }
 }
 
 module.exports = {
@@ -355,6 +418,7 @@ module.exports = {
   confirmSessionAssignment,
   disconnectUserSession,
   clearRejectedSession,
+  autoResumeActiveSessions,
   activeSockets,
   pendingVerifications
 };
