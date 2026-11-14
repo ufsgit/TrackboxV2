@@ -93,6 +93,39 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   receiptTypes: any[] = [];
   totalReceiptAmount = 0;
 
+  // Qualifications Tab
+  selectedContactQualifications: any[] = [];
+  loadingQualifications = false;
+  showAddQualificationModal = false;
+  savingQualification = false;
+  currentQualification: any = {
+    id: null,
+    qualification: '',
+    institution: '',
+    completion_year: '',
+    percentage_cgpa: '',
+    backlogs: '0',
+    study_gap: '',
+    is_highest: 0,
+    sort_order: 0
+  };
+
+  // Work Experience Tab
+  selectedContactExperiences: any[] = [];
+  loadingExperiences = false;
+  showAddExperienceModal = false;
+  savingExperience = false;
+  currentExperience: any = {
+    id: null,
+    employer: '',
+    position: '',
+    experience: '',
+    from_date: '',
+    to_date: '',
+    is_current: 0,
+    sort_order: 0
+  };
+
   // Edit Lead Modal State
   showEditModal: boolean = false;
   savingEdit: boolean = false;
@@ -148,6 +181,8 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       this.loadApplications();
       this.loadDocuments();
       this.loadReceipts();
+      this.loadQualifications();
+      this.loadExperiences();
     }
   }
 
@@ -1136,5 +1171,144 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       case 'Upcoming': return 'badge rounded-pill bg-info-subtle text-info border border-info-subtle px-3 py-1';
       default: return 'badge rounded-pill bg-light text-dark px-3 py-1';
     }
+  }
+
+  // --- Qualifications UI Logic ---
+
+  loadQualifications() {
+    this.selectedContactQualifications = [];
+  }
+
+  openAddQualificationModal() {
+    this.currentQualification = {
+      id: null,
+      qualification: '',
+      institution: '',
+      completion_year: '',
+      percentage_cgpa: '',
+      backlogs: '0',
+      study_gap: '',
+      is_highest: 0,
+      sort_order: 0
+    };
+    this.showAddQualificationModal = true;
+  }
+
+  openEditQualificationModal(q: any) {
+    this.currentQualification = { ...q };
+    this.showAddQualificationModal = true;
+  }
+
+  saveQualification() {
+    if (!this.currentQualification.qualification || !this.currentQualification.institution) {
+      Swal.fire('Validation Error', 'Please enter Qualification and Institution.', 'warning');
+      return;
+    }
+
+    if (this.currentQualification.is_highest) {
+      this.selectedContactQualifications.forEach(item => item.is_highest = 0);
+    }
+
+    if (this.currentQualification.id) {
+      const idx = this.selectedContactQualifications.findIndex(item => item.id === this.currentQualification.id);
+      if (idx > -1) {
+        this.selectedContactQualifications[idx] = { ...this.currentQualification };
+      }
+      Swal.fire({ icon: 'success', title: 'Updated', text: 'Qualification updated successfully.', timer: 1500, showConfirmButton: false });
+    } else {
+      const newEntry = {
+        ...this.currentQualification,
+        id: Date.now()
+      };
+      this.selectedContactQualifications.unshift(newEntry);
+      Swal.fire({ icon: 'success', title: 'Added', text: 'Qualification recorded successfully.', timer: 1500, showConfirmButton: false });
+    }
+    this.showAddQualificationModal = false;
+  }
+
+  deleteQualification(id: any) {
+    Swal.fire({
+      title: 'Delete Qualification?',
+      text: 'Are you sure you want to remove this qualification record?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.selectedContactQualifications = this.selectedContactQualifications.filter(item => item.id !== id);
+        Swal.fire({ icon: 'success', title: 'Deleted', text: 'Qualification record deleted.', timer: 1500, showConfirmButton: false });
+      }
+    });
+  }
+
+  // --- Work Experience UI Logic ---
+
+  loadExperiences() {
+    this.selectedContactExperiences = [];
+  }
+
+  openAddExperienceModal() {
+    this.currentExperience = {
+      id: null,
+      employer: '',
+      position: '',
+      experience: '',
+      from_date: '',
+      to_date: '',
+      is_current: 0,
+      sort_order: 0
+    };
+    this.showAddExperienceModal = true;
+  }
+
+  openEditExperienceModal(exp: any) {
+    this.currentExperience = { ...exp };
+    this.showAddExperienceModal = true;
+  }
+
+  saveExperience() {
+    if (!this.currentExperience.employer || !this.currentExperience.position) {
+      Swal.fire('Validation Error', 'Please enter Employer name and Position title.', 'warning');
+      return;
+    }
+
+    if (this.currentExperience.is_current) {
+      this.currentExperience.to_date = null;
+    }
+
+    if (this.currentExperience.id) {
+      const idx = this.selectedContactExperiences.findIndex(item => item.id === this.currentExperience.id);
+      if (idx > -1) {
+        this.selectedContactExperiences[idx] = { ...this.currentExperience };
+      }
+      Swal.fire({ icon: 'success', title: 'Updated', text: 'Work experience updated successfully.', timer: 1500, showConfirmButton: false });
+    } else {
+      const newEntry = {
+        ...this.currentExperience,
+        id: Date.now()
+      };
+      this.selectedContactExperiences.unshift(newEntry);
+      Swal.fire({ icon: 'success', title: 'Added', text: 'Work experience recorded successfully.', timer: 1500, showConfirmButton: false });
+    }
+    this.showAddExperienceModal = false;
+  }
+
+  deleteExperience(id: any) {
+    Swal.fire({
+      title: 'Delete Experience?',
+      text: 'Are you sure you want to remove this employment record?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.selectedContactExperiences = this.selectedContactExperiences.filter(item => item.id !== id);
+        Swal.fire({ icon: 'success', title: 'Deleted', text: 'Employment record deleted.', timer: 1500, showConfirmButton: false });
+      }
+    });
   }
 }

@@ -452,6 +452,37 @@ export class ContactsComponent implements OnInit {
     description: ''
   };
 
+  // Qualifications State
+  selectedContactQualifications: any[] = [];
+  loadingQualifications = false;
+  showAddQualificationModal = false;
+  currentQualification: any = {
+    id: null,
+    qualification: '',
+    institution: '',
+    completion_year: '',
+    percentage_cgpa: '',
+    backlogs: '0',
+    study_gap: '',
+    is_highest: 0,
+    sort_order: 0
+  };
+
+  // Work Experience State
+  selectedContactExperiences: any[] = [];
+  loadingExperiences = false;
+  showAddExperienceModal = false;
+  currentExperience: any = {
+    id: null,
+    employer: '',
+    position: '',
+    experience: '',
+    from_date: '',
+    to_date: '',
+    is_current: 0,
+    sort_order: 0
+  };
+
   // Visa State
   currentVisa: any = {
     status: 'Submitted',
@@ -1072,6 +1103,8 @@ export class ContactsComponent implements OnInit {
           this.loadReceiptTypes();
           this.loadReceipts(contact.id);
           this.loadVisa(contact.id);
+          this.loadQualifications(contact.id);
+          this.loadExperiences(contact.id);
         }
         this.detailLoading = false;
       },
@@ -1093,6 +1126,8 @@ export class ContactsComponent implements OnInit {
     this.selectedContact = null;
     this.selectedContactApplications = [];
     this.selectedContactReceipts = [];
+    this.selectedContactQualifications = [];
+    this.selectedContactExperiences = [];
     this.visaHistoryList = [];
 
     if (!navigateBack) return;
@@ -1564,6 +1599,127 @@ export class ContactsComponent implements OnInit {
           },
           error: (err) => showPremiumError('Error', err.error?.message || 'Error deleting receipt')
         });
+      }
+    });
+  }
+
+  // --- QUALIFICATIONS LOGIC ---
+  loadQualifications(contactId?: number) {
+    this.selectedContactQualifications = [];
+  }
+
+  openAddQualificationModal() {
+    this.currentQualification = {
+      id: null,
+      qualification: '',
+      institution: '',
+      completion_year: '',
+      percentage_cgpa: '',
+      backlogs: '0',
+      study_gap: '',
+      is_highest: 0,
+      sort_order: 0
+    };
+    this.showAddQualificationModal = true;
+  }
+
+  openEditQualificationModal(q: any) {
+    this.currentQualification = { ...q };
+    this.showAddQualificationModal = true;
+  }
+
+  saveQualification() {
+    if (!this.currentQualification.qualification || !this.currentQualification.institution) {
+      Swal.fire('Validation Error', 'Please enter Qualification title and Institution.', 'warning');
+      return;
+    }
+
+    if (this.currentQualification.is_highest) {
+      this.selectedContactQualifications.forEach(item => item.is_highest = 0);
+    }
+
+    if (this.currentQualification.id) {
+      const idx = this.selectedContactQualifications.findIndex(item => item.id === this.currentQualification.id);
+      if (idx > -1) {
+        this.selectedContactQualifications[idx] = { ...this.currentQualification };
+      }
+      showImpressiveSuccess('Qualification updated successfully');
+    } else {
+      const newEntry = {
+        ...this.currentQualification,
+        id: Date.now()
+      };
+      this.selectedContactQualifications.unshift(newEntry);
+      showImpressiveSuccess('Qualification added successfully');
+    }
+    this.showAddQualificationModal = false;
+  }
+
+  deleteQualification(id: any) {
+    showConfirmDelete('Delete Qualification?', 'Are you sure you want to remove this qualification record?').then((confirmed) => {
+      if (confirmed) {
+        this.selectedContactQualifications = this.selectedContactQualifications.filter(item => item.id !== id);
+        showLeadDeletedSuccess('Qualification');
+      }
+    });
+  }
+
+  // --- WORK EXPERIENCE LOGIC ---
+  loadExperiences(contactId?: number) {
+    this.selectedContactExperiences = [];
+  }
+
+  openAddExperienceModal() {
+    this.currentExperience = {
+      id: null,
+      employer: '',
+      position: '',
+      experience: '',
+      from_date: '',
+      to_date: '',
+      is_current: 0,
+      sort_order: 0
+    };
+    this.showAddExperienceModal = true;
+  }
+
+  openEditExperienceModal(exp: any) {
+    this.currentExperience = { ...exp };
+    this.showAddExperienceModal = true;
+  }
+
+  saveExperience() {
+    if (!this.currentExperience.employer || !this.currentExperience.position) {
+      Swal.fire('Validation Error', 'Please enter Employer name and Position title.', 'warning');
+      return;
+    }
+
+    if (this.currentExperience.is_current) {
+      this.currentExperience.to_date = null;
+    }
+
+    if (this.currentExperience.id) {
+      const idx = this.selectedContactExperiences.findIndex(item => item.id === this.currentExperience.id);
+      if (idx > -1) {
+        this.selectedContactExperiences[idx] = { ...this.currentExperience };
+      }
+      showImpressiveSuccess('Work experience updated successfully');
+    } else {
+      const newEntry = {
+        ...this.currentExperience,
+        id: Date.now()
+      };
+      this.selectedContactExperiences.unshift(newEntry);
+      showImpressiveSuccess('Work experience added successfully');
+    }
+    this.showAddExperienceModal = false;
+  }
+
+  deleteExperience(id: any) {
+    showConfirmDelete('Delete Work Experience?', 'Are you sure you want to remove this employment record?').then((confirmed) => {
+      if (confirmed) {
+        this.selectedContactExperiences = this.selectedContactExperiences.filter(item => item.id !== id);
+        showLeadDeletedSuccess('Experience');
       }
     });
   }

@@ -80,6 +80,14 @@
           <i class="bi bi-receipt me-1"></i> <span>Receipt</span>
           <span class="tab-count-badge" *ngIf="selectedContactReceipts">{{ selectedContactReceipts.length }}</span>
         </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Qualifications'" (click)="detailActiveTab = 'Qualifications'">
+          <i class="bi bi-mortarboard me-1"></i> <span>Qualifications</span>
+          <span class="tab-count-badge" *ngIf="selectedContactQualifications">{{ selectedContactQualifications.length }}</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'WorkExperience'" (click)="detailActiveTab = 'WorkExperience'">
+          <i class="bi bi-briefcase me-1"></i> <span>Work Experience</span>
+          <span class="tab-count-badge" *ngIf="selectedContactExperiences">{{ selectedContactExperiences.length }}</span>
+        </button>
       </div>
 
       <!-- Tab Content Area -->
@@ -378,6 +386,174 @@
                 <span class="receipt-chip notes" *ngIf="r.description || r.remarks">
                   <i class="bi bi-chat-left-text text-muted"></i> {{ r.description || r.remarks }}
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== QUALIFICATIONS TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'Qualifications'" class="tab-pane qual-tab-pane">
+          <div class="tab-section-header qual-section-header">
+            <div class="qual-title-group">
+              <div class="qual-icon-bubble indigo">
+                <i class="bi bi-mortarboard-fill"></i>
+              </div>
+              <div>
+                <div class="qual-heading-row">
+                  <h5 class="qual-main-title">Academic Qualifications</h5>
+                  <span class="count-chip" *ngIf="selectedContactQualifications">
+                    {{ selectedContactQualifications.length }} {{ selectedContactQualifications.length === 1 ? 'Record' : 'Records' }}
+                  </span>
+                </div>
+                <span class="qual-sub">Educational background, degree levels, scores, backlogs, and study gap</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn-add-qual" (click)="openAddQualificationModal()">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span>Add Qualification</span>
+            </button>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="selectedContactQualifications.length === 0" class="qual-empty-state">
+            <div class="qual-hero-card">
+              <div class="qual-hero-icon indigo">
+                <i class="bi bi-mortarboard"></i>
+              </div>
+              <h6 class="qual-hero-title">No Qualifications Recorded</h6>
+              <p class="qual-hero-desc">Add degrees, diplomas, high school, or academic scores for {{ getLeadName() }}.</p>
+              <button type="button" class="btn-create-first-qual" (click)="openAddQualificationModal()">
+                <i class="bi bi-plus-lg me-1"></i> Add First Qualification
+              </button>
+            </div>
+          </div>
+
+          <!-- Qualifications Cards List -->
+          <div *ngIf="selectedContactQualifications.length > 0" class="qual-card-list">
+            <div class="qual-record-card" *ngFor="let q of selectedContactQualifications" [class.is-highest]="q.is_highest">
+              <div class="qual-card-top">
+                <div class="qual-title-col">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h6 class="qual-card-heading mb-0">{{ q.qualification }}</h6>
+                    <span class="badge-highest" *ngIf="q.is_highest">
+                      <i class="bi bi-star-fill me-1"></i> Highest Qualification
+                    </span>
+                  </div>
+                  <div class="qual-institution">
+                    <i class="bi bi-building me-1"></i> {{ q.institution }}
+                    <span *ngIf="q.completion_year" class="text-muted ms-1">• Year: <strong>{{ q.completion_year }}</strong></span>
+                  </div>
+                </div>
+
+                <div class="qual-card-actions">
+                  <button type="button" class="btn-qual-edit" (click)="openEditQualificationModal(q)" title="Edit qualification">
+                    <i class="bi bi-pencil-square"></i> <span>Edit</span>
+                  </button>
+                  <button type="button" class="btn-qual-delete" (click)="deleteQualification(q.id)" title="Delete qualification">
+                    <i class="bi bi-trash3"></i> <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Details Grid -->
+              <div class="qual-details-grid">
+                <div class="qual-detail-item">
+                  <span class="detail-label"><i class="bi bi-award me-1"></i> Percentage / CGPA</span>
+                  <span class="detail-val score-highlight">{{ q.percentage_cgpa || 'Not specified' }}</span>
+                </div>
+                <div class="qual-detail-item">
+                  <span class="detail-label"><i class="bi bi-exclamation-circle me-1"></i> Backlogs</span>
+                  <span class="detail-val" [ngClass]="q.backlogs && q.backlogs !== '0' ? 'text-danger fw-bold' : 'text-success'">
+                    {{ q.backlogs || '0' }}
+                  </span>
+                </div>
+                <div class="qual-detail-item" *ngIf="q.study_gap">
+                  <span class="detail-label"><i class="bi bi-hourglass-split me-1"></i> Study Gap</span>
+                  <span class="detail-val">{{ q.study_gap }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== WORK EXPERIENCE TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'WorkExperience'" class="tab-pane exp-tab-pane">
+          <div class="tab-section-header exp-section-header">
+            <div class="exp-title-group">
+              <div class="exp-icon-bubble indigo">
+                <i class="bi bi-briefcase-fill"></i>
+              </div>
+              <div>
+                <div class="exp-heading-row">
+                  <h5 class="exp-main-title">Work Experience</h5>
+                  <span class="count-chip" *ngIf="selectedContactExperiences">
+                    {{ selectedContactExperiences.length }} {{ selectedContactExperiences.length === 1 ? 'Record' : 'Records' }}
+                  </span>
+                </div>
+                <span class="exp-sub">Employment history, company roles, internship tenure, and descriptions</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn-add-exp" (click)="openAddExperienceModal()">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span>Add Experience</span>
+            </button>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="selectedContactExperiences.length === 0" class="exp-empty-state">
+            <div class="exp-hero-card">
+              <div class="exp-hero-icon indigo">
+                <i class="bi bi-briefcase"></i>
+              </div>
+              <h6 class="exp-hero-title">No Work Experience Recorded</h6>
+              <p class="exp-hero-desc">Add previous employment, internships, or current work details for {{ getLeadName() }}.</p>
+              <button type="button" class="btn-create-first-exp" (click)="openAddExperienceModal()">
+                <i class="bi bi-plus-lg me-1"></i> Add First Experience
+              </button>
+            </div>
+          </div>
+
+          <!-- Experiences Cards List -->
+          <div *ngIf="selectedContactExperiences.length > 0" class="exp-card-list">
+            <div class="exp-record-card" *ngFor="let exp of selectedContactExperiences" [class.is-current]="exp.is_current">
+              <div class="exp-card-top">
+                <div class="exp-title-col">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h6 class="exp-card-heading mb-0">{{ exp.position }}</h6>
+                    <span class="badge-current" *ngIf="exp.is_current">
+                      <i class="bi bi-check-circle-fill me-1"></i> Currently Employed
+                    </span>
+                  </div>
+                  <div class="exp-company">
+                    <i class="bi bi-building me-1"></i> {{ exp.employer }}
+                  </div>
+                </div>
+
+                <div class="exp-card-actions">
+                  <button type="button" class="btn-exp-edit" (click)="openEditExperienceModal(exp)" title="Edit experience">
+                    <i class="bi bi-pencil-square"></i> <span>Edit</span>
+                  </button>
+                  <button type="button" class="btn-exp-delete" (click)="deleteExperience(exp.id)" title="Delete experience">
+                    <i class="bi bi-trash3"></i> <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Duration & Description -->
+              <div class="exp-meta-row">
+                <span class="exp-duration-chip">
+                  <i class="bi bi-calendar-range me-1 text-primary"></i>
+                  <span>{{ exp.from_date ? (exp.from_date | date:'mediumDate') : 'Start date not set' }}</span>
+                  <span class="mx-1">→</span>
+                  <strong *ngIf="exp.is_current" class="text-success">Present</strong>
+                  <span *ngIf="!exp.is_current">{{ exp.to_date ? (exp.to_date | date:'mediumDate') : 'Present' }}</span>
+                </span>
+              </div>
+
+              <div class="exp-description-box" *ngIf="exp.experience">
+                <p class="mb-0 text-muted"><i class="bi bi-card-text me-1"></i> {{ exp.experience }}</p>
               </div>
             </div>
           </div>
@@ -726,6 +902,154 @@
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- ==================== ADD / EDIT QUALIFICATION MODAL ==================== -->
+<div class="custom-modal center-modal modal-wrapper-modern" *ngIf="showAddQualificationModal">
+  <div class="modal-backdrop" (click)="showAddQualificationModal = false"></div>
+  <div class="modern-dialog-card">
+    <div class="dialog-top-accent indigo"></div>
+    <div class="dialog-header">
+      <div class="d-flex align-items-center gap-3">
+        <div class="dialog-icon-badge indigo">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <div>
+          <h4 class="dialog-title">{{ currentQualification?.id ? 'Edit Qualification' : 'Add Academic Qualification' }}</h4>
+          <p class="dialog-sub">Record degree, institution, scores, backlogs, and study gaps</p>
+        </div>
+      </div>
+      <button type="button" class="dialog-close-btn" (click)="showAddQualificationModal = false">&times;</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="d-flex flex-column gap-3">
+        <!-- Qualification / Degree Name -->
+        <div>
+          <label class="form-label-modern">Highest Qualification / Degree Title *</label>
+          <input type="text" class="form-control modern-input" [(ngModel)]="currentQualification.qualification" placeholder="e.g. B.Tech Computer Science, Higher Secondary (12th)">
+        </div>
+
+        <!-- Institution -->
+        <div>
+          <label class="form-label-modern">Institution / University *</label>
+          <input type="text" class="form-control modern-input" [(ngModel)]="currentQualification.institution" placeholder="e.g. ABC College of Engineering, Oxford University">
+        </div>
+
+        <!-- Row: Completion Year & Percentage/CGPA -->
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label-modern">Completion Year</label>
+            <input type="text" class="form-control modern-input" [(ngModel)]="currentQualification.completion_year" placeholder="e.g. 2023">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-modern">Percentage / CGPA</label>
+            <input type="text" class="form-control modern-input" [(ngModel)]="currentQualification.percentage_cgpa" placeholder="e.g. 85% or 8.5 CGPA">
+          </div>
+        </div>
+
+        <!-- Row: Backlogs & Study Gap -->
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label-modern">Backlogs (Count / Status)</label>
+            <input type="text" class="form-control modern-input" [(ngModel)]="currentQualification.backlogs" placeholder="e.g. 0 or 2 cleared">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-modern">Study Gap (Duration & reason)</label>
+            <input type="text" class="form-control modern-input" [(ngModel)]="currentQualification.study_gap" placeholder="e.g. 1 year (Preparation / Medical)">
+          </div>
+        </div>
+
+        <!-- Highest Qualification Checkbox -->
+        <div class="form-check p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+          <input class="form-check-input" type="checkbox" id="checkHighestQual" [(ngModel)]="currentQualification.is_highest">
+          <label class="form-check-label fw-bold small text-dark ms-2" for="checkHighestQual" style="cursor: pointer;">
+            Mark as Highest Qualification
+          </label>
+          <p class="text-muted mb-0 ms-2" style="font-size: 0.78rem;">Highlights this qualification at the top of the student's profile.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn btn-light btn-dialog-cancel" (click)="showAddQualificationModal = false">Cancel</button>
+      <button type="button" class="btn btn-primary btn-dialog-save indigo" (click)="saveQualification()">
+        <i class="bi bi-check-circle-fill me-1"></i>
+        {{ currentQualification?.id ? 'Update Qualification' : 'Save Qualification' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADD / EDIT WORK EXPERIENCE MODAL ==================== -->
+<div class="custom-modal center-modal modal-wrapper-modern" *ngIf="showAddExperienceModal">
+  <div class="modal-backdrop" (click)="showAddExperienceModal = false"></div>
+  <div class="modern-dialog-card">
+    <div class="dialog-top-accent indigo"></div>
+    <div class="dialog-header">
+      <div class="d-flex align-items-center gap-3">
+        <div class="dialog-icon-badge indigo">
+          <i class="bi bi-briefcase-fill"></i>
+        </div>
+        <div>
+          <h4 class="dialog-title">{{ currentExperience?.id ? 'Edit Work Experience' : 'Add Work Experience' }}</h4>
+          <p class="dialog-sub">Record employment history, roles, duration, and key responsibilities</p>
+        </div>
+      </div>
+      <button type="button" class="dialog-close-btn" (click)="showAddExperienceModal = false">&times;</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="d-flex flex-column gap-3">
+        <!-- Employer / Company -->
+        <div>
+          <label class="form-label-modern">Employer / Company Name *</label>
+          <input type="text" class="form-control modern-input" [(ngModel)]="currentExperience.employer" placeholder="e.g. Apex Global Tech Ltd, Google">
+        </div>
+
+        <!-- Position / Job Title -->
+        <div>
+          <label class="form-label-modern">Position / Job Title *</label>
+          <input type="text" class="form-control modern-input" [(ngModel)]="currentExperience.position" placeholder="e.g. Software Engineer, Marketing Intern">
+        </div>
+
+        <!-- Row: From Date & To Date -->
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label-modern">From Date</label>
+            <input type="date" class="form-control modern-input" [(ngModel)]="currentExperience.from_date">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-modern">To Date</label>
+            <input type="date" class="form-control modern-input" [(ngModel)]="currentExperience.to_date" [disabled]="currentExperience.is_current">
+          </div>
+        </div>
+
+        <!-- Current Job Checkbox -->
+        <div class="form-check p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+          <input class="form-check-input" type="checkbox" id="checkCurrentJob" [(ngModel)]="currentExperience.is_current">
+          <label class="form-check-label fw-bold small text-dark ms-2" for="checkCurrentJob" style="cursor: pointer;">
+            I am currently working in this role
+          </label>
+          <p class="text-muted mb-0 ms-2" style="font-size: 0.78rem;">To Date will be displayed as "Present".</p>
+        </div>
+
+        <!-- Description / Experience -->
+        <div>
+          <label class="form-label-modern">Relevant Experience / Responsibilities</label>
+          <textarea class="form-control modern-input" rows="3" [(ngModel)]="currentExperience.experience" placeholder="Key responsibilities, projects handled, tools used..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn btn-light btn-dialog-cancel" (click)="showAddExperienceModal = false">Cancel</button>
+      <button type="button" class="btn btn-primary btn-dialog-save indigo" (click)="saveExperience()">
+        <i class="bi bi-check-circle-fill me-1"></i>
+        {{ currentExperience?.id ? 'Update Experience' : 'Save Experience' }}
+      </button>
+    </div>
   </div>
 </div>
 
