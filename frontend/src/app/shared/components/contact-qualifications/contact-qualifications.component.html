@@ -1,0 +1,243 @@
+<div class="qual-wrapper">
+  <!-- Section Header -->
+  <div class="tab-section-header qual-section-header">
+    <div class="qual-title-group">
+      <div class="qual-icon-bubble indigo">
+        <i class="bi bi-mortarboard-fill"></i>
+      </div>
+      <div>
+        <div class="qual-heading-row">
+          <h5 class="qual-main-title">Academic Qualifications</h5>
+          <span class="count-chip" *ngIf="qualifications">
+            {{ qualifications.length }} {{ qualifications.length === 1 ? 'Record' : 'Records' }}
+          </span>
+        </div>
+        <span class="qual-sub">Educational background, degree levels, scores, backlogs, and study gap</span>
+      </div>
+    </div>
+
+    <!-- Actions: Add & Clear All -->
+    <div class="d-flex align-items-center gap-2">
+      <button 
+        type="button" 
+        class="btn-clear-all" 
+        *ngIf="qualifications.length > 0 && !showForm"
+        (click)="clearAllQualifications()"
+        title="Remove all qualifications for this student">
+        <i class="bi bi-trash3 me-1"></i>
+        <span>Clear All</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-add-qual" 
+        *ngIf="!showForm" 
+        (click)="openAddForm()">
+        <i class="bi bi-plus-circle-fill"></i>
+        <span>Add Qualification</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- INLINE / IN-PAGE FORM (Appears right inside the page instead of popup) -->
+  <div class="inline-form-card" *ngIf="showForm">
+    <div class="form-card-header">
+      <div class="d-flex align-items-center gap-2">
+        <div class="form-header-badge">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <div>
+          <h6 class="form-card-title mb-0">
+            {{ editingIndex !== null ? 'Edit Academic Qualification' : 'Add New Academic Qualification' }}
+          </h6>
+          <span class="form-card-sub text-muted">
+            {{ editingIndex !== null ? 'Update degree details and scores' : 'Enter the degree, institution, scores and study gaps' }}
+          </span>
+        </div>
+      </div>
+      <button type="button" class="btn-form-close" (click)="cancelForm()" title="Close form">&times;</button>
+    </div>
+
+    <div class="form-card-body">
+      <div class="row g-3">
+        <!-- Degree Name -->
+        <div class="col-md-6">
+          <label class="form-label-custom">Qualification / Degree Title *</label>
+          <input 
+            type="text" 
+            class="form-control custom-input" 
+            [(ngModel)]="currentQualification.qualification" 
+            placeholder="e.g. B.Tech Computer Science, Higher Secondary (12th)">
+        </div>
+
+        <!-- Institution -->
+        <div class="col-md-6">
+          <label class="form-label-custom">Institution / School / University *</label>
+          <input 
+            type="text" 
+            class="form-control custom-input" 
+            [(ngModel)]="currentQualification.institution" 
+            placeholder="e.g. ABC College of Engineering, Oxford University">
+        </div>
+
+        <!-- Completion Year -->
+        <div class="col-md-3 col-sm-6">
+          <label class="form-label-custom">Completion Year</label>
+          <input 
+            type="text" 
+            class="form-control custom-input" 
+            [(ngModel)]="currentQualification.completion_year" 
+            placeholder="e.g. 2023">
+        </div>
+
+        <!-- Percentage / CGPA -->
+        <div class="col-md-3 col-sm-6">
+          <label class="form-label-custom">Percentage / CGPA</label>
+          <input 
+            type="text" 
+            class="form-control custom-input" 
+            [(ngModel)]="currentQualification.percentage_cgpa" 
+            placeholder="e.g. 85% or 8.5 CGPA">
+        </div>
+
+        <!-- Backlogs -->
+        <div class="col-md-3 col-sm-6">
+          <label class="form-label-custom">Backlogs (Count / Status)</label>
+          <input 
+            type="text" 
+            class="form-control custom-input" 
+            [(ngModel)]="currentQualification.backlogs" 
+            placeholder="e.g. 0 or 2 cleared">
+        </div>
+
+        <!-- Study Gap -->
+        <div class="col-md-3 col-sm-6">
+          <label class="form-label-custom">Study Gap (Duration & Reason)</label>
+          <input 
+            type="text" 
+            class="form-control custom-input" 
+            [(ngModel)]="currentQualification.study_gap" 
+            placeholder="e.g. 1 year (Preparation)">
+        </div>
+
+        <!-- Highest Qualification Checkbox -->
+        <div class="col-12">
+          <div class="highest-toggle-box">
+            <input 
+              class="form-check-input mt-0" 
+              type="checkbox" 
+              id="checkHighestInline" 
+              [(ngModel)]="currentQualification.is_highest">
+            <label class="form-check-label ms-2 mb-0" for="checkHighestInline">
+              <span class="d-block fw-bold text-dark small">Mark as Highest Qualification</span>
+              <span class="text-muted" style="font-size: 0.78rem;">Highlights this academic qualification as the primary degree.</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card-footer">
+      <button type="button" class="btn btn-light btn-cancel-custom" (click)="cancelForm()">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-primary btn-save-custom" [disabled]="saving" (click)="saveQualification()">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+        <i *ngIf="!saving" class="bi bi-check-circle-fill me-1"></i>
+        {{ editingIndex !== null ? 'Update Qualification' : 'Save Qualification' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="text-muted small mt-2">Loading qualifications...</p>
+  </div>
+
+  <!-- Empty State (Shown when no qualifications and form is closed) -->
+  <div *ngIf="!loading && qualifications.length === 0 && !showForm" class="qual-empty-state">
+    <div class="qual-hero-card">
+      <div class="qual-hero-icon indigo">
+        <i class="bi bi-mortarboard"></i>
+      </div>
+      <h6 class="qual-hero-title">No Qualifications Recorded</h6>
+      <p class="qual-hero-desc">Add degrees, diplomas, high school, or academic scores for {{ studentName || 'the student' }}.</p>
+      <button type="button" class="btn-create-first-qual" (click)="openAddForm()">
+        <i class="bi bi-plus-lg me-1"></i> Add First Qualification
+      </button>
+    </div>
+  </div>
+
+  <!-- Movable / Drag-and-Drop Qualifications List -->
+  <div 
+    *ngIf="!loading && qualifications.length > 0" 
+    class="qual-card-list"
+    cdkDropList 
+    (cdkDropListDropped)="onDrop($event)">
+
+    <div 
+      class="qual-record-card" 
+      *ngFor="let q of qualifications; let idx = index" 
+      [class.is-highest]="q.is_highest"
+      cdkDrag>
+
+      <!-- Drag preview placeholder -->
+      <div class="cdk-drag-placeholder-custom" *cdkDragPlaceholder></div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Drag Handle Indicator -->
+        <div class="drag-handle-btn" cdkDragHandle title="Click and drag to reorder">
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+
+        <div class="flex-grow-1">
+          <!-- Card Top Header -->
+          <div class="qual-card-top">
+            <div class="qual-title-col">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h6 class="qual-card-heading mb-0">{{ q.qualification }}</h6>
+                <span class="badge-highest" *ngIf="q.is_highest">
+                  <i class="bi bi-star-fill me-1"></i> Highest Qualification
+                </span>
+                <span class="badge-order-index">#{{ idx + 1 }}</span>
+              </div>
+              <div class="qual-institution">
+                <i class="bi bi-building me-1"></i> {{ q.institution }}
+                <span *ngIf="q.completion_year" class="text-muted ms-1">• Year: <strong>{{ q.completion_year }}</strong></span>
+              </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="qual-card-actions">
+              <button type="button" class="btn-qual-edit" (click)="openEditForm(q, idx)" title="Edit qualification">
+                <i class="bi bi-pencil-square"></i> <span>Edit</span>
+              </button>
+              <button type="button" class="btn-qual-delete" (click)="deleteQualification(q.id)" title="Delete qualification">
+                <i class="bi bi-trash3"></i> <span>Delete</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Details Grid -->
+          <div class="qual-details-grid">
+            <div class="qual-detail-item">
+              <span class="detail-label"><i class="bi bi-award me-1"></i> Percentage / CGPA</span>
+              <span class="detail-val score-highlight">{{ q.percentage_cgpa || 'Not specified' }}</span>
+            </div>
+            <div class="qual-detail-item">
+              <span class="detail-label"><i class="bi bi-exclamation-circle me-1"></i> Backlogs</span>
+              <span class="detail-val" [ngClass]="q.backlogs && q.backlogs !== '0' ? 'text-danger fw-bold' : 'text-success'">
+                {{ q.backlogs || '0' }}
+              </span>
+            </div>
+            <div class="qual-detail-item" *ngIf="q.study_gap">
+              <span class="detail-label"><i class="bi bi-hourglass-split me-1"></i> Study Gap</span>
+              <span class="detail-val">{{ q.study_gap }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

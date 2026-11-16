@@ -29,13 +29,25 @@ import { ChatModalComponent } from '../shared/chat-modal/chat-modal.component';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { UpdateLeadStatusModalComponent } from '../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
 import { WhatsappQrMsgComponent } from '../whatsapp-qr-msg/whatsapp-qr-msg.component';
+import { ContactQualificationsComponent } from '../../shared/components/contact-qualifications/contact-qualifications.component';
+import { ContactWorkExperiencesComponent } from '../../shared/components/contact-work-experiences/contact-work-experiences.component';
 import { SocketService } from '../../core/services/socket.service';
 import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-contacts',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChatModalComponent, TimelineComponent, UpdateLeadStatusModalComponent, WhatsappQrMsgComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    RouterLink, 
+    ChatModalComponent, 
+    TimelineComponent, 
+    UpdateLeadStatusModalComponent, 
+    WhatsappQrMsgComponent,
+    ContactQualificationsComponent,
+    ContactWorkExperiencesComponent
+  ],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
 })
@@ -452,7 +464,9 @@ export class ContactsComponent implements OnInit {
     description: ''
   };
 
-  // Qualifications State
+  // Qualifications & Work Experiences Counts
+  qualificationsCount: number = 0;
+  experiencesCount: number = 0;
   selectedContactQualifications: any[] = [];
   loadingQualifications = false;
   showAddQualificationModal = false;
