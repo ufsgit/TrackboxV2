@@ -31,6 +31,8 @@ import { UpdateLeadStatusModalComponent } from '../../shared/components/update-l
 import { WhatsappQrMsgComponent } from '../whatsapp-qr-msg/whatsapp-qr-msg.component';
 import { ContactQualificationsComponent } from '../../shared/components/contact-qualifications/contact-qualifications.component';
 import { ContactWorkExperiencesComponent } from '../../shared/components/contact-work-experiences/contact-work-experiences.component';
+import { QualificationsService } from '../../core/services/qualifications.service';
+import { WorkExperiencesService } from '../../core/services/work-experiences.service';
 import { SocketService } from '../../core/services/socket.service';
 import * as XLSX from 'xlsx';
 
@@ -728,6 +730,8 @@ export class ContactsComponent implements OnInit {
     private auth: AuthService,
     private appsService: ApplicationsService,
     private receiptsService: ReceiptsService,
+    private qualService: QualificationsService,
+    private workExpService: WorkExperiencesService,
     private visasService: VisasService,
     private settingsService: SystemSettingsService,
     private animationService: AnimationService,
@@ -1101,6 +1105,8 @@ export class ContactsComponent implements OnInit {
     this.showDetailPanel = true;
     this.detailLoading = true;
     this.selectedContact = null;
+    this.qualificationsCount = 0;
+    this.experiencesCount = 0;
     this.detailActiveTab = initialTab;
     this.api.get(`/contacts/${contact.id}`).subscribe({
       next: (res: any) => {
@@ -1117,8 +1123,7 @@ export class ContactsComponent implements OnInit {
           this.loadReceiptTypes();
           this.loadReceipts(contact.id);
           this.loadVisa(contact.id);
-          this.loadQualifications(contact.id);
-          this.loadExperiences(contact.id);
+          this.loadAcademicCounts(contact.id);
         }
         this.detailLoading = false;
       },
@@ -1138,6 +1143,8 @@ export class ContactsComponent implements OnInit {
   closeDetailPanel(navigateBack: boolean = true) {
     this.showDetailPanel = false;
     this.selectedContact = null;
+    this.qualificationsCount = 0;
+    this.experiencesCount = 0;
     this.selectedContactApplications = [];
     this.selectedContactReceipts = [];
     this.selectedContactQualifications = [];
@@ -1617,9 +1624,65 @@ export class ContactsComponent implements OnInit {
     });
   }
 
+  // --- LIGHTWEIGHT SUMMARY COUNTS (Replaces heavy GET on modal open) ---
+  loadAcademicCounts(contactId: number) {
+    this.qualService.getAcademicCounts(contactId).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data) {
+          this.qualificationsCount = res.data.qualifications_count || 0;
+          this.experiencesCount = res.data.experiences_count || 0;
+        } else {
+          this.qualificationsCount = 0;
+          this.experiencesCount = 0;
+        }
+      },
+      error: () => {
+        this.qualificationsCount = 0;
+        this.experiencesCount = 0;
+      }
+    });
+  }
+
   // --- QUALIFICATIONS LOGIC ---
   loadQualifications(contactId?: number) {
-    this.selectedContactQualifications = [];
+    const id = contactId || this.selectedContact?.id;
+    if (!id) {
+      this.qualificationsCount = 0;
+      return;
+    }
+    this.qualService.getQualifications(id).subscribe({
+      next: (res: any) => {
+        if (res.success && Array.isArray(res.data)) {
+          this.qualificationsCount = res.data.length;
+        } else {
+          this.qualificationsCount = 0;
+        }
+      },
+      error: () => {
+        this.qualificationsCount = 0;
+      }
+    });
+  }
+
+  // --- WORK EXPERIENCES LOGIC ---
+  loadExperiences(contactId?: number) {
+    const id = contactId || this.selectedContact?.id;
+    if (!id) {
+      this.experiencesCount = 0;
+      return;
+    }
+    this.workExpService.getWorkExperiences(id).subscribe({
+      next: (res: any) => {
+        if (res.success && Array.isArray(res.data)) {
+          this.experiencesCount = res.data.length;
+        } else {
+          this.experiencesCount = 0;
+        }
+      },
+      error: () => {
+        this.experiencesCount = 0;
+      }
+    });
   }
 
   openAddQualificationModal() {
@@ -1674,66 +1737,6 @@ export class ContactsComponent implements OnInit {
       if (confirmed) {
         this.selectedContactQualifications = this.selectedContactQualifications.filter(item => item.id !== id);
         showLeadDeletedSuccess('Qualification');
-      }
-    });
-  }
-
-  // --- WORK EXPERIENCE LOGIC ---
-  loadExperiences(contactId?: number) {
-    this.selectedContactExperiences = [];
-  }
-
-  openAddExperienceModal() {
-    this.currentExperience = {
-      id: null,
-      employer: '',
-      position: '',
-      experience: '',
-      from_date: '',
-      to_date: '',
-      is_current: 0,
-      sort_order: 0
-    };
-    this.showAddExperienceModal = true;
-  }
-
-  openEditExperienceModal(exp: any) {
-    this.currentExperience = { ...exp };
-    this.showAddExperienceModal = true;
-  }
-
-  saveExperience() {
-    if (!this.currentExperience.employer || !this.currentExperience.position) {
-      Swal.fire('Validation Error', 'Please enter Employer name and Position title.', 'warning');
-      return;
-    }
-
-    if (this.currentExperience.is_current) {
-      this.currentExperience.to_date = null;
-    }
-
-    if (this.currentExperience.id) {
-      const idx = this.selectedContactExperiences.findIndex(item => item.id === this.currentExperience.id);
-      if (idx > -1) {
-        this.selectedContactExperiences[idx] = { ...this.currentExperience };
-      }
-      showImpressiveSuccess('Work experience updated successfully');
-    } else {
-      const newEntry = {
-        ...this.currentExperience,
-        id: Date.now()
-      };
-      this.selectedContactExperiences.unshift(newEntry);
-      showImpressiveSuccess('Work experience added successfully');
-    }
-    this.showAddExperienceModal = false;
-  }
-
-  deleteExperience(id: any) {
-    showConfirmDelete('Delete Work Experience?', 'Are you sure you want to remove this employment record?').then((confirmed) => {
-      if (confirmed) {
-        this.selectedContactExperiences = this.selectedContactExperiences.filter(item => item.id !== id);
-        showLeadDeletedSuccess('Experience');
       }
     });
   }

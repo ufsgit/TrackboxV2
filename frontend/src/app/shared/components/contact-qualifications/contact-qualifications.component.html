@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  <!-- INLINE / IN-PAGE FORM (Appears right inside the page instead of popup) -->
+  <!-- INLINE / IN-PAGE FORM -->
   <div class="inline-form-card" *ngIf="showForm">
     <div class="form-card-header">
       <div class="d-flex align-items-center gap-2">
@@ -59,7 +59,7 @@
     </div>
 
     <div class="form-card-body">
-      <div class="row g-3">
+      <div class="row g-2">
         <!-- Degree Name -->
         <div class="col-md-6">
           <label class="form-label-custom">Qualification / Degree Title *</label>
@@ -130,7 +130,7 @@
               [(ngModel)]="currentQualification.is_highest">
             <label class="form-check-label ms-2 mb-0" for="checkHighestInline">
               <span class="d-block fw-bold text-dark small">Mark as Highest Qualification</span>
-              <span class="text-muted" style="font-size: 0.78rem;">Highlights this academic qualification as the primary degree.</span>
+              <span class="text-muted" style="font-size: 0.76rem;">Highlights this academic qualification as the primary degree.</span>
             </label>
           </div>
         </div>
@@ -150,12 +150,12 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status"></div>
-    <p class="text-muted small mt-2">Loading qualifications...</p>
+  <div *ngIf="loading" class="text-center py-4">
+    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+    <span class="text-muted small ms-2">Loading qualifications...</span>
   </div>
 
-  <!-- Empty State (Shown when no qualifications and form is closed) -->
+  <!-- Empty State -->
   <div *ngIf="!loading && qualifications.length === 0 && !showForm" class="qual-empty-state">
     <div class="qual-hero-card">
       <div class="qual-hero-icon indigo">
@@ -169,7 +169,7 @@
     </div>
   </div>
 
-  <!-- Movable / Drag-and-Drop Qualifications List -->
+  <!-- Compact Movable Qualifications List -->
   <div 
     *ngIf="!loading && qualifications.length > 0" 
     class="qual-card-list"
@@ -185,55 +185,56 @@
       <!-- Drag preview placeholder -->
       <div class="cdk-drag-placeholder-custom" *cdkDragPlaceholder></div>
 
-      <div class="d-flex align-items-center gap-3">
-        <!-- Drag Handle Indicator -->
-        <div class="drag-handle-btn" cdkDragHandle title="Click and drag to reorder">
+      <div class="d-flex align-items-start gap-2">
+        <!-- Compact Drag Handle -->
+        <div class="drag-handle-btn" cdkDragHandle title="Drag to reorder">
           <i class="bi bi-grip-vertical"></i>
         </div>
 
-        <div class="flex-grow-1">
-          <!-- Card Top Header -->
-          <div class="qual-card-top">
-            <div class="qual-title-col">
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <h6 class="qual-card-heading mb-0">{{ q.qualification }}</h6>
-                <span class="badge-highest" *ngIf="q.is_highest">
-                  <i class="bi bi-star-fill me-1"></i> Highest Qualification
-                </span>
-                <span class="badge-order-index">#{{ idx + 1 }}</span>
-              </div>
-              <div class="qual-institution">
-                <i class="bi bi-building me-1"></i> {{ q.institution }}
-                <span *ngIf="q.completion_year" class="text-muted ms-1">• Year: <strong>{{ q.completion_year }}</strong></span>
-              </div>
+        <div class="flex-grow-1 min-w-0">
+          <!-- Top Row: Title, Badges & Actions in one clean line -->
+          <div class="qual-card-header-row">
+            <div class="d-flex align-items-center gap-2 flex-wrap min-w-0">
+              <span class="badge-order-index">#{{ idx + 1 }}</span>
+              <h6 class="qual-card-heading text-truncate mb-0">{{ q.qualification }}</h6>
+              <span class="badge-highest" *ngIf="q.is_highest">
+                <i class="bi bi-star-fill me-1"></i> Highest
+              </span>
             </div>
 
-            <!-- Card Actions -->
             <div class="qual-card-actions">
-              <button type="button" class="btn-qual-edit" (click)="openEditForm(q, idx)" title="Edit qualification">
+              <button type="button" class="btn-qual-edit" (click)="openEditForm(q, idx)" title="Edit">
                 <i class="bi bi-pencil-square"></i> <span>Edit</span>
               </button>
-              <button type="button" class="btn-qual-delete" (click)="deleteQualification(q.id)" title="Delete qualification">
+              <button type="button" class="btn-qual-delete" (click)="deleteQualification(q.id)" title="Delete">
                 <i class="bi bi-trash3"></i> <span>Delete</span>
               </button>
             </div>
           </div>
 
-          <!-- Details Grid -->
-          <div class="qual-details-grid">
-            <div class="qual-detail-item">
-              <span class="detail-label"><i class="bi bi-award me-1"></i> Percentage / CGPA</span>
-              <span class="detail-val score-highlight">{{ q.percentage_cgpa || 'Not specified' }}</span>
+          <!-- Sub Row: Institution & Year -->
+          <div class="qual-sub-row">
+            <span class="qual-inst-text"><i class="bi bi-building me-1"></i>{{ q.institution }}</span>
+            <span *ngIf="q.completion_year" class="qual-year-chip">• Year: <strong>{{ q.completion_year }}</strong></span>
+          </div>
+
+          <!-- Bottom Row: Inline Compact Metric Pills -->
+          <div class="qual-metrics-strip">
+            <div class="metric-pill">
+              <span class="metric-k"><i class="bi bi-award me-1"></i>Score:</span>
+              <span class="metric-v score-val">{{ q.percentage_cgpa || 'N/A' }}</span>
             </div>
-            <div class="qual-detail-item">
-              <span class="detail-label"><i class="bi bi-exclamation-circle me-1"></i> Backlogs</span>
-              <span class="detail-val" [ngClass]="q.backlogs && q.backlogs !== '0' ? 'text-danger fw-bold' : 'text-success'">
+
+            <div class="metric-pill">
+              <span class="metric-k"><i class="bi bi-exclamation-circle me-1"></i>Backlogs:</span>
+              <span class="metric-v" [ngClass]="q.backlogs && q.backlogs !== '0' ? 'text-danger fw-bold' : 'text-success'">
                 {{ q.backlogs || '0' }}
               </span>
             </div>
-            <div class="qual-detail-item" *ngIf="q.study_gap">
-              <span class="detail-label"><i class="bi bi-hourglass-split me-1"></i> Study Gap</span>
-              <span class="detail-val">{{ q.study_gap }}</span>
+
+            <div class="metric-pill" *ngIf="q.study_gap">
+              <span class="metric-k"><i class="bi bi-hourglass-split me-1"></i>Gap:</span>
+              <span class="metric-v">{{ q.study_gap }}</span>
             </div>
           </div>
         </div>

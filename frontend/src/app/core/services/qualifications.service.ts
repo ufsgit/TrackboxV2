@@ -27,6 +27,10 @@ export class QualificationsService {
     return this.http.get(`${this.apiUrl}/contact/${contactId}`);
   }
 
+  getAcademicCounts(contactId: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/contact/${contactId}/academic-counts`);
+  }
+
   saveQualifications(contactId: number, items: QualificationItem[]): Observable<any> {
     return this.http.post(`${this.apiUrl}/contact/${contactId}`, items);
   }

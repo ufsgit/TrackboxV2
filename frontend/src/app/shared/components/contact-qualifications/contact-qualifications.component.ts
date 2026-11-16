@@ -30,13 +30,15 @@ export class ContactQualificationsComponent implements OnInit, OnChanges {
   constructor(private qualService: QualificationsService) {}
 
   ngOnInit(): void {
+    // ngOnInit initial load
     if (this.contactId) {
       this.loadQualifications();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['contactId'] && this.contactId) {
+    // Only load if contactId actually changed to a different ID and it's not the first change (which ngOnInit handles)
+    if (changes['contactId'] && !changes['contactId'].firstChange && this.contactId) {
       this.loadQualifications();
     }
   }

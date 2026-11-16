@@ -60,7 +60,38 @@ const saveQualifications = async (req, res) => {
   }
 };
 
+// GET /api/qualifications/contact/:contactId/academic-counts
+const getAcademicCounts = async (req, res) => {
+  try {
+    const { contactId } = req.params;
+    const businessId = req.user?.businessId || req.user?.business_id || 1;
+
+    const [results] = await pool.query('CALL get_contact_academic_counts(?, ?)', [
+      contactId,
+      businessId
+    ]);
+
+    const counts = results[0]?.[0] || {
+      qualifications_count: 0,
+      experiences_count: 0
+    };
+
+    res.json({
+      success: true,
+      data: {
+        qualifications_count: Number(counts.qualifications_count || 0),
+        experiences_count: Number(counts.experiences_count || 0)
+      },
+      message: 'OK'
+    });
+  } catch (err) {
+    console.error('Error fetching academic counts:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getQualificationsByContact,
-  saveQualifications
+  saveQualifications,
+  getAcademicCounts
 };

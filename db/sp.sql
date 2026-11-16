@@ -69,6 +69,23 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_academic_counts`(
+  IN p_contact_id INT,
+  IN p_business_id INT
+)
+BEGIN
+  SELECT
+    (SELECT COUNT(*) 
+     FROM contact_qualifications 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS qualifications_count,
+
+    (SELECT COUNT(*) 
+     FROM contact_work_experiences 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS experiences_count;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_qualifications`(
   IN p_contact_id INT,
   IN p_business_id INT
