@@ -78,11 +78,13 @@
           <span class="col-tag required">Phone *</span>
           <span class="col-tag">Email</span>
           <span class="col-tag">Source</span>
+          <span class="col-tag">Status</span>
           <span class="col-tag">Enquiry for </span>
+          <span class="col-tag">Follow-up Date</span>
           <span class="col-tag">Tags</span>
           <span class="col-tag">Address</span>
         </div>
-        <p class="guide-note">Headers are case-insensitive. 10-digit phone numbers auto-prefixed with 91.</p>
+        <p class="guide-note">Columns in Excel take priority. Dropdowns configured on the right serve as default fallbacks when columns or rows are missing.</p>
       </div>
     </div>
 
@@ -91,17 +93,17 @@
       <div class="panel-header">
         <div class="step-badge">2</div>
         <div>
-          <h2 class="panel-title">Status &amp; Assignment</h2>
-          <p class="panel-desc">Configure assignment rules for all imported leads</p>
+          <h2 class="panel-title">Status &amp; Assignment (Default Fallbacks)</h2>
+          <p class="panel-desc">Applied when columns or row values are not in the Excel sheet</p>
         </div>
       </div>
 
       <div class="fields-grid">
         <!-- Status -->
         <div class="field-group">
-          <label class="field-label">Status <span class="req">*</span></label>
+          <label class="field-label">Status <span class="req" *ngIf="!hasStatusInExcel()">*</span><small class="text-success ms-1" *ngIf="hasStatusInExcel()">(Excel column detected)</small></label>
           <select class="field-select" [(ngModel)]="newContact.status">
-            <option value="">-- Select Status --</option>
+            <option value="">{{ hasStatusInExcel() ? '-- Use Excel Status (or pick fallback) --' : '-- Select Status --' }}</option>
             <ng-container *ngFor="let s of leadStatuses">
               <option *ngIf="s && s.name && s.name.trim() !== 'NO DATE'" [value]="s.name.trim()">{{ s.name.trim() }}</option>
             </ng-container>
@@ -110,9 +112,9 @@
 
         <!-- Source -->
         <div class="field-group">
-          <label class="field-label">Source</label>
+          <label class="field-label">Source <small class="text-success ms-1" *ngIf="hasSourceInExcel()">(Excel column detected)</small></label>
           <select class="field-select" [(ngModel)]="newContact.channel_preference">
-            <option value="">-- Select Source --</option>
+            <option value="">{{ hasSourceInExcel() ? '-- Use Excel Source (or pick fallback) --' : '-- Select Source --' }}</option>
             <option *ngFor="let ch of channels" [value]="ch.name">{{ ch.name }}</option>
           </select>
         </div>
@@ -193,7 +195,7 @@
         </div>
         <div class="action-buttons">
           <a routerLink="/contacts" class="btn-cancel">Cancel</a>
-          <button class="btn-import" (click)="importLeads()" [disabled]="loading || !selectedFile || !newContact.status">
+          <button class="btn-import" (click)="importLeads()" [disabled]="loading || !selectedFile || (!newContact.status && !hasStatusInExcel())">
             <span *ngIf="!loading"><i class="bi bi-check2-circle me-1"></i>Import Leads</span>
             <span *ngIf="loading"><span class="spinner-border spinner-border-sm me-1"></span>Importing...</span>
           </button>

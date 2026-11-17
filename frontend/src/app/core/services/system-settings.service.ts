@@ -41,8 +41,8 @@ export class SystemSettingsService {
   }
 
   // --- STATUSES ---
-  getStatuses(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/statuses`);
+  getStatuses(params?: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/statuses`, { params });
   }
   createStatus(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/statuses`, data);

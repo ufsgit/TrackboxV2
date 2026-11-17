@@ -45,3 +45,7 @@ R2_SECRET_ACCESS_KEY=23427d17ca05c47b30b75f21199dcb5527e4aff7c1c49f1c17c0d7504f8
 R2_BUCKET_NAME=crm-ufstech
 # Optional: if you enable a Custom Domain or r2.dev domain on Cloudflare R2, set it here (e.g. https://pub-xxxxxx.r2.dev or https://media.yourdomain.com)
 R2_PUBLIC_URL=https://pub-9efbe8f588404e99b6e8f16efeedb49d.r2.dev
+
+# Excel Import - Bulk Insert & imported_leads Dual-Table Synchronization Flag
+ENABLE_IMPORTED_LEADS_BULK=true
+

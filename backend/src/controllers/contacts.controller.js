@@ -924,6 +924,14 @@ const importContacts = async (req, res) => {
     const globalDepartmentId = req.body.department_id || null;
     const globalStatusId = req.body.status_id || null;
     const globalEnquirySourceId = req.body.enquiry_source_id || null;
+
+    const [statusRows] = await conn.query('SELECT id, name, type FROM statuses');
+    const statusMap = new Map();
+    for (const s of statusRows) {
+      statusMap.set(String(s.id), s);
+      statusMap.set(s.name.toLowerCase().trim(), s);
+    }
+    const globalStatusObj = globalStatusId && statusMap.has(String(globalStatusId)) ? statusMap.get(String(globalStatusId)) : null;
     
     let globalBranchName = null;
     let globalDepartmentName = null;
@@ -1015,9 +1023,22 @@ const importContacts = async (req, res) => {
         }
       }
 
+      // Check status: skip entire row if a new/unrecognized status is found
+      const rowStatus = normalizedRow.status || normalizedRow['lead status'] || normalizedRow['current status'] || normalizedRow.stage;
+      let sObj = globalStatusObj;
+      if (rowStatus && String(rowStatus).trim()) {
+        const cleanRowStatus = String(rowStatus).toLowerCase().trim();
+        if (!statusMap.has(cleanRowStatus)) {
+          continue; // Skip row if status does not exist in the system
+        }
+        sObj = statusMap.get(cleanRowStatus);
+      } else if (globalStatusId && !globalStatusObj) {
+        continue;
+      }
+
       const userList = [assignTo];
       const enquiryForId = globalEnquirySourceId || null;
-      const statusId = globalStatusId || null;
+      const statusId = sObj ? sObj.id : null;
 
       const [result] = await conn.query(
         `INSERT INTO contacts 
@@ -1302,229 +1323,943 @@ const deleteContactDocument = async (req, res) => {
   }
 };
 
+// ── Excel Import Helpers & Flexible Date Parsers ──────────────
+const isBulkImportLeadsEnabled = (req) => {
+  if (req.body && req.body.useBulkImportLeads !== undefined) {
+    return String(req.body.useBulkImportLeads) === 'true' || req.body.useBulkImportLeads === 1;
+  }
+  return process.env.ENABLE_IMPORTED_LEADS_BULK === 'true' || process.env.ENABLE_IMPORTED_LEADS_BULK === '1';
+};
+
+const parseFlexibleDate = (val) => {
+  if (!val) return null;
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof val === 'number') {
+    // Excel serial number (days since Dec 30, 1899)
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+    if (!isNaN(jsDate.getTime())) {
+      const y = jsDate.getUTCFullYear();
+      const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(jsDate.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const mIso = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (mIso) {
+      return `${mIso[1]}-${String(mIso[2]).padStart(2, '0')}-${String(mIso[3]).padStart(2, '0')}`;
+    }
+    const mDmy = trimmed.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+    if (mDmy) {
+      return `${mDmy[3]}-${String(mDmy[2]).padStart(2, '0')}-${String(mDmy[1]).padStart(2, '0')}`;
+    }
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+  }
+  return null;
+};
+
+const parseFlexibleDateTime = (val) => {
+  if (!val) return null;
+  if (val instanceof Date && !isNaN(val.getTime())) {
+    return val;
+  }
+  if (typeof val === 'number') {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const jsDate = new Date(excelEpoch.getTime() + val * 86400000);
+    if (!isNaN(jsDate.getTime())) return jsDate;
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+    const dateStr = parseFlexibleDate(trimmed);
+    if (dateStr) return new Date(dateStr);
+  }
+  return null;
+};
+
+// Flexible case-insensitive column finder across ANY Excel headers
+const getCol = (row, keywords) => {
+  if (!row || typeof row !== 'object') return '';
+  const keys = Object.keys(row);
+  for (const kw of keywords) {
+    const found = keys.find(k => k.trim().toLowerCase() === kw.toLowerCase());
+    if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
+      return String(row[found]).trim();
+    }
+  }
+  // Partial match fallback
+  for (const kw of keywords) {
+    const found = keys.find(k => k.trim().toLowerCase().includes(kw.toLowerCase()));
+    if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
+      return String(row[found]).trim();
+    }
+  }
+  return '';
+};
+
+// ── Skip Reason Tracker for Import ─────────────────────────────
+const createSkipTracker = () => {
+  const counts = {
+    phone_exists: 0,
+    phone_missing: 0,
+    phone_invalid: 0,
+    phone_duplicate_in_file: 0,
+    status_not_found: 0,
+    empty_row: 0,
+    other: 0
+  };
+
+  const labels = {
+    phone_exists: 'Phone number already exists',
+    phone_missing: 'Phone number is missing',
+    phone_invalid: 'Phone number is invalid (must be 10 digits)',
+    phone_duplicate_in_file: 'Duplicate phone number in Excel file',
+    status_not_found: 'Status does not exist in the system',
+    empty_row: 'Empty row (name and phone missing)',
+    other: 'Other validation errors'
+  };
+
+  const record = (type) => {
+    if (counts[type] !== undefined) counts[type]++;
+    else counts.other++;
+  };
+
+  const getSummaryMessages = () => {
+    const messages = [];
+    for (const [key, count] of Object.entries(counts)) {
+      if (count > 0) {
+        const rowWord = count === 1 ? '1 row skipped' : `${count} rows skipped`;
+        messages.push(`${rowWord} – ${labels[key] || key}.`);
+      }
+    }
+    return messages;
+  };
+
+  const getSummaryCounts = () => {
+    const summary = {};
+    for (const [key, count] of Object.entries(counts)) {
+      if (count > 0) summary[key] = count;
+    }
+    return summary;
+  };
+
+  return { counts, labels, record, getSummaryMessages, getSummaryCounts };
+};
+
+// ── Legacy row-by-row import into contacts only ─────────────────
+const processLegacyImportContacts = async (conn, req, res, leads, statusAndAssignment) => {
+  const bizId  = req.user.businessId;
+  const userId = req.user.userId;
+
+  const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason, channel, channel_preference, source, enquiry_for_id, enquiry_for } = statusAndAssignment || {};
+  const selectedChannel = (channel_preference || channel || source || '').trim() || null;
+
+  // Resolve Inquiry Form (enquiry_fors)
+  let globalEnquiryForId = null;
+  const [allEnquiryFors] = await conn.query('SELECT id, name FROM enquiry_fors WHERE business_id = ?', [bizId]);
+  const enquiryMap = new Map();
+  for (const ef of allEnquiryFors) {
+    enquiryMap.set(String(ef.id), ef.id);
+    enquiryMap.set(ef.name.toLowerCase().trim(), ef.id);
+  }
+
+  if (enquiry_for_id && enquiryMap.has(String(enquiry_for_id))) {
+    globalEnquiryForId = enquiryMap.get(String(enquiry_for_id));
+  } else if (enquiry_for && enquiryMap.has(String(enquiry_for).toLowerCase().trim())) {
+    globalEnquiryForId = enquiryMap.get(String(enquiry_for).toLowerCase().trim());
+  }
+
+  // Resolve assigned user
+  let assignedTo = null;
+  if (assigned_employee) {
+    const [uRows] = await conn.query('SELECT id FROM users WHERE name = ? AND business_id = ? LIMIT 1', [assigned_employee, bizId]);
+    if (uRows.length > 0) assignedTo = uRows[0].id;
+  }
+  if (!assignedTo) assignedTo = userId;
+
+  // Resolve branch
+  let branchId = null, branchName = branch || null;
+  if (branchName) {
+    const [bRows] = await conn.query('SELECT id FROM branches WHERE name = ? LIMIT 1', [branchName]);
+    if (bRows.length > 0) branchId = bRows[0].id;
+  }
+
+  // Resolve department
+  let departmentId = null, departmentName = department || null;
+  if (departmentName) {
+    const [dRows] = await conn.query('SELECT id FROM departments WHERE name = ? LIMIT 1', [departmentName]);
+    if (dRows.length > 0) departmentId = dRows[0].id;
+  }
+
+  // Resolve status
+  const [allLegacyStatuses] = await conn.query('SELECT id, name, type FROM statuses');
+  const legacyStatusMap = new Map();
+  for (const s of allLegacyStatuses) {
+    legacyStatusMap.set(String(s.id), s);
+    legacyStatusMap.set(s.name.toLowerCase().trim(), s);
+  }
+
+  let globalLegacyStatusObj = null;
+  if (status && legacyStatusMap.has(status.toLowerCase().trim())) {
+    globalLegacyStatusObj = legacyStatusMap.get(status.toLowerCase().trim());
+  }
+
+  // Follow-up date
+  let formattedFollowUpDate = null;
+  if (follow_up_date) {
+    formattedFollowUpDate = normalizeDateOnly(follow_up_date);
+  }
+
+  // User names for follow_ups record
+  let byUserName = null, toUserName = null;
+  const [uNameRows] = await conn.query('SELECT name FROM users WHERE id = ? LIMIT 1', [userId]);
+  if (uNameRows.length) byUserName = uNameRows[0].name;
+  const [tuRows] = await conn.query('SELECT name FROM users WHERE id = ? LIMIT 1', [assignedTo]);
+  if (tuRows.length) toUserName = tuRows[0].name;
+
+  if (leads.length > 0) {
+    console.log('[processLegacyImportContacts] Excel column headers:', Object.keys(leads[0]));
+  }
+
+  const skipTracker = createSkipTracker();
+  let inserted = 0, skipped = 0;
+  const errors = [];
+  const invalidEmails = [];
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  for (let rowIndex = 0; rowIndex < leads.length; rowIndex++) {
+    const row = leads[rowIndex];
+    const actualRowNumber = rowIndex + 2;
+    try {
+      const name    = getCol(row, ['Name', 'Full Name', 'Customer Name', 'Student Name', 'Client Name', 'Lead Name', 'Contact Name', 'Person Name', 'Applicant Name', 'Candidate Name']);
+      let   phone   = getCol(row, ['Phone', 'Mobile', 'Phone Number', 'Mobile Number', 'Mobile No', 'Phone No', 'Contact Number', 'Contact No', 'Whatsapp', 'WhatsApp No', 'Cell', 'Tel', 'Telephone', 'Number', 'Contact']);
+      let   email   = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
+      const tags    = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
+      const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
+      const rowChannel = getCol(row, ['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
+      const finalChannel = (selectedChannel || rowChannel || 'whatsapp').trim().slice(0, 100);
+
+      const rowEnquiry = getCol(row, ['Inquiry Form', 'Inquiry Form Name', 'Enquiry Form', 'Enquiry Form Name', 'Inquiry For', 'Enquiry For', 'Inquiry', 'Enquiry']);
+      let rowEnquiryForId = globalEnquiryForId;
+      if (rowEnquiry) {
+        const cleanEnq = rowEnquiry.trim().toLowerCase();
+        if (enquiryMap.has(cleanEnq)) {
+          rowEnquiryForId = enquiryMap.get(cleanEnq);
+        } else if (enquiryMap.has(rowEnquiry.trim())) {
+          rowEnquiryForId = enquiryMap.get(rowEnquiry.trim());
+        }
+      }
+
+      if (!name && !phone) {
+        skipped++;
+        skipTracker.record('empty_row');
+        continue;
+      }
+
+      if (email) {
+        email = email.trim();
+        if (!emailRegex.test(email)) {
+          invalidEmails.push({
+            row: actualRowNumber,
+            name: name || 'Unnamed Lead',
+            email: email,
+            error: 'Invalid email format'
+          });
+          email = null;
+        }
+      }
+
+      if (!phone) {
+        skipped++;
+        skipTracker.record('phone_missing');
+        errors.push(`Row ${actualRowNumber}: Phone number missing`);
+        continue;
+      }
+
+      phone = phone.replace(/\D/g, '');
+      if (phone.length === 10) phone = '91' + phone;
+      if (phone.length !== 12) {
+        skipped++;
+        skipTracker.record('phone_invalid');
+        errors.push('Skipped "' + (name || phone) + '": phone invalid (got ' + phone.length + ' digits after cleaning: ' + phone + ')');
+        continue;
+      }
+      const last10 = phone.slice(-10);
+      const [dupRows] = await conn.query('SELECT id FROM contacts WHERE business_id = ? AND phone LIKE ? LIMIT 1', [bizId, '%' + last10]);
+      if (dupRows.length > 0) {
+        skipped++;
+        skipTracker.record('phone_exists');
+        errors.push('Skipped "' + name + '": phone ' + phone + ' already exists');
+        continue;
+      }
+
+      // Check status: skip entire row if a new/unrecognized status is found
+      const rowStatus = getCol(row, ['Status', 'Lead Status', 'Current Status', 'Stage']);
+      let sObj = globalLegacyStatusObj;
+      if (rowStatus && String(rowStatus).trim()) {
+        const cleanRowStatus = String(rowStatus).toLowerCase().trim();
+        if (!legacyStatusMap.has(cleanRowStatus)) {
+          skipped++;
+          skipTracker.record('status_not_found');
+          errors.push(`Row ${actualRowNumber}: Skipped "${name || phone}": status "${String(rowStatus).trim()}" does not exist in the system`);
+          continue;
+        }
+        sObj = legacyStatusMap.get(cleanRowStatus);
+      } else if (status && String(status).trim() && !globalLegacyStatusObj) {
+        skipped++;
+        skipTracker.record('status_not_found');
+        errors.push(`Row ${actualRowNumber}: Skipped "${name || phone}": status "${String(status).trim()}" does not exist in the system`);
+        continue;
+      }
+
+      const rowStatusId = sObj ? sObj.id : null;
+      const rowStatusName = sObj ? sObj.name : null;
+      let row_current_sale_status = 0;
+      let row_sale_won = 0, row_sale_lost = 0, row_sale_won_date = null, row_sale_lost_date = null, row_sale_won_by = null, row_sale_lost_by = null;
+      if (sObj) {
+        if (sObj.type === 'sale') {
+          row_current_sale_status = 1;
+          row_sale_won = 1;
+          row_sale_won_date = new Date();
+          row_sale_won_by = assignedTo;
+        } else if (sObj.type === 'sale_lost') {
+          row_current_sale_status = 2;
+          row_sale_lost = 1;
+          row_sale_lost_date = new Date();
+          row_sale_lost_by = assignedTo;
+        }
+      }
+
+      const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+      const userList  = [assignedTo];
+
+      const [result] = await conn.query(
+        'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source, enquiry_for_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, rowStatusId, rowStatusName, row_current_sale_status, row_sale_won, row_sale_won_date, row_sale_won_by, row_sale_lost, row_sale_lost_date, row_sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import', rowEnquiryForId || null]
+      );
+      const contactId = result.insertId;
+
+      await conn.query(
+        'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [contactId, name || null, formattedFollowUpDate, userId, byUserName, assignedTo, toUserName, rowStatusId, rowStatusName, branchId, branchName, departmentId, departmentName, remark || 'Imported via Excel']
+      );
+
+      inserted++;
+    } catch (rowErr) {
+      skipped++;
+      skipTracker.record('other');
+      console.error('[processLegacyImportContacts] row error:', rowErr.message, rowErr);
+      errors.push(rowErr.message);
+    }
+  }
+
+  await conn.commit();
+
+  const detectedCols = leads.length > 0 ? Object.keys(leads[0]) : [];
+  const skipMessages = skipTracker.getSummaryMessages();
+  const summaryLine = skipMessages.length > 0 ? '\n\n' + skipMessages.join('\n') : '';
+
+  if (inserted === 0) {
+    return res.json({
+      success: false,
+      message: `0 leads imported. ${skipped} row(s) skipped.${summaryLine}`,
+      data: {
+        inserted: 0,
+        skipped,
+        skipMessages,
+        skipSummary: skipTracker.getSummaryCounts(),
+        errors,
+        invalidEmails,
+        detectedColumns: detectedCols,
+        bulkMode: false
+      }
+    });
+  }
+  return res.json({
+    success: true,
+    message: `Import complete. ${inserted} lead(s) imported.${summaryLine}`,
+    data: {
+      inserted,
+      skipped,
+      skipMessages,
+      skipSummary: skipTracker.getSummaryCounts(),
+      errors,
+      invalidEmails,
+      detectedColumns: detectedCols,
+      bulkMode: false
+    }
+  });
+};
+
+// ── Bulk Insert with Dual-Table Synchronization (contacts + imported_leads) ──
+const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignment) => {
+  const bizId  = req.user.businessId;
+  const userId = req.user.userId;
+
+  const {
+    status: defaultStatus,
+    branch: defaultBranch,
+    department: defaultDepartment,
+    assigned_employee: defaultAssignedEmployee,
+    remark: defaultRemark,
+    follow_up_date: defaultFollowUpDate,
+    loss_reason: defaultLossReason,
+    channel: defaultChannel,
+    channel_preference: defaultChannelPref,
+    source: defaultSource,
+    enquiry_for_id: defaultEnquiryForId,
+    enquiry_for: defaultEnquiryFor
+  } = statusAndAssignment || {};
+
+  const globalSelectedChannel = (defaultChannelPref || defaultChannel || defaultSource || '').trim() || null;
+
+  // 1. Pre-fetch metadata in parallel
+  const [
+    [enquiryRows],
+    [branchRows],
+    [deptRows],
+    [userRows],
+    [statusRows]
+  ] = await Promise.all([
+    conn.query('SELECT id, name FROM enquiry_fors WHERE business_id = ?', [bizId]),
+    conn.query('SELECT id, name FROM branches'),
+    conn.query('SELECT id, branch_id, name FROM departments'),
+    conn.query('SELECT id, name, branch_id, department_id FROM users WHERE business_id = ?', [bizId]),
+    conn.query('SELECT id, name, type FROM statuses')
+  ]);
+
+  // Build lookup maps
+  const enquiryMap = new Map();
+  for (const ef of enquiryRows) {
+    enquiryMap.set(String(ef.id), ef);
+    enquiryMap.set(ef.name.toLowerCase().trim(), ef);
+  }
+
+  const branchMap = new Map();
+  for (const b of branchRows) {
+    branchMap.set(String(b.id), b);
+    branchMap.set(b.name.toLowerCase().trim(), b);
+  }
+
+  const deptMap = new Map();
+  for (const d of deptRows) {
+    deptMap.set(String(d.id), d);
+    deptMap.set(d.name.toLowerCase().trim(), d);
+    if (d.branch_id) {
+      deptMap.set(`${d.branch_id}_${d.name.toLowerCase().trim()}`, d);
+    }
+  }
+
+  const userMap = new Map();
+  for (const u of userRows) {
+    userMap.set(String(u.id), u);
+    userMap.set(u.name.toLowerCase().trim(), u);
+  }
+
+  const statusMap = new Map();
+  for (const s of statusRows) {
+    statusMap.set(String(s.id), s);
+    statusMap.set(s.name.toLowerCase().trim(), s);
+  }
+
+  // Pre-resolve global defaults
+  let globalEnquiryForObj = null;
+  if (defaultEnquiryForId && enquiryMap.has(String(defaultEnquiryForId))) {
+    globalEnquiryForObj = enquiryMap.get(String(defaultEnquiryForId));
+  } else if (defaultEnquiryFor && enquiryMap.has(String(defaultEnquiryFor).toLowerCase().trim())) {
+    globalEnquiryForObj = enquiryMap.get(String(defaultEnquiryFor).toLowerCase().trim());
+  }
+
+  let globalAssignedUserObj = null;
+  if (defaultAssignedEmployee && userMap.has(defaultAssignedEmployee.toLowerCase().trim())) {
+    globalAssignedUserObj = userMap.get(defaultAssignedEmployee.toLowerCase().trim());
+  } else if (userMap.has(String(userId))) {
+    globalAssignedUserObj = userMap.get(String(userId));
+  }
+
+  let globalBranchObj = null;
+  if (defaultBranch && branchMap.has(defaultBranch.toLowerCase().trim())) {
+    globalBranchObj = branchMap.get(defaultBranch.toLowerCase().trim());
+  }
+
+  let globalDeptObj = null;
+  if (defaultDepartment && deptMap.has(defaultDepartment.toLowerCase().trim())) {
+    globalDeptObj = deptMap.get(defaultDepartment.toLowerCase().trim());
+  }
+
+  let globalStatusObj = null;
+  if (defaultStatus && statusMap.has(defaultStatus.toLowerCase().trim())) {
+    globalStatusObj = statusMap.get(defaultStatus.toLowerCase().trim());
+  }
+
+  const globalFormattedFollowUpDate = parseFlexibleDate(defaultFollowUpDate);
+
+  const currentUserObj = userMap.get(String(userId)) || { id: userId, name: 'System' };
+  const byUserName = currentUserObj.name || null;
+
+  // 2. Validate, map, and prepare candidate rows
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const candidateRows = [];
+  const skipTracker = createSkipTracker();
+  let skipped = 0;
+  const errors = [];
+  const invalidEmails = [];
+  const seenPhoneLast10InFile = new Set();
+
+  for (let rowIndex = 0; rowIndex < leads.length; rowIndex++) {
+    const row = leads[rowIndex];
+    const actualRowNumber = rowIndex + 2;
+
+    const name = getCol(row, ['Name', 'Full Name', 'Customer Name', 'Student Name', 'Client Name', 'Lead Name', 'Contact Name', 'Person Name', 'Applicant Name', 'Candidate Name']);
+    let phone = getCol(row, ['Phone', 'Mobile', 'Phone Number', 'Mobile Number', 'Mobile No', 'Phone No', 'Contact Number', 'Contact No', 'Whatsapp', 'WhatsApp No', 'Cell', 'Tel', 'Telephone', 'Number', 'Contact']);
+    let email = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
+    const tags = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
+    const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
+
+    if (!name && !phone) {
+      skipped++;
+      skipTracker.record('empty_row');
+      continue;
+    }
+
+    if (email) {
+      email = email.trim();
+      if (!emailRegex.test(email)) {
+        invalidEmails.push({
+          row: actualRowNumber,
+          name: name || 'Unnamed Lead',
+          email: email,
+          error: 'Invalid email format'
+        });
+        email = null;
+      }
+    }
+
+    if (!phone) {
+      skipped++;
+      skipTracker.record('phone_missing');
+      errors.push(`Row ${actualRowNumber}: Phone number missing`);
+      continue;
+    }
+
+    phone = phone.replace(/\D/g, '');
+    if (phone.length === 10) phone = '91' + phone;
+    if (phone.length !== 12) {
+      skipped++;
+      skipTracker.record('phone_invalid');
+      errors.push(`Skipped "${name || phone}": phone invalid (got ${phone.length} digits: ${phone})`);
+      continue;
+    }
+
+    const last10 = phone.slice(-10);
+    if (seenPhoneLast10InFile.has(last10)) {
+      skipped++;
+      skipTracker.record('phone_duplicate_in_file');
+      errors.push(`Skipped "${name || phone}": duplicate phone in Excel file (${phone})`);
+      continue;
+    }
+    seenPhoneLast10InFile.add(last10);
+
+    // Resolve Enquiry Form (Priority: Excel -> UI selection -> null)
+    const rowEnquiry = getCol(row, ['Inquiry Form', 'Inquiry Form Name', 'Enquiry Form', 'Enquiry Form Name', 'Inquiry For', 'Enquiry For', 'Inquiry', 'Enquiry', 'Course', 'Program']);
+    let efObj = globalEnquiryForObj;
+    if (rowEnquiry && enquiryMap.has(rowEnquiry.toLowerCase().trim())) {
+      efObj = enquiryMap.get(rowEnquiry.toLowerCase().trim());
+    }
+    const enquiryForId = efObj ? efObj.id : null;
+    const enquiryForName = efObj ? efObj.name : (rowEnquiry || null);
+
+    // Resolve Source / Channel Preference (Priority: Excel -> UI selection -> 'whatsapp')
+    const rowSource = getCol(row, ['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
+    const finalSource = (rowSource || globalSelectedChannel || 'whatsapp').trim().slice(0, 100);
+
+    // Resolve Branch (Priority: Excel -> UI selection -> null)
+    const rowBranch = getCol(row, ['Branch', 'Branch Name', 'Location Branch']);
+    let bObj = globalBranchObj;
+    if (rowBranch && branchMap.has(rowBranch.toLowerCase().trim())) {
+      bObj = branchMap.get(rowBranch.toLowerCase().trim());
+    }
+    const branchId = bObj ? bObj.id : null;
+    const branchName = bObj ? bObj.name : (rowBranch || null);
+
+    // Resolve Department (Priority: Excel -> UI selection -> null)
+    const rowDept = getCol(row, ['Department', 'Dept', 'Department Name']);
+    let dObj = globalDeptObj;
+    if (rowDept) {
+      if (branchId && deptMap.has(`${branchId}_${rowDept.toLowerCase().trim()}`)) {
+        dObj = deptMap.get(`${branchId}_${rowDept.toLowerCase().trim()}`);
+      } else if (deptMap.has(rowDept.toLowerCase().trim())) {
+        dObj = deptMap.get(rowDept.toLowerCase().trim());
+      }
+    }
+    const departmentId = dObj ? dObj.id : null;
+    const departmentName = dObj ? dObj.name : (rowDept || null);
+
+    // Resolve Assigned User (Priority: Excel -> UI selection -> current user)
+    const rowUser = getCol(row, ['Assigned User', 'Assigned To', 'Assigned Employee', 'Counselor', 'Agent', 'Staff', 'Employee']);
+    let uObj = globalAssignedUserObj;
+    if (rowUser && userMap.has(rowUser.toLowerCase().trim())) {
+      uObj = userMap.get(rowUser.toLowerCase().trim());
+    }
+    const assignedTo = uObj ? uObj.id : userId;
+    const assignedUserName = uObj ? uObj.name : byUserName;
+
+    // Resolve Status (Priority: Excel -> UI selection -> null)
+    // If a new status is found that does not already exist in the system, skip that entire row during import
+    const rowStatus = getCol(row, ['Status', 'Lead Status', 'Current Status', 'Stage']);
+    let sObj = globalStatusObj;
+    if (rowStatus && String(rowStatus).trim()) {
+      const cleanRowStatus = String(rowStatus).toLowerCase().trim();
+      if (!statusMap.has(cleanRowStatus)) {
+        skipped++;
+        skipTracker.record('status_not_found');
+        errors.push(`Row ${actualRowNumber}: Skipped "${name || phone}": status "${String(rowStatus).trim()}" does not exist in the system`);
+        continue;
+      }
+      sObj = statusMap.get(cleanRowStatus);
+    } else if (defaultStatus && String(defaultStatus).trim() && !globalStatusObj) {
+      skipped++;
+      skipTracker.record('status_not_found');
+      errors.push(`Row ${actualRowNumber}: Skipped "${name || phone}": status "${String(defaultStatus).trim()}" does not exist in the system`);
+      continue;
+    }
+    const statusId = sObj ? sObj.id : null;
+    const statusName = sObj ? sObj.name : null;
+
+    let current_sale_status = 0;
+    let sale_won = 0, sale_lost = 0;
+    let sale_won_date = null, sale_lost_date = null;
+    let sale_won_by = null, sale_lost_by = null;
+    if (sObj) {
+      if (sObj.type === 'sale') {
+        current_sale_status = 1;
+        sale_won = 1;
+        sale_won_date = new Date();
+        sale_won_by = assignedTo;
+      } else if (sObj.type === 'sale_lost') {
+        current_sale_status = 2;
+        sale_lost = 1;
+        sale_lost_date = new Date();
+        sale_lost_by = assignedTo;
+      }
+    }
+
+    // Resolve Follow-up Date (Priority: Excel -> UI selection -> null)
+    const rowFollowUpDate = getCol(row, ['Follow-up Date', 'Follow Up Date', 'Followup Date', 'Follow Up', 'Next Follow-up', 'Next Followup', 'Reminder Date']);
+    const formattedFollowUpDate = parseFlexibleDate(rowFollowUpDate) || globalFormattedFollowUpDate;
+    const followUpFlag = formattedFollowUpDate ? 1 : 0;
+
+    // Resolve Lead Date / Created Date (Priority: Excel -> NOW())
+    const rowDate = getCol(row, ['Date', 'Lead Date', 'Created Date', 'Inquiry Date', 'Enquiry Date', 'Entry Date', 'Registration Date']);
+    const leadDateTime = parseFlexibleDateTime(rowDate) || new Date();
+
+    // Resolve Loss Reason
+    const rowLossReason = getCol(row, ['Loss Reason', 'Reason for Loss']);
+    const lossReason = rowLossReason || defaultLossReason || null;
+
+    // Resolve Remark
+    const rowRemark = getCol(row, ['Remark', 'Remarks', 'Note', 'Notes', 'Comment', 'Comments']);
+    const remark = rowRemark || defaultRemark || 'Imported via Excel';
+
+    const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+    const userList = [assignedTo];
+
+    candidateRows.push({
+      actualRowNumber,
+      name: name || null,
+      phone,
+      country_code: '+91',
+      last10,
+      email,
+      address,
+      tags: tagsArray,
+      tagsJson: JSON.stringify(tagsArray),
+      source: finalSource,
+      channel_preference: finalSource,
+      enquiry_for_id: enquiryForId,
+      enquiry_for_name: enquiryForName,
+      status_id: statusId,
+      status_name: statusName,
+      current_sale_status,
+      sale_won,
+      sale_won_date,
+      sale_won_by,
+      sale_lost,
+      sale_lost_date,
+      sale_lost_by,
+      lead_date: leadDateTime,
+      follow_up_date: formattedFollowUpDate,
+      follow_up: followUpFlag,
+      branch_id: branchId,
+      branch_name: branchName,
+      department_id: departmentId,
+      department_name: departmentName,
+      assigned_to: assignedTo,
+      assigned_user_name: assignedUserName,
+      loss_reason: lossReason,
+      remark,
+      created_by_user: userId,
+      user_list: userList,
+      user_listJson: JSON.stringify(userList),
+      raw_data: JSON.stringify(row)
+    });
+  }
+
+  // 3. Batch duplicate check against database in one or chunked queries
+  const readyToInsertRows = [];
+  if (candidateRows.length > 0) {
+    const candidateSuffixes = candidateRows.map(r => r.last10);
+    const chunkSize = 2000;
+    const existingPhoneSuffixes = new Set();
+    for (let i = 0; i < candidateSuffixes.length; i += chunkSize) {
+      const slice = candidateSuffixes.slice(i, i + chunkSize);
+      const [dupRows] = await conn.query(
+        'SELECT phone FROM contacts WHERE business_id = ? AND RIGHT(phone, 10) IN (?)',
+        [bizId, slice]
+      );
+      for (const d of dupRows) {
+        const p10 = String(d.phone).replace(/\D/g, '').slice(-10);
+        if (p10) existingPhoneSuffixes.add(p10);
+      }
+    }
+
+    for (const r of candidateRows) {
+      if (existingPhoneSuffixes.has(r.last10)) {
+        skipped++;
+        skipTracker.record('phone_exists');
+        errors.push(`Skipped "${r.name || r.phone}": phone ${r.phone} already exists`);
+      } else {
+        readyToInsertRows.push(r);
+      }
+    }
+  }
+
+  const detectedCols = leads.length > 0 ? Object.keys(leads[0]) : [];
+  const skipMessages = skipTracker.getSummaryMessages();
+  const summaryLine = skipMessages.length > 0 ? '\n\n' + skipMessages.join('\n') : '';
+
+  if (readyToInsertRows.length === 0) {
+    await conn.rollback();
+    return res.json({
+      success: false,
+      message: `0 leads imported. ${skipped} row(s) skipped.${summaryLine}`,
+      data: {
+        inserted: 0,
+        skipped,
+        skipMessages,
+        skipSummary: skipTracker.getSummaryCounts(),
+        errors,
+        invalidEmails,
+        detectedColumns: detectedCols,
+        bulkMode: true
+      }
+    });
+  }
+
+  // 4. Atomic Bulk Insertion into `contacts`, `imported_leads`, and `follow_ups`
+  const importBatchId = 'batch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+  const BATCH_SIZE = 500;
+  let inserted = 0;
+
+  for (let b = 0; b < readyToInsertRows.length; b += BATCH_SIZE) {
+    const chunk = readyToInsertRows.slice(b, b + BATCH_SIZE);
+
+    // a) Contacts multi-row values
+    const contactsMultiValues = chunk.map(r => [
+      bizId,
+      r.name,
+      r.phone,
+      r.country_code,
+      r.email,
+      r.tagsJson,
+      r.channel_preference,
+      r.assigned_to,
+      r.address,
+      r.follow_up_date,
+      r.follow_up,
+      r.branch_id,
+      r.branch_name,
+      r.department_id,
+      r.department_name,
+      r.status_id,
+      r.status_name,
+      r.current_sale_status,
+      r.sale_won,
+      r.sale_won_date,
+      r.sale_won_by,
+      r.sale_lost,
+      r.sale_lost_date,
+      r.sale_lost_by,
+      r.created_by_user,
+      r.user_listJson,
+      r.loss_reason,
+      'import',
+      r.enquiry_for_id,
+      r.lead_date
+    ]);
+
+    const [contactInsertResult] = await conn.query(
+      `INSERT INTO contacts (
+        business_id, name, phone, country_code, email, tags,
+        channel_preference, assigned_to, address, follow_up_date, follow_up,
+        branch_id, branch_name, department_id, department_name,
+        status_id, status_name, current_sale_status,
+        sale_won, sale_won_date, sale_won_by,
+        sale_lost, sale_lost_date, sale_lost_by,
+        created_by_user, user_list, loss_reason, opt_in_source, enquiry_for_id,
+        created_at
+      ) VALUES ?`,
+      [contactsMultiValues]
+    );
+
+    const firstContactId = contactInsertResult.insertId;
+
+    // b) Imported Leads multi-row values (identical data + linked contact_id)
+    const importedLeadsMultiValues = chunk.map((r, idx) => [
+      bizId,
+      firstContactId + idx,
+      importBatchId,
+      r.name,
+      r.phone,
+      r.country_code,
+      r.email,
+      r.address,
+      r.tagsJson,
+      'import',
+      r.channel_preference,
+      r.source,
+      r.enquiry_for_id,
+      r.enquiry_for_name,
+      r.status_id,
+      r.status_name,
+      r.lead_date,
+      r.follow_up_date,
+      r.follow_up,
+      r.branch_id,
+      r.branch_name,
+      r.department_id,
+      r.department_name,
+      r.assigned_to,
+      r.assigned_user_name,
+      r.current_sale_status,
+      r.sale_won,
+      r.sale_won_date,
+      r.sale_won_by,
+      r.sale_lost,
+      r.sale_lost_date,
+      r.sale_lost_by,
+      r.loss_reason,
+      r.created_by_user,
+      r.user_listJson,
+      r.raw_data,
+      r.lead_date
+    ]);
+
+    await conn.query(
+      `INSERT INTO imported_leads (
+        business_id, contact_id, import_batch_id,
+        name, phone, country_code, email, address, tags,
+        opt_in_source, channel_preference, source,
+        enquiry_for_id, enquiry_for_name,
+        status_id, status_name,
+        lead_date, follow_up_date, follow_up,
+        branch_id, branch_name, department_id, department_name,
+        assigned_to, assigned_user_name,
+        current_sale_status, sale_won, sale_won_date, sale_won_by,
+        sale_lost, sale_lost_date, sale_lost_by,
+        loss_reason, created_by_user, user_list,
+        raw_data, created_at
+      ) VALUES ?`,
+      [importedLeadsMultiValues]
+    );
+
+    // c) Follow-ups multi-row values
+    const followUpsMultiValues = chunk.map((r, idx) => [
+      firstContactId + idx,
+      r.name,
+      r.follow_up_date,
+      userId,
+      byUserName,
+      r.assigned_to,
+      r.assigned_user_name,
+      r.status_id,
+      r.status_name,
+      r.branch_id,
+      r.branch_name,
+      r.department_id,
+      r.department_name,
+      r.remark
+    ]);
+
+    await conn.query(
+      `INSERT INTO follow_ups (
+        contact_id, contact_name, follow_up_date,
+        by_user_id, by_user_name, to_user_id, to_user_name,
+        status_id, status_name, branch_id, branch_name,
+        department_id, department_name, remarks
+      ) VALUES ?`,
+      [followUpsMultiValues]
+    );
+
+    inserted += chunk.length;
+  }
+
+  await conn.commit();
+
+  const finalSkipMessages = skipTracker.getSummaryMessages();
+  const finalSummaryLine = finalSkipMessages.length > 0 ? '\n\n' + finalSkipMessages.join('\n') : '';
+
+  return res.json({
+    success: true,
+    message: `Import complete. ${inserted} lead(s) imported.${finalSummaryLine}`,
+    data: {
+      inserted,
+      skipped,
+      skipMessages: finalSkipMessages,
+      skipSummary: skipTracker.getSummaryCounts(),
+      errors,
+      invalidEmails,
+      detectedColumns: detectedCols,
+      importBatchId,
+      bulkMode: true
+    }
+  });
+};
+
 const importExcelContacts = async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
     const { leads, statusAndAssignment } = req.body;
-    const bizId  = req.user.businessId;
-    const userId = req.user.userId;
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
-      await conn.rollback(); conn.release();
+      await conn.rollback();
+      conn.release();
       return res.status(400).json({ success: false, message: 'No lead data provided.', data: null });
     }
 
-    const { status, branch, department, assigned_employee, remark, follow_up_date, loss_reason, channel, channel_preference, source, enquiry_for_id, enquiry_for } = statusAndAssignment || {};
-    const selectedChannel = (channel_preference || channel || source || '').trim() || null;
-
-    // ── Resolve Inquiry Form (enquiry_fors) ────────────────
-    let globalEnquiryForId = null;
-    const [allEnquiryFors] = await conn.query('SELECT id, name FROM enquiry_fors WHERE business_id = ?', [bizId]);
-    const enquiryMap = new Map();
-    for (const ef of allEnquiryFors) {
-      enquiryMap.set(String(ef.id), ef.id);
-      enquiryMap.set(ef.name.toLowerCase().trim(), ef.id);
+    if (isBulkImportLeadsEnabled(req)) {
+      return await processBulkImportContacts(conn, req, res, leads, statusAndAssignment);
+    } else {
+      return await processLegacyImportContacts(conn, req, res, leads, statusAndAssignment);
     }
-
-    if (enquiry_for_id && enquiryMap.has(String(enquiry_for_id))) {
-      globalEnquiryForId = enquiryMap.get(String(enquiry_for_id));
-    } else if (enquiry_for && enquiryMap.has(String(enquiry_for).toLowerCase().trim())) {
-      globalEnquiryForId = enquiryMap.get(String(enquiry_for).toLowerCase().trim());
-    }
-
-    // ── Resolve assigned user ─────────────────────────────
-    let assignedTo = null;
-    if (assigned_employee) {
-      const [uRows] = await conn.query('SELECT id FROM users WHERE name = ? AND business_id = ? LIMIT 1', [assigned_employee, bizId]);
-      if (uRows.length > 0) assignedTo = uRows[0].id;
-    }
-    if (!assignedTo) assignedTo = userId;
-
-    // ── Resolve branch ────────────────────────────────────
-    let branchId = null, branchName = branch || null;
-    if (branchName) {
-      const [bRows] = await conn.query('SELECT id FROM branches WHERE name = ? LIMIT 1', [branchName]);
-      if (bRows.length > 0) branchId = bRows[0].id;
-    }
-
-    // ── Resolve department ────────────────────────────────
-    let departmentId = null, departmentName = department || null;
-    if (departmentName) {
-      const [dRows] = await conn.query('SELECT id FROM departments WHERE name = ? LIMIT 1', [departmentName]);
-      if (dRows.length > 0) departmentId = dRows[0].id;
-    }
-
-    // ── Resolve status ────────────────────────────────────
-    let statusId   = null, statusName = status ? status.trim() : null;
-    let current_sale_status = 0;
-    let sale_won = 0, sale_lost = 0, sale_won_date = null, sale_lost_date = null, sale_won_by = null, sale_lost_by = null;
-    if (statusName) {
-      const [sRows] = await conn.query('SELECT id, name, type FROM statuses WHERE TRIM(name) = ? OR name = ? LIMIT 1', [statusName, statusName]);
-      if (sRows.length > 0) {
-        statusId = sRows[0].id;
-        statusName = sRows[0].name;
-        if (sRows[0].type === 'sale') {
-          current_sale_status = 1;
-          sale_won = 1;
-          sale_won_date = new Date();
-          sale_won_by = assignedTo;
-        } else if (sRows[0].type === 'sale_lost') {
-          current_sale_status = 2;
-          sale_lost = 1;
-          sale_lost_date = new Date();
-          sale_lost_by = assignedTo;
-        }
-      }
-    }
-
-    // ── Follow-up date ────────────────────────────────────
-    let formattedFollowUpDate = null;
-    if (follow_up_date) {
-      formattedFollowUpDate = normalizeDateOnly(follow_up_date);
-    }
-
-    // ── User names for follow_ups record ─────────────────
-    let byUserName = null, toUserName = null;
-    const [uNameRows] = await conn.query('SELECT name FROM users WHERE id = ? LIMIT 1', [userId]);
-    if (uNameRows.length) byUserName = uNameRows[0].name;
-    const [tuRows] = await conn.query('SELECT name FROM users WHERE id = ? LIMIT 1', [assignedTo]);
-    if (tuRows.length) toUserName = tuRows[0].name;
-
-    // ── Flexible case-insensitive column finder ───────────
-    // Works with ANY Excel column headers (e.g. "STUDENT NAME", "Mobile No", "Phone No.", etc.)
-    const getCol = (row, keywords) => {
-      const keys = Object.keys(row);
-      for (const kw of keywords) {
-        const found = keys.find(k => k.trim().toLowerCase() === kw.toLowerCase());
-        if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
-          return String(row[found]).trim();
-        }
-      }
-      // Partial match fallback
-      for (const kw of keywords) {
-        const found = keys.find(k => k.trim().toLowerCase().includes(kw.toLowerCase()));
-        if (found && row[found] !== undefined && row[found] !== null && String(row[found]).trim() !== '') {
-          return String(row[found]).trim();
-        }
-      }
-      return '';
-    };
-
-    // Log actual column headers from first row for debugging
-    if (leads.length > 0) {
-      console.log('[importExcelContacts] Excel column headers:', Object.keys(leads[0]));
-      console.log('[importExcelContacts] First row sample:', JSON.stringify(leads[0]));
-    }
-
-    // ── Process each Excel row ────────────────────────────
-    let inserted = 0, skipped = 0;
-    const errors = [];
-    const invalidEmails = [];
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-    for (let rowIndex = 0; rowIndex < leads.length; rowIndex++) {
-      const row = leads[rowIndex];
-      const actualRowNumber = rowIndex + 2; // Assuming row 1 is header
-      try {
-        const name    = getCol(row, ['Name', 'Full Name', 'Customer Name', 'Student Name', 'Client Name', 'Lead Name', 'Contact Name', 'Person Name', 'Applicant Name', 'Candidate Name']);
-        let   phone   = getCol(row, ['Phone', 'Mobile', 'Phone Number', 'Mobile Number', 'Mobile No', 'Phone No', 'Contact Number', 'Contact No', 'Whatsapp', 'WhatsApp No', 'Cell', 'Tel', 'Telephone', 'Number', 'Contact']);
-        let   email   = getCol(row, ['Email', 'Email Address', 'Mail', 'E-Mail', 'Email Id', 'Email ID']) || null;
-        const tags    = getCol(row, ['Tags', 'Tag', 'Labels', 'Category', 'Course', 'Program']);
-        const address = getCol(row, ['Address', 'Location', 'City', 'Place', 'Area']) || null;
-        const rowChannel = getCol(row, ['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
-        const finalChannel = (selectedChannel || rowChannel || 'whatsapp').trim().slice(0, 100);
-
-        const rowEnquiry = getCol(row, ['Inquiry Form', 'Inquiry Form Name', 'Enquiry Form', 'Enquiry Form Name', 'Inquiry For', 'Enquiry For', 'Inquiry', 'Enquiry']);
-        let rowEnquiryForId = globalEnquiryForId;
-        if (rowEnquiry) {
-          const cleanEnq = rowEnquiry.trim().toLowerCase();
-          if (enquiryMap.has(cleanEnq)) {
-            rowEnquiryForId = enquiryMap.get(cleanEnq);
-          } else if (enquiryMap.has(rowEnquiry.trim())) {
-            rowEnquiryForId = enquiryMap.get(rowEnquiry.trim());
-          }
-        }
-
-        // Skip completely empty rows
-        if (!name && !phone) {
-          skipped++;
-          if (inserted === 0 && skipped === 1) {
-            console.warn('[importExcelContacts] First row skipped - no name/phone found. Row keys:', Object.keys(row), 'Row data:', JSON.stringify(row));
-          }
-          continue;
-        }
-
-        // Validate and clean email
-        if (email) {
-          email = email.trim();
-          if (!emailRegex.test(email)) {
-            invalidEmails.push({
-              row: actualRowNumber,
-              name: name || 'Unnamed Lead',
-              email: email,
-              error: 'Invalid email format'
-            });
-            // Keep email null on the contact record so bad email isn't saved as valid
-            email = null;
-          }
-        }
-
-        // Phone sanitisation
-        if (phone) {
-          phone = phone.replace(/\D/g, '');               // strip non-digits
-          if (phone.length === 10) phone = '91' + phone;  // auto-prefix
-          if (phone.length !== 12) {
-            skipped++;
-            errors.push('Skipped "' + (name || phone) + '": phone invalid (got ' + phone.length + ' digits after cleaning: ' + phone + ')');
-            continue;
-          }
-          const last10 = phone.slice(-10);
-          const [dupRows] = await conn.query('SELECT id FROM contacts WHERE business_id = ? AND phone LIKE ? LIMIT 1', [bizId, '%' + last10]);
-          if (dupRows.length > 0) { skipped++; errors.push('Skipped "' + name + '": phone ' + phone + ' already exists'); continue; }
-        }
-
-        const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-        const userList  = [assignedTo];
-
-        // INSERT — include dynamic finalChannel (channel_preference), current_sale_status, enquiry_for_id, and opt_in_source = 'import'
-        const [result] = await conn.query(
-          'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source, enquiry_for_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, statusId, statusName, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import', rowEnquiryForId || null]
-        );
-        const contactId = result.insertId;
-
-        // follow_ups record
-        await conn.query(
-          'INSERT INTO follow_ups (contact_id, contact_name, follow_up_date, by_user_id, by_user_name, to_user_id, to_user_name, status_id, status_name, branch_id, branch_name, department_id, department_name, remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          [contactId, name || null, formattedFollowUpDate, userId, byUserName, assignedTo, toUserName, statusId, statusName, branchId, branchName, departmentId, departmentName, remark || 'Imported via Excel']
-        );
-
-        inserted++;
-      } catch (rowErr) {
-        skipped++;
-        console.error('[importExcelContacts] row error:', rowErr.message, rowErr);
-        errors.push(rowErr.message);
-      }
-    }
-
-    await conn.commit();
-
-    const detectedCols = leads.length > 0 ? Object.keys(leads[0]) : [];
-    if (inserted === 0) {
-      return res.json({
-        success: false,
-        message: '0 leads imported. ' + skipped + ' rows skipped.' + (errors.length ? ' Errors: ' + errors.slice(0, 5).join(' | ') : ' Check that your Excel has columns matching: Name, Phone/Mobile, Email, Address, Tags, Inquiry Form.'),
-        data: { inserted, skipped, errors, invalidEmails, detectedColumns: detectedCols }
-      });
-    }
-    return res.json({
-      success: true,
-      message: 'Import complete. ' + inserted + ' lead(s) imported' + (skipped ? ', ' + skipped + ' skipped' : '') + '.',
-      data: { inserted, skipped, errors, invalidEmails, detectedColumns: detectedCols }
-    });
-
   } catch (err) {
     if (conn) await conn.rollback();
     console.error('[importExcelContacts] fatal:', err);

@@ -169,6 +169,28 @@ const updateAgent = async (req, res) => {
 const deleteAgent = async (req, res) => {
   try {
     if (req.params.id == req.user.userId) return res.status(400).json({ success: false, message: 'Cannot delete yourself', data: null });
+    
+    // Check if contacts are assigned to this user before deleting
+    const [assignedContacts] = await pool.query(
+      'SELECT id, name, phone FROM contacts WHERE assigned_to = ? LIMIT 1',
+      [req.params.id]
+    );
+
+    if (assignedContacts && assignedContacts.length > 0) {
+      const contact = assignedContacts[0];
+      const contactName = contact.name || 'N/A';
+      const contactPhone = contact.phone || 'N/A';
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete user: A contact is currently assigned to this user (${contactName} - ${contactPhone}). Please reassign the contacts first.`,
+        data: {
+          contact_id: contact.id,
+          contact_name: contactName,
+          contact_phone: contactPhone
+        }
+      });
+    }
+
     await pool.query('DELETE FROM users WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
     res.json({ success: true, data: null, message: 'Deleted' });
   } catch (err) { res.status(500).json({ success: false, message: err.message, data: null }); }

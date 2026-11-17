@@ -107,6 +107,11 @@ const deleteDepartment = async (req, res) => {
 // STATUSES
 const getStatuses = async (req, res) => {
   try {
+    const { transfer } = req.query;
+    if (transfer !== undefined) {
+      const [results] = await pool.query('CALL sp_get_statuses_by_transfer(?)', [Number(transfer)]);
+      return res.json({ success: true, data: results[0] || [], message: 'OK' });
+    }
     const [rows] = await pool.query('SELECT * FROM statuses ORDER BY sequence ASC, name ASC');
     res.json({ success: true, data: rows, message: 'OK' });
   } catch (err) {

@@ -116,7 +116,7 @@ export class ExcelImportComponent implements OnInit {
   }
 
   loadLeadStatuses() {
-    this.settingsService.getStatuses().subscribe({
+    this.settingsService.getStatuses({ transfer: 1 }).subscribe({
       next: (res: any) => {
         if (res.success) this.leadStatuses = res.data;
       }
@@ -200,6 +200,68 @@ export class ExcelImportComponent implements OnInit {
     }
   }
 
+  hasExcelColumn(keywords: string[]): boolean {
+    if (!this.excelColumns || this.excelColumns.length === 0) return false;
+    return this.excelColumns.some(col => {
+      const c = (col || '').trim().toLowerCase();
+      return keywords.some(k => c === k.toLowerCase() || c.includes(k.toLowerCase()));
+    });
+  }
+
+  hasStatusInExcel(): boolean {
+    return this.hasExcelColumn(['Status', 'Lead Status', 'Current Status', 'Stage']);
+  }
+
+  hasSourceInExcel(): boolean {
+    return this.hasExcelColumn(['Source', 'Lead Source', 'Channel', 'Channel Preference', 'Origin', 'Medium']);
+  }
+
+  hasFollowUpDateInExcel(): boolean {
+    return this.hasExcelColumn(['Follow-up Date', 'Follow Up Date', 'Followup Date', 'Follow Up', 'Next Follow-up', 'Reminder Date']);
+  }
+
+  formatSkipMessages(d: any, defaultMessage: string): string[] {
+    if (d && Array.isArray(d.skipMessages) && d.skipMessages.length > 0) {
+      return d.skipMessages;
+    }
+    if (d && Array.isArray(d.errors) && d.errors.length > 0) {
+      const counts: { [key: string]: number } = {
+        phone_exists: 0,
+        phone_missing: 0,
+        phone_invalid: 0,
+        phone_duplicate_in_file: 0,
+        status_not_found: 0,
+        other: 0
+      };
+      d.errors.forEach((err: string) => {
+        const lower = (err || '').toLowerCase();
+        if (lower.includes('already exists')) counts['phone_exists']++;
+        else if (lower.includes('phone number missing') || lower.includes('phone missing')) counts['phone_missing']++;
+        else if (lower.includes('phone invalid')) counts['phone_invalid']++;
+        else if (lower.includes('duplicate phone in excel')) counts['phone_duplicate_in_file']++;
+        else if (lower.includes('does not exist in the system')) counts['status_not_found']++;
+        else counts['other']++;
+      });
+      const labels: { [key: string]: string } = {
+        phone_exists: 'Phone number already exists',
+        phone_missing: 'Phone number is missing',
+        phone_invalid: 'Phone number is invalid (must be 10 digits)',
+        phone_duplicate_in_file: 'Duplicate phone number in Excel file',
+        status_not_found: 'Status does not exist in the system',
+        other: 'Other validation errors'
+      };
+      const msgs: string[] = [];
+      for (const k of Object.keys(counts)) {
+        if (counts[k] > 0) {
+          const rowWord = counts[k] === 1 ? '1 row skipped' : `${counts[k]} rows skipped`;
+          msgs.push(`${rowWord} – ${labels[k]}.`);
+        }
+      }
+      if (msgs.length > 0) return msgs;
+    }
+    return defaultMessage ? [defaultMessage] : [];
+  }
+
   clearFile(event: Event) {
     event.stopPropagation();
     this.selectedFile = null;
@@ -217,12 +279,12 @@ export class ExcelImportComponent implements OnInit {
       return;
     }
 
-    if (!this.newContact.status) {
-      Swal.fire('Error', 'Please select a status.', 'error');
+    if (!this.newContact.status && !this.hasStatusInExcel()) {
+      Swal.fire('Error', 'Please select a default status, or ensure your Excel sheet has a Status column.', 'error');
       return;
     }
 
-    if (this.isTransferStatus(this.newContact.status)) {
+    if (this.newContact.status && this.isTransferStatus(this.newContact.status)) {
       if (!this.newContact.branch || !this.newContact.department || !this.newContact.assigned_employee || !this.newContact.remark) {
         Swal.fire('Error', 'Please fill in all mandatory transfer fields (Branch, Department, Employee, Remark).', 'error');
         return;
@@ -231,19 +293,20 @@ export class ExcelImportComponent implements OnInit {
 
     this.loading = true;
     
-    // Prepare payload
+    // Prepare payload with bulk sync flag enabled
     const payload = {
       leads: this.excelData,
+      useBulkImportLeads: true,
       statusAndAssignment: {
-        status: this.newContact.status,
-        branch: this.newContact.branch,
-        department: this.newContact.department,
-        assigned_employee: this.newContact.assigned_employee,
-        remark: this.newContact.remark,
-        follow_up_date: this.newContact.follow_up_date,
-        loss_reason: this.newContact.loss_reason,
-        channel_preference: this.newContact.channel_preference,
-        source: this.newContact.channel_preference,
+        status: this.newContact.status || '',
+        branch: this.newContact.branch || '',
+        department: this.newContact.department || '',
+        assigned_employee: this.newContact.assigned_employee || '',
+        remark: this.newContact.remark || '',
+        follow_up_date: this.newContact.follow_up_date || '',
+        loss_reason: this.newContact.loss_reason || '',
+        channel_preference: this.newContact.channel_preference || '',
+        source: this.newContact.channel_preference || '',
         enquiry_for_id: this.newContact.enquiry_for_id || null
       }
     };
@@ -303,18 +366,75 @@ export class ExcelImportComponent implements OnInit {
             });
 
           } else {
-            const msg = `${res.message}${d.skipped ? `\n${d.skipped} row(s) skipped (duplicates or invalid phone).` : ''}`;
-            Swal.fire('Import Successful', msg, 'success').then(() => {
+            const skipMessages = this.formatSkipMessages(d, '');
+            let html = `
+              <div style="text-align: left; font-size: 0.95rem;">
+                <p style="font-weight: 600; color: #16a34a; margin-bottom: 8px;">
+                  ${d.inserted} contact(s) imported successfully!
+                </p>
+            `;
+            if (skipMessages.length > 0) {
+              html += `
+                <div style="padding: 10px 14px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; color: #92400e; margin-top: 10px;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">Skipped rows:</div>
+                  <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
+                    ${skipMessages.map((m: string) => `<li>${m}</li>`).join('')}
+                  </ul>
+                </div>
+              `;
+            }
+            html += `</div>`;
+
+            Swal.fire({
+              title: d.skipped > 0 ? 'Import Completed with Notes' : 'Import Successful',
+              html: html,
+              icon: d.skipped > 0 ? 'warning' : 'success',
+              width: '520px'
+            }).then(() => {
               this.router.navigate(['/contacts']);
             });
           }
         } else {
-          // Show detected columns to help user fix their Excel file
-          let detail = res.message || 'Failed to import leads.';
-          if (d.detectedColumns && d.detectedColumns.length > 0) {
-            detail += `\n\nDetected columns in your Excel:\n${d.detectedColumns.join(', ')}\n\nExpected columns like:\nName, Phone (or Mobile), Email, Address, Tags`;
+          const skipMessages = this.formatSkipMessages(d, res.message || '');
+          let html = `
+            <div style="text-align: left; font-size: 0.95rem;">
+              <p style="margin-bottom: 12px; font-weight: 600; color: #dc2626;">
+                0 leads imported ${d.skipped ? `(${d.skipped} rows skipped)` : ''}:
+              </p>
+          `;
+
+          if (skipMessages.length > 0) {
+            html += `
+              <div style="padding: 12px 16px; background: #fef2f2; border: 1px solid #fee2e2; border-radius: 8px; color: #991b1b; margin-bottom: 14px;">
+                <ul style="margin: 0; padding-left: 18px; line-height: 1.8;">
+                  ${skipMessages.map((m: string) => `<li><strong>${m}</strong></li>`).join('')}
+                </ul>
+              </div>
+            `;
           }
-          Swal.fire({ title: 'Import Failed', html: detail.replace(/\n/g, '<br>'), icon: 'error' });
+
+          // Only show detected columns / expected columns if no recognizable columns were found
+          const recognizedEssentialCols = ['name', 'student name', 'phone', 'mobile', 'primary phone', 'contact'];
+          const hasEssentialCols = (d.detectedColumns || []).some((col: string) => 
+            recognizedEssentialCols.some(k => col.toLowerCase().includes(k))
+          );
+          if (!hasEssentialCols && d.detectedColumns && d.detectedColumns.length > 0) {
+            html += `
+              <div style="font-size: 0.85rem; color: #64748b; background: #f8fafc; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <div>Detected columns in your Excel: <code>${d.detectedColumns.join(', ')}</code></div>
+                <div style="margin-top: 4px;">Expected columns like: Name, Phone (or Mobile), Email, Address</div>
+              </div>
+            `;
+          }
+
+          html += `</div>`;
+
+          Swal.fire({
+            title: 'Import Failed',
+            html: html,
+            icon: 'error',
+            width: '560px'
+          });
         }
       },
       error: (err: any) => {

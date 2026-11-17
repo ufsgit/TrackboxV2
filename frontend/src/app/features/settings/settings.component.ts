@@ -680,8 +680,46 @@ export class SettingsComponent implements OnInit {
 
   removeAgent(id: number) {
     this.api.delete(`/settings/team/${id}`).subscribe({
-      next: () => {
-        this.team = this.team.filter(t => t.id !== id);
+      next: (res: any) => {
+        if (res.success) {
+          this.team = this.team.filter(t => t.id !== id);
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Cannot Delete User',
+            text: res.message || 'Cannot delete user'
+          });
+        }
+      },
+      error: (err: any) => {
+        const errData = err.error?.data;
+        if (errData && (errData.contact_name || errData.contact_phone)) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Cannot Delete User',
+            html: `
+              <div style="text-align: left; font-size: 14px; margin-top: 10px;">
+                <p style="margin-bottom: 12px; color: #dc2626; font-weight: 600;">
+                  This user cannot be deleted because contacts are assigned to them!
+                </p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+                  <p style="margin: 0 0 8px 0;"><strong>Contact Name:</strong> ${errData.contact_name || 'N/A'}</p>
+                  <p style="margin: 0;"><strong>Phone:</strong> ${errData.contact_phone || 'N/A'}</p>
+                </div>
+                <p style="margin-top: 12px; font-size: 13px; color: #64748b;">
+                  Please reassign their contacts before deleting this user.
+                </p>
+              </div>
+            `,
+            confirmButtonColor: '#4f46e5'
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Cannot Delete User',
+            text: err.error?.message || 'Error deleting user'
+          });
+        }
       }
     });
   }
