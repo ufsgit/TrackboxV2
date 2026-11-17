@@ -2,7 +2,7 @@
 
   <!-- ── Metrics Overview Cards ──────────────────────────────── -->
   <section class="metrics-grid">
-    <div class="metric-card metric-blue" (click)="statusFilter = 'all'; onFilterChange()">
+    <div class="metric-card metric-blue" (click)="selectKpi('all')">
       <div class="metric-icon"><i class="bi bi-list-task"></i></div>
       <div class="metric-content">
         <span class="metric-label">Total Tasks</span>
@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <div class="metric-card metric-amber" (click)="statusFilter = '0'; onFilterChange()">
+    <div class="metric-card metric-amber" (click)="selectKpi('pending')">
       <div class="metric-icon"><i class="bi bi-clock-history"></i></div>
       <div class="metric-content">
         <span class="metric-label">Pending</span>
@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <div class="metric-card metric-orange" (click)="dateFilter = 'today'; onDateFilterChange()">
+    <div class="metric-card metric-orange" (click)="selectKpi('today')">
       <div class="metric-icon"><i class="bi bi-calendar-event"></i></div>
       <div class="metric-content">
         <span class="metric-label">Due Today</span>
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <div class="metric-card metric-red" (click)="dateFilter = 'overdue'; onDateFilterChange()">
+    <div class="metric-card metric-red" (click)="selectKpi('overdue')">
       <div class="metric-icon"><i class="bi bi-exclamation-triangle"></i></div>
       <div class="metric-content">
         <span class="metric-label">Overdue</span>
@@ -34,7 +34,7 @@
       </div>
     </div>
 
-    <div class="metric-card metric-green" (click)="statusFilter = '1'; onFilterChange()">
+    <div class="metric-card metric-green" (click)="selectKpi('completed')">
       <div class="metric-icon"><i class="bi bi-check-circle-fill"></i></div>
       <div class="metric-content">
         <span class="metric-label">Completed</span>

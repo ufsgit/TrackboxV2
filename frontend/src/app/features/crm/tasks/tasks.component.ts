@@ -237,6 +237,30 @@ export class TasksComponent implements OnInit {
     }, 350);
   }
 
+  // Dedicated method for clicking KPI cards
+  selectKpi(type: 'all' | 'pending' | 'today' | 'overdue' | 'completed'): void {
+    if (type === 'all') {
+      this.statusFilter = 'all';
+      this.dateFilter = 'all';
+    } else if (type === 'pending') {
+      this.statusFilter = '0';
+      this.dateFilter = 'all';
+    } else if (type === 'today') {
+      this.statusFilter = '0';
+      this.dateFilter = 'today';
+    } else if (type === 'overdue') {
+      this.statusFilter = '0';
+      this.dateFilter = 'overdue';
+    } else if (type === 'completed') {
+      this.statusFilter = '1';
+      this.dateFilter = 'all';
+    }
+    this.startDate = '';
+    this.endDate = '';
+    this.currentPage = 1;
+    this.loadTasks();
+  }
+
   onFilterChange(): void {
     this.currentPage = 1;
     this.loadTasks();
