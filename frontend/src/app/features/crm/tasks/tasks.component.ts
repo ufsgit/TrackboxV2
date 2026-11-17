@@ -268,28 +268,41 @@ export class TasksComponent implements OnInit {
     if (event) event.stopPropagation();
     if (!task.id) return;
 
-    const newStatus = task.status === 1 ? 0 : 1;
-    const originalStatus = task.status;
-    task.status = newStatus;
+    Swal.fire({
+      title: 'Confirmation',
+      text: 'Do you want to proceed with this?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#64748b'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const newStatus = task.status === 1 ? 0 : 1;
+        const originalStatus = task.status;
+        task.status = newStatus;
 
-    this.tasksService.updateTaskStatus(task.id, newStatus).subscribe({
-      next: (res: any) => {
-        if (res?.success) {
-          if (newStatus === 1) {
-            task.completed_at = new Date().toISOString();
-          } else {
-            task.completed_at = null;
+        this.tasksService.updateTaskStatus(task.id!, newStatus).subscribe({
+          next: (res: any) => {
+            if (res?.success) {
+              if (newStatus === 1) {
+                task.completed_at = new Date().toISOString();
+              } else {
+                task.completed_at = null;
+              }
+              this.loadTasks();
+              this.loadKpiSummary();
+            } else {
+              task.status = originalStatus;
+              Swal.fire('Error', res?.message || 'Failed to update task status', 'error');
+            }
+          },
+          error: (err: any) => {
+            task.status = originalStatus;
+            Swal.fire('Error', err?.error?.message || 'Failed to update task status', 'error');
           }
-          this.loadTasks();
-          this.loadKpiSummary();
-        } else {
-          task.status = originalStatus;
-          Swal.fire('Error', res?.message || 'Failed to update task status', 'error');
-        }
-      },
-      error: (err: any) => {
-        task.status = originalStatus;
-        Swal.fire('Error', err?.error?.message || 'Failed to update task status', 'error');
+        });
       }
     });
   }
