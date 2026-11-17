@@ -1,4 +1,68 @@
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `create_contact_task`(
+    IN p_contact_id INT,
+    IN p_contact_name VARCHAR(255),
+    IN p_contact_phone VARCHAR(50),
+    IN p_branch_id INT,
+    IN p_branch_name VARCHAR(255),
+    IN p_dept_id INT,
+    IN p_dept_name VARCHAR(255),
+    IN p_title VARCHAR(255),
+    IN p_description TEXT,
+    IN p_assigned_to INT,
+    IN p_assigned_to_name VARCHAR(255),
+    IN p_created_by INT,
+    IN p_created_by_name VARCHAR(255),
+    IN p_is_task_date TINYINT(1),
+    IN p_task_date DATE
+)
+BEGIN
+    INSERT INTO `contact_tasks` (
+        `contact_id`,
+        `contact_name`,
+        `contact_phone`,
+        `branch_id`,
+        `branch_name`,
+        `dept_id`,
+        `dept_name`,
+        `title`,
+        `description`,
+        `assigned_to`,
+        `assigned_to_name`,
+        `created_by`,
+        `created_by_name`,
+        `status`,
+        `is_task_date`,
+        `task_date`,
+        `created_at`,
+        `updated_at`
+    ) VALUES (
+        p_contact_id,
+        p_contact_name,
+        p_contact_phone,
+        p_branch_id,
+        p_branch_name,
+        p_dept_id,
+        p_dept_name,
+        p_title,
+        p_description,
+        p_assigned_to,
+        p_assigned_to_name,
+        p_created_by,
+        p_created_by_name,
+        0, -- Default status: 0 (Pending)
+        IFNULL(p_is_task_date, 0),
+        IF(IFNULL(p_is_task_date, 0) = 1, p_task_date, NULL),
+        NOW(),
+        NOW()
+    );
+
+    -- Return the newly created task
+    SELECT * FROM `contact_tasks` WHERE `id` = LAST_INSERT_ID();
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `dashbord_source_count`(
   IN p_business_id INT,
   IN p_user_id INT,
@@ -81,7 +145,11 @@ BEGIN
 
     (SELECT COUNT(*) 
      FROM contact_work_experiences 
-     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS experiences_count;
+     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS experiences_count,
+
+    (SELECT COUNT(*) 
+     FROM contact_tasks 
+     WHERE contact_id = p_contact_id AND status = 0) AS tasks_count;
 END$$
 DELIMITER ;
 
@@ -105,6 +173,137 @@ BEGIN
   WHERE q.contact_id = p_contact_id 
     AND q.business_id = p_business_id
   ORDER BY q.sort_order ASC, q.id ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_tasks_by_contact`(
+    IN p_contact_id INT,
+    IN p_search VARCHAR(255),
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_page INT,
+    IN p_limit INT
+)
+BEGIN
+    DECLARE v_offset INT DEFAULT 0;
+    DECLARE v_limit INT DEFAULT 10;
+    
+    -- Default page and limit handling
+    IF p_limit IS NOT NULL AND p_limit > 0 THEN
+        SET v_limit = p_limit;
+    END IF;
+
+    IF p_page IS NOT NULL AND p_page > 0 THEN
+        SET v_offset = (p_page - 1) * v_limit;
+    END IF;
+
+    -- 1. Total matching count
+    SELECT COUNT(*) AS total
+    FROM `contact_tasks`
+    WHERE `contact_id` = p_contact_id
+      AND (
+          p_search IS NULL 
+          OR TRIM(p_search) = '' 
+          OR `title` LIKE CONCAT('%', TRIM(p_search), '%')
+      )
+      AND (
+          p_start_date IS NULL 
+          OR (`is_task_date` = 1 AND `task_date` >= p_start_date)
+      )
+      AND (
+          p_end_date IS NULL 
+          OR (`is_task_date` = 1 AND `task_date` <= p_end_date)
+      );
+
+    -- 2. Paginated records
+    SELECT 
+        `id`,
+        `contact_id`,
+        `title`,
+        `description`,
+        `assigned_to`,
+        `assigned_to_name`,
+        `created_by_name`,
+        `status`,
+        `is_task_date`,
+        `task_date`,
+        `completed_at`,
+        `created_at`
+    FROM `contact_tasks`
+    WHERE `contact_id` = p_contact_id
+      AND (
+          p_search IS NULL 
+          OR TRIM(p_search) = '' 
+          OR `title` LIKE CONCAT('%', TRIM(p_search), '%')
+      )
+      AND (
+          p_start_date IS NULL 
+          OR (`is_task_date` = 1 AND `task_date` >= p_start_date)
+      )
+      AND (
+          p_end_date IS NULL 
+          OR (`is_task_date` = 1 AND `task_date` <= p_end_date)
+      )
+    ORDER BY `status` ASC, `created_at` DESC
+    LIMIT v_limit OFFSET v_offset;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_tasks_kpi`(
+    IN p_user_id INT -- Logged-in User ID
+)
+BEGIN
+    SELECT 
+        COUNT(*) AS total,
+        COUNT(CASE WHEN t.status = 0 THEN 1 END) AS pending,
+        COUNT(CASE WHEN t.status = 1 THEN 1 END) AS completed,
+        COUNT(CASE WHEN t.status = 0 AND t.is_task_date = 1 AND t.task_date = CURDATE() THEN 1 END) AS due_today,
+        COUNT(CASE WHEN t.status = 0 AND t.is_task_date = 1 AND t.task_date < CURDATE() THEN 1 END) AS overdue
+    FROM `contact_tasks` t
+    WHERE 
+      (
+          t.assigned_to = p_user_id
+          OR t.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams tm_t
+              JOIN team_members tm ON tm.team_id = tm_t.id
+              WHERE tm_t.user_id = p_user_id
+          )
+      );
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_contact_task_team_assignees`(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT 
+        u.id,
+        u.name,
+        u.role,
+        u.branch_id,
+        b.name AS branch_name,
+        u.department_id AS dept_id,
+        d.name AS dept_name
+    FROM users u
+    LEFT JOIN branches b ON u.branch_id = b.id
+    LEFT JOIN departments d ON u.department_id = d.id
+    WHERE (u.is_active = 1 OR u.is_active IS NULL)
+      AND (
+          -- 1. Always include the logged-in user themselves (Self)
+          u.id = p_user_id
+          -- 2. Plus team members IF this user has a team
+          OR u.id IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+          )
+      )
+    ORDER BY (u.id = p_user_id) DESC, u.name ASC;
 END$$
 DELIMITER ;
 
@@ -380,6 +579,107 @@ BEGIN
           OR c.phone LIKE CONCAT('%', p_search, '%')
       )
     ORDER BY c.follow_up_date ASC, c.id DESC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_tasks_list`(
+    IN p_user_id INT,         -- Logged-in User ID
+    IN p_assigned_to INT,     -- Specific Assigned User ID (NULL = all accessible)
+    IN p_search VARCHAR(255), -- Title Search
+    IN p_start_date DATE,     -- Start date for task_date filter
+    IN p_end_date DATE,       -- End date for task_date filter
+    IN p_status TINYINT,      -- 0 = Pending, 1 = Completed, NULL = All
+    IN p_page INT,            -- Page number
+    IN p_limit INT            -- Page size
+)
+BEGIN
+    DECLARE v_offset INT DEFAULT 0;
+    DECLARE v_limit INT DEFAULT 10;
+
+    IF p_limit IS NOT NULL AND p_limit > 0 THEN
+        SET v_limit = p_limit;
+    END IF;
+
+    IF p_page IS NOT NULL AND p_page > 0 THEN
+        SET v_offset = (p_page - 1) * v_limit;
+    END IF;
+
+    -- 1. Total Count Query
+    SELECT COUNT(*) AS total
+    FROM `contact_tasks` t
+    WHERE 
+      -- Scoping: User sees tasks assigned to themselves OR their team members
+      (
+          t.assigned_to = p_user_id
+          OR t.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams tm_t
+              JOIN team_members tm ON tm.team_id = tm_t.id
+              WHERE tm_t.user_id = p_user_id
+          )
+      )
+      -- Filter by specific assigned_to ID (Me, specific team member, or NULL for all)
+      AND (p_assigned_to IS NULL OR t.assigned_to = p_assigned_to)
+      -- Search by Title
+      AND (p_search IS NULL OR TRIM(p_search) = '' OR t.title LIKE CONCAT('%', TRIM(p_search), '%'))
+      -- Status filter (0 or 1, NULL for all)
+      AND (p_status IS NULL OR t.status = p_status)
+      -- Date filtering using task_date (start_date and end_date)
+      AND (
+          p_start_date IS NULL 
+          OR (t.is_task_date = 1 AND t.task_date >= p_start_date)
+      )
+      AND (
+          p_end_date IS NULL 
+          OR (t.is_task_date = 1 AND t.task_date <= p_end_date)
+      );
+
+    -- 2. Paginated Tasks Data
+    SELECT 
+        t.id,
+        t.contact_id,
+        t.contact_name,
+        t.contact_phone,
+        t.branch_id,
+        t.branch_name,
+        t.dept_id,
+        t.dept_name,
+        t.title,
+        t.description,
+        t.assigned_to,
+        t.assigned_to_name,
+        t.created_by,
+        t.created_by_name,
+        t.status,
+        t.is_task_date,
+        t.task_date,
+        t.completed_at,
+        t.created_at
+    FROM `contact_tasks` t
+    WHERE 
+      (
+          t.assigned_to = p_user_id
+          OR t.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams tm_t
+              JOIN team_members tm ON tm.team_id = tm_t.id
+              WHERE tm_t.user_id = p_user_id
+          )
+      )
+      AND (p_assigned_to IS NULL OR t.assigned_to = p_assigned_to)
+      AND (p_search IS NULL OR TRIM(p_search) = '' OR t.title LIKE CONCAT('%', TRIM(p_search), '%'))
+      AND (p_status IS NULL OR t.status = p_status)
+      AND (
+          p_start_date IS NULL 
+          OR (t.is_task_date = 1 AND t.task_date >= p_start_date)
+      )
+      AND (
+          p_end_date IS NULL 
+          OR (t.is_task_date = 1 AND t.task_date <= p_end_date)
+      )
+    ORDER BY t.created_at DESC
+    LIMIT v_limit OFFSET v_offset;
 END$$
 DELIMITER ;
 
@@ -2155,6 +2455,27 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_statuses_by_transfer`(
+          IN p_transfer TINYINT
+      )
+BEGIN
+          SELECT 
+              id,
+              name,
+              color,
+              follow_needed,
+              transfer,
+              department_id,
+              type,
+              created_at,
+              updated_at
+          FROM statuses
+          WHERE (p_transfer IS NULL OR transfer = p_transfer)
+          ORDER BY name ASC;
+      END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_save_lead_email`(
     IN p_business_id INT,
     IN p_contact_id INT,
@@ -2195,4 +2516,22 @@ BEGIN
     );
     SELECT LAST_INSERT_ID() AS insertId;
   END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_contact_task_status`(
+    IN p_task_id INT,
+    IN p_status TINYINT
+)
+BEGIN
+    UPDATE `contact_tasks`
+    SET 
+        `status` = p_status,
+        `completed_at` = IF(p_status = 1, NOW(), NULL),
+        `updated_at` = NOW()
+    WHERE `id` = p_task_id;
+
+    -- Return the updated task record
+    SELECT * FROM `contact_tasks` WHERE `id` = p_task_id;
+END$$
 DELIMITER ;
