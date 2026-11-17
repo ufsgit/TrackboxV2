@@ -147,7 +147,6 @@ export class TasksComponent implements OnInit {
       if (this.startDate) params.start_date = this.startDate;
       if (this.endDate) params.end_date = this.endDate;
     } else if (this.dateFilter && this.dateFilter !== 'all') {
-      params.date_filter = this.dateFilter;
       if (this.dateFilter === 'today') {
         const today = this.getTodayStr();
         params.start_date = today;
@@ -156,6 +155,13 @@ export class TasksComponent implements OnInit {
         const tomorrow = this.getTomorrowStr();
         params.start_date = tomorrow;
         params.end_date = tomorrow;
+      } else if (this.dateFilter === 'upcoming') {
+        const tomorrow = this.getTomorrowStr();
+        params.start_date = tomorrow;
+      } else if (this.dateFilter === 'overdue') {
+        const yesterday = this.getYesterdayStr();
+        params.end_date = yesterday;
+        params.status = 0; // Overdue tasks must be pending
       }
     }
 
@@ -352,6 +358,15 @@ export class TasksComponent implements OnInit {
   getTomorrowStr(): string {
     const d = new Date();
     d.setDate(d.getDate() + 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  getYesterdayStr(): string {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
