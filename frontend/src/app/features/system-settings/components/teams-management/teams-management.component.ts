@@ -395,7 +395,9 @@ export class TeamsManagementComponent implements OnInit {
   defaultMenus = [
     'Dashboard',
     'CRM',
+    'Tasks',
     'Reports',
+    'Email',
     'Settings',
     'Teams',
     'Branch',
@@ -430,6 +432,8 @@ export class TeamsManagementComponent implements OnInit {
   getMenuDisplayName(menuName: string): string {
     const map: Record<string, string> = {
       'CRM': 'Leads (CRM)',
+      'Tasks': 'Tasks',
+      'Email': 'Email',
       'Channel': 'Source / Channels',
       'Year': 'Academic Year',
       'Teams': 'Teams & Users'
@@ -578,7 +582,9 @@ export class TeamsManagementComponent implements OnInit {
         p.menuName === menu ||
         (menu === 'CRM' && (p.menuName === 'Leads' || p.menuName === 'CRM / Leads')) ||
         (menu === 'Channel' && p.menuName === 'Source') ||
-        (menu === 'Year' && p.menuName === 'Academic Year')
+        (menu === 'Year' && p.menuName === 'Academic Year') ||
+        (menu === 'Tasks' && (p.menuName === 'Task' || p.menuName === 'Tasks')) ||
+        (menu === 'Email' && (p.menuName === 'Email' || p.menuName === 'Email Leads'))
       );
       this.permissionsList.push({
         menuName: menu,

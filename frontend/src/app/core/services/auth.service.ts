@@ -68,7 +68,10 @@ export class AuthService {
       const perm = user.permissions.find((p: any) => 
         p.menuName === menuName ||
         (menuName === 'CRM' && (p.menuName === 'Leads' || p.menuName === 'CRM / Leads')) ||
-        ((menuName === 'Leads' || menuName === 'CRM / Leads') && p.menuName === 'CRM')
+        ((menuName === 'Leads' || menuName === 'CRM / Leads') && p.menuName === 'CRM') ||
+        (menuName === 'Tasks' && (p.menuName === 'Tasks' || p.menuName === 'Task')) ||
+        (menuName === 'Task' && (p.menuName === 'Tasks' || p.menuName === 'Task')) ||
+        (menuName === 'Email' && (p.menuName === 'Email' || p.menuName === 'Email Leads'))
       );
       if (perm) {
         if (action === 'view') return perm.view;

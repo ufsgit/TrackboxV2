@@ -65,7 +65,7 @@ export class TasksComponent implements OnInit {
 
   constructor(
     private tasksService: ContactTasksService,
-    private authService: AuthService,
+    public authService: AuthService,
     private api: ApiService
   ) {}
 

@@ -22,7 +22,7 @@
     </div>
 
     <div class="header-actions">
-      <button type="button" class="btn-primary" (click)="openCreateModal()">
+      <button type="button" class="btn-primary" (click)="openCreateModal()" *ngIf="authService.hasPermission('Tasks', 'save')">
         <i class="bi bi-plus-lg"></i>
         <span>Create Task</span>
       </button>
@@ -179,7 +179,7 @@
       <div class="empty-icon"><i class="bi bi-clipboard-check"></i></div>
       <h3>No Tasks Found</h3>
       <p class="text-muted">No tasks match your current filter settings. Try clearing filters or create a new task.</p>
-      <button class="btn-primary mt-3" (click)="openCreateModal()">
+      <button class="btn-primary mt-3" (click)="openCreateModal()" *ngIf="authService.hasPermission('Tasks', 'save')">
         <i class="bi bi-plus-lg me-1"></i> Create Task
       </button>
     </div>
@@ -295,7 +295,7 @@
             <!-- 11. Action (Status toggle button: Mark Done / Reopen) -->
             <td class="td-action" style="text-align: center;">
               <button
-                *ngIf="t.status === 0"
+                *ngIf="t.status === 0 && authService.hasPermission('Tasks', 'edit')"
                 type="button"
                 class="btn-status-toggle btn-mark-done"
                 (click)="toggleTaskStatus(t, $event)"
@@ -305,7 +305,7 @@
                 <span>Mark Done</span>
               </button>
               <button
-                *ngIf="t.status === 1"
+                *ngIf="t.status === 1 && authService.hasPermission('Tasks', 'edit')"
                 type="button"
                 class="btn-status-toggle btn-reopen"
                 (click)="toggleTaskStatus(t, $event)"
@@ -314,6 +314,7 @@
                 <i class="bi bi-arrow-counterclockwise"></i>
                 <span>Reopen</span>
               </button>
+              <span *ngIf="!authService.hasPermission('Tasks', 'edit')" class="text-muted" style="font-size: 0.8rem;">-</span>
             </td>
           </tr>
         </tbody>

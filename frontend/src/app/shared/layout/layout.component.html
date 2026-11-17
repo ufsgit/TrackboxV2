@@ -156,7 +156,7 @@
           <span>Leads</span>
         </a>
 
-        <a routerLink="/tasks" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('CRM', 'view')">
+        <a routerLink="/tasks" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('Tasks', 'view')">
           <i class="bi bi-check2-square"></i>
           <span>Tasks</span>
         </a>
@@ -268,8 +268,8 @@
           </div>
         </div>
 
-        <!-- Email Menu after Reports (Controlled by company_config.is_email) -->
-        <a *ngIf="isEmailEnabled" routerLink="/email-leads" routerLinkActive="active" class="nav-item">
+        <!-- Email Menu after Reports (Controlled by company_config.is_email and Access Permissions) -->
+        <a *ngIf="isEmailEnabled && authService.hasPermission('Email', 'view')" routerLink="/email-leads" routerLinkActive="active" class="nav-item">
           <i class="bi bi-envelope"></i>
           <span>Email</span>
         </a>
