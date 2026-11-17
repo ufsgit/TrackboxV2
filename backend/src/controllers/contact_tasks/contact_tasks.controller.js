@@ -269,10 +269,52 @@ const getTasksList = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/contact-tasks/kpi
+ * Fetches KPI summary (total, pending, completed, due_today, overdue) using stored procedure `get_contact_tasks_kpi`
+ */
+const getTasksKpi = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated', data: null });
+    }
+
+    const [results] = await pool.query('CALL get_contact_tasks_kpi(?)', [userId]);
+    const kpi = results[0] && results[0][0] ? results[0][0] : {
+      total: 0,
+      pending: 0,
+      completed: 0,
+      due_today: 0,
+      overdue: 0
+    };
+
+    res.json({
+      success: true,
+      message: 'OK',
+      data: {
+        total: Number(kpi.total || 0),
+        pending: Number(kpi.pending || 0),
+        completed: Number(kpi.completed || 0),
+        due_today: Number(kpi.due_today || 0),
+        overdue: Number(kpi.overdue || 0)
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching tasks KPI:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Internal server error',
+      data: null
+    });
+  }
+};
+
 module.exports = {
   getTaskTeamAssignees,
   getTasksByContact,
   createTask,
   updateTaskStatus,
-  getTasksList
+  getTasksList,
+  getTasksKpi
 };

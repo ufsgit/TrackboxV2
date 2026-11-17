@@ -74,6 +74,10 @@ export class ContactTasksService {
     return this.http.patch(`${this.apiUrl}/${taskId}/status`, { status });
   }
 
+  getTasksKpi(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/kpi`);
+  }
+
   deleteTask(taskId: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${taskId}`);
   }

@@ -47,7 +47,7 @@ export class TasksComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 15;
+  pageSize = 10;
   totalRecords = 0;
   totalPages = 1;
   pageSizeOptions = [10, 15, 25, 50];
@@ -72,7 +72,25 @@ export class TasksComponent implements OnInit {
   ngOnInit(): void {
     this.initCurrentUser();
     this.loadTeamUsers();
+    this.loadKpiSummary();
     this.loadTasks();
+  }
+
+  loadKpiSummary(): void {
+    this.tasksService.getTasksKpi().subscribe({
+      next: (res: any) => {
+        if (res?.success && res.data) {
+          this.summary = {
+            total: Number(res.data.total || 0),
+            pending: Number(res.data.pending || 0),
+            completed: Number(res.data.completed || 0),
+            overdue: Number(res.data.overdue || 0),
+            today: Number(res.data.due_today || 0)
+          };
+        }
+      },
+      error: (err: any) => console.error('Failed to load tasks KPI:', err)
+    });
   }
 
   initCurrentUser(): void {
@@ -155,11 +173,6 @@ export class TasksComponent implements OnInit {
         this.loading = false;
         if (res?.success) {
           this.tasks = res.data || [];
-          if (res.summary) {
-            this.summary = res.summary;
-          } else {
-            this.calculateLocalSummary(this.tasks);
-          }
           if (res.pagination) {
             this.currentPage = res.pagination.page;
             this.pageSize = res.pagination.limit;
@@ -268,6 +281,7 @@ export class TasksComponent implements OnInit {
             task.completed_at = null;
           }
           this.loadTasks();
+          this.loadKpiSummary();
         } else {
           task.status = originalStatus;
           Swal.fire('Error', res?.message || 'Failed to update task status', 'error');
@@ -424,6 +438,7 @@ export class TasksComponent implements OnInit {
           });
           this.closeModal();
           this.loadTasks();
+          this.loadKpiSummary();
         } else {
           Swal.fire('Error', res?.message || 'Failed to create task', 'error');
         }
