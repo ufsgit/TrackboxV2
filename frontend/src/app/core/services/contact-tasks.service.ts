@@ -54,12 +54,28 @@ export class ContactTasksService {
     return this.http.get(`${this.apiUrl}/contact/${contactId}`, { params: httpParams });
   }
 
+  getAllTasks(params?: any): Observable<any> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          httpParams = httpParams.set(key, params[key].toString());
+        }
+      });
+    }
+    return this.http.get(this.apiUrl, { params: httpParams });
+  }
+
   createTask(task: ContactTaskItem): Observable<any> {
     return this.http.post(this.apiUrl, task);
   }
 
   updateTaskStatus(taskId: number, status: number): Observable<any> {
     return this.http.patch(`${this.apiUrl}/${taskId}/status`, { status });
+  }
+
+  deleteTask(taskId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${taskId}`);
   }
 
   getTeamUsers(): Observable<any> {

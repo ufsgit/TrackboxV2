@@ -95,6 +95,7 @@ export const routes: Routes = [
       { path: 'operation/leave-request', loadComponent: () => import('./features/leave-request/leave-request.component').then(m => m.LeaveRequestComponent) },
       { path: 'hr/leave-request', loadComponent: () => import('./features/leave-request/leave-request.component').then(m => m.LeaveRequestComponent) },
       { path: 'contacts', component: ContactsComponent },
+      { path: 'tasks', loadComponent: () => import('./features/crm/tasks/tasks.component').then(m => m.TasksComponent) },
       { path: 'excel-import', loadComponent: () => import('./features/leads/excel-import/excel-import.component').then(m => m.ExcelImportComponent) },
       { path: 'leads-list', component: ContactsComponent },
       { path: 'broadcasts', component: BroadcastsComponent, data: { roles: ['admin', 'superadmin'] } },

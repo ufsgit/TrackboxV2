@@ -156,6 +156,11 @@
           <span>Leads</span>
         </a>
 
+        <a routerLink="/tasks" routerLinkActive="active" class="nav-item" *ngIf="authService.hasPermission('CRM', 'view')">
+          <i class="bi bi-check2-square"></i>
+          <span>Tasks</span>
+        </a>
+
         <!-- Reports Popover -->
         <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
           <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen || isCrmReportsActive()" (click)="toggleReports($event)">
