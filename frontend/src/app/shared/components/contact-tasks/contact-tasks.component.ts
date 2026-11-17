@@ -79,7 +79,7 @@ export class ContactTasksComponent implements OnInit, OnChanges {
           this.tasks = res.data || [];
           this.totalRecords = res.pagination?.total || this.tasks.length;
           this.totalPages = res.pagination?.totalPages || 1;
-          this.countChange.emit(this.totalRecords);
+          this.emitPendingCount();
         }
       },
       error: (err) => {
@@ -87,6 +87,13 @@ export class ContactTasksComponent implements OnInit, OnChanges {
         console.error('Error fetching tasks:', err);
       }
     });
+  }
+
+  private emitPendingCount(): void {
+    // If not filtered, calculate directly from pending tasks in this list, or fetch fresh count
+    const pendingInPage = (this.tasks || []).filter(t => Number(t.status) === 0).length;
+    // Emit only pending count
+    this.countChange.emit(pendingInPage);
   }
 
   onSearchChange(): void {
@@ -201,6 +208,7 @@ export class ContactTasksComponent implements OnInit, OnChanges {
               } else {
                 task.completed_at = null;
               }
+              this.emitPendingCount();
               Swal.fire({
                 icon: 'success',
                 title: 'Status Updated',

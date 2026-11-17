@@ -201,9 +201,78 @@ const updateTaskStatus = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/contact-tasks
+ * Query params: assigned_to, search, start_date, end_date, status, page, limit
+ * Fetches paginated global tasks list using stored procedure `get_tasks_list`
+ */
+const getTasksList = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated', data: [] });
+    }
+
+    const {
+      assigned_to,
+      search,
+      start_date,
+      end_date,
+      status
+    } = req.query;
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 10));
+
+    const assignedToId = assigned_to && !isNaN(parseInt(assigned_to, 10)) ? parseInt(assigned_to, 10) : null;
+    const taskStatus = status !== undefined && status !== null && status !== '' ? parseInt(status, 10) : null;
+
+    const [results] = await pool.query(
+      'CALL get_tasks_list(?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        userId,
+        assignedToId,
+        search ? search.trim() : null,
+        start_date || null,
+        end_date || null,
+        taskStatus,
+        page,
+        limit
+      ]
+    );
+
+    // Stored procedure returns 2 result sets:
+    // results[0] -> [{ total: ... }]
+    // results[1] -> rows of tasks
+    const total = results[0] && results[0][0] ? Number(results[0][0].total) : 0;
+    const rows = results[1] || [];
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    res.json({
+      success: true,
+      message: 'OK',
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching tasks list:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Internal server error',
+      data: null
+    });
+  }
+};
+
 module.exports = {
   getTaskTeamAssignees,
   getTasksByContact,
   createTask,
-  updateTaskStatus
+  updateTaskStatus,
+  getTasksList
 };
