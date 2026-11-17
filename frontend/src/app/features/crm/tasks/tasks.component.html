@@ -1,38 +1,5 @@
 <div class="tasks-page-container">
 
-  <!-- ── Top Header ─────────────────────────────────────────── -->
-  <header class="page-header">
-    <div class="header-left">
-      <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-        <a routerLink="/crm-dashboard" class="breadcrumb-link">
-          <i class="bi bi-grid-fill me-1"></i> Dashboard
-        </a>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-current">Tasks</span>
-      </nav>
-      <div class="title-row">
-        <div class="title-icon-bubble">
-          <i class="bi bi-check2-square"></i>
-        </div>
-        <div>
-          <h1 class="page-title">Tasks</h1>
-          <p class="page-subtitle">Track, filter, and manage student tasks, document collections, and team follow-ups.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="header-actions">
-      <button type="button" class="btn-primary" (click)="openCreateModal()" *ngIf="authService.hasPermission('Tasks', 'save')">
-        <i class="bi bi-plus-lg"></i>
-        <span>Create Task</span>
-      </button>
-      <button type="button" class="btn-refresh" (click)="loadTasks()" [disabled]="loading" title="Refresh tasks">
-        <i class="bi bi-arrow-clockwise" [class.spin]="loading"></i>
-        <span>Refresh</span>
-      </button>
-    </div>
-  </header>
-
   <!-- ── Metrics Overview Cards ──────────────────────────────── -->
   <section class="metrics-grid">
     <div class="metric-card metric-blue" (click)="statusFilter = 'all'; onFilterChange()">
@@ -204,9 +171,9 @@
         </thead>
         <tbody>
           <tr *ngFor="let t of tasks; let i = index" [class.row-completed]="t.status === 1">
-            <!-- 1. # (Task numeric ID) -->
+            <!-- 1. # (Serial Number) -->
             <td class="td-id">
-              <span class="id-badge">#{{ t.id }}</span>
+              <span class="id-badge">{{ (currentPage - 1) * pageSize + i + 1 }}</span>
             </td>
 
             <!-- 2. Student Name (Clickable link to view student profile modal) -->

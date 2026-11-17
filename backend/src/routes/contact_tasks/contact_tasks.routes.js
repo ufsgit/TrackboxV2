@@ -7,6 +7,9 @@ router.use(authenticate);
 // Get team members under the logged-in user
 router.get('/team', controller.getTaskTeamAssignees);
 
+// Get tasks KPI metrics summary (total, pending, completed, due_today, overdue)
+router.get('/kpi', controller.getTasksKpi);
+
 // Get global tasks list (supports ?assigned_to=&search=&start_date=&end_date=&status=&page=&limit=)
 router.get('/', controller.getTasksList);
 
