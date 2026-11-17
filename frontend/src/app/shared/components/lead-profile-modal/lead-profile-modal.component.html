@@ -88,6 +88,10 @@
           <i class="bi bi-briefcase me-1"></i> <span>Work Experience</span>
           <span class="tab-count-badge" *ngIf="experiencesCount > 0">{{ experiencesCount }}</span>
         </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Tasks'" (click)="detailActiveTab = 'Tasks'">
+          <i class="bi bi-check2-square me-1"></i> <span>Tasks</span>
+          <span class="tab-count-badge" *ngIf="tasksCount > 0">{{ tasksCount }}</span>
+        </button>
       </div>
 
       <!-- Tab Content Area -->
@@ -407,6 +411,16 @@
             [studentName]="getLeadName()"
             (countChange)="experiencesCount = $event">
           </app-contact-work-experiences>
+        </div>
+
+        <!-- ==================== TASKS TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'Tasks'" class="tab-pane">
+          <app-contact-tasks
+            [contactId]="contactId"
+            [studentName]="getLeadName()"
+            [contact]="selectedContact"
+            (countChange)="tasksCount = $event">
+          </app-contact-tasks>
         </div>
 
       </div>

@@ -166,6 +166,7 @@ app.use('/api/notifications', require('./src/routes/notifications.routes'));
 app.use('/api/receipts', require('./src/routes/receipts.routes'));
 app.use('/api/qualifications', require('./src/routes/contact_qualifications/contact_qualifications.routes'));
 app.use('/api/work-experiences', require('./src/routes/contact_work_experiences/contact_work_experiences.routes'));
+app.use('/api/contact-tasks', require('./src/routes/contact_tasks/contact_tasks.routes'));
 app.use('/api/visas', require('./src/routes/visas.routes'));
 app.use('/api/help-video', require('./src/routes/help-video.routes'));
 app.use('/api/export', require('./src/routes/excel-export'));

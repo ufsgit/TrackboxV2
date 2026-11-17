@@ -1,0 +1,251 @@
+<div class="tasks-container">
+  <!-- Top Bar: Search, Task Date Range Filters, and Add Task Button -->
+  <div class="tasks-top-bar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search tasks by title..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+      />
+    </div>
+
+    <div class="date-filter-group">
+      <span class="date-filter-label"><i class="bi bi-calendar3 me-1"></i>Task Date:</span>
+      <input
+        type="date"
+        class="date-input"
+        title="Task Start Date"
+        [(ngModel)]="startDate"
+        (change)="onDateFilterChange()"
+      />
+      <span class="date-sep">to</span>
+      <input
+        type="date"
+        class="date-input"
+        title="Task End Date"
+        [(ngModel)]="endDate"
+        (change)="onDateFilterChange()"
+      />
+    </div>
+
+    <button
+      *ngIf="searchQuery || startDate || endDate"
+      type="button"
+      class="btn-filter-clear"
+      (click)="clearFilters()"
+      title="Clear Filters"
+    >
+      <i class="bi bi-x-circle me-1"></i> Clear
+    </button>
+
+    <button type="button" class="btn-add-task ms-auto" (click)="openCreateModal()">
+      <i class="bi bi-plus-lg"></i> Add Task
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-4">
+    <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+    <span class="text-muted small">Loading tasks...</span>
+  </div>
+
+  <!-- Tasks List -->
+  <div *ngIf="!loading && tasks.length > 0" class="tasks-list">
+    <div
+      *ngFor="let task of tasks"
+      class="task-card"
+      [ngClass]="{ 'completed': task.status === 1, 'pending': task.status === 0 }"
+    >
+      <div class="task-main">
+        <div class="task-title-row">
+          <h6 class="task-title">{{ task.title }}</h6>
+          <span
+            class="status-badge"
+            [ngClass]="{ 'completed': task.status === 1, 'pending': task.status === 0 }"
+          >
+            {{ task.status === 1 ? 'Completed' : 'Pending' }}
+          </span>
+        </div>
+
+        <p *ngIf="task.description" class="task-desc">{{ task.description }}</p>
+
+        <div class="task-meta">
+          <span class="task-meta-item">
+            <i class="bi bi-person-fill text-muted"></i>
+            <strong>Assigned to:</strong> {{ task.assigned_to_name }}
+          </span>
+          <span class="task-meta-item">
+            <i class="bi bi-person-check text-muted"></i>
+            <strong>Created by:</strong> {{ task.created_by_name || 'System' }}
+          </span>
+          <span *ngIf="task.is_task_date && task.task_date" class="task-meta-item badge-task-date">
+            <i class="bi bi-calendar-event me-1"></i>
+            Promised: {{ task.task_date | date:'mediumDate' }}
+          </span>
+          <span *ngIf="task.completed_at" class="task-meta-item text-success">
+            <i class="bi bi-check-circle-fill me-1"></i>
+            Completed on {{ task.completed_at | date:'short' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Action Button for Status Toggle -->
+      <div class="task-actions">
+        <button
+          *ngIf="task.status === 0"
+          type="button"
+          class="btn-status-toggle mark-done"
+          (click)="toggleStatus(task, 1)"
+          title="Mark as Completed"
+        >
+          <i class="bi bi-check-circle"></i> Mark Completed
+        </button>
+
+        <button
+          *ngIf="task.status === 1"
+          type="button"
+          class="btn-status-toggle mark-pending"
+          (click)="toggleStatus(task, 0)"
+          title="Re-open Task to Pending"
+        >
+          <i class="bi bi-arrow-counterclockwise"></i> Reopen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && tasks.length === 0" class="empty-tasks">
+    <div class="empty-icon">
+      <i class="bi bi-clipboard-check"></i>
+    </div>
+    <h6>No Tasks Found</h6>
+    <p>There are no certificate or document tasks recorded for {{ studentName || 'this student' }}.</p>
+    <button type="button" class="btn-add-task" (click)="openCreateModal()">
+      <i class="bi bi-plus-lg"></i> Add First Task
+    </button>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div *ngIf="!loading && totalRecords > 0" class="tasks-pagination">
+    <span>Showing {{ tasks.length }} of {{ totalRecords }} tasks</span>
+    <div class="pagination-btns">
+      <button
+        type="button"
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)"
+      >
+        <i class="bi bi-chevron-left"></i> Prev
+      </button>
+      <span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button
+        type="button"
+        class="btn-page"
+        [disabled]="currentPage >= totalPages"
+        (click)="goToPage(currentPage + 1)"
+      >
+        Next <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Create Task Modal -->
+  <div *ngIf="showModal" class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+      <div class="modal-header-custom">
+        <h5><i class="bi bi-plus-circle text-primary me-1"></i> Add Document / Certificate Task</h5>
+        <button type="button" class="btn-close-custom" (click)="closeModal()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body-custom">
+        <form (ngSubmit)="submitTask()">
+          <!-- Title -->
+          <div class="form-group-custom">
+            <label>Task Title <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              placeholder="e.g. Collect 10th & 12th Marksheets / Degree Certificate"
+              [(ngModel)]="newTask.title"
+              name="title"
+              required
+            />
+          </div>
+
+          <!-- Description / Notes -->
+          <div class="form-group-custom">
+            <label>Notes / Description</label>
+            <textarea
+              rows="3"
+              placeholder="Provide any specific details or missing documents..."
+              [(ngModel)]="newTask.description"
+              name="description"
+            ></textarea>
+          </div>
+
+          <!-- Assign User Dropdown -->
+          <div class="form-group-custom">
+            <label>Assign To (Manager, Admin, or Self) <span class="text-danger">*</span></label>
+            <select
+              [(ngModel)]="newTask.assigned_to"
+              (ngModelChange)="onAssigneeChange($event)"
+              name="assigned_to"
+              required
+            >
+              <option [ngValue]="null" disabled>Select user...</option>
+              <option *ngFor="let user of teamUsers" [ngValue]="user.id">
+                {{ user.name }} ({{ user.role || 'Member' }})
+              </option>
+            </select>
+          </div>
+
+          <!-- is_task_date checkbox -->
+          <div class="checkbox-row">
+            <input
+              type="checkbox"
+              id="isTaskDateCheckbox"
+              [(ngModel)]="newTask.is_task_date"
+              name="is_task_date"
+            />
+            <label for="isTaskDateCheckbox">
+              Student promised submission by a specific date
+            </label>
+          </div>
+
+          <!-- Date Picker (shown only when is_task_date is true) -->
+          <div *ngIf="newTask.is_task_date" class="task-date-container">
+            <label class="form-label small fw-semibold text-primary">
+              <i class="bi bi-calendar-event me-1"></i> Promised Submission Date <span class="text-danger">*</span>
+            </label>
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              [(ngModel)]="newTask.task_date"
+              name="task_date"
+              required
+            />
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer-custom">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Cancel</button>
+        <button
+          type="button"
+          class="btn-submit"
+          [disabled]="submitting || !newTask.title || !newTask.assigned_to || (newTask.is_task_date && !newTask.task_date)"
+          (click)="submitTask()"
+        >
+          <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+          Save Task
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

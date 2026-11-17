@@ -31,6 +31,7 @@ import { UpdateLeadStatusModalComponent } from '../../shared/components/update-l
 import { WhatsappQrMsgComponent } from '../whatsapp-qr-msg/whatsapp-qr-msg.component';
 import { ContactQualificationsComponent } from '../../shared/components/contact-qualifications/contact-qualifications.component';
 import { ContactWorkExperiencesComponent } from '../../shared/components/contact-work-experiences/contact-work-experiences.component';
+import { ContactTasksComponent } from '../../shared/components/contact-tasks/contact-tasks.component';
 import { QualificationsService } from '../../core/services/qualifications.service';
 import { WorkExperiencesService } from '../../core/services/work-experiences.service';
 import { SocketService } from '../../core/services/socket.service';
@@ -48,7 +49,8 @@ import * as XLSX from 'xlsx';
     UpdateLeadStatusModalComponent, 
     WhatsappQrMsgComponent,
     ContactQualificationsComponent,
-    ContactWorkExperiencesComponent
+    ContactWorkExperiencesComponent,
+    ContactTasksComponent
   ],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
@@ -469,6 +471,7 @@ export class ContactsComponent implements OnInit {
   // Qualifications & Work Experiences Counts
   qualificationsCount: number = 0;
   experiencesCount: number = 0;
+  tasksCount: number = 0;
   selectedContactQualifications: any[] = [];
   loadingQualifications = false;
   showAddQualificationModal = false;
@@ -1107,6 +1110,7 @@ export class ContactsComponent implements OnInit {
     this.selectedContact = null;
     this.qualificationsCount = 0;
     this.experiencesCount = 0;
+    this.tasksCount = 0;
     this.detailActiveTab = initialTab;
     this.api.get(`/contacts/${contact.id}`).subscribe({
       next: (res: any) => {
@@ -1145,6 +1149,7 @@ export class ContactsComponent implements OnInit {
     this.selectedContact = null;
     this.qualificationsCount = 0;
     this.experiencesCount = 0;
+    this.tasksCount = 0;
     this.selectedContactApplications = [];
     this.selectedContactReceipts = [];
     this.selectedContactQualifications = [];
@@ -1631,14 +1636,17 @@ export class ContactsComponent implements OnInit {
         if (res.success && res.data) {
           this.qualificationsCount = res.data.qualifications_count || 0;
           this.experiencesCount = res.data.experiences_count || 0;
+          this.tasksCount = res.data.tasks_count || 0;
         } else {
           this.qualificationsCount = 0;
           this.experiencesCount = 0;
+          this.tasksCount = 0;
         }
       },
       error: () => {
         this.qualificationsCount = 0;
         this.experiencesCount = 0;
+        this.tasksCount = 0;
       }
     });
   }

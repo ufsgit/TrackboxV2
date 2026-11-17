@@ -10,6 +10,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { TimelineComponent } from '../../../features/contacts/components/timeline/timeline.component';
 import { ContactQualificationsComponent } from '../contact-qualifications/contact-qualifications.component';
 import { ContactWorkExperiencesComponent } from '../contact-work-experiences/contact-work-experiences.component';
+import { ContactTasksComponent } from '../contact-tasks/contact-tasks.component';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
@@ -21,7 +22,8 @@ import Swal from 'sweetalert2';
     FormsModule,
     TimelineComponent,
     ContactQualificationsComponent,
-    ContactWorkExperiencesComponent
+    ContactWorkExperiencesComponent,
+    ContactTasksComponent
   ],
   templateUrl: './lead-profile-modal.component.html',
   styleUrls: ['./lead-profile-modal.component.css']
@@ -104,6 +106,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   // Qualifications & Experience Counts
   qualificationsCount: number = 0;
   experiencesCount: number = 0;
+  tasksCount: number = 0;
 
   // Edit Lead Modal State
   showEditModal: boolean = false;

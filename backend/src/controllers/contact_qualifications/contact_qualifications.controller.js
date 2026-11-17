@@ -73,14 +73,16 @@ const getAcademicCounts = async (req, res) => {
 
     const counts = results[0]?.[0] || {
       qualifications_count: 0,
-      experiences_count: 0
+      experiences_count: 0,
+      tasks_count: 0
     };
 
     res.json({
       success: true,
       data: {
         qualifications_count: Number(counts.qualifications_count || 0),
-        experiences_count: Number(counts.experiences_count || 0)
+        experiences_count: Number(counts.experiences_count || 0),
+        tasks_count: Number(counts.tasks_count || 0)
       },
       message: 'OK'
     });
