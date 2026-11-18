@@ -429,7 +429,8 @@
             <td class="col-actions" (click)="$event.stopPropagation()">
               <div class="action-buttons-group">
                 <!-- WhatsApp QR In-App Message Viewer with Unread Badge -->
-                <button type="button"
+                <button *ngIf="enableWhatsappQr"
+                        type="button"
                         class="leads-action-icon-btn whatsapp-action-btn wa-qr-msg-trigger" 
                         (click)="openWaMessages(contact, $event)"
                         [class.has-unread]="contact.has_unread_wa"
@@ -3240,7 +3241,7 @@
 </div>
 
 <!-- WhatsApp QR Inbound Messages Modal -->
-<app-whatsapp-qr-msg
+<app-whatsapp-qr-msg *ngIf="enableWhatsappQr"
   [isOpen]="isWaMsgModalOpen"
   [contact]="selectedWaContact"
   (closed)="closeWaMessages()"

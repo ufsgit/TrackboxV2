@@ -10,6 +10,7 @@ import { CompanyConfigService } from '../../core/services/company-config.service
 import { FormsModule } from '@angular/forms';
 import { Observable, filter } from 'rxjs';
 import Swal from 'sweetalert2';
+import { environment } from '../../../environments/environment';
 
 export const routeTransitionAnimations = trigger('triggerName', [
   transition('* <=> *', [
@@ -46,6 +47,7 @@ export const routeTransitionAnimations = trigger('triggerName', [
   animations: [routeTransitionAnimations]
 })
 export class LayoutComponent implements OnInit {
+  enableWhatsappQr = environment.enableWhatsappQr ?? false;
   hideCRMItems = false;
   // hideCRMItems = false;
   user$: Observable<any>;

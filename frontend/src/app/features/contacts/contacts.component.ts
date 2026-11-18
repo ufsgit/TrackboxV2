@@ -57,6 +57,7 @@ import * as XLSX from 'xlsx';
 })
 export class ContactsComponent implements OnInit {
   baseUrl = environment.socketUrl;
+  enableWhatsappQr: boolean = environment.enableWhatsappQr ?? false;
   contacts: any[] = [];
   loading = false;
   showModal = false;
@@ -752,7 +753,9 @@ export class ContactsComponent implements OnInit {
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin', 'manager');
     this.initEmailStatusSocket();
-    this.initWhatsappUnreadSocket();
+    if (this.enableWhatsappQr) {
+      this.initWhatsappUnreadSocket();
+    }
     this.loadContacts();
     this.loadTags();
     this.loadLeadFields();

@@ -19,8 +19,6 @@ const { handleOptInLink } = require('./src/controllers/contacts.controller');
 const { startBroadcastJob } = require('./src/jobs/broadcastJob');
 const { startDripJob } = require('./src/jobs/dripJob');
 const { startSmsJob } = require('./src/jobs/smsJob');
-const { initWhatsappQrSocket } = require('./src/sockets/whatsapp/whatsappQr.socket');
-const { autoResumeActiveSessions } = require('./src/services/whatsapp/baileysSession.service');
 const r2Service = require('./src/services/r2.service');
 
 const app = express();
@@ -170,7 +168,18 @@ app.use('/api/contact-tasks', require('./src/routes/contact_tasks/contact_tasks.
 app.use('/api/visas', require('./src/routes/visas.routes'));
 app.use('/api/help-video', require('./src/routes/help-video.routes'));
 app.use('/api/export', require('./src/routes/excel-export'));
-app.use('/api/whatsapp-qr', require('./src/routes/whatsapp/whatsappQr.routes'));
+
+// WhatsApp QR routes (enabled only if ENABLE_WHATSAPP_QR=1)
+if (process.env.ENABLE_WHATSAPP_QR === '1') {
+  app.use('/api/whatsapp-qr', require('./src/routes/whatsapp/whatsappQr.routes'));
+} else {
+  app.use('/api/whatsapp-qr', (req, res) => {
+    res.status(503).json({
+      success: false,
+      message: 'WhatsApp QR service is disabled. Set ENABLE_WHATSAPP_QR=1 in .env to enable.'
+    });
+  });
+}
 // app.use('/api/operations', require('./src/routes/operations.routes'));
 
 // Socket.IO
@@ -192,8 +201,22 @@ const PORT = process.env.PORT || 3000;
 async function bootstrap() {
   try {
     await runMigrations();
-    initWhatsappQrSocket(io);
-    await autoResumeActiveSessions(io);
+
+    // WhatsApp QR socket & active session restoration (controlled by ENABLE_WHATSAPP_QR=1)
+    if (process.env.ENABLE_WHATSAPP_QR === '1') {
+      try {
+        const { initWhatsappQrSocket } = require('./src/sockets/whatsapp/whatsappQr.socket');
+        const { autoResumeActiveSessions } = require('./src/services/whatsapp/baileysSession.service');
+        initWhatsappQrSocket(io);
+        await autoResumeActiveSessions(io);
+        console.log('📱 WhatsApp QR service initialized');
+      } catch (qrErr) {
+        console.error('⚠️ Failed to initialize WhatsApp QR service:', qrErr.message);
+      }
+    } else {
+      console.log('ℹ️ WhatsApp QR service is disabled (ENABLE_WHATSAPP_QR != 1)');
+    }
+
     startBroadcastJob(io);
     startDripJob(io);
     startSmsJob();

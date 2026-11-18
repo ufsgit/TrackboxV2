@@ -1,13 +1,14 @@
 export const environment = {
   production: false,
 
-  apiUrl: 'http://localhost:3000/api',
-  baseUrl: 'http://localhost:3000/api',
-  socketUrl: 'http://localhost:3000',
+  // apiUrl: 'http://localhost:3000/api',
+  // baseUrl: 'http://localhost:3000/api',
+  // socketUrl: 'http://localhost:3000',
 
-  // apiUrl: 'https://choicecampaignapi.ufstech.co.in/api',
-  // baseUrl: 'https://choicecampaignapi.ufstech.co.in/api',
-  // socketUrl: 'https://choicecampaign.ufstech.co.in',
+  apiUrl: 'https://choicecampaignapi.ufstech.co.in/api',
+  baseUrl: 'https://choicecampaignapi.ufstech.co.in/api',
+  socketUrl: 'https://choicecampaign.ufstech.co.in',
+  enableWhatsappQr: false,
 
 
   // apiUrl: 'https://demo5api.ufstech.co.in/api',
