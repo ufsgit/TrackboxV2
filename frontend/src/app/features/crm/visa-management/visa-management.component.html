@@ -1,0 +1,1320 @@
+<div class="visa-page-container">
+
+  <!-- ── Page Top Header ──────────────────────────────────────── -->
+  <header class="page-header">
+    <div class="header-left">
+      <nav class="breadcrumb-nav">
+        <a routerLink="/crm-dashboard" class="breadcrumb-link"><i class="bi bi-briefcase me-1"></i>CRM</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Visa Management</span>
+      </nav>
+      <div class="title-row">
+        <div class="title-icon-bubble">
+          <i class="bi bi-passport"></i>
+        </div>
+        <div>
+          <h1 class="page-title">Visa Management</h1>
+          <p class="page-subtitle">Structured case processing, immigration requests, deadlines & outcome workflows</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="btn-create" (click)="openCreateModal()">
+        <i class="bi bi-plus-lg"></i>
+        <span>New Visa Case</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Top Tab Switcher ─────────────────────────────────────── -->
+  <nav class="view-tabs-nav">
+    <button 
+      type="button" 
+      class="view-tab-btn" 
+      [class.active]="activeTab === 'cases'" 
+      (click)="switchTab('cases')">
+      <i class="bi bi-folder2-open"></i>
+      <span>All Visa Cases</span>
+      <span class="tab-counter">{{ metrics.total }}</span>
+    </button>
+
+    <button 
+      type="button" 
+      class="view-tab-btn" 
+      [class.active]="activeTab === 'deadlines'" 
+      (click)="switchTab('deadlines')">
+      <i class="bi bi-alarm"></i>
+      <span>Deadline & Overdue Alerts</span>
+      <span class="tab-badge-urgent" *ngIf="metrics.deadlines.overdue > 0">
+        {{ metrics.deadlines.overdue }} Overdue
+      </span>
+      <span class="tab-counter" *ngIf="metrics.deadlines.overdue === 0 && metrics.deadlines.due_7_days > 0">
+        {{ metrics.deadlines.due_7_days }} Due Soon
+      </span>
+    </button>
+
+    <button 
+      type="button" 
+      class="view-tab-btn" 
+      [class.active]="activeTab === 'analytics'" 
+      (click)="switchTab('analytics')">
+      <i class="bi bi-pie-chart"></i>
+      <span>Decline Analysis Hub</span>
+      <span class="tab-counter" *ngIf="metrics.declined > 0">{{ metrics.declined }}</span>
+    </button>
+  </nav>
+
+  <!-- ── VISA-002: Prominent Overdue Alert Banner ──────────────── -->
+  <aside 
+    *ngIf="metrics.deadlines.overdue > 0 || metrics.deadlines.due_today > 0" 
+    class="urgent-alert-banner"
+    aria-label="Visa Deadline Alerts">
+    <div class="alert-content">
+      <div class="alert-icon-pulse">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <div class="alert-text">
+        <strong>Visa Deadline Warning (VISA-002):</strong>
+        <span *ngIf="metrics.deadlines.overdue > 0">
+          <strong>{{ metrics.deadlines.overdue }}</strong> immigration request(s) are <strong>overdue</strong>!
+        </span>
+        <span *ngIf="metrics.deadlines.due_today > 0">
+          <strong>{{ metrics.deadlines.due_today }}</strong> deadline(s) due today.
+        </span>
+        Immediate embassy response or extension required to avoid visa rejection.
+      </div>
+    </div>
+    <div class="alert-actions">
+      <button class="btn-alert-act" (click)="switchTab('deadlines')">
+        <i class="bi bi-arrow-right-circle"></i>
+        <span>Review Urgent Deadlines</span>
+      </button>
+      <button class="btn-alert-filter" (click)="selectKpi('overdue')">
+        <i class="bi bi-funnel"></i>
+        <span>Filter Overdue</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Metrics Overview Grid ────────────────────────────────── -->
+  <section class="metrics-grid">
+    <!-- 1. Total Cases -->
+    <div class="metric-card metric-slate" (click)="selectKpi('all')">
+      <div class="metric-icon"><i class="bi bi-archive"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Total Cases</span>
+        <span class="metric-value">{{ metrics.total }}</span>
+        <span class="metric-sub">{{ metrics.active_processing }} In Active Processing</span>
+      </div>
+    </div>
+
+    <!-- 2. Submitted / In Progress -->
+    <div class="metric-card metric-blue" (click)="selectKpi('submitted')">
+      <div class="metric-icon"><i class="bi bi-send-check"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Submitted & Assessment</span>
+        <span class="metric-value">{{ metrics.submitted + metrics.under_assessment }}</span>
+        <span class="metric-sub">{{ metrics.under_assessment }} Under Assessment</span>
+      </div>
+    </div>
+
+    <!-- 3. RFI / PPI Active Requests -->
+    <div class="metric-card metric-amber" (click)="selectKpi('rfi_ppi')">
+      <div class="metric-icon"><i class="bi bi-exclamation-octagon"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">RFI / PPI Requests</span>
+        <span class="metric-value">{{ metrics.rfi_ppi }}</span>
+        <span class="metric-sub">Official Requests from Immigration</span>
+      </div>
+    </div>
+
+    <!-- 4. Overdue Alerts (VISA-002) -->
+    <div class="metric-card metric-red" [class.highlight]="metrics.deadlines.overdue > 0" (click)="selectKpi('overdue')">
+      <div class="metric-icon"><i class="bi bi-bell-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Overdue Deadlines</span>
+        <span class="metric-value">{{ metrics.deadlines.overdue }}</span>
+        <span class="metric-sub">{{ metrics.deadlines.due_7_days }} due within 7 days</span>
+      </div>
+    </div>
+
+    <!-- 5. Approved & Pre-Departure (VISA-003) -->
+    <div class="metric-card metric-green" (click)="selectKpi('approved')">
+      <div class="metric-icon"><i class="bi bi-check-circle-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Approved & Pre-Departure</span>
+        <span class="metric-value">{{ metrics.approved }}</span>
+        <span class="metric-sub">VISA-003 Action Triggers</span>
+      </div>
+    </div>
+
+    <!-- 6. Declined (VISA-004) -->
+    <div class="metric-card metric-rose" (click)="selectKpi('declined')">
+      <div class="metric-icon"><i class="bi bi-x-octagon-fill"></i></div>
+      <div class="metric-content">
+        <span class="metric-label">Declined Cases</span>
+        <span class="metric-value">{{ metrics.declined }}</span>
+        <span class="metric-sub">VISA-004 Categorized Analytics</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 1: ALL VISA CASES VIEW                                   -->
+  <!-- ============================================================ -->
+  <ng-container *ngIf="activeTab === 'cases'">
+    <!-- ── Filter Bar ─────────────────────────────────────────── -->
+    <div class="filters-card">
+      <div class="filters-grid">
+        <!-- 1. Search Query -->
+        <div class="filter-col filter-search">
+          <label class="filter-label">Search Student / Case</label>
+          <div class="search-input-wrapper">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              type="text"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onSearchChange()"
+              placeholder="Search student, phone, app #, officer..."
+              class="filter-input search-box-input"
+            />
+            <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-icon-btn" title="Clear">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Status Filter -->
+        <div class="filter-col">
+          <label class="filter-label">Visa Status</label>
+          <select 
+            [(ngModel)]="statusFilter" 
+            (change)="onFilterChange()" 
+            (focus)="loadVisaStatuses()" 
+            (mousedown)="loadVisaStatuses()" 
+            class="filter-select">
+            <option value="all">All Statuses</option>
+            <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <!-- 3. Visa Type Filter -->
+        <div class="filter-col">
+          <label class="filter-label">Visa Type</label>
+          <select 
+            [(ngModel)]="visaTypeFilter" 
+            (change)="onFilterChange()" 
+            (focus)="loadVisaTypes()" 
+            (mousedown)="loadVisaTypes()" 
+            class="filter-select">
+            <option value="all">All Visa Types</option>
+            <option *ngFor="let vt of visaTypeOptions" [value]="vt">{{ vt }}</option>
+          </select>
+        </div>
+
+        <!-- 4. Assigned Visa Staff -->
+        <div class="filter-col">
+          <label class="filter-label">Assigned Staff</label>
+          <select [(ngModel)]="staffFilter" (change)="onFilterChange()" class="filter-select">
+            <option value="all">All Staff</option>
+            <option value="me">Assigned to Me</option>
+            <option *ngFor="let u of staffList" [value]="u.id">{{ u.name }}</option>
+          </select>
+        </div>
+
+        <!-- 5. Deadline Alert Quick Filter (VISA-002) -->
+        <div class="filter-col">
+          <label class="filter-label">Deadline & Alerts</label>
+          <select [(ngModel)]="deadlineFilter" (change)="onFilterChange()" class="filter-select" [class.filter-alert-active]="deadlineFilter !== 'all'">
+            <option value="all">All Cases</option>
+            <option value="overdue">⚠️ Overdue Requests</option>
+            <option value="due_today">⏰ Due Today</option>
+            <option value="due_7_days">📅 Due in Next 7 Days</option>
+            <option value="urgent_rfi">📩 Active RFI / PPI</option>
+            <option value="travel_soon">✈️ Travel in 30 Days</option>
+          </select>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="filter-col-action">
+          <button type="button" class="btn-reset-filters" (click)="resetFilters()" title="Reset all filters">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Data Table Card ────────────────────────────────────── -->
+    <div class="table-card">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="state-container">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Loading visa case records...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!loading && cases.length === 0" class="state-container empty-state">
+        <div class="empty-icon"><i class="bi bi-passport"></i></div>
+        <h3>No Visa Cases Found</h3>
+        <p class="text-muted">No records match your search criteria. Create a new visa case to begin tracking.</p>
+        <button class="btn-primary mt-3" (click)="openCreateModal()">
+          <i class="bi bi-plus-lg me-1"></i> Register New Case
+        </button>
+      </div>
+
+      <!-- Table Content -->
+      <div class="table-responsive" *ngIf="!loading && cases.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student & Contact</th>
+              <th>Visa Type & Ref #</th>
+              <th>Assigned Staff</th>
+              <th>Status</th>
+              <th>Submission Date</th>
+              <th>Requests & Deadlines</th>
+              <th>Officer / Outcome</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of cases" [class.row-overdue]="c.overdue_requests_count && c.overdue_requests_count > 0">
+              <!-- 1. Student / Contact -->
+              <td>
+                <div class="student-cell">
+                  <a class="student-name-link" (click)="openStudentProfile(c.contact_id)" title="Open Student Profile">
+                    {{ c.contact_name || 'Student #' + c.contact_id }}
+                    <i class="bi bi-box-arrow-up-right profile-icon"></i>
+                  </a>
+                  <div class="student-sub">
+                    <span *ngIf="c.contact_phone"><i class="bi bi-telephone"></i> {{ c.contact_phone }}</span>
+                    <span *ngIf="c.branch_name" class="badge-branch">{{ c.branch_name }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- 2. Visa Type & Application Number -->
+              <td>
+                <div class="visa-type-cell">
+                  <span class="visa-type-title">{{ c.visa_type }}</span>
+                  <span class="app-no-tag" *ngIf="c.application_no">
+                    <i class="bi bi-hash"></i> {{ c.application_no }}
+                  </span>
+                  <span class="text-muted fst-italic small" *ngIf="!c.application_no">No Ref #</span>
+                </div>
+              </td>
+
+              <!-- 3. Assigned Visa Staff -->
+              <td>
+                <div class="staff-cell">
+                  <div class="staff-avatar">
+                    {{ (c.staff_name || c.assigned_staff_name || 'U').charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="staff-name">{{ c.staff_name || c.assigned_staff_name || 'Unassigned' }}</span>
+                </div>
+              </td>
+
+              <!-- 4. Status -->
+              <td>
+                <span class="badge-status" [ngClass]="getStatusBadgeClass(c.status)">
+                  <i class="bi" [ngClass]="getStatusIcon(c.status)"></i>
+                  {{ c.status }}
+                </span>
+              </td>
+
+              <!-- 5. Submission Date -->
+              <td>
+                <div class="date-cell">
+                  <span *ngIf="c.submission_date">{{ c.submission_date | date:'dd MMM yyyy' }}</span>
+                  <span *ngIf="!c.submission_date" class="text-muted">—</span>
+                  <span class="sub-date-info" *ngIf="c.extension_requested_date">
+                    <i class="bi bi-clock-history"></i> Ext: {{ c.extension_requested_date | date:'dd MMM' }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- 6. Requests & Deadlines (VISA-001 & VISA-002) -->
+              <td>
+                <div class="requests-cell">
+                  <!-- Overdue Request Badge -->
+                  <span *ngIf="c.overdue_requests_count && c.overdue_requests_count > 0" class="badge-overdue" title="Overdue immigration request">
+                    <i class="bi bi-exclamation-triangle-fill"></i> {{ c.overdue_requests_count }} Overdue
+                  </span>
+
+                  <!-- Open RFI/PPI badge -->
+                  <span *ngIf="c.open_requests_count && c.open_requests_count > 0 && (!c.overdue_requests_count || c.overdue_requests_count === 0)" class="badge-rfi">
+                    <i class="bi bi-envelope-exclamation"></i> {{ c.open_requests_count }} RFI/PPI
+                  </span>
+
+                  <!-- Next Due Date -->
+                  <span class="due-date-sub" *ngIf="c.next_due_date">
+                    Due: {{ c.next_due_date | date:'dd MMM yyyy' }}
+                  </span>
+
+                  <!-- Approved Pre-Departure Progress (VISA-003) -->
+                  <div *ngIf="c.status === 'Approved'" class="pre-departure-pill" title="Pre-departure action checklist">
+                    <i class="bi bi-airplane-engines text-success"></i>
+                    <span>Pre-Departure Ready</span>
+                  </div>
+
+                  <!-- Fallback if no requests -->
+                  <span *ngIf="(!c.open_requests_count || c.open_requests_count === 0) && c.status !== 'Approved'" class="text-muted small">
+                    No active requests
+                  </span>
+                </div>
+              </td>
+
+              <!-- 7. Officer / Contact & Outcome -->
+              <td>
+                <div class="outcome-cell">
+                  <span *ngIf="c.officer_name" class="officer-name" title="Visa Officer / Desk">
+                    <i class="bi bi-person-badge"></i> {{ c.officer_name }}
+                  </span>
+                  
+                  <!-- Outcome Badge / Details -->
+                  <div *ngIf="c.outcome_date" class="outcome-date-sub">
+                    <i class="bi bi-calendar-check"></i> {{ c.outcome_date | date:'dd MMM yyyy' }}
+                  </div>
+
+                  <!-- VISA-004 Decline Category tag -->
+                  <span *ngIf="c.status === 'Declined' && c.decline_category" class="badge-decline-cat" [title]="c.decline_category">
+                    {{ c.decline_category }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- 8. Actions -->
+              <td class="text-end">
+                <div class="table-actions">
+                  <button 
+                    type="button" 
+                    class="btn-action btn-view" 
+                    (click)="openCaseDrawer(c, 'details')" 
+                    title="Open Case Record">
+                    <i class="bi bi-eye"></i>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn-action btn-rfi" 
+                    (click)="openCaseDrawer(c, 'requests')" 
+                    title="Immigration Requests (RFI/PPI)">
+                    <i class="bi bi-envelope-paper"></i>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn-action btn-edit" 
+                    (click)="openEditModal(c)" 
+                    title="Edit Case Record">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    class="btn-action btn-danger-action" 
+                    (click)="deleteCase(c, $event)" 
+                    title="Delete Visa Case Record">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <footer class="table-footer" *ngIf="!loading && cases.length > 0">
+        <div class="footer-left">
+          <span class="footer-info">
+            Showing {{ ((currentPage - 1) * pageSize) + 1 }} to {{ getDisplayMax() }} of {{ totalRecords }} cases
+          </span>
+          <div class="page-size-selector">
+            <label>Per page:</label>
+            <select [(ngModel)]="pageSize" (change)="onPageSizeChange()" class="page-size-select">
+              <option *ngFor="let opt of pageSizeOptions" [value]="opt">{{ opt }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pagination-controls" *ngIf="totalPages > 1">
+          <button 
+            type="button" 
+            class="btn-page" 
+            [disabled]="currentPage === 1" 
+            (click)="goToPage(currentPage - 1)">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          
+          <span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+
+          <button 
+            type="button" 
+            class="btn-page" 
+            [disabled]="currentPage === totalPages" 
+            (click)="goToPage(currentPage + 1)">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </footer>
+    </div>
+  </ng-container>
+
+  <!-- ============================================================ -->
+  <!-- TAB 2: DEADLINE & OVERDUE ALERTS VIEW (VISA-002)             -->
+  <!-- ============================================================ -->
+  <ng-container *ngIf="activeTab === 'deadlines'">
+    <div class="deadlines-container">
+      <div class="section-title-row">
+        <div>
+          <h2 class="section-title">
+            <i class="bi bi-alarm text-danger me-2"></i>
+            Active Immigration Deadlines & Overdue Tasks (VISA-002)
+          </h2>
+          <p class="section-subtitle">
+            Critical response deadlines for official RFI, PPI, medicals, biometrics and embassy documentation
+          </p>
+        </div>
+        <button class="btn-refresh" (click)="fetchDeadlineAlerts()">
+          <i class="bi bi-arrow-clockwise"></i> Refresh Alerts
+        </button>
+      </div>
+
+      <!-- Overdue & Upcoming Requests Grid -->
+      <div class="deadlines-cards-grid">
+        <div *ngIf="deadlineAlerts.immigration_requests.length === 0" class="state-container empty-state-clean">
+          <i class="bi bi-shield-check text-success display-4"></i>
+          <h4 class="mt-3">No Urgent Deadlines Pending</h4>
+          <p class="text-muted">All official immigration requests are up-to-date and within safe compliance timelines.</p>
+        </div>
+
+        <article 
+          *ngFor="let item of deadlineAlerts.immigration_requests" 
+          class="deadline-card"
+          [class.card-overdue]="item.days_remaining < 0"
+          [class.card-today]="item.days_remaining === 0"
+          [class.card-urgent]="item.days_remaining > 0 && item.days_remaining <= 7">
+          <div class="deadline-card-header">
+            <div class="req-type-pill" [ngClass]="item.request_type === 'PPI' ? 'pill-ppi' : 'pill-rfi'">
+              {{ item.request_type }}
+            </div>
+            <div class="days-remaining-pill" [ngClass]="getDaysRemainingBadge(item.days_remaining).css">
+              <i class="bi bi-clock"></i>
+              {{ getDaysRemainingBadge(item.days_remaining).text }}
+            </div>
+          </div>
+
+          <h3 class="deadline-title">{{ item.title }}</h3>
+          <p class="deadline-desc" *ngIf="item.details">{{ item.details }}</p>
+
+          <div class="deadline-meta-list">
+            <div class="meta-row">
+              <span class="meta-label">Student:</span>
+              <a class="meta-val link-student" (click)="openStudentProfile(item.contact_id)">
+                {{ item.contact_name }} ({{ item.contact_phone }})
+              </a>
+            </div>
+            <div class="meta-row" *ngIf="item.application_no">
+              <span class="meta-label">Application Ref:</span>
+              <span class="meta-val font-monospace">{{ item.application_no }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Due Date:</span>
+              <span class="meta-val font-semibold text-danger">{{ item.due_date | date:'fullDate' }}</span>
+            </div>
+            <div class="meta-row" *ngIf="item.staff_name">
+              <span class="meta-label">Assigned Staff:</span>
+              <span class="meta-val">{{ item.staff_name }}</span>
+            </div>
+            <div class="meta-row" *ngIf="item.document_name">
+              <span class="meta-label">Document Link:</span>
+              <a [href]="item.document_url" target="_blank" class="meta-val doc-link">
+                <i class="bi bi-file-earmark-arrow-down"></i> {{ item.document_name }}
+              </a>
+            </div>
+          </div>
+
+          <div class="deadline-card-footer">
+            <button class="btn-card-action" (click)="openCaseById(item.visa_id, 'requests')">
+              <i class="bi bi-folder2-open"></i> Open Case & Fulfill
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <!-- Upcoming Travel Departures Tracker (within 30 days) -->
+      <div class="mt-5" *ngIf="deadlineAlerts.upcoming_travels.length > 0">
+        <h3 class="subsection-title">
+          <i class="bi bi-airplane-engines text-primary me-2"></i>
+          Imminent Student Travel Departures (Next 30 Days)
+        </h3>
+        <div class="table-responsive mt-3">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Application No</th>
+                <th>Travel Date</th>
+                <th>Days to Departure</th>
+                <th>Pre-Departure Status</th>
+                <th>Staff</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tr of deadlineAlerts.upcoming_travels">
+                <td>
+                  <a class="student-name-link" (click)="openStudentProfile(tr.contact_id)">
+                    {{ tr.contact_name }}
+                  </a>
+                </td>
+                <td class="font-monospace">{{ tr.application_no || '—' }}</td>
+                <td>{{ tr.travel_date | date:'dd MMM yyyy' }}</td>
+                <td>
+                  <span class="badge bg-primary text-white">In {{ tr.days_to_travel }} days</span>
+                </td>
+                <td>
+                  <span class="badge-status badge-status-green">
+                    <i class="bi bi-check2"></i> Visa Approved
+                  </span>
+                </td>
+                <td>{{ tr.staff_name || 'Staff' }}</td>
+                <td class="text-end">
+                  <button class="btn-action btn-view" (click)="openCaseById(tr.id, 'pre_departure')">
+                    <i class="bi bi-list-check"></i> Checklist
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ============================================================ -->
+  <!-- TAB 3: DECLINE ANALYSIS HUB (VISA-004)                       -->
+  <!-- ============================================================ -->
+  <ng-container *ngIf="activeTab === 'analytics'">
+    <div class="analytics-container">
+      <div class="section-title-row">
+        <div>
+          <h2 class="section-title">
+            <i class="bi bi-pie-chart text-danger me-2"></i>
+            Visa Decline Management Analysis (VISA-004)
+          </h2>
+          <p class="section-subtitle">
+            Categorized analysis of refusal grounds with complete letter notes preserved for strategy improvement
+          </p>
+        </div>
+        <button class="btn-refresh" (click)="fetchDeclineAnalytics()">
+          <i class="bi bi-arrow-clockwise"></i> Refresh Data
+        </button>
+      </div>
+
+      <!-- Category Distribution Cards -->
+      <div class="decline-category-cards-grid">
+        <div *ngIf="declineAnalytics.summary.length === 0" class="state-container empty-state-clean">
+          <i class="bi bi-award text-success display-4"></i>
+          <h4 class="mt-3">Zero Visa Refusals Recorded</h4>
+          <p class="text-muted">No visa decline cases have been logged in the system.</p>
+        </div>
+
+        <div *ngFor="let cat of declineAnalytics.summary" class="decline-stat-card">
+          <div class="stat-header">
+            <span class="stat-cat-title">{{ cat.category }}</span>
+            <span class="stat-cat-count">{{ cat.total_count }} cases</span>
+          </div>
+          <div class="stat-progress-bar">
+            <div class="stat-progress-fill" [style.width.%]="cat.percentage || 0"></div>
+          </div>
+          <div class="stat-footer">
+            <span>{{ cat.percentage || 0 }}% of all declines</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Refusal Case Records Table -->
+      <div class="table-card mt-4" *ngIf="declineAnalytics.cases.length > 0">
+        <div class="table-header-bar">
+          <h3 class="table-title">Refused Applications & Preservation of Detailed Officer Notes</h3>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Visa Ref & Officer</th>
+                <th>Decline Date</th>
+                <th>Categorized Reason</th>
+                <th>Detailed Refusal Notes & Reasons</th>
+                <th>Staff</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let dc of declineAnalytics.cases">
+                <td>
+                  <a class="student-name-link" (click)="openStudentProfile(dc.contact_id)">
+                    {{ dc.contact_name }}
+                  </a>
+                  <div class="student-sub">{{ dc.contact_phone }}</div>
+                </td>
+                <td>
+                  <div class="font-monospace small">{{ dc.application_no || 'Ref N/A' }}</div>
+                  <div class="text-muted small" *ngIf="dc.officer_name">Officer: {{ dc.officer_name }}</div>
+                </td>
+                <td>{{ dc.decline_date | date:'dd MMM yyyy' }}</td>
+                <td>
+                  <span class="badge-decline-cat">{{ dc.decline_category || 'Uncategorized' }}</span>
+                </td>
+                <td style="max-width: 380px;">
+                  <div class="detailed-notes-box">
+                    {{ dc.decline_detailed_notes || dc.outcome_notes || 'No notes preserved.' }}
+                  </div>
+                </td>
+                <td>{{ dc.staff_name || 'Staff' }}</td>
+                <td class="text-end">
+                  <button class="btn-action btn-view" (click)="openCaseById(dc.id, 'details')">
+                    <i class="bi bi-eye"></i> View
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ============================================================ -->
+  <!-- CASE DETAIL SLIDE-OVER DRAWER                                -->
+  <!-- ============================================================ -->
+  <div class="drawer-backdrop" *ngIf="showCaseDrawer" (click)="closeCaseDrawer()"></div>
+  <aside class="case-drawer" *ngIf="showCaseDrawer && selectedCase">
+    <!-- Drawer Header -->
+    <div class="drawer-header">
+      <div class="drawer-header-info">
+        <span class="drawer-badge-visa">{{ selectedCase.visa_type }}</span>
+        <h2 class="drawer-student-name">
+          {{ selectedCase.contact_name }}
+          <span class="drawer-app-no" *ngIf="selectedCase.application_no">#{{ selectedCase.application_no }}</span>
+        </h2>
+        <div class="drawer-sub-meta">
+          <span><i class="bi bi-telephone"></i> {{ selectedCase.contact_phone }}</span>
+          <span><i class="bi bi-envelope"></i> {{ selectedCase.contact_email || 'No email' }}</span>
+          <span *ngIf="selectedCase.branch_name"><i class="bi bi-building"></i> {{ selectedCase.branch_name }}</span>
+        </div>
+      </div>
+      <div class="drawer-header-actions">
+        <span class="badge-status" [ngClass]="getStatusBadgeClass(selectedCase.status)">
+          <i class="bi" [ngClass]="getStatusIcon(selectedCase.status)"></i>
+          {{ selectedCase.status }}
+        </span>
+        <button class="btn-close-drawer" (click)="closeCaseDrawer()" title="Close Drawer">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Drawer Navigation Tabs -->
+    <div class="drawer-tabs">
+      <button 
+        type="button" 
+        class="drawer-tab-btn" 
+        [class.active]="drawerActiveTab === 'details'" 
+        (click)="drawerActiveTab = 'details'">
+        <i class="bi bi-file-text"></i> Case Details
+      </button>
+
+      <button 
+        type="button" 
+        class="drawer-tab-btn" 
+        [class.active]="drawerActiveTab === 'requests'" 
+        (click)="drawerActiveTab = 'requests'">
+        <i class="bi bi-envelope-paper"></i> 
+        Immigration Requests (VISA-001)
+        <span class="tab-pill" *ngIf="selectedCase.requests && selectedCase.requests.length > 0">
+          {{ selectedCase.requests.length }}
+        </span>
+      </button>
+
+      <button 
+        type="button" 
+        class="drawer-tab-btn" 
+        [class.active]="drawerActiveTab === 'pre_departure'" 
+        (click)="drawerActiveTab = 'pre_departure'">
+        <i class="bi bi-airplane-engines"></i> 
+        Pre-Departure Actions (VISA-003)
+      </button>
+
+      <button 
+        type="button" 
+        class="drawer-tab-btn" 
+        [class.active]="drawerActiveTab === 'history'" 
+        (click)="drawerActiveTab = 'history'">
+        <i class="bi bi-clock-history"></i> Audit Trail
+      </button>
+    </div>
+
+    <!-- Drawer Content Body -->
+    <div class="drawer-body">
+      <!-- ── SECTION 1: Case Details ────────────────────────────── -->
+      <div *ngIf="drawerActiveTab === 'details'" class="drawer-section">
+        <div class="fields-two-col">
+          <div class="field-card">
+            <span class="field-label">Visa Type</span>
+            <span class="field-value">{{ selectedCase.visa_type }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Application Number</span>
+            <span class="field-value font-monospace">{{ selectedCase.application_no || 'Not recorded' }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Assigned Visa Staff</span>
+            <span class="field-value">{{ selectedCase.staff_name || selectedCase.assigned_staff_name || 'Unassigned' }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Submission Date</span>
+            <span class="field-value">{{ selectedCase.submission_date ? (selectedCase.submission_date | date:'mediumDate') : 'Not submitted yet' }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Officer / Consular Contact</span>
+            <span class="field-value">{{ selectedCase.officer_name || 'Not recorded' }}</span>
+            <span class="field-sub" *ngIf="selectedCase.officer_contact">{{ selectedCase.officer_contact }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Extension Details</span>
+            <span class="field-value" *ngIf="selectedCase.extension_requested_date || selectedCase.extension_approved_date">
+              Req: {{ selectedCase.extension_requested_date | date:'dd MMM yyyy' }}
+              <span *ngIf="selectedCase.extension_approved_date">| Appr: {{ selectedCase.extension_approved_date | date:'dd MMM yyyy' }}</span>
+            </span>
+            <span class="field-value text-muted" *ngIf="!selectedCase.extension_requested_date && !selectedCase.extension_approved_date">No extension requested</span>
+            <span class="field-sub" *ngIf="selectedCase.extension_notes">{{ selectedCase.extension_notes }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Outcome Date & Notes</span>
+            <span class="field-value">{{ selectedCase.outcome_date ? (selectedCase.outcome_date | date:'mediumDate') : 'Pending Outcome' }}</span>
+            <span class="field-sub" *ngIf="selectedCase.outcome_notes">{{ selectedCase.outcome_notes }}</span>
+          </div>
+
+          <div class="field-card">
+            <span class="field-label">Expiry & Travel Dates</span>
+            <span class="field-value" *ngIf="selectedCase.visa_expiry_date || selectedCase.travel_date">
+              <span *ngIf="selectedCase.visa_expiry_date">Expires: {{ selectedCase.visa_expiry_date | date:'dd MMM yyyy' }}</span>
+              <span *ngIf="selectedCase.travel_date" class="ms-2">| Travel: {{ selectedCase.travel_date | date:'dd MMM yyyy' }}</span>
+            </span>
+            <span class="field-value text-muted" *ngIf="!selectedCase.visa_expiry_date && !selectedCase.travel_date">Dates not maintained</span>
+          </div>
+        </div>
+
+        <!-- VISA-004 Refusal Information Card -->
+        <div class="decline-box-full mt-4" *ngIf="selectedCase.status === 'Declined'">
+          <div class="decline-box-header">
+            <i class="bi bi-x-octagon-fill text-danger me-2"></i>
+            <strong>Visa Decline Record (VISA-004)</strong>
+          </div>
+          <div class="mt-2">
+            <strong>Category: </strong>
+            <span class="badge-decline-cat">{{ selectedCase.decline_category || 'Uncategorized' }}</span>
+          </div>
+          <div class="mt-2">
+            <strong>Preserved Detailed Notes:</strong>
+            <p class="decline-notes-text">{{ selectedCase.decline_detailed_notes || selectedCase.outcome_notes || 'No detailed refusal notes provided.' }}</p>
+          </div>
+        </div>
+
+        <!-- Description / Internal Case Notes -->
+        <div class="mt-4" *ngIf="selectedCase.description">
+          <label class="field-label">Case Description & Notes</label>
+          <div class="description-card">
+            {{ selectedCase.description }}
+          </div>
+        </div>
+
+        <!-- Edit / Delete Case Actions -->
+        <div class="mt-4 pt-3 border-top d-flex align-items-center justify-content-between">
+          <button class="btn-primary" (click)="openEditModal(selectedCase)">
+            <i class="bi bi-pencil me-1"></i> Edit Visa Case Details
+          </button>
+          <button class="btn btn-outline-danger btn-sm" (click)="deleteCase(selectedCase)">
+            <i class="bi bi-trash me-1"></i> Delete Visa Case
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: Immigration Requests (VISA-001) ──────────── -->
+      <div *ngIf="drawerActiveTab === 'requests'" class="drawer-section">
+        <div class="section-action-header">
+          <div>
+            <h3 class="drawer-section-title">Official Immigration Requests (RFI / PPI)</h3>
+            <p class="drawer-section-subtitle">VISA-001: Record official embassy requests with dates, linked task, and document upload</p>
+          </div>
+          <button class="btn-add-request" (click)="openAddRequestModal()">
+            <i class="bi bi-plus-circle"></i> Log Request
+          </button>
+        </div>
+
+        <!-- Requests List -->
+        <div *ngIf="!selectedCase.requests || selectedCase.requests.length === 0" class="empty-state-clean p-4">
+          <i class="bi bi-file-earmark-check display-5 text-muted"></i>
+          <h4 class="mt-2">No Official Requests Logged</h4>
+          <p class="text-muted">No RFI, PPI, or additional document requests have been received from immigration for this case.</p>
+        </div>
+
+        <div class="requests-timeline" *ngIf="selectedCase.requests && selectedCase.requests.length > 0">
+          <article 
+            *ngFor="let req of selectedCase.requests" 
+            class="request-timeline-card"
+            [class.req-closed]="req.status === 'Closed'">
+            <div class="req-card-top">
+              <span class="req-type-tag" [ngClass]="req.request_type === 'PPI' ? 'pill-ppi' : 'pill-rfi'">
+                {{ req.request_type }}
+              </span>
+              <span class="req-status-tag" [class.status-closed]="req.status === 'Closed'">
+                {{ req.status }}
+              </span>
+            </div>
+
+            <h4 class="req-title">{{ req.title }}</h4>
+            <p class="req-details" *ngIf="req.details">{{ req.details }}</p>
+
+            <div class="req-meta-grid">
+              <div>
+                <span class="text-muted small">Received:</span>
+                <div class="font-semibold">{{ req.received_date | date:'dd MMM yyyy' }}</div>
+              </div>
+              <div>
+                <span class="text-muted small">Due Date / Deadline:</span>
+                <div class="font-semibold text-danger">{{ req.due_date | date:'dd MMM yyyy' }}</div>
+              </div>
+              <div *ngIf="req.assigned_task_id">
+                <span class="text-muted small">Linked Task:</span>
+                <div>
+                  <span class="badge bg-light text-dark border">
+                    <i class="bi bi-link-45deg"></i> Task #{{ req.assigned_task_id }}
+                    <span *ngIf="req.task_status === 1" class="text-success ms-1">(Done)</span>
+                  </span>
+                </div>
+              </div>
+              <div *ngIf="req.document_name">
+                <span class="text-muted small">Linked Document:</span>
+                <div>
+                  <a [href]="req.document_url" target="_blank" class="doc-attachment-link">
+                    <i class="bi bi-file-earmark-arrow-down"></i> {{ req.document_name }}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="req-card-actions">
+              <button 
+                *ngIf="req.status !== 'Closed'" 
+                class="btn-fulfill-req" 
+                (click)="markRequestClosed(req)">
+                <i class="bi bi-check2-circle"></i> Mark Submitted & Close
+              </button>
+              <button class="btn-delete-req" (click)="deleteRequest(req)" title="Delete Request">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <!-- ── SECTION 3: Pre-Departure Actions (VISA-003) ────────── -->
+      <div *ngIf="drawerActiveTab === 'pre_departure'" class="drawer-section">
+        <div class="pre-departure-header-box">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div>
+              <h3 class="drawer-section-title mb-0">Pre-Departure Action Checklist (VISA-003)</h3>
+              <p class="drawer-section-subtitle mb-0">Automatically triggered on visa approval to prepare student for arrival</p>
+            </div>
+            <div class="progress-percent font-bold text-primary">{{ getPreDepartureProgress() }}%</div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" [style.width.%]="getPreDepartureProgress()"></div>
+          </div>
+        </div>
+
+        <div class="checklist-items-list mt-3">
+          <div 
+            *ngFor="let item of selectedCase.pre_departure_data" 
+            class="checklist-row"
+            [class.row-done]="item.done"
+            (click)="togglePreDepartureItem(item)">
+            <div class="checklist-checkbox">
+              <i class="bi" [ngClass]="item.done ? 'bi-check-square-fill text-success' : 'bi-square text-muted'"></i>
+            </div>
+            <div class="checklist-info">
+              <span class="checklist-title">{{ item.title }}</span>
+              <span class="checklist-meta" *ngIf="item.done">
+                <i class="bi bi-check"></i> Completed on {{ item.completed_at | date:'mediumDate' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 4: History Audit Trail ──────────────────────── -->
+      <div *ngIf="drawerActiveTab === 'history'" class="drawer-section">
+        <h3 class="drawer-section-title mb-3">Case History & Event Log</h3>
+        
+        <div class="audit-timeline">
+          <div *ngFor="let h of selectedCase.history" class="audit-item">
+            <div class="audit-dot"></div>
+            <div class="audit-body">
+              <div class="audit-header">
+                <strong class="audit-action">{{ h.action }}</strong>
+                <span class="audit-time">{{ h.created_at | date:'dd MMM yyyy, hh:mm a' }}</span>
+              </div>
+              <p class="audit-details" *ngIf="h.details">{{ h.details }}</p>
+              <div class="audit-author" *ngIf="h.user_name">
+                <i class="bi bi-person"></i> Logged by: {{ h.user_name }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: REGISTER / EDIT VISA CASE                             -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop" *ngIf="showCaseModal" (click)="closeCaseModal()"></div>
+  <div class="custom-modal modal-lg" *ngIf="showCaseModal">
+    <div class="modal-header">
+      <h3 class="modal-title">
+        <i class="bi bi-passport text-primary me-2"></i>
+        {{ isEditing ? 'Edit Visa Case Record' : 'Register New Visa Case' }}
+      </h3>
+      <button class="btn-close-modal" (click)="closeCaseModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <!-- 1. Select Student (Only if new) -->
+      <div class="form-group mb-3" *ngIf="!isEditing">
+        <label class="form-label required">Student Contact</label>
+        <div class="student-search-box mb-2">
+          <input
+            type="text"
+            [(ngModel)]="studentSearchQuery"
+            (ngModelChange)="searchStudents()"
+            placeholder="Type student name, phone or email..."
+            class="form-control"
+          />
+        </div>
+
+        <div class="student-select-list" *ngIf="availableStudents.length > 0 && !selectedStudent">
+          <div 
+            *ngFor="let s of availableStudents" 
+            class="student-select-item"
+            (click)="selectStudent(s)">
+            <div>
+              <strong>{{ s.name }}</strong> ({{ s.phone }})
+              <span class="badge bg-secondary ms-2" *ngIf="s.branch_name">{{ s.branch_name }}</span>
+            </div>
+            <span *ngIf="s.existing_visa_id" class="badge bg-warning text-dark">Visa Exists: {{ s.existing_visa_status }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="selectedStudent" class="selected-student-banner">
+          <i class="bi bi-person-check-fill text-success fs-5"></i>
+          <div>
+            <strong>{{ selectedStudent.name }}</strong> ({{ selectedStudent.phone }})
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" (click)="selectedStudent = null; caseForm.contact_id = null">
+            Change
+          </button>
+        </div>
+      </div>
+
+      <!-- If editing, display fixed student -->
+      <div class="selected-student-banner mb-3" *ngIf="isEditing">
+        <i class="bi bi-person-fill text-primary fs-5"></i>
+        <div>
+          <strong>{{ caseForm.contact_name }}</strong> ({{ caseForm.contact_phone }})
+        </div>
+      </div>
+
+      <!-- 2. Core Visa Fields -->
+      <div class="row g-3">
+        <!-- Visa Type -->
+        <div class="col-md-6">
+          <label class="form-label required">Visa Type</label>
+          <select 
+            [(ngModel)]="caseForm.visa_type" 
+            class="form-select"
+            (focus)="loadVisaTypes()" 
+            (mousedown)="loadVisaTypes()">
+            <option *ngFor="let vt of visaTypeOptions" [value]="vt">{{ vt }}</option>
+          </select>
+        </div>
+
+        <!-- Application Number -->
+        <div class="col-md-6">
+          <label class="form-label">Application Number (Official Ref)</label>
+          <input
+            type="text"
+            [(ngModel)]="caseForm.application_no"
+            placeholder="e.g. VAF-128491, INZ-49120"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Assigned Visa Staff -->
+        <div class="col-md-6">
+          <label class="form-label">Assigned Visa Staff</label>
+          <select [(ngModel)]="caseForm.assigned_staff_id" class="form-select">
+            <option [ngValue]="null">Select Owner / Staff</option>
+            <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
+          </select>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label required">Status</label>
+          <select 
+            [(ngModel)]="caseForm.status" 
+            class="form-select"
+            (focus)="loadVisaStatuses()" 
+            (mousedown)="loadVisaStatuses()">
+            <option *ngFor="let st of statusOptions" [value]="st">{{ st }}</option>
+          </select>
+        </div>
+
+        <!-- Submission Date -->
+        <div class="col-md-6">
+          <label class="form-label">Submission Date</label>
+          <input type="date" [(ngModel)]="caseForm.submission_date" class="form-control" />
+        </div>
+
+        <!-- Officer / Consular Contact -->
+        <div class="col-md-6">
+          <label class="form-label">Officer / Embassy Contact</label>
+          <input
+            type="text"
+            [(ngModel)]="caseForm.officer_name"
+            placeholder="Officer Name / High Commission Desk"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Extension Requested Date -->
+        <div class="col-md-6">
+          <label class="form-label">Extension Requested Date</label>
+          <input type="date" [(ngModel)]="caseForm.extension_requested_date" class="form-control" />
+        </div>
+
+        <!-- Extension Approved Date -->
+        <div class="col-md-6">
+          <label class="form-label">Extension Approved Date</label>
+          <input type="date" [(ngModel)]="caseForm.extension_approved_date" class="form-control" />
+        </div>
+
+        <!-- Outcome Date -->
+        <div class="col-md-6">
+          <label class="form-label">Outcome Date (Approval / Decline)</label>
+          <input type="date" [(ngModel)]="caseForm.outcome_date" class="form-control" />
+        </div>
+
+        <!-- Visa Expiry Date -->
+        <div class="col-md-6">
+          <label class="form-label">Visa Expiry Date</label>
+          <input type="date" [(ngModel)]="caseForm.visa_expiry_date" class="form-control" />
+        </div>
+
+        <!-- Travel / Departure Date -->
+        <div class="col-md-6">
+          <label class="form-label">Travel / Departure Date</label>
+          <input type="date" [(ngModel)]="caseForm.travel_date" class="form-control" />
+        </div>
+
+        <!-- Intake Date -->
+        <div class="col-md-6">
+          <label class="form-label">Course / Intake Start Date</label>
+          <input type="date" [(ngModel)]="caseForm.intake_date" class="form-control" />
+        </div>
+      </div>
+
+      <!-- VISA-004 Reason Category Section (Shown when status requires reason or status is Declined) -->
+      <div *ngIf="statusRequiresReason()" class="decline-input-container mt-3 p-3 border rounded bg-light">
+        <h5 class="text-danger mb-2">
+          <i class="bi bi-x-octagon me-1"></i> VISA-004: Reason Category Requirements ({{ caseForm.status }})
+        </h5>
+        
+        <div class="mb-3">
+          <label class="form-label required">Reason Category</label>
+          <select 
+            [(ngModel)]="caseForm.decline_category" 
+            class="form-select border-danger"
+            (focus)="loadReasonCategories()" 
+            (mousedown)="loadReasonCategories()">
+            <option value="">Select Categorized Reason Grounds</option>
+            <option *ngFor="let dc of getFilteredReasonCategories()" [value]="dc">{{ dc }}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label required">Detailed Refusal Notes & Clauses</label>
+          <textarea
+            [(ngModel)]="caseForm.decline_detailed_notes"
+            rows="3"
+            class="form-control"
+            placeholder="Preserve full officer notes, paragraph citations, and grounds for refusal..."
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Outcome Notes -->
+      <div class="mt-3">
+        <label class="form-label">Outcome Notes / General Remarks</label>
+        <textarea
+          [(ngModel)]="caseForm.outcome_notes"
+          rows="2"
+          class="form-control"
+          placeholder="Decision remarks, officer communications or grant conditions..."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeCaseModal()">Cancel</button>
+      <button type="button" class="btn-primary" [disabled]="submitting" (click)="saveCase()">
+        <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+        <span>{{ isEditing ? 'Update Visa Case' : 'Register Case' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: LOG OFFICIAL IMMIGRATION REQUEST (VISA-001)           -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop" *ngIf="showRequestModal" (click)="closeRequestModal()"></div>
+  <div class="custom-modal" *ngIf="showRequestModal">
+    <div class="modal-header">
+      <h3 class="modal-title">
+        <i class="bi bi-envelope-exclamation text-amber me-2"></i>
+        Log Official Immigration Request (VISA-001)
+      </h3>
+      <button class="btn-close-modal" (click)="closeRequestModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="row g-3">
+        <!-- Request Type -->
+        <div class="col-md-6">
+          <label class="form-label required">Request Type</label>
+          <select [(ngModel)]="requestForm.request_type" class="form-select">
+            <option *ngFor="let rt of requestTypeOptions" [value]="rt">{{ rt }}</option>
+          </select>
+        </div>
+
+        <!-- Received Date -->
+        <div class="col-md-6">
+          <label class="form-label required">Received Date</label>
+          <input type="date" [(ngModel)]="requestForm.received_date" class="form-control" />
+        </div>
+
+        <!-- Due Date -->
+        <div class="col-md-6">
+          <label class="form-label required">Official Due Date / Deadline</label>
+          <input type="date" [(ngModel)]="requestForm.due_date" class="form-control border-danger font-semibold" />
+        </div>
+
+        <!-- Request Title -->
+        <div class="col-md-6">
+          <label class="form-label required">Request Title</label>
+          <input
+            type="text"
+            [(ngModel)]="requestForm.title"
+            placeholder="e.g. Bank Statements & Proof of Funds"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Details / Instructions -->
+        <div class="col-12">
+          <label class="form-label">Official Details & Officer Remarks</label>
+          <textarea
+            [(ngModel)]="requestForm.details"
+            rows="3"
+            class="form-control"
+            placeholder="Enter specific instructions or document requirements from embassy notice..."
+          ></textarea>
+        </div>
+
+        <!-- Document Linkage (VISA-001) -->
+        <div class="col-12">
+          <label class="form-label">Attach Official Notice / Document Link</label>
+          <div class="input-group mb-2">
+            <input
+              type="file"
+              (change)="onDocumentSelected($event)"
+              class="form-control"
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+            />
+          </div>
+          <div *ngIf="uploadingDoc" class="text-primary small">
+            <span class="spinner-border spinner-border-sm me-1"></span> Uploading file...
+          </div>
+          <div *ngIf="requestForm.document_url" class="text-success small">
+            <i class="bi bi-check-circle"></i> Attached: {{ requestForm.document_name }}
+          </div>
+        </div>
+
+        <!-- Assigned Task Linkage (VISA-001) -->
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              type="checkbox"
+              id="createTaskCheck"
+              [(ngModel)]="requestForm.create_task"
+              class="form-check-input"
+            />
+            <label for="createTaskCheck" class="form-check-label font-semibold">
+              Auto-create assigned task in Trackbox Task Management with deadline
+            </label>
+          </div>
+        </div>
+
+        <!-- Assignee if task created -->
+        <div class="col-12" *ngIf="requestForm.create_task">
+          <label class="form-label">Assign Task To</label>
+          <select [(ngModel)]="requestForm.task_assignee_id" class="form-select">
+            <option [ngValue]="null">Case Owner (Default)</option>
+            <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeRequestModal()">Cancel</button>
+      <button type="button" class="btn-primary" [disabled]="submitting" (click)="saveImmigrationRequest()">
+        <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+        <span>Record Immigration Request</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- STUDENT LEAD PROFILE MODAL INTEGRATION                       -->
+  <!-- ============================================================ -->
+  <app-lead-profile-modal
+    *ngIf="showProfileModal"
+    [contactId]="profileContactId"
+    (close)="closeProfileModal()">
+  </app-lead-profile-modal>
+
+</div>

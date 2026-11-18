@@ -11,6 +11,7 @@ import { TimelineComponent } from '../../../features/contacts/components/timelin
 import { ContactQualificationsComponent } from '../contact-qualifications/contact-qualifications.component';
 import { ContactWorkExperiencesComponent } from '../contact-work-experiences/contact-work-experiences.component';
 import { ContactTasksComponent } from '../contact-tasks/contact-tasks.component';
+import { ContactVisaComponent } from '../contact-visa/contact-visa.component';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
@@ -23,7 +24,8 @@ import Swal from 'sweetalert2';
     TimelineComponent,
     ContactQualificationsComponent,
     ContactWorkExperiencesComponent,
-    ContactTasksComponent
+    ContactTasksComponent,
+    ContactVisaComponent
   ],
   templateUrl: './lead-profile-modal.component.html',
   styleUrls: ['./lead-profile-modal.component.css']
@@ -107,6 +109,26 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   qualificationsCount: number = 0;
   experiencesCount: number = 0;
   tasksCount: number = 0;
+  contactVisaStatus: string = '';
+
+  onVisaStatusChange(status: string): void {
+    this.contactVisaStatus = status;
+  }
+
+  getVisaStatusBadgeClass(): string {
+    switch (this.contactVisaStatus) {
+      case 'Preparation': return 'bg-secondary text-white';
+      case 'Ready': return 'bg-info text-white';
+      case 'Submitted': return 'bg-primary text-white';
+      case 'Under Assessment': return 'bg-purple text-white';
+      case 'RFI-PPI': return 'bg-warning text-dark';
+      case 'AIP': return 'bg-indigo text-white';
+      case 'Approved': return 'bg-success text-white';
+      case 'Declined': return 'bg-danger text-white';
+      case 'Withdrawn': return 'bg-dark text-white';
+      default: return 'bg-light text-dark border';
+    }
+  }
 
   // Edit Lead Modal State
   showEditModal: boolean = false;

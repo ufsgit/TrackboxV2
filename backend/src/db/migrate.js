@@ -808,7 +808,26 @@ async function runMigrations() {
     id INT AUTO_INCREMENT PRIMARY KEY,
     contact_id INT NOT NULL,
     business_id INT NOT NULL,
-    status ENUM('Submitted', 'Approved') NOT NULL DEFAULT 'Submitted',
+    visa_type VARCHAR(100) DEFAULT 'Student Visa',
+    application_no VARCHAR(100) NULL,
+    assigned_staff_id INT NULL,
+    assigned_staff_name VARCHAR(255) NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Preparation',
+    submission_date DATE NULL,
+    officer_name VARCHAR(255) NULL,
+    officer_contact VARCHAR(255) NULL,
+    extension_requested_date DATE NULL,
+    extension_approved_date DATE NULL,
+    extension_notes TEXT,
+    outcome_date DATE NULL,
+    outcome_notes TEXT,
+    decline_category VARCHAR(100) NULL,
+    decline_detailed_notes TEXT,
+    visa_expiry_date DATE NULL,
+    travel_date DATE NULL,
+    intake_date DATE NULL,
+    pre_departure_triggered TINYINT(1) DEFAULT 0,
+    pre_departure_data JSON NULL,
     visa_date DATE NULL,
     description TEXT,
     updated_by INT NULL,
@@ -819,20 +838,205 @@ async function runMigrations() {
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
   )`);
 
+  // Ensure visas table column upgrades
+  try {
+    await pool.query(`ALTER TABLE visas MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Preparation'`);
+  } catch (e) {
+    // Ignore if already modified
+  }
+  await safeAddColumn('visas', 'visa_type', "VARCHAR(100) DEFAULT 'Student Visa'");
+  await safeAddColumn('visas', 'contact_name', "VARCHAR(255) NULL");
+  await safeAddColumn('visas', 'contact_phone', "VARCHAR(50) NULL");
+  await safeAddColumn('visas', 'is_delete', "TINYINT(1) DEFAULT 0");
+  await safeAddColumn('visas', 'is_deleted', "TINYINT(1) DEFAULT 0");
+  await safeAddColumn('visas', 'application_no', "VARCHAR(100) NULL");
+  await safeAddColumn('visas', 'assigned_staff_id', "INT NULL");
+  await safeAddColumn('visas', 'assigned_staff_name', "VARCHAR(255) NULL");
+  await safeAddColumn('visas', 'submission_date', "DATE NULL");
+  await safeAddColumn('visas', 'officer_name', "VARCHAR(255) NULL");
+  await safeAddColumn('visas', 'officer_contact', "VARCHAR(255) NULL");
+  await safeAddColumn('visas', 'extension_requested_date', "DATE NULL");
+  await safeAddColumn('visas', 'extension_approved_date', "DATE NULL");
+  await safeAddColumn('visas', 'extension_notes', "TEXT NULL");
+  await safeAddColumn('visas', 'outcome_date', "DATE NULL");
+  await safeAddColumn('visas', 'outcome_notes', "TEXT NULL");
+  await safeAddColumn('visas', 'decline_category', "VARCHAR(100) NULL");
+  await safeAddColumn('visas', 'decline_detailed_notes', "TEXT NULL");
+  await safeAddColumn('visas', 'visa_expiry_date', "DATE NULL");
+  await safeAddColumn('visas', 'travel_date', "DATE NULL");
+  await safeAddColumn('visas', 'intake_date', "DATE NULL");
+  await safeAddColumn('visas', 'pre_departure_triggered', "TINYINT(1) DEFAULT 0");
+  await safeAddColumn('visas', 'pre_departure_data', "JSON NULL");
+
+  // Backfill contact_name and contact_phone for existing visa records
+  try {
+    await pool.query(`
+      UPDATE visas v
+      JOIN contacts c ON v.contact_id = c.id
+      SET v.contact_name = COALESCE(v.contact_name, c.name),
+          v.contact_phone = COALESCE(v.contact_phone, c.phone)
+      WHERE v.contact_name IS NULL OR v.contact_phone IS NULL
+    `);
+  } catch (e) {}
+
   await pool.query(`CREATE TABLE IF NOT EXISTS visa_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     visa_id INT NOT NULL,
     contact_id INT NOT NULL,
     changed_by INT NULL,
     action VARCHAR(255),
-    status ENUM('Submitted', 'Approved') NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Submitted',
     details TEXT,
+    notes TEXT,
     visa_date DATE NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (visa_id) REFERENCES visas(id) ON DELETE CASCADE,
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
     FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
   )`);
+  try {
+    await pool.query(`ALTER TABLE visa_history MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Submitted'`);
+  } catch (e) {}
+  await safeAddColumn('visa_history', 'notes', "TEXT NULL");
+
+  // VISA-001: Official requests from immigration (RFI/PPI/Additional Docs)
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    visa_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    request_type VARCHAR(100) NOT NULL DEFAULT 'RFI',
+    received_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    details TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Pending',
+    assigned_task_id INT NULL,
+    document_name VARCHAR(255) NULL,
+    document_url VARCHAR(500) NULL,
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vr_visa (visa_id),
+    INDEX idx_vr_contact (contact_id),
+    INDEX idx_vr_due (due_date),
+    INDEX idx_vr_status (status),
+    FOREIGN KEY (visa_id) REFERENCES visas(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  )`);
+
+  // Visa Types Settings Module
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NULL,
+    business_id INT NOT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vt_business (business_id)
+  )`);
+
+  // Visa Statuses Settings Module
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(50) DEFAULT '#4f46e5',
+    stage_order INT DEFAULT 0,
+    description VARCHAR(255) NULL,
+    business_id INT NOT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    has_reason TINYINT(1) DEFAULT 0,
+    reason_category_ids JSON NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vs_business (business_id)
+  )`);
+
+  try {
+    await pool.query('ALTER TABLE visa_statuses ADD COLUMN has_reason TINYINT(1) DEFAULT 0');
+  } catch (colErr) {
+    // has_reason already exists
+  }
+
+  try {
+    await pool.query('ALTER TABLE visa_statuses ADD COLUMN reason_category_ids JSON NULL AFTER has_reason');
+  } catch (colErr) {
+    // reason_category_ids already exists
+  }
+
+  // Seed default visa types and statuses for all businesses that don't have them yet
+  try {
+    const [businesses] = await pool.query('SELECT id FROM businesses');
+    for (const b of businesses) {
+      const [typeCount] = await pool.query('SELECT COUNT(*) as c FROM visa_types WHERE business_id = ?', [b.id]);
+      if (typeCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO visa_types (name, description, business_id) VALUES
+          ('Student Visa', 'Primary study and higher education visa', ?),
+          ('Dependent Visa', 'Spouse or child dependent visa linked to student/work permit', ?),
+          ('Work Visa', 'Post-graduate or employer sponsored work authorization', ?),
+          ('Visitor / Tourist', 'Short-term travel or visitor exploration visa', ?),
+          ('Post-Study Work', 'Post study graduate work visa stream', ?),
+          ('Permanent Residency', 'Permanent residency or settlement stream', ?),
+          ('Other', 'Custom or miscellaneous visa subclass', ?)
+        `, [b.id, b.id, b.id, b.id, b.id, b.id, b.id]);
+      }
+
+      const [statusCount] = await pool.query('SELECT COUNT(*) as c FROM visa_statuses WHERE business_id = ?', [b.id]);
+      if (statusCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO visa_statuses (name, color, stage_order, description, has_reason, business_id) VALUES
+          ('Preparation', '#64748b', 1, 'Initial documentation and file setup', 0, ?),
+          ('Ready', '#0284c7', 2, 'File complete and ready for submission', 0, ?),
+          ('Submitted', '#2563eb', 3, 'Lodged with immigration authority', 0, ?),
+          ('Under Assessment', '#7c3aed', 4, 'Case officer assigned and evaluating', 0, ?),
+          ('RFI-PPI', '#d97706', 5, 'Official request for information / procedural fairness', 0, ?),
+          ('AIP', '#0d9488', 6, 'Approval in principle received', 0, ?),
+          ('Approved', '#16a34a', 7, 'Visa granted successfully', 0, ?),
+          ('Declined', '#dc2626', 8, 'Visa refused or rejected', 1, ?),
+          ('Withdrawn', '#475569', 9, 'Application withdrawn by applicant', 0, ?)
+        `, [b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id]);
+      }
+    }
+  } catch (seedErr) {
+    console.error('Error seeding default visa types/statuses:', seedErr);
+  }
+
+  // Visa Reason Categories Module
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_reason_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(255) NULL,
+    business_id INT NOT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vrc_business (business_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  try {
+    const [businesses] = await pool.query('SELECT id FROM businesses');
+    for (const b of businesses) {
+      const [rCount] = await pool.query('SELECT COUNT(*) as c FROM visa_reason_categories WHERE business_id = ?', [b.id]);
+      if (rCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO visa_reason_categories (name, description, business_id) VALUES
+          ('Financial Inadequacy / Funds Verification', 'Insufficient liquid funds, questionable source of wealth, or unverified deposits', ?),
+          ('GTE / Genuine Student Requirement', 'Failure to convince case officer of intent to return, career roadmap gaps, or immigration risk', ?),
+          ('Academic / Qualification Mismatch', 'Unexplained study gap, irrelevant past education, or low academic performance', ?),
+          ('English Language Proficiency Requirement', 'IELTS/PTE score below threshold or suspicious language test verification', ?),
+          ('Incomplete / Fraudulent Documentation', 'Missing bank statements, unverified employer reference, or documentation irregularities', ?),
+          ('Medical / Character Requirement', 'Health issues, pending background clearances, or police certificate failure', ?),
+          ('Country / Policy Restriction', 'Strict jurisdictional rejection quota or elevated risk tier embargo', ?),
+          ('Other / Visa Officer Discretion', 'General discretionary refusal or miscellaneous high commission clauses', ?)
+        `, [b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id]);
+      }
+    }
+  } catch (rSeedErr) {
+    console.error('Error seeding visa reason categories:', rSeedErr);
+  }
 
   // Help Tutorial Videos Module
   await pool.query(`CREATE TABLE IF NOT EXISTS crm_help_videos (

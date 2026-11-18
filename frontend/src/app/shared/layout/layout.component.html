@@ -161,6 +161,11 @@
           <span>Tasks</span>
         </a>
 
+        <!-- <a routerLink="/visa-management" routerLinkActive="active" class="nav-item">
+          <i class="bi bi-passport"></i>
+          <span>Visa Management</span>
+        </a> -->
+
         <!-- Reports Popover -->
         <div class="reports-dropdown-wrapper" *ngIf="authService.hasPermission('Reports', 'view')">
           <button type="button" class="nav-item nav-dropdown-btn" [class.active]="isReportsOpen || isCrmReportsActive()" (click)="toggleReports($event)">
@@ -352,6 +357,18 @@
                   <a *ngIf="authService.hasPermission('Year', 'view')" routerLink="/system-settings/years" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
                     <span class="smp-icon icon-blue"><i class="bi bi-calendar-event"></i></span>
                     <span class="smp-label">Academic Year</span>
+                  </a>
+                  <a routerLink="/system-settings/visa-types" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-indigo"><i class="bi bi-passport"></i></span>
+                    <span class="smp-label">Visa Type</span>
+                  </a>
+                  <a routerLink="/system-settings/visa-statuses" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-teal"><i class="bi bi-flag-fill"></i></span>
+                    <span class="smp-label">Visa Status</span>
+                  </a>
+                  <a routerLink="/system-settings/visa-reason-categories" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-rose"><i class="bi bi-exclamation-octagon-fill"></i></span>
+                    <span class="smp-label">Reason Category</span>
                   </a>
                 </div>
               </div>
@@ -756,6 +773,15 @@
         </a>
         <a routerLink="/system-settings/receipt-types" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-receipt-cutoff"></i> Receipt Type
+        </a>
+        <a routerLink="/system-settings/visa-types" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-passport"></i> Visa Type
+        </a>
+        <a routerLink="/system-settings/visa-statuses" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-flag"></i> Visa Status
+        </a>
+        <a routerLink="/system-settings/visa-reason-categories" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-exclamation-octagon"></i> Reason Category
         </a>
 
         <div class="popup-section-header">General & Lead Settings</div>

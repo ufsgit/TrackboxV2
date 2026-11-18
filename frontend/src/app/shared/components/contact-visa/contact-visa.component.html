@@ -1,0 +1,662 @@
+<div class="contact-visa-container">
+
+  <!-- ── Loading State ────────────────────────────────────────── -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="text-muted mt-2 small">Loading visa case record...</p>
+  </div>
+
+  <!-- ── Empty State: No Visa Case Registered ─────────────────── -->
+  <div *ngIf="!loading && !visa" class="empty-visa-box">
+    <div class="empty-visa-icon">
+      <i class="bi bi-passport"></i>
+    </div>
+    <h4 class="empty-visa-title">No Visa Record for {{ studentName || 'Student' }}</h4>
+    <p class="empty-visa-desc">
+      A structured visa case has not been initialized for this student yet. Start the visa workflow to track documents, official immigration requests, deadlines, and pre-departure actions.
+    </p>
+    <button class="btn-start-visa" (click)="openRegisterModal()">
+      <i class="bi bi-plus-lg me-1"></i> Register Visa Case
+    </button>
+  </div>
+
+  <!-- ── Active Visa Case Record ──────────────────────────────── -->
+  <div *ngIf="!loading && visa" class="active-visa-content">
+
+    <!-- Case Switcher if student has multiple visa cases -->
+    <div class="cases-switcher-bar" *ngIf="visaCases && visaCases.length > 1">
+      <div class="cs-label">
+        <i class="bi bi-layers-fill text-primary me-1"></i>
+        <span>Visa Cases ({{ visaCases.length }}):</span>
+      </div>
+      <div class="cs-pills">
+        <button 
+          *ngFor="let c of visaCases" 
+          type="button" 
+          class="cs-pill" 
+          [class.active]="c.id === visa.id"
+          (click)="selectCase(c)">
+          <span class="cs-pill-badge">#{{ c.id }}</span>
+          <span class="cs-pill-title">{{ c.visa_type || 'Visa' }}</span>
+          <span class="cs-pill-status" [ngClass]="getStatusBadgeClass(c.status)">{{ c.status }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 1. Top Case Header Summary Card -->
+    <header class="visa-header-card">
+      <div class="vh-left">
+        <div class="vh-type-pill">
+          <i class="bi bi-passport me-1"></i> {{ visa.visa_type || 'Student Visa' }}
+        </div>
+        <div class="vh-app-no">
+          <span class="label">Ref:</span>
+          <strong class="font-monospace">{{ visa.application_no || 'Pending Reference' }}</strong>
+        </div>
+        <div class="vh-staff" *ngIf="visa.staff_name || visa.assigned_staff_name">
+          <span class="label">Owner:</span>
+          <span>{{ visa.staff_name || visa.assigned_staff_name }}</span>
+        </div>
+      </div>
+
+      <div class="vh-right">
+        <span class="badge-status-lg" [ngClass]="getStatusBadgeClass(visa.status)">
+          <i class="bi" [ngClass]="getStatusIcon(visa.status)"></i>
+          {{ visa.status }}
+        </span>
+
+        <div class="vh-actions">
+          <button class="btn-vh-add" (click)="openRegisterModal()" title="Add New Visa Case">
+            <i class="bi bi-plus-lg"></i>
+            <span>Add Case</span>
+          </button>
+
+          <button class="btn-vh-rfi" (click)="openAddRequestModal()" title="Log Official Immigration Request">
+            <i class="bi bi-envelope-exclamation"></i>
+            <span>Log Request</span>
+          </button>
+
+          <button class="btn-vh-edit" (click)="openEditModal()" title="Edit Visa Details">
+            <i class="bi bi-pencil"></i>
+            <span>Edit Case</span>
+          </button>
+
+          <button class="btn-vh-delete" (click)="deleteVisaCase()" title="Delete Visa Case">
+            <i class="bi bi-trash"></i>
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. VISA-002: Prominent Overdue / Urgent Deadline Alert Banner -->
+    <aside *ngIf="getOverdueRequestsCount() > 0 || getUrgentRequestsCount() > 0" class="deadline-warning-banner">
+      <div class="dw-content">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+        <div>
+          <strong class="text-danger">Immigration Deadline Warning (VISA-002):</strong>
+          <span *ngIf="getOverdueRequestsCount() > 0" class="ms-1">
+            <strong>{{ getOverdueRequestsCount() }}</strong> request(s) are <strong>overdue</strong>!
+          </span>
+          <span *ngIf="getUrgentRequestsCount() > 0" class="ms-1">
+            <strong>{{ getUrgentRequestsCount() }}</strong> request(s) due within 7 days.
+          </span>
+          Prompt response required to avoid refusal.
+        </div>
+      </div>
+      <button class="btn-view-deadlines" (click)="activeSection = 'requests'">
+        <i class="bi bi-eye"></i> View Requests
+      </button>
+    </aside>
+
+    <!-- 3. Sub-Tab Navigation Bar -->
+    <nav class="visa-tabs-nav">
+      <button 
+        type="button" 
+        class="vtab-btn" 
+        [class.active]="activeSection === 'overview'" 
+        (click)="activeSection = 'overview'">
+        <i class="bi bi-info-circle"></i> Case Overview
+      </button>
+
+      <button 
+        type="button" 
+        class="vtab-btn" 
+        [class.active]="activeSection === 'requests'" 
+        (click)="activeSection = 'requests'">
+        <i class="bi bi-envelope-paper"></i> Immigration Requests (VISA-001)
+        <span class="vtab-counter" *ngIf="visa.requests && visa.requests.length > 0">
+          {{ visa.requests.length }}
+        </span>
+      </button>
+
+      <button 
+        type="button" 
+        class="vtab-btn" 
+        [class.active]="activeSection === 'pre_departure'" 
+        (click)="activeSection = 'pre_departure'">
+        <i class="bi bi-airplane-engines"></i> Pre-Departure Checklist (VISA-003)
+        <span class="vtab-badge-progress" *ngIf="visa.status === 'Approved'">
+          {{ getPreDepartureProgress() }}%
+        </span>
+      </button>
+
+      <button 
+        type="button" 
+        class="vtab-btn" 
+        [class.active]="activeSection === 'history'" 
+        (click)="activeSection = 'history'">
+        <i class="bi bi-clock-history"></i> Case History
+      </button>
+    </nav>
+
+    <!-- 4. SUB-TAB 1: CASE OVERVIEW -->
+    <div *ngIf="activeSection === 'overview'" class="vtab-pane">
+      <div class="fields-overview-grid">
+        <!-- Submission Date -->
+        <div class="field-item">
+          <span class="f-label">Submission Date</span>
+          <span class="f-val">
+            {{ visa.submission_date ? (visa.submission_date | date:'dd MMM yyyy') : 'Not submitted yet' }}
+          </span>
+        </div>
+
+        <!-- Officer / Contact -->
+        <div class="field-item">
+          <span class="f-label">Officer / Embassy Contact</span>
+          <span class="f-val">{{ visa.officer_name || 'Not recorded' }}</span>
+          <span class="f-sub" *ngIf="visa.officer_contact">{{ visa.officer_contact }}</span>
+        </div>
+
+        <!-- Extension Details -->
+        <div class="field-item">
+          <span class="f-label">Extension Request / Approval</span>
+          <span class="f-val" *ngIf="visa.extension_requested_date || visa.extension_approved_date">
+            Req: {{ visa.extension_requested_date | date:'dd MMM yyyy' }}
+            <span *ngIf="visa.extension_approved_date">| Appr: {{ visa.extension_approved_date | date:'dd MMM yyyy' }}</span>
+          </span>
+          <span class="f-val text-muted" *ngIf="!visa.extension_requested_date && !visa.extension_approved_date">
+            No extension requested
+          </span>
+          <span class="f-sub" *ngIf="visa.extension_notes">{{ visa.extension_notes }}</span>
+        </div>
+
+        <!-- Outcome Details -->
+        <div class="field-item">
+          <span class="f-label">Outcome Date & Remarks</span>
+          <span class="f-val">
+            {{ visa.outcome_date ? (visa.outcome_date | date:'dd MMM yyyy') : 'Pending Outcome' }}
+          </span>
+          <span class="f-sub" *ngIf="visa.outcome_notes">{{ visa.outcome_notes }}</span>
+        </div>
+
+        <!-- Expiry / Travel Dates -->
+        <div class="field-item">
+          <span class="f-label">Visa Expiry & Travel Dates</span>
+          <span class="f-val" *ngIf="visa.visa_expiry_date || visa.travel_date">
+            <span *ngIf="visa.visa_expiry_date">Expiry: {{ visa.visa_expiry_date | date:'dd MMM yyyy' }}</span>
+            <span *ngIf="visa.travel_date" class="ms-2">| Travel: {{ visa.travel_date | date:'dd MMM yyyy' }}</span>
+          </span>
+          <span class="f-val text-muted" *ngIf="!visa.visa_expiry_date && !visa.travel_date">
+            Dates not maintained
+          </span>
+        </div>
+
+        <!-- Intake Date -->
+        <div class="field-item">
+          <span class="f-label">Course / Intake Start Date</span>
+          <span class="f-val">
+            {{ visa.intake_date ? (visa.intake_date | date:'dd MMM yyyy') : 'Not specified' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- VISA-004 Decline Information Card -->
+      <div *ngIf="visa.status === 'Declined'" class="decline-detail-banner mt-3">
+        <div class="dd-header">
+          <i class="bi bi-x-octagon-fill text-danger me-2"></i>
+          <strong>Visa Decline Record (VISA-004)</strong>
+        </div>
+        <div class="mt-2">
+          <span class="f-label">Categorized Grounds:</span>
+          <span class="badge-decline-pill">{{ visa.decline_category || 'Uncategorized' }}</span>
+        </div>
+        <div class="mt-2">
+          <span class="f-label">Detailed Refusal Notes & Clauses:</span>
+          <div class="decline-notes-box">
+            {{ visa.decline_detailed_notes || visa.outcome_notes || 'No detailed refusal notes provided.' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- General Description / Notes -->
+      <div class="mt-3" *ngIf="visa.description">
+        <span class="f-label">Case Description & Notes</span>
+        <div class="description-box">{{ visa.description }}</div>
+      </div>
+    </div>
+
+    <!-- 5. SUB-TAB 2: IMMIGRATION REQUESTS (VISA-001) -->
+    <div *ngIf="activeSection === 'requests'" class="vtab-pane">
+      <div class="tab-pane-header">
+        <div>
+          <h5 class="tab-pane-title">Official Immigration Requests (RFI / PPI)</h5>
+          <p class="tab-pane-subtitle">VISA-001: Record embassy requests with due dates, linked tasks, and document upload</p>
+        </div>
+        <button class="btn-sm-primary" (click)="openAddRequestModal()">
+          <i class="bi bi-plus-lg me-1"></i> Log Request
+        </button>
+      </div>
+
+      <!-- Empty Requests -->
+      <div *ngIf="!visa.requests || visa.requests.length === 0" class="text-center py-4 bg-light rounded border">
+        <i class="bi bi-check-circle text-success fs-3"></i>
+        <h6 class="mt-2 mb-1">No Active Immigration Requests</h6>
+        <p class="text-muted small mb-0">No RFI, PPI, or additional document requests are pending from immigration.</p>
+      </div>
+
+      <!-- Requests List -->
+      <div class="requests-list" *ngIf="visa.requests && visa.requests.length > 0">
+        <article 
+          *ngFor="let req of visa.requests" 
+          class="request-card"
+          [class.card-closed]="req.status === 'Closed'">
+          <div class="rc-top">
+            <span class="req-tag" [ngClass]="req.request_type === 'PPI' ? 'tag-ppi' : 'tag-rfi'">
+              {{ req.request_type }}
+            </span>
+            <div class="d-flex align-items-center gap-2">
+              <span class="days-badge" [ngClass]="getDaysRemainingBadge(req.days_remaining).css" *ngIf="req.status !== 'Closed'">
+                {{ getDaysRemainingBadge(req.days_remaining).text }}
+              </span>
+              <span class="status-tag" [class.text-success]="req.status === 'Closed'">
+                {{ req.status }}
+              </span>
+            </div>
+          </div>
+
+          <h6 class="rc-title">{{ req.title }}</h6>
+          <p class="rc-desc" *ngIf="req.details">{{ req.details }}</p>
+
+          <div class="rc-meta-row">
+            <div>
+              <span class="text-muted small">Received:</span>
+              <div class="fw-semibold">{{ req.received_date | date:'dd MMM yyyy' }}</div>
+            </div>
+            <div>
+              <span class="text-muted small">Due Date:</span>
+              <div class="fw-semibold text-danger">{{ req.due_date | date:'dd MMM yyyy' }}</div>
+            </div>
+            <div *ngIf="req.assigned_task_id">
+              <span class="text-muted small">Linked Task:</span>
+              <div>
+                <span class="badge bg-light text-dark border">
+                  Task #{{ req.assigned_task_id }}
+                  <span *ngIf="req.task_status === 1" class="text-success ms-1">✓ Done</span>
+                </span>
+              </div>
+            </div>
+            <div *ngIf="req.document_name">
+              <span class="text-muted small">Document Attachment:</span>
+              <div>
+                <a [href]="req.document_url" target="_blank" class="doc-link">
+                  <i class="bi bi-file-earmark-arrow-down"></i> {{ req.document_name }}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="rc-actions">
+            <button 
+              *ngIf="req.status !== 'Closed'" 
+              class="btn-mark-closed" 
+              (click)="markRequestClosed(req)">
+              <i class="bi bi-check2-circle"></i> Mark Submitted & Close
+            </button>
+            <button class="btn-del-req" (click)="deleteRequest(req)" title="Delete Request">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- 6. SUB-TAB 3: PRE-DEPARTURE ACTIONS (VISA-003) -->
+    <div *ngIf="activeSection === 'pre_departure'" class="vtab-pane">
+      <div class="pre-departure-box">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <h5 class="mb-0 fw-bold">Pre-Departure Action Checklist (VISA-003)</h5>
+            <small class="text-muted">Triggered automatically on visa approval to prepare student for travel</small>
+          </div>
+          <span class="progress-badge font-bold text-primary fs-6">{{ getPreDepartureProgress() }}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="getPreDepartureProgress()"></div>
+        </div>
+      </div>
+
+      <div class="checklist-container mt-3">
+        <div 
+          *ngFor="let item of visa.pre_departure_data" 
+          class="checklist-card"
+          [class.card-done]="item.done"
+          (click)="togglePreDepartureItem(item)">
+          <i class="bi fs-5" [ngClass]="item.done ? 'bi-check-square-fill text-success' : 'bi-square text-muted'"></i>
+          <div class="checklist-text">
+            <span class="item-title" [class.text-decoration-line-through]="item.done">{{ item.title }}</span>
+            <small class="text-success" *ngIf="item.done">
+              <i class="bi bi-check"></i> Completed on {{ item.completed_at | date:'mediumDate' }}
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. SUB-TAB 4: CASE HISTORY -->
+    <div *ngIf="activeSection === 'history'" class="vtab-pane">
+      <h6 class="fw-bold mb-3">Case Activity & Audit Trail</h6>
+      <div class="history-timeline" *ngIf="visa.history && visa.history.length > 0">
+        <div *ngFor="let h of visa.history" class="history-item">
+          <div class="h-dot"></div>
+          <div class="h-content">
+            <div class="h-top">
+              <strong class="h-action">{{ h.action }}</strong>
+              <small class="text-muted">{{ h.created_at | date:'dd MMM yyyy, hh:mm a' }}</small>
+            </div>
+            <p class="h-details mb-1" *ngIf="h.details">{{ h.details }}</p>
+            <small class="text-muted" *ngIf="h.user_name">By: {{ h.user_name }}</small>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="!visa.history || visa.history.length === 0" class="text-muted small py-3">
+        No history events recorded yet.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: REGISTER / EDIT VISA CASE                             -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop" *ngIf="showCaseModal" (click)="closeCaseModal()"></div>
+  <div class="custom-modal modal-lg" *ngIf="showCaseModal">
+    <div class="modal-header">
+      <h5 class="modal-title fw-bold">
+        <i class="bi bi-passport text-primary me-2"></i>
+        {{ isEditing ? 'Edit Visa Case Record' : 'Register New Visa Case' }}
+      </h5>
+      <button class="btn-close-modal" (click)="closeCaseModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="student-info-bar mb-3">
+        <i class="bi bi-person-fill text-primary"></i>
+        <strong>{{ studentName || contact?.name || 'Student' }}</strong>
+        <span class="text-muted ms-2" *ngIf="contact?.phone">({{ contact?.phone }})</span>
+      </div>
+
+      <div class="row g-3">
+        <!-- Visa Type -->
+        <div class="col-md-6">
+          <label class="form-label required">Visa Type</label>
+          <select 
+            [(ngModel)]="caseForm.visa_type" 
+            class="form-select"
+            (focus)="loadVisaTypes()" 
+            (mousedown)="loadVisaTypes()">
+            <option *ngFor="let vt of visaTypeOptions" [value]="vt">{{ vt }}</option>
+          </select>
+        </div>
+
+        <!-- Application Number -->
+        <div class="col-md-6">
+          <label class="form-label">Application Number (Official Ref)</label>
+          <input
+            type="text"
+            [(ngModel)]="caseForm.application_no"
+            placeholder="e.g. VAF-128491, INZ-49120"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Assigned Visa Staff -->
+        <div class="col-md-6">
+          <label class="form-label">Assigned Visa Staff</label>
+          <select 
+            [(ngModel)]="caseForm.assigned_staff_id" 
+            class="form-select"
+            (focus)="fetchStaffList()" 
+            (mousedown)="fetchStaffList()">
+            <option [ngValue]="null">Select Owner / Staff</option>
+            <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
+          </select>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <label class="form-label required">Status</label>
+          <select 
+            [(ngModel)]="caseForm.status" 
+            class="form-select"
+            (focus)="loadVisaStatuses()" 
+            (mousedown)="loadVisaStatuses()">
+            <option *ngFor="let st of statusOptions" [value]="st">{{ st }}</option>
+          </select>
+        </div>
+
+        <!-- Submission Date -->
+        <div class="col-md-6">
+          <label class="form-label">Submission Date</label>
+          <input type="date" [(ngModel)]="caseForm.submission_date" class="form-control" />
+        </div>
+
+        <!-- Officer / Embassy Contact -->
+        <div class="col-md-6">
+          <label class="form-label">Officer / Embassy Contact</label>
+          <input
+            type="text"
+            [(ngModel)]="caseForm.officer_name"
+            placeholder="Officer Name / High Commission Desk"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Extension Requested Date -->
+        <div class="col-md-6">
+          <label class="form-label">Extension Requested Date</label>
+          <input type="date" [(ngModel)]="caseForm.extension_requested_date" class="form-control" />
+        </div>
+
+        <!-- Extension Approved Date -->
+        <div class="col-md-6">
+          <label class="form-label">Extension Approved Date</label>
+          <input type="date" [(ngModel)]="caseForm.extension_approved_date" class="form-control" />
+        </div>
+
+        <!-- Outcome Date -->
+        <div class="col-md-6">
+          <label class="form-label">Outcome Date (Approval / Decline)</label>
+          <input type="date" [(ngModel)]="caseForm.outcome_date" class="form-control" />
+        </div>
+
+        <!-- Visa Expiry Date -->
+        <div class="col-md-6">
+          <label class="form-label">Visa Expiry Date</label>
+          <input type="date" [(ngModel)]="caseForm.visa_expiry_date" class="form-control" />
+        </div>
+
+        <!-- Travel Date -->
+        <div class="col-md-6">
+          <label class="form-label">Travel / Departure Date</label>
+          <input type="date" [(ngModel)]="caseForm.travel_date" class="form-control" />
+        </div>
+
+        <!-- Intake Date -->
+        <div class="col-md-6">
+          <label class="form-label">Course / Intake Start Date</label>
+          <input type="date" [(ngModel)]="caseForm.intake_date" class="form-control" />
+        </div>
+      </div>
+
+      <!-- VISA-004 Decline / Reason Category (Required if has_reason=1 or Declined) -->
+      <div *ngIf="statusRequiresReason()" class="mt-3 p-3 bg-light border border-danger rounded">
+        <h6 class="text-danger fw-bold mb-2">
+          <i class="bi bi-x-octagon me-1"></i> VISA-004: Reason Category Requirements ({{ caseForm.status }})
+        </h6>
+        <div class="mb-2">
+          <label class="form-label required">Reason Category</label>
+          <select 
+            [(ngModel)]="caseForm.decline_category" 
+            class="form-select border-danger"
+            (focus)="loadReasonCategories()" 
+            (mousedown)="loadReasonCategories()">
+            <option value="">Select Categorized Reason Grounds</option>
+            <option *ngFor="let dc of getFilteredReasonCategories()" [value]="dc">{{ dc }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label required">Detailed Reason & Refusal Notes</label>
+          <textarea
+            [(ngModel)]="caseForm.decline_detailed_notes"
+            rows="3"
+            class="form-control"
+            placeholder="Preserve detailed letter points, clauses, and grounds..."
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Outcome Notes -->
+      <div class="mt-3">
+        <label class="form-label">Outcome Notes / Remarks</label>
+        <textarea
+          [(ngModel)]="caseForm.outcome_notes"
+          rows="2"
+          class="form-control"
+          placeholder="Decision remarks, grant conditions, or embassy communications..."
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer d-flex justify-content-between">
+      <button type="button" class="btn btn-outline-danger btn-sm" *ngIf="isEditing" (click)="closeCaseModal(); deleteVisaCase()">
+        <i class="bi bi-trash me-1"></i> Delete Case
+      </button>
+      <div class="ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="closeCaseModal()">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" [disabled]="submitting" (click)="saveCase()">
+          <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+          <span>{{ isEditing ? 'Update Visa Case' : 'Register Case' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: LOG OFFICIAL IMMIGRATION REQUEST (VISA-001)           -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop" *ngIf="showRequestModal" (click)="closeRequestModal()"></div>
+  <div class="custom-modal" *ngIf="showRequestModal">
+    <div class="modal-header">
+      <h5 class="modal-title fw-bold">
+        <i class="bi bi-envelope-exclamation text-amber me-2"></i>
+        Log Official Immigration Request (VISA-001)
+      </h5>
+      <button class="btn-close-modal" (click)="closeRequestModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label required">Request Type</label>
+          <select [(ngModel)]="requestForm.request_type" class="form-select">
+            <option *ngFor="let rt of requestTypeOptions" [value]="rt">{{ rt }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label required">Received Date</label>
+          <input type="date" [(ngModel)]="requestForm.received_date" class="form-control" />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label required">Official Due Date / Deadline</label>
+          <input type="date" [(ngModel)]="requestForm.due_date" class="form-control border-danger fw-bold" />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label required">Request Title</label>
+          <input
+            type="text"
+            [(ngModel)]="requestForm.title"
+            placeholder="e.g. Bank Statements / Medicals"
+            class="form-control"
+          />
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Official Details & Instructions</label>
+          <textarea
+            [(ngModel)]="requestForm.details"
+            rows="3"
+            class="form-control"
+            placeholder="Enter specific instructions or document requirements from embassy notice..."
+          ></textarea>
+        </div>
+
+        <!-- Document Linkage (VISA-001) -->
+        <div class="col-12">
+          <label class="form-label">Attach Embassy Notice / Document Link</label>
+          <input
+            type="file"
+            (change)="onDocumentSelected($event)"
+            class="form-control mb-1"
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+          />
+          <div *ngIf="uploadingDoc" class="text-primary small">
+            <span class="spinner-border spinner-border-sm me-1"></span> Uploading file...
+          </div>
+          <div *ngIf="requestForm.document_url" class="text-success small">
+            <i class="bi bi-check-circle"></i> Attached: {{ requestForm.document_name }}
+          </div>
+        </div>
+
+        <!-- Task Linkage (VISA-001) -->
+        <div class="col-12">
+          <div class="form-check">
+            <input
+              type="checkbox"
+              id="createTaskChk"
+              [(ngModel)]="requestForm.create_task"
+              class="form-check-input"
+            />
+            <label for="createTaskChk" class="form-check-label fw-semibold">
+              Auto-create assigned task in Trackbox Task Management with deadline
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12" *ngIf="requestForm.create_task">
+          <label class="form-label">Assign Task To</label>
+          <select 
+            [(ngModel)]="requestForm.task_assignee_id" 
+            class="form-select"
+            (focus)="fetchStaffList()" 
+            (mousedown)="fetchStaffList()">
+            <option [ngValue]="null">Case Owner (Default)</option>
+            <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary btn-sm" (click)="closeRequestModal()">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="submitting" (click)="saveImmigrationRequest()">
+        <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+        <span>Record Request</span>
+      </button>
+    </div>
+  </div>
+
+</div>

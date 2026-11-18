@@ -120,8 +120,8 @@
       <div class="indeterminate-bar"></div>
     </div>
 
-    <!-- 1. Applications Report Table (Newly Created Focus) -->
-    <div class="table-responsive" *ngIf="activeType === 'applications'">
+    <!-- 1. Applications Report Table (Newly Created Focus) & Dynamic Status Tabs -->
+    <div class="table-responsive" *ngIf="activeType === 'applications' || activeType.startsWith('status-')">
       <table class="report-table">
         <thead>
           <tr>

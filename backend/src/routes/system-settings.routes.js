@@ -74,4 +74,22 @@ router.delete('/channels/:id', c.deleteChannel);
 // Country Codes
 router.get('/country-codes', c.getCountryCodes);
 
+// Visa Types
+router.get('/visa-types', c.getVisaTypes);
+router.post('/visa-types', requireRole('admin', 'superadmin', 'manager'), c.createVisaType);
+router.put('/visa-types/:id', requireRole('admin', 'superadmin', 'manager'), c.updateVisaType);
+router.delete('/visa-types/:id', requireRole('admin', 'superadmin', 'manager'), c.deleteVisaType);
+
+// Visa Statuses
+router.get('/visa-statuses', c.getVisaStatuses);
+router.post('/visa-statuses', requireRole('admin', 'superadmin', 'manager'), c.createVisaStatus);
+router.put('/visa-statuses/:id', requireRole('admin', 'superadmin', 'manager'), c.updateVisaStatus);
+router.delete('/visa-statuses/:id', requireRole('admin', 'superadmin', 'manager'), c.deleteVisaStatus);
+
+// Visa Reason Categories
+router.get('/visa-reason-categories', c.getVisaReasonCategories);
+router.post('/visa-reason-categories', requireRole('admin', 'superadmin', 'manager'), c.createVisaReasonCategory);
+router.put('/visa-reason-categories/:id', requireRole('admin', 'superadmin', 'manager'), c.updateVisaReasonCategory);
+router.delete('/visa-reason-categories/:id', requireRole('admin', 'superadmin', 'manager'), c.deleteVisaReasonCategory);
+
 module.exports = router;

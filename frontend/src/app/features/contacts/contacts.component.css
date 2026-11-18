@@ -7095,6 +7095,19 @@
   background: #ffffff !important;
   border-bottom: 1px solid #f1f5f9 !important;
   gap: 8px !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+
+.detail-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.detail-tabs::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 .tab-btn {

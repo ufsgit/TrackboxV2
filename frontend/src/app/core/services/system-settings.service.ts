@@ -157,4 +157,22 @@ export class SystemSettingsService {
   getCountryCodes(): Observable<any> {
     return this.http.get(`${this.apiUrl}/country-codes`);
   }
+
+  // --- VISA TYPES ---
+  getVisaTypes(): Observable<any> { return this.http.get(`${this.apiUrl}/visa-types`); }
+  createVisaType(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/visa-types`, data); }
+  updateVisaType(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-types/${id}`, data); }
+  deleteVisaType(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-types/${id}`); }
+
+  // --- VISA STATUSES ---
+  getVisaStatuses(): Observable<any> { return this.http.get(`${this.apiUrl}/visa-statuses`); }
+  createVisaStatus(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/visa-statuses`, data); }
+  updateVisaStatus(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-statuses/${id}`, data); }
+  deleteVisaStatus(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-statuses/${id}`); }
+
+  // --- VISA REASON CATEGORIES ---
+  getVisaReasonCategories(): Observable<any> { return this.http.get(`${this.apiUrl}/visa-reason-categories`); }
+  createVisaReasonCategory(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/visa-reason-categories`, data); }
+  updateVisaReasonCategory(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-reason-categories/${id}`, data); }
+  deleteVisaReasonCategory(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-reason-categories/${id}`); }
 }

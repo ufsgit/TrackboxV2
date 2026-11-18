@@ -546,6 +546,186 @@ const getCountryCodes = async (req, res) => {
   }
 };
 
+// VISA TYPES
+const getVisaTypes = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM visa_types WHERE business_id=? ORDER BY name ASC', [req.user.businessId]);
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
+const createVisaType = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Visa type name is required' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO visa_types (name, description, business_id) VALUES (?, ?, ?)',
+      [name.trim(), description || null, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_types WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Visa type created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateVisaType = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Visa type name is required' });
+    }
+    await pool.query(
+      'UPDATE visa_types SET name=?, description=? WHERE id=? AND business_id=?',
+      [name.trim(), description || null, req.params.id, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_types WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Visa type updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteVisaType = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM visa_types WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Visa type deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// VISA STATUSES
+const getVisaStatuses = async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM visa_statuses WHERE business_id=? ORDER BY stage_order ASC, name ASC', [req.user.businessId]);
+    const parsed = rows.map(r => {
+      let catIds = r.reason_category_ids;
+      if (typeof catIds === 'string') {
+        try { catIds = JSON.parse(catIds); } catch (e) {}
+      }
+      return { ...r, reason_category_ids: Array.isArray(catIds) ? catIds : [] };
+    });
+    res.json({ success: true, data: parsed, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
+const createVisaStatus = async (req, res) => {
+  try {
+    const { name, color, stage_order, description, has_reason, reason_category_ids } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Visa status name is required' });
+    }
+    const catJson = Array.isArray(reason_category_ids) 
+      ? JSON.stringify(reason_category_ids) 
+      : (reason_category_ids ? JSON.stringify([reason_category_ids]) : null);
+
+    const [result] = await pool.query(
+      'INSERT INTO visa_statuses (name, color, stage_order, description, has_reason, reason_category_ids, business_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name.trim(), color || '#4f46e5', stage_order || 0, description || null, has_reason ? 1 : 0, catJson, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_statuses WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Visa status created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateVisaStatus = async (req, res) => {
+  try {
+    const { name, color, stage_order, description, has_reason, reason_category_ids } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Visa status name is required' });
+    }
+    const catJson = Array.isArray(reason_category_ids) 
+      ? JSON.stringify(reason_category_ids) 
+      : (reason_category_ids ? JSON.stringify([reason_category_ids]) : null);
+
+    await pool.query(
+      'UPDATE visa_statuses SET name=?, color=?, stage_order=?, description=?, has_reason=?, reason_category_ids=? WHERE id=? AND business_id=?',
+      [name.trim(), color || '#4f46e5', stage_order || 0, description || null, has_reason ? 1 : 0, catJson, req.params.id, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_statuses WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Visa status updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteVisaStatus = async (req, res) => {
+  try {
+    await pool.query('DELETE FROM visa_statuses WHERE id=? AND business_id=?', [req.params.id, req.user.businessId]);
+    res.json({ success: true, data: null, message: 'Visa status deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// VISA REASON CATEGORIES
+const getVisaReasonCategories = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM visa_reason_categories WHERE business_id=? ORDER BY name ASC',
+      [req.user.businessId]
+    );
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
+const createVisaReasonCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Reason category name is required' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO visa_reason_categories (name, description, business_id) VALUES (?, ?, ?)',
+      [name.trim(), description || null, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_reason_categories WHERE id=?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Visa reason category created' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateVisaReasonCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Reason category name is required' });
+    }
+    await pool.query(
+      'UPDATE visa_reason_categories SET name=?, description=? WHERE id=? AND business_id=?',
+      [name.trim(), description || null, req.params.id, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_reason_categories WHERE id=?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Visa reason category updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteVisaReasonCategory = async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM visa_reason_categories WHERE id=? AND business_id=?',
+      [req.params.id, req.user.businessId]
+    );
+    res.json({ success: true, data: null, message: 'Visa reason category deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
@@ -558,5 +738,8 @@ module.exports = {
   getDocumentTypes, createDocumentType, updateDocumentType, deleteDocumentType,
   getTeams, createTeam, updateTeam, deleteTeam,
   getChannels, createChannel, updateChannel, deleteChannel,
-  getCountryCodes
+  getCountryCodes,
+  getVisaTypes, createVisaType, updateVisaType, deleteVisaType,
+  getVisaStatuses, createVisaStatus, updateVisaStatus, deleteVisaStatus,
+  getVisaReasonCategories, createVisaReasonCategory, updateVisaReasonCategory, deleteVisaReasonCategory
 };

@@ -153,6 +153,39 @@ export class SystemSettingsComponent implements OnInit {
       route: '/system-settings/receipt-types'
     },
     {
+      id: 'visa-types',
+      title: 'Visa Types',
+      category: 'system',
+      categoryLabel: 'Visa',
+      description: 'Configure available visa classifications across student records (Student, Dependent, Work, Visitor, etc.).',
+      icon: 'bi-passport',
+      gradient: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+      route: '/system-settings/visa-types',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
+      id: 'visa-statuses',
+      title: 'Visa Statuses',
+      category: 'system',
+      categoryLabel: 'Visa',
+      description: 'Customize immigration pipeline stages, assessment milestones, sequential order, and workflow colors.',
+      icon: 'bi-flag-fill',
+      gradient: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
+      route: '/system-settings/visa-statuses',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
+      id: 'visa-reason-categories',
+      title: 'Visa Reason Categories',
+      category: 'system',
+      categoryLabel: 'Visa',
+      description: 'Configure categorized refusal grounds, decline clauses, and official immigration rejection reasons (VISA-004).',
+      icon: 'bi-exclamation-octagon-fill',
+      gradient: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+      route: '/system-settings/visa-reason-categories',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
       id: 'universities',
       title: 'Universities',
       category: 'system',

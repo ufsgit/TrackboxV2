@@ -32,6 +32,7 @@ import { WhatsappQrMsgComponent } from '../whatsapp-qr-msg/whatsapp-qr-msg.compo
 import { ContactQualificationsComponent } from '../../shared/components/contact-qualifications/contact-qualifications.component';
 import { ContactWorkExperiencesComponent } from '../../shared/components/contact-work-experiences/contact-work-experiences.component';
 import { ContactTasksComponent } from '../../shared/components/contact-tasks/contact-tasks.component';
+import { ContactVisaComponent } from '../../shared/components/contact-visa/contact-visa.component';
 import { QualificationsService } from '../../core/services/qualifications.service';
 import { WorkExperiencesService } from '../../core/services/work-experiences.service';
 import { SocketService } from '../../core/services/socket.service';
@@ -50,7 +51,8 @@ import * as XLSX from 'xlsx';
     WhatsappQrMsgComponent,
     ContactQualificationsComponent,
     ContactWorkExperiencesComponent,
-    ContactTasksComponent
+    ContactTasksComponent,
+    ContactVisaComponent
   ],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
@@ -473,6 +475,26 @@ export class ContactsComponent implements OnInit {
   qualificationsCount: number = 0;
   experiencesCount: number = 0;
   tasksCount: number = 0;
+  contactVisaStatus: string = '';
+
+  onVisaStatusChange(status: string): void {
+    this.contactVisaStatus = status;
+  }
+
+  getVisaStatusBadgeClass(): string {
+    switch (this.contactVisaStatus) {
+      case 'Preparation': return 'bg-secondary text-white';
+      case 'Ready': return 'bg-info text-white';
+      case 'Submitted': return 'bg-primary text-white';
+      case 'Under Assessment': return 'bg-purple text-white';
+      case 'RFI-PPI': return 'bg-warning text-dark';
+      case 'AIP': return 'bg-indigo text-white';
+      case 'Approved': return 'bg-success text-white';
+      case 'Declined': return 'bg-danger text-white';
+      case 'Withdrawn': return 'bg-dark text-white';
+      default: return 'bg-light text-dark border';
+    }
+  }
   selectedContactQualifications: any[] = [];
   loadingQualifications = false;
   showAddQualificationModal = false;

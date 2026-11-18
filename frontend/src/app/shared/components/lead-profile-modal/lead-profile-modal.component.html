@@ -72,6 +72,10 @@
           <i class="bi bi-mortarboard"></i> <span>Application</span>
           <span class="tab-count-badge" *ngIf="selectedContactApplications">{{ selectedContactApplications.length }}</span>
         </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Visa'" (click)="detailActiveTab = 'Visa'">
+          <i class="bi bi-passport me-1"></i> <span>Visa</span>
+          <span class="tab-count-badge" [ngClass]="getVisaStatusBadgeClass()" *ngIf="contactVisaStatus">{{ contactVisaStatus }}</span>
+        </button>
         <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">
           <i class="bi bi-folder2-open"></i> <span>Documents</span>
           <span class="tab-count-badge" *ngIf="contactDocuments">{{ contactDocuments.length }}</span>
@@ -420,6 +424,16 @@
             [studentName]="getLeadName()"
             [contact]="selectedContact">
           </app-contact-tasks>
+        </div>
+
+        <!-- ==================== VISA TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'Visa'" class="tab-pane">
+          <app-contact-visa
+            [contactId]="contactId"
+            [studentName]="getLeadName()"
+            [contact]="selectedContact"
+            (statusChange)="onVisaStatusChange($event)">
+          </app-contact-visa>
         </div>
 
       </div>
