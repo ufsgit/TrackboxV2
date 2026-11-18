@@ -314,34 +314,28 @@ const getStatusReport = async (req, res) => {
 
 
 /**
- * Helper to build role-based filter for contacts c and assigned user u
+ * Helper to build team-based filter for contacts c (Self + Team members only, NO role bypass)
  */
 const buildContactsRoleFilter = async (user, businessId, agentParam) => {
   const userId = user.userId || user.id;
-  const [[userRow]] = await pool.query('SELECT role, branch_id FROM users WHERE id = ? AND business_id = ? LIMIT 1', [userId, businessId]);
-  const userRole = userRow ? userRow.role : 'agent';
-  const userBranchId = userRow ? userRow.branch_id : null;
 
-  let clause = '';
-  const params = [];
-
-  if (userRole === 'admin' || userRole === 'superadmin') {
-    // Admin sees all in business
-  } else if (userRole === 'manager') {
-    clause += ' AND (c.branch_id = ? OR u.branch_id = ?) ';
-    params.push(userBranchId, userBranchId);
-  } else {
-    // Agent sees only leads assigned to them
-    clause += ' AND c.assigned_to = ? ';
-    params.push(userId);
-  }
+  let clause = ` AND (
+    c.assigned_to = ?
+    OR c.assigned_to IN (
+      SELECT tm.user_id 
+      FROM teams t 
+      INNER JOIN team_members tm ON tm.team_id = t.id 
+      WHERE t.user_id = ? AND t.business_id = ?
+    )
+  ) `;
+  const params = [userId, userId, businessId];
 
   if (agentParam && agentParam !== 'all') {
     clause += ' AND c.assigned_to = ? ';
     params.push(agentParam);
   }
 
-  return { clause, params, userRole, userBranchId };
+  return { clause, params, userRole: user.role || 'user', userBranchId: null };
 };
 
 /**
@@ -2620,8 +2614,8 @@ const getDailyReport = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         teamFilter = ' AND 1 = 0 ';
       } else {
-        teamFilter = ` AND (f.by_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) OR f.to_user_id IN (${accessibleUserIds.map(() => '?').join(',')})) `;
-        teamParams.push(...accessibleUserIds, ...accessibleUserIds);
+        teamFilter = ` AND f.by_user_id IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        teamParams.push(...accessibleUserIds);
       }
     }
 
@@ -2637,8 +2631,8 @@ const getDailyReport = async (req, res) => {
     let employeeFilter = '';
     const employeeParams = [];
     if (employee && employee !== 'All') {
-      employeeFilter = ` AND (f.by_user_id = ? OR f.to_user_id = ?) `;
-      employeeParams.push(employee, employee);
+      employeeFilter = ` AND f.by_user_id = ? `;
+      employeeParams.push(employee);
     }
 
     // Search filter
