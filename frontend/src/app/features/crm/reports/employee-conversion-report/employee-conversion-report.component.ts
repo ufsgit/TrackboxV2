@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID, AfterViewIni
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { Subscription } from 'rxjs';
@@ -91,12 +92,20 @@ export class EmployeeConversionReportComponent implements OnInit, AfterViewInit,
     private cdr: ChangeDetectorRef, 
     private ngZone: NgZone,
     private api: ApiService,
+    public authService: AuthService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
+  get canFilterAgents(): boolean {
+    return this.authService.canFilterAgents();
+  }
+
   ngOnInit() {
+    if (!this.canFilterAgents) {
+      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'All';
+    }
     this.fetchUsers();
     this.fetchData();
   }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
 import { ApiService } from '../../../../core/services/api.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 export interface ReceiptKpis {
   totalCount: number;
@@ -646,6 +647,7 @@ export class ReceiptReportComponent implements OnInit {
 
   constructor(
     private api: ApiService,
+    public authService: AuthService,
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
@@ -653,6 +655,10 @@ export class ReceiptReportComponent implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.customStartDate = today;
     this.customEndDate = today;
+  }
+
+  get canFilterAgents(): boolean {
+    return this.authService.canFilterAgents();
   }
 
   @HostListener('document:click')
@@ -663,6 +669,9 @@ export class ReceiptReportComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (!this.canFilterAgents) {
+      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'all';
+    }
     this.fetchData();
     this.fetchMonthlyAnalysis();
     this.loadStaffList();

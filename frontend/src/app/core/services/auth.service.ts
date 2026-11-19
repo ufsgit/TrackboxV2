@@ -52,9 +52,26 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  get currentUser(): any {
+    return this.currentUserSubject.value;
+  }
+
   hasRole(...roles: string[]): boolean {
     const user = this.currentUserSubject.value;
     return user && roles.includes(user.role);
+  }
+
+  // Centralized check: only these roles can see and use agent/employee filters across reports
+  canFilterAgents(): boolean {
+    return this.hasRole('superadmin', 'admin', 'manager');
+  }
+
+  getCurrentUserId(): number | null {
+    return this.currentUser?.id || null;
+  }
+
+  getCurrentUserName(): string {
+    return this.currentUser?.name || '';
   }
 
   hasPermission(menuName: string, action: 'view' | 'save' | 'edit' | 'delete'): boolean {

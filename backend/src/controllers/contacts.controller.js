@@ -85,17 +85,19 @@ const getContacts = async (req, res) => {
         const selfId = Number(req.user.userId);
         where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
         params.push(selfId.toString(), selfId.toString(), selfId);
+      } else if (agent === 'unassigned') {
+        where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND c.assigned_to = ? ';
-          params.push(reqAgentId);
+          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
+          params.push(reqAgentId, reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
-        where += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
-        params.push(...accessibleUserIds);
+        where += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
       }
     } else {
       if (req.query.transferred_only === 'true') {
@@ -105,9 +107,11 @@ const getContacts = async (req, res) => {
         } else {
           where += ` AND JSON_LENGTH(c.user_list) > 1`;
         }
+      } else if (agent === 'unassigned') {
+        where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
       } else if (agent) {
-        where += ' AND c.assigned_to = ?';
-        params.push(agent);
+        where += ' AND (c.assigned_to = ? OR c.created_by_user = ?)';
+        params.push(agent, agent);
       }
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
@@ -159,8 +163,8 @@ const getContacts = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         baseWhere += ' AND 1 = 0 ';
       } else {
-        baseWhere += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
-        baseParams.push(...accessibleUserIds);
+        baseWhere += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        baseParams.push(...accessibleUserIds, ...accessibleUserIds);
       }
     }
     const [[{ overall_total }]] = await pool.query(
@@ -191,7 +195,7 @@ const getContact = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         q += ' AND 1 = 0 ';
       } else {
-        q += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))`;
+        q += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IS NULL OR c.assigned_to = 0)`;
         params.push(...accessibleUserIds, ...accessibleUserIds);
       }
     }
@@ -847,9 +851,14 @@ const deleteContact = async (req, res) => {
 
     let checkQuery = 'SELECT id FROM contacts WHERE id = ? AND business_id = ?';
     const params = [contactId, bizId];
-    if (req.user.role === 'agent') {
-      checkQuery += ' AND assigned_to = ?';
-      params.push(req.user.userId);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        checkQuery += ' AND 1 = 0 ';
+      } else {
+        checkQuery += ` AND (assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}) OR assigned_to IS NULL OR assigned_to = 0)`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
+      }
     }
     const [check] = await pool.query(checkQuery, params);
     if (!check.length) {
@@ -1184,8 +1193,8 @@ const getContactHistory = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         q += ' AND 1 = 0 ';
       } else {
-        q += ` AND assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
-        params.push(...accessibleUserIds);
+        q += ` AND (assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}) OR assigned_to IS NULL OR assigned_to = 0)`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
       }
     }
     const [contacts] = await pool.query(q, params);
@@ -1649,9 +1658,23 @@ const processLegacyImportContacts = async (conn, req, res, leads, statusAndAssig
       const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
       const userList  = [assignedTo];
 
+      // Resolve Channel via Stored Procedure sp_resolve_or_create_channel
+      let rowChannelId = null;
+      let rowResolvedChannel = finalChannel;
+      try {
+        await conn.query('CALL sp_resolve_or_create_channel(?, ?, @cid, @cname)', [bizId, finalChannel]);
+        const [[chRes]] = await conn.query('SELECT @cid AS channel_id, @cname AS channel_name');
+        if (chRes) {
+          rowChannelId = chRes.channel_id || null;
+          rowResolvedChannel = chRes.channel_name || finalChannel;
+        }
+      } catch (chErr) {
+        console.warn('[processLegacyImportContacts] Channel SP warning:', chErr.message);
+      }
+
       const [result] = await conn.query(
-        'INSERT INTO contacts (business_id, name, phone, email, tags, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source, enquiry_for_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), finalChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, rowStatusId, rowStatusName, row_current_sale_status, row_sale_won, row_sale_won_date, row_sale_won_by, row_sale_lost, row_sale_lost_date, row_sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import', rowEnquiryForId || null]
+        'INSERT INTO contacts (business_id, name, phone, email, tags, channel_id, channel_preference, assigned_to, address, follow_up_date, follow_up, branch_id, branch_name, department_id, department_name, status_id, status_name, current_sale_status, sale_won, sale_won_date, sale_won_by, sale_lost, sale_lost_date, sale_lost_by, created_by_user, user_list, loss_reason, opt_in_source, enquiry_for_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [bizId, name || null, phone || null, email, JSON.stringify(tagsArray), rowChannelId, rowResolvedChannel, assignedTo, address, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0, branchId, branchName, departmentId, departmentName, rowStatusId, rowStatusName, row_current_sale_status, row_sale_won, row_sale_won_date, row_sale_won_by, row_sale_lost, row_sale_lost_date, row_sale_lost_by, userId, JSON.stringify(userList), loss_reason || null, 'import', rowEnquiryForId || null]
       );
       const contactId = result.insertId;
 
@@ -2072,7 +2095,38 @@ const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignm
     });
   }
 
-  // 4. Atomic Bulk Insertion into `contacts`, `imported_leads`, and `follow_ups`
+  // 4. Resolve / create channels for unique sources using Stored Procedure sp_resolve_or_create_channel
+  const uniqueSources = Array.from(new Set(readyToInsertRows.map(r => r.source || 'whatsapp')));
+  const channelResolutionMap = new Map();
+
+  for (const src of uniqueSources) {
+    const cleanSrc = (src || 'whatsapp').trim().slice(0, 100);
+    const lowerKey = cleanSrc.toLowerCase();
+    if (!channelResolutionMap.has(lowerKey)) {
+      try {
+        await conn.query('CALL sp_resolve_or_create_channel(?, ?, @cid, @cname)', [bizId, cleanSrc]);
+        const [[res]] = await conn.query('SELECT @cid AS channel_id, @cname AS channel_name');
+        if (res) {
+          channelResolutionMap.set(lowerKey, {
+            id: res.channel_id,
+            name: res.channel_name
+          });
+        }
+      } catch (chErr) {
+        console.warn('[processBulkImportContacts] Channel SP warning for ' + cleanSrc + ':', chErr.message);
+        channelResolutionMap.set(lowerKey, { id: null, name: cleanSrc });
+      }
+    }
+  }
+
+  for (const r of readyToInsertRows) {
+    const lowerKey = (r.source || 'whatsapp').trim().slice(0, 100).toLowerCase();
+    const mapped = channelResolutionMap.get(lowerKey);
+    r.channel_id = mapped ? mapped.id : null;
+    r.channel_preference = mapped ? mapped.name : (r.source || 'whatsapp');
+  }
+
+  // 5. Atomic Bulk Insertion into `contacts`, `imported_leads`, and `follow_ups`
   const importBatchId = 'batch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
   const BATCH_SIZE = 500;
   let inserted = 0;
@@ -2088,6 +2142,7 @@ const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignm
       r.country_code,
       r.email,
       r.tagsJson,
+      r.channel_id,
       r.channel_preference,
       r.assigned_to,
       r.address,
@@ -2117,7 +2172,7 @@ const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignm
     const [contactInsertResult] = await conn.query(
       `INSERT INTO contacts (
         business_id, name, phone, country_code, email, tags,
-        channel_preference, assigned_to, address, follow_up_date, follow_up,
+        channel_id, channel_preference, assigned_to, address, follow_up_date, follow_up,
         branch_id, branch_name, department_id, department_name,
         status_id, status_name, current_sale_status,
         sale_won, sale_won_date, sale_won_by,
@@ -2142,6 +2197,7 @@ const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignm
       r.address,
       r.tagsJson,
       'import',
+      r.channel_id,
       r.channel_preference,
       r.source,
       r.enquiry_for_id,
@@ -2175,7 +2231,7 @@ const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignm
       `INSERT INTO imported_leads (
         business_id, contact_id, import_batch_id,
         name, phone, country_code, email, address, tags,
-        opt_in_source, channel_preference, source,
+        opt_in_source, channel_id, channel_preference, source,
         enquiry_for_id, enquiry_for_name,
         status_id, status_name,
         lead_date, follow_up_date, follow_up,
@@ -3056,22 +3112,22 @@ const getTotalLeads = async (req, res) => {
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND c.assigned_to = ? ';
-          params.push(reqAgentId);
+          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
+          params.push(reqAgentId, reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
-        where += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IS NULL)`;
-        params.push(...accessibleUserIds);
+        where += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IS NULL)`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
       }
     } else {
       // Admin / Superadmin
       if (agent === 'unassigned') {
         where += ' AND c.assigned_to IS NULL';
       } else if (agent) {
-        where += ' AND c.assigned_to = ?';
-        params.push(agent);
+        where += ' AND (c.assigned_to = ? OR c.created_by_user = ?)';
+        params.push(agent, agent);
       }
     }
 
@@ -3115,7 +3171,7 @@ const getTotalLeads = async (req, res) => {
         COUNT(*) as total,
         COUNT(CASE WHEN c.follow_up_date IS NOT NULL THEN 1 END) as with_followup,
         COUNT(CASE WHEN c.follow_up_date IS NULL THEN 1 END) as without_followup,
-        COUNT(CASE WHEN c.assigned_to IS NULL THEN 1 END) as unassigned_count,
+        COUNT(CASE WHEN c.assigned_to IS NULL OR c.assigned_to = 0 THEN 1 END) as unassigned_count,
         COUNT(CASE WHEN c.status_name IS NULL OR TRIM(c.status_name) = '' THEN 1 END) as no_status_count,
         COUNT(CASE WHEN EXISTS (SELECT 1 FROM receipts r WHERE r.contact_id = c.id AND r.amount > 0) THEN 1 END) as with_payment_count,
         COALESCE(SUM((SELECT SUM(r.amount) FROM receipts r WHERE r.contact_id = c.id)), 0) as total_payment_collected

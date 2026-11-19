@@ -11,8 +11,8 @@
       </p> -->
     </div>
 
-    <!-- Filter Control Bar -->
-    <div class="header-actions d-flex align-items-center gap-2">
+    <!-- Filter Control Bar (Only for admin, superadmin, manager) -->
+    <div class="header-actions d-flex align-items-center gap-2" *ngIf="canFilterAgents">
       <app-excel-export-btn
         endpoint="/export/daily-report"
         [filters]="getExportFilters()"
@@ -78,8 +78,8 @@
 
         <div class="toolbar-divider"></div>
 
-        <!-- Employee Filter -->
-        <div class="filter-dropdown-wrapper">
+        <!-- Employee Filter (Only for admin, superadmin, manager) -->
+        <div class="filter-dropdown-wrapper" *ngIf="canFilterAgents">
           <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen">
             <i class="bi bi-person-badge filter-icon user-icon"></i>
             <span class="filter-label">{{ getSelectedEmployeeName() }}</span>

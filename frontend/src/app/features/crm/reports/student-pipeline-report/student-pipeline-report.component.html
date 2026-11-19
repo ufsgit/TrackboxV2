@@ -6,7 +6,7 @@
         <h2 class="report-title">Student Pipeline</h2>
         <!-- <p class="report-subtitle">Assigned leads performance by employee</p> -->
       </div>
-      <div class="header-actions">
+      <div class="header-actions" *ngIf="canFilterAgents">
         <div class="filter-toolbar">
           <!-- Custom Date Picker -->
           <div class="filter-dropdown-wrapper">
@@ -59,8 +59,8 @@
 
           <div class="filter-divider"></div>
 
-          <!-- Custom Employee Dropdown -->
-          <div class="filter-dropdown-wrapper">
+          <!-- Custom Employee Dropdown (Only for admin, superadmin, manager) -->
+          <div class="filter-dropdown-wrapper" *ngIf="canFilterAgents">
             <div class="filter-item" (click)="toggleEmployeeDropdown()" [class.active]="isEmployeeDropdownOpen">
               <i class="bi bi-person filter-icon"></i>
               <span class="filter-value">{{ getSelectedEmployeeName() }}</span>

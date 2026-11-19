@@ -380,161 +380,266 @@
   <!-- MODAL: REGISTER / EDIT VISA CASE                             -->
   <!-- ============================================================ -->
   <div class="modal-backdrop" *ngIf="showCaseModal" (click)="closeCaseModal()"></div>
-  <div class="custom-modal modal-lg" *ngIf="showCaseModal">
+  <div class="custom-modal modal-3col" *ngIf="showCaseModal">
     <div class="modal-header">
-      <h5 class="modal-title fw-bold">
-        <i class="bi bi-passport text-primary me-2"></i>
-        {{ isEditing ? 'Edit Visa Case Record' : 'Register New Visa Case' }}
-      </h5>
-      <button class="btn-close-modal" (click)="closeCaseModal()"><i class="bi bi-x-lg"></i></button>
+      <div class="modal-title-wrap">
+        <div class="modal-icon-badge">
+          <i class="bi bi-passport"></i>
+        </div>
+        <div>
+          <h4 class="modal-title">{{ isEditing ? 'Edit Visa Case Record' : 'Register New Visa Case' }}</h4>
+          <p class="modal-subtitle">Structured immigration case workflow, official references, and critical milestone dates</p>
+        </div>
+      </div>
+      <button class="btn-close-modal" (click)="closeCaseModal()" title="Close"><i class="bi bi-x-lg"></i></button>
     </div>
 
     <div class="modal-body">
-      <div class="student-info-bar mb-3">
-        <i class="bi bi-person-fill text-primary"></i>
-        <strong>{{ studentName || contact?.name || 'Student' }}</strong>
-        <span class="text-muted ms-2" *ngIf="contact?.phone">({{ contact?.phone }})</span>
+      <!-- Student Info Strip -->
+      <div class="student-profile-strip mb-3">
+        <div class="student-avatar-circle">
+          {{ (studentName || contact?.name || 'S').slice(0,1).toUpperCase() }}
+        </div>
+        <div class="student-meta">
+          <span class="student-name">{{ studentName || contact?.name || 'Student' }}</span>
+          <span class="student-phone" *ngIf="contact?.phone">
+            <i class="bi bi-telephone-fill me-1"></i>{{ contact?.phone }}
+          </span>
+        </div>
+        <span class="student-case-badge ms-auto">
+          <i class="bi bi-shield-check me-1"></i>Active Case File
+        </span>
       </div>
 
-      <div class="row g-3">
-        <!-- Visa Type -->
-        <div class="col-md-6">
-          <label class="form-label required">Visa Type</label>
-          <select 
-            [(ngModel)]="caseForm.visa_type" 
-            class="form-select"
-            (focus)="loadVisaTypes()" 
-            (mousedown)="loadVisaTypes()">
-            <option *ngFor="let vt of visaTypeOptions" [value]="vt">{{ vt }}</option>
-          </select>
+      <!-- 3-Column Form Grid -->
+      <div class="visa-form-3col-grid">
+
+        <!-- Column 1: Case Details & Status -->
+        <div class="form-col-section">
+          <div class="col-section-header">
+            <div class="col-header-icon col-icon-primary">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div>
+              <span class="col-header-title">Case & Status</span>
+              <span class="col-header-sub">Core identification</span>
+            </div>
+          </div>
+
+          <div class="col-fields-stack">
+            <!-- Visa Type -->
+            <div class="form-group">
+              <label class="form-label required">Visa Type</label>
+              <select 
+                [(ngModel)]="caseForm.visa_type" 
+                class="form-select"
+                (focus)="loadVisaTypes()" 
+                (mousedown)="loadVisaTypes()">
+                <option *ngFor="let vt of visaTypeOptions" [value]="vt">{{ vt }}</option>
+              </select>
+            </div>
+
+            <!-- Application Number -->
+            <div class="form-group">
+              <label class="form-label">Application Number (Official Ref)</label>
+              <input
+                type="text"
+                [(ngModel)]="caseForm.application_no"
+                placeholder="e.g. VAF-128491, INZ-49120"
+                class="form-control"
+              />
+            </div>
+
+            <!-- Assigned Visa Staff -->
+            <div class="form-group">
+              <label class="form-label">Assigned Visa Staff</label>
+              <select 
+                [(ngModel)]="caseForm.assigned_staff_id" 
+                class="form-select"
+                (focus)="fetchStaffList()" 
+                (mousedown)="fetchStaffList()">
+                <option [ngValue]="null">Select Owner / Staff</option>
+                <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
+              </select>
+            </div>
+
+            <!-- Status -->
+            <div class="form-group">
+              <label class="form-label required">Status</label>
+              <select 
+                [(ngModel)]="caseForm.status" 
+                class="form-select status-select-field"
+                (focus)="loadVisaStatuses()" 
+                (mousedown)="loadVisaStatuses()">
+                <option *ngFor="let st of statusOptions" [value]="st">{{ st }}</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <!-- Application Number -->
-        <div class="col-md-6">
-          <label class="form-label">Application Number (Official Ref)</label>
-          <input
-            type="text"
-            [(ngModel)]="caseForm.application_no"
-            placeholder="e.g. VAF-128491, INZ-49120"
-            class="form-control"
-          />
+        <!-- Column 2: Embassy & Timeline Dates -->
+        <div class="form-col-section">
+          <div class="col-section-header">
+            <div class="col-header-icon col-icon-cyan">
+              <i class="bi bi-building"></i>
+            </div>
+            <div>
+              <span class="col-header-title">Embassy & Timeline</span>
+              <span class="col-header-sub">Submission & extensions</span>
+            </div>
+          </div>
+
+          <div class="col-fields-stack">
+            <!-- Submission Date -->
+            <div class="form-group">
+              <label class="form-label">Submission Date</label>
+              <input type="date" [(ngModel)]="caseForm.submission_date" class="form-control" />
+            </div>
+
+            <!-- Officer / Embassy Contact -->
+            <div class="form-group">
+              <label class="form-label">Officer / Embassy Contact</label>
+              <input
+                type="text"
+                [(ngModel)]="caseForm.officer_name"
+                placeholder="Officer Name / High Commission Desk"
+                class="form-control"
+              />
+            </div>
+
+            <!-- Extension Requested Date -->
+            <div class="form-group">
+              <label class="form-label">Extension Requested Date</label>
+              <input type="date" [(ngModel)]="caseForm.extension_requested_date" class="form-control" />
+            </div>
+
+            <!-- Extension Approved Date -->
+            <div class="form-group">
+              <label class="form-label">Extension Approved Date</label>
+              <input type="date" [(ngModel)]="caseForm.extension_approved_date" class="form-control" />
+            </div>
+          </div>
         </div>
 
-        <!-- Assigned Visa Staff -->
-        <div class="col-md-6">
-          <label class="form-label">Assigned Visa Staff</label>
-          <select 
-            [(ngModel)]="caseForm.assigned_staff_id" 
-            class="form-select"
-            (focus)="fetchStaffList()" 
-            (mousedown)="fetchStaffList()">
-            <option [ngValue]="null">Select Owner / Staff</option>
-            <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
-          </select>
+        <!-- Column 3: Decisions & Travel -->
+        <div class="form-col-section">
+          <div class="col-section-header">
+            <div class="col-header-icon col-icon-purple">
+              <i class="bi bi-airplane"></i>
+            </div>
+            <div>
+              <span class="col-header-title">Decisions & Travel</span>
+              <span class="col-header-sub">Outcome & milestone dates</span>
+            </div>
+          </div>
+
+          <div class="col-fields-stack">
+            <!-- Outcome Date -->
+            <div class="form-group">
+              <label class="form-label">Outcome Date (Approval / Decline)</label>
+              <input type="date" [(ngModel)]="caseForm.outcome_date" class="form-control" />
+            </div>
+
+            <!-- Visa Expiry Date -->
+            <div class="form-group">
+              <label class="form-label">Visa Expiry Date</label>
+              <input type="date" [(ngModel)]="caseForm.visa_expiry_date" class="form-control" />
+            </div>
+
+            <!-- Travel Date -->
+            <div class="form-group">
+              <label class="form-label">Travel / Departure Date</label>
+              <input type="date" [(ngModel)]="caseForm.travel_date" class="form-control" />
+            </div>
+
+            <!-- Intake Date -->
+            <div class="form-group">
+              <label class="form-label">Course / Intake Start Date</label>
+              <input type="date" [(ngModel)]="caseForm.intake_date" class="form-control" />
+            </div>
+          </div>
         </div>
 
-        <!-- Status -->
-        <div class="col-md-6">
-          <label class="form-label required">Status</label>
-          <select 
-            [(ngModel)]="caseForm.status" 
-            class="form-select"
-            (focus)="loadVisaStatuses()" 
-            (mousedown)="loadVisaStatuses()">
-            <option *ngFor="let st of statusOptions" [value]="st">{{ st }}</option>
-          </select>
+      </div>
+
+      <!-- VISA-004 Reason / Refusal Requirements (Shown when status requires reason or status is Declined) -->
+      <div *ngIf="statusRequiresReason()" class="reason-requirements-card mt-3">
+        <div class="reason-card-header">
+          <div class="reason-header-left">
+            <div class="reason-header-icon">
+              <i class="bi bi-shield-exclamation"></i>
+            </div>
+            <div>
+              <div class="reason-header-title">
+                <span>Reason Category & Grounds Justification</span>
+                <span class="reason-compliance-tag">VISA-004</span>
+              </div>
+              <p class="reason-header-sub">Mandatory compliance categorization and refusal remarks required for this case status</p>
+            </div>
+          </div>
+          <div class="reason-status-badge">
+            <i class="bi bi-flag-fill me-1"></i>Status: <strong>{{ caseForm.status }}</strong>
+          </div>
         </div>
 
-        <!-- Submission Date -->
-        <div class="col-md-6">
-          <label class="form-label">Submission Date</label>
-          <input type="date" [(ngModel)]="caseForm.submission_date" class="form-control" />
-        </div>
+        <div class="reason-card-body">
+          <div class="reason-grid-2col">
+            <!-- Left: Reason Category -->
+            <div class="form-group reason-category-field">
+              <label class="form-label required">
+                <i class="bi bi-tag-fill me-1 text-danger"></i> Reason Category
+              </label>
+              <select 
+                [(ngModel)]="caseForm.decline_category" 
+                class="form-select reason-select"
+                (focus)="loadReasonCategories()" 
+                (mousedown)="loadReasonCategories()">
+                <option value="">Select Categorized Reason Grounds</option>
+                <option *ngFor="let dc of getFilteredReasonCategories()" [value]="dc">{{ dc }}</option>
+              </select>
+              <span class="reason-field-hint">
+                <i class="bi bi-info-circle me-1"></i> Official categorized grounds based on embassy policy
+              </span>
+            </div>
 
-        <!-- Officer / Embassy Contact -->
-        <div class="col-md-6">
-          <label class="form-label">Officer / Embassy Contact</label>
-          <input
-            type="text"
-            [(ngModel)]="caseForm.officer_name"
-            placeholder="Officer Name / High Commission Desk"
-            class="form-control"
-          />
-        </div>
-
-        <!-- Extension Requested Date -->
-        <div class="col-md-6">
-          <label class="form-label">Extension Requested Date</label>
-          <input type="date" [(ngModel)]="caseForm.extension_requested_date" class="form-control" />
-        </div>
-
-        <!-- Extension Approved Date -->
-        <div class="col-md-6">
-          <label class="form-label">Extension Approved Date</label>
-          <input type="date" [(ngModel)]="caseForm.extension_approved_date" class="form-control" />
-        </div>
-
-        <!-- Outcome Date -->
-        <div class="col-md-6">
-          <label class="form-label">Outcome Date (Approval / Decline)</label>
-          <input type="date" [(ngModel)]="caseForm.outcome_date" class="form-control" />
-        </div>
-
-        <!-- Visa Expiry Date -->
-        <div class="col-md-6">
-          <label class="form-label">Visa Expiry Date</label>
-          <input type="date" [(ngModel)]="caseForm.visa_expiry_date" class="form-control" />
-        </div>
-
-        <!-- Travel Date -->
-        <div class="col-md-6">
-          <label class="form-label">Travel / Departure Date</label>
-          <input type="date" [(ngModel)]="caseForm.travel_date" class="form-control" />
-        </div>
-
-        <!-- Intake Date -->
-        <div class="col-md-6">
-          <label class="form-label">Course / Intake Start Date</label>
-          <input type="date" [(ngModel)]="caseForm.intake_date" class="form-control" />
+            <!-- Right: Detailed Notes -->
+            <div class="form-group reason-notes-field">
+              <label class="form-label required">
+                <i class="bi bi-file-earmark-text-fill me-1 text-danger"></i> Detailed Reason & Refusal Notes
+              </label>
+              <textarea
+                [(ngModel)]="caseForm.decline_detailed_notes"
+                rows="3"
+                class="form-control reason-textarea"
+                placeholder="Preserve detailed decision letter citations, refusal clauses, and case officer remarks..."
+              ></textarea>
+              <span class="reason-field-hint">
+                <i class="bi bi-shield-check me-1"></i> Formally preserved in student timeline audit trail
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- VISA-004 Decline / Reason Category (Required if has_reason=1 or Declined) -->
-      <div *ngIf="statusRequiresReason()" class="mt-3 p-3 bg-light border border-danger rounded">
-        <h6 class="text-danger fw-bold mb-2">
-          <i class="bi bi-x-octagon me-1"></i> VISA-004: Reason Category Requirements ({{ caseForm.status }})
-        </h6>
-        <div class="mb-2">
-          <label class="form-label required">Reason Category</label>
-          <select 
-            [(ngModel)]="caseForm.decline_category" 
-            class="form-select border-danger"
-            (focus)="loadReasonCategories()" 
-            (mousedown)="loadReasonCategories()">
-            <option value="">Select Categorized Reason Grounds</option>
-            <option *ngFor="let dc of getFilteredReasonCategories()" [value]="dc">{{ dc }}</option>
-          </select>
+      <!-- Case Notes / Outcome Remarks -->
+      <div class="case-notes-card mt-3">
+        <div class="notes-card-header">
+          <div class="notes-header-icon">
+            <i class="bi bi-chat-left-dots-fill"></i>
+          </div>
+          <div>
+            <span class="notes-header-title">Outcome Notes & File Remarks</span>
+            <span class="notes-header-sub">Internal record, conditions, or consular correspondence remarks</span>
+          </div>
         </div>
-        <div>
-          <label class="form-label required">Detailed Reason & Refusal Notes</label>
+        <div class="notes-card-body">
           <textarea
-            [(ngModel)]="caseForm.decline_detailed_notes"
-            rows="3"
-            class="form-control"
-            placeholder="Preserve detailed letter points, clauses, and grounds..."
+            [(ngModel)]="caseForm.outcome_notes"
+            rows="2"
+            class="form-control notes-textarea"
+            placeholder="Decision remarks, grant conditions, interview records, or embassy communications..."
           ></textarea>
         </div>
-      </div>
-
-      <!-- Outcome Notes -->
-      <div class="mt-3">
-        <label class="form-label">Outcome Notes / Remarks</label>
-        <textarea
-          [(ngModel)]="caseForm.outcome_notes"
-          rows="2"
-          class="form-control"
-          placeholder="Decision remarks, grant conditions, or embassy communications..."
-        ></textarea>
       </div>
     </div>
 

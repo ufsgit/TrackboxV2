@@ -13,10 +13,10 @@
       </span>
     </div>
 
-    <!-- Inline Filters & Actions -->
-    <div class="toolbar-cluster">
-      <!-- Staff Select -->
-      <div class="control-field">
+    <!-- Inline Filters & Actions (Only for admin, superadmin, manager) -->
+    <div class="toolbar-cluster" *ngIf="canFilterAgents">
+      <!-- Staff Select (Only for admin, superadmin, manager) -->
+      <div class="control-field" *ngIf="canFilterAgents">
         <i class="bi bi-person-badge field-icon"></i>
         <select class="form-control-compact" [(ngModel)]="selectedAgent" (change)="loadData()">
           <option value="all">All Staff Members</option>

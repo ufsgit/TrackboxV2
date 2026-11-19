@@ -166,12 +166,64 @@
   align-items: center;
   gap: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background 0.2s;
 }
 
-.metric-card:hover {
+.clickable-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+.clickable-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.clickable-card.selected-filter-card {
+  border-color: #8b5cf6 !important;
+  background: #faf5ff !important;
+  box-shadow: 0 6px 18px rgba(139, 92, 246, 0.2) !important;
+  outline: 2px solid #8b5cf6;
+}
+
+.btn-unassigned-filter {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-unassigned-filter:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.btn-unassigned-filter.active {
+  background: #fdf2f8;
+  border-color: #ec4899;
+  color: #be185d;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.2);
+}
+
+.unassigned-bubble {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 1px 7px;
+  margin-left: 2px;
 }
 
 .metric-icon {

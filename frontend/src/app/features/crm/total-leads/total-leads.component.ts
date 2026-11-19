@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { SystemSettingsService } from '../../../core/services/system-settings.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { LeadProfileModalComponent } from '../../../shared/components/lead-profile-modal/lead-profile-modal.component';
 import { UpdateLeadStatusModalComponent } from '../../../shared/components/update-lead-status-modal/update-lead-status-modal.component';
 import {
@@ -132,10 +133,50 @@ export class TotalLeadsComponent implements OnInit {
   constructor(
     private api: ApiService,
     private router: Router,
-    private settingsService: SystemSettingsService
+    private settingsService: SystemSettingsService,
+    public auth: AuthService
   ) {}
 
+  get isAdmin(): boolean {
+    const role = (this.auth.currentUser?.role || '').toLowerCase();
+    return role === 'admin' || role === 'superadmin';
+  }
+
+  get canFilterAgents(): boolean {
+    return this.auth.canFilterAgents();
+  }
+
+  filterByUnassigned(): void {
+    if (this.activeAgent === 'unassigned') {
+      this.activeAgent = '';
+    } else {
+      this.activeAgent = 'unassigned';
+    }
+    this.onFilterChange();
+  }
+
+  filterByFollowup(val: string): void {
+    if (this.activeFollowup === val) {
+      this.activeFollowup = '';
+    } else {
+      this.activeFollowup = val;
+    }
+    this.onFilterChange();
+  }
+
+  filterAll(): void {
+    this.activeAgent = '';
+    this.activeFollowup = '';
+    this.activeStatus = '';
+    this.activePayment = '';
+    this.searchTerm = '';
+    this.onFilterChange();
+  }
+
   ngOnInit(): void {
+    if (!this.canFilterAgents) {
+      this.activeAgent = this.auth.getCurrentUserId()?.toString() || '';
+    }
     this.loadStatuses();
     this.loadLeadStatuses();
     this.loadAgents();

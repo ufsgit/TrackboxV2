@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ExcelExportBtnComponent } from '../../../../shared/components/excel-export-btn/excel-export-btn.component';
 
 @Component({
@@ -54,6 +55,7 @@ export class DailyReportComponent implements OnInit {
 
   constructor(
     private api: ApiService,
+    public authService: AuthService,
     private cdr: ChangeDetectorRef,
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object
@@ -64,6 +66,10 @@ export class DailyReportComponent implements OnInit {
     const today = new Date().toISOString().split('T')[0];
     this.customStartDate = today;
     this.customEndDate = today;
+  }
+
+  get canFilterAgents(): boolean {
+    return this.authService.canFilterAgents();
   }
 
   @HostListener('document:click')
@@ -126,6 +132,9 @@ export class DailyReportComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (!this.canFilterAgents) {
+      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'All';
+    }
     this.fetchDropdowns();
     this.fetchData();
   }

@@ -295,17 +295,16 @@
                 </div>
                 <div>
                   <div class="smp-title">System Settings & Controls</div>
-                  <!-- <div class="smp-subtitle">Manage organization structure, academics, pipeline & integrations</div> -->
                 </div>
               </div>
-              <!-- <a routerLink="/system-settings" class="smp-hub-btn" (click)="isSettingsOpen = false">
+              <a routerLink="/system-settings" class="smp-hub-btn" (click)="isSettingsOpen = false">
                 <i class="bi bi-grid-fill"></i>
                 <span>Management Hub</span>
                 <i class="bi bi-arrow-right"></i>
-              </a> -->
+              </a>
             </div>
 
-            <!-- 4 Thematic Columns Grid -->
+            <!-- 5 Thematic Columns Grid -->
             <div class="smp-grid">
               <!-- Column 1: Organization -->
               <div class="smp-col">
@@ -369,6 +368,31 @@
                   <a routerLink="/system-settings/visa-reason-categories" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
                     <span class="smp-icon icon-rose"><i class="bi bi-exclamation-octagon-fill"></i></span>
                     <span class="smp-label">Reason Category</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Column 3: PTE Coaching -->
+              <div class="smp-col">
+                <div class="smp-col-header">
+                  <span class="smp-col-badge badge-amber">PTE Coaching</span>
+                </div>
+                <div class="smp-col-items">
+                  <a routerLink="/system-settings/pte-statuses" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-indigo"><i class="bi bi-bar-chart-steps"></i></span>
+                    <span class="smp-label">PTE Status</span>
+                  </a>
+                  <a routerLink="/system-settings/pte-packages" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-sky"><i class="bi bi-box-seam-fill"></i></span>
+                    <span class="smp-label">PTE Package</span>
+                  </a>
+                  <a routerLink="/system-settings/pte-batches" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-green"><i class="bi bi-people-fill"></i></span>
+                    <span class="smp-label">PTE Batch</span>
+                  </a>
+                  <a routerLink="/system-settings/pte-trainers" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-amber"><i class="bi bi-person-video3"></i></span>
+                    <span class="smp-label">PTE Trainer</span>
                   </a>
                 </div>
               </div>
@@ -450,13 +474,13 @@
 
             <!-- Footer Strip -->
             <div class="smp-footer">
-              <!-- <span class="smp-footer-text">
+              <span class="smp-footer-text">
                 <i class="bi bi-info-circle me-1"></i>
-                Looking for detailed search or cards overview?
-              </span> -->
-              <!-- <a routerLink="/system-settings" class="smp-footer-link" (click)="isSettingsOpen = false">
+                Looking for detailed cards overview?
+              </span>
+              <a routerLink="/system-settings" class="smp-footer-link" (click)="isSettingsOpen = false">
                 Open full Management Hub ➜
-              </a> -->
+              </a>
             </div>
           </div>
         </div>

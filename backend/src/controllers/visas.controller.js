@@ -1209,6 +1209,169 @@ const getVisaHistory = async (req, res) => {
   }
 };
 
+// GET /api/visas/leads-report
+// Retrieves matching leads joined between visas and contacts for a given status
+const getVisaLeadsReport = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    const {
+      status = 'all',
+      search = '',
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Resolve status name & id in JS without collation issues
+    let targetStatusName = status ? status.trim() : 'all';
+    let targetStatusId = null;
+
+    if (targetStatusName !== 'all') {
+      try {
+        const [matchedStatuses] = await pool.query(
+          `SELECT id, name FROM visa_statuses WHERE business_id = ? AND (BINARY LOWER(TRIM(name)) = BINARY LOWER(TRIM(?)) OR CAST(id AS CHAR) = ?) LIMIT 1`,
+          [businessId, targetStatusName, targetStatusName]
+        );
+        if (matchedStatuses && matchedStatuses.length > 0) {
+          targetStatusName = matchedStatuses[0].name;
+          targetStatusId = String(matchedStatuses[0].id);
+        }
+      } catch (e) {
+        console.warn('Status lookup note:', e.message);
+      }
+    }
+
+    // 1. Where clause
+    let whereSql = ` WHERE v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) AND (v.is_delete = 0 OR v.is_delete IS NULL) `;
+    const params = [businessId];
+
+    if (targetStatusName !== 'all') {
+      if (targetStatusId) {
+        whereSql += ` AND (
+          BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(?))
+          OR BINARY TRIM(v.status) = BINARY ?
+        ) `;
+        params.push(targetStatusName, targetStatusId);
+      } else {
+        whereSql += ` AND BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(?)) `;
+        params.push(targetStatusName);
+      }
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim()}%`;
+      whereSql += ` AND (
+        c.name LIKE ? OR 
+        v.contact_name LIKE ? OR 
+        c.phone LIKE ? OR 
+        v.contact_phone LIKE ? OR 
+        c.email LIKE ? OR 
+        v.application_no LIKE ? OR 
+        v.assigned_staff_name LIKE ? OR
+        v.officer_name LIKE ?
+      ) `;
+      params.push(s, s, s, s, s, s, s, s);
+    }
+
+    // 2. Count Total
+    const [countRows] = await pool.query(`
+      SELECT COUNT(*) as total
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      ${whereSql}
+    `, params);
+    const total = countRows[0]?.total || 0;
+
+    // 3. Fetch Paginated Records
+    const dataParams = [...params, limitNum, offset];
+    const [leads] = await pool.query(`
+      SELECT 
+        v.id as visa_id,
+        v.contact_id,
+        COALESCE(c.name, v.contact_name, 'Unknown') as contact_name,
+        COALESCE(c.phone, v.contact_phone, '—') as contact_phone,
+        COALESCE(c.email, '—') as contact_email,
+        c.address as contact_address,
+        COALESCE(v.visa_type, 'Student Visa') as visa_type,
+        v.status as visa_status,
+        COALESCE(vs.color, '#4f46e5') as status_color,
+        v.application_no,
+        v.visa_date,
+        v.submission_date,
+        v.outcome_date,
+        v.assigned_staff_id,
+        v.assigned_staff_name,
+        v.officer_name,
+        v.travel_date,
+        v.intake_date,
+        v.created_at
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      LEFT JOIN visa_statuses vs ON vs.business_id = v.business_id
+        AND (
+          BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
+          OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+        )
+      ${whereSql}
+      ORDER BY v.created_at DESC, v.id DESC
+      LIMIT ? OFFSET ?
+    `, dataParams);
+
+    // 4. Status Summary for tab strip
+    const [statusSummary] = await pool.query(`
+      SELECT 
+        vs.id,
+        vs.name,
+        COALESCE(vs.color, '#4f46e5') as color,
+        vs.stage_order,
+        COUNT(v.id) as count
+      FROM visa_statuses vs
+      LEFT JOIN visas v ON v.business_id = vs.business_id
+        AND (
+          BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
+          OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+        )
+        AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+        AND (v.is_delete = 0 OR v.is_delete IS NULL)
+      WHERE vs.business_id = ?
+        AND vs.is_active = 1
+      GROUP BY vs.id, vs.name, vs.color, vs.stage_order
+      ORDER BY vs.stage_order ASC, vs.id ASC
+    `, [businessId]);
+
+    // Total active across all statuses
+    const [overallCount] = await pool.query(`
+      SELECT COUNT(*) as total_all
+      FROM visas
+      WHERE business_id = ?
+        AND (is_deleted = 0 OR is_deleted IS NULL)
+        AND (is_delete = 0 OR is_delete IS NULL)
+    `, [businessId]);
+
+    res.json({
+      success: true,
+      data: {
+        leads,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum) || 1
+        },
+        totalAll: overallCount[0]?.total_all || 0,
+        statusSummary
+      },
+      message: 'OK'
+    });
+  } catch (err) {
+    console.error('getVisaLeadsReport error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getVisaList,
   getVisaMetrics,
@@ -1224,5 +1387,6 @@ module.exports = {
   getDeclineAnalytics,
   getAvailableStudents,
   getVisaStaffList,
-  getVisaHistory
+  getVisaHistory,
+  getVisaLeadsReport
 };

@@ -2615,3 +2615,143 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-11-17 16:57:06
+
+
+-- -------------------------------------------------------------
+-- PTE Management Module Tables
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `pte_batches` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `business_id` INT NOT NULL,
+  `batch_name` VARCHAR(150) NOT NULL,
+  `trainer_id` INT NULL,
+  `trainer_name` VARCHAR(255) NULL,
+  `schedule` VARCHAR(255) NULL,
+  `start_date` DATE NULL,
+  `end_date` DATE NULL,
+  `capacity` INT NOT NULL DEFAULT 20,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_pb_biz` (`business_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `pte_students` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `contact_id` INT NOT NULL,
+  `business_id` INT NOT NULL,
+  `original_counsellor_id` INT NULL,
+  `original_counsellor_name` VARCHAR(255) NULL,
+  `referring_counsellor_id` INT NULL,
+  `referring_counsellor_name` VARCHAR(255) NULL,
+  `recommendation_date` DATE NULL,
+  `referral_date` DATE NULL,
+  `join_date` DATE NULL,
+  `target_achievement_date` DATE NULL,
+  `application_date` DATE NULL,
+  `package_name` VARCHAR(150) NULL,
+  `target_score` DECIMAL(4,1) NULL,
+  `current_score` DECIMAL(4,1) NULL,
+  `batch_id` INT NULL,
+  `batch_name` VARCHAR(150) NULL,
+  `trainer_id` INT NULL,
+  `trainer_name` VARCHAR(255) NULL,
+  `status` VARCHAR(50) NOT NULL DEFAULT 'Recommended',
+  `target_achieved` TINYINT(1) DEFAULT 0,
+  `application_id` INT NULL,
+  `followup_date` DATE NULL,
+  `followup_remarks` TEXT NULL,
+  `remarks` TEXT NULL,
+  `created_by` INT NULL,
+  `is_deleted` TINYINT(1) DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `idx_ps_contact` (`contact_id`),
+  INDEX `idx_ps_biz` (`business_id`),
+  INDEX `idx_ps_batch` (`batch_id`),
+  FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`batch_id`) REFERENCES `pte_batches` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `pte_attendance` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `pte_student_id` INT NOT NULL,
+  `contact_id` INT NOT NULL,
+  `business_id` INT NOT NULL,
+  `batch_id` INT NULL,
+  `session_date` DATE NOT NULL,
+  `session_title` VARCHAR(255) NULL,
+  `status` ENUM('Present', 'Absent', 'Late', 'Excused') DEFAULT 'Present',
+  `remarks` TEXT NULL,
+  `marked_by` INT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_pa_student` (`pte_student_id`),
+  INDEX `idx_pa_contact` (`contact_id`),
+  FOREIGN KEY (`pte_student_id`) REFERENCES `pte_students` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `pte_mock_tests` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `pte_student_id` INT NOT NULL,
+  `contact_id` INT NOT NULL,
+  `business_id` INT NOT NULL,
+  `test_date` DATE NOT NULL,
+  `test_title` VARCHAR(150) DEFAULT 'Mock Test',
+  `overall_score` DECIMAL(4,1) NOT NULL,
+  `listening` DECIMAL(4,1) NULL,
+  `reading` DECIMAL(4,1) NULL,
+  `speaking` DECIMAL(4,1) NULL,
+  `writing` DECIMAL(4,1) NULL,
+  `comments` TEXT NULL,
+  `evaluated_by` INT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_pm_student` (`pte_student_id`),
+  INDEX `idx_pm_contact` (`contact_id`),
+  FOREIGN KEY (`pte_student_id`) REFERENCES `pte_students` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `pte_exams` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `pte_student_id` INT NOT NULL,
+  `contact_id` INT NOT NULL,
+  `business_id` INT NOT NULL,
+  `booking_date` DATE NULL,
+  `exam_date` DATE NOT NULL,
+  `venue` VARCHAR(255) NULL,
+  `mode` ENUM('Offline Center', 'Online / Home') DEFAULT 'Offline Center',
+  `notes` TEXT NULL,
+  `result_status` ENUM('Result Pending', 'Result Received') DEFAULT 'Result Pending',
+  `result_received_date` DATE NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_pe_student` (`pte_student_id`),
+  INDEX `idx_pe_contact` (`contact_id`),
+  FOREIGN KEY (`pte_student_id`) REFERENCES `pte_students` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS `pte_results` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `pte_student_id` INT NOT NULL,
+  `contact_id` INT NOT NULL,
+  `business_id` INT NOT NULL,
+  `exam_id` INT NULL,
+  `exam_date` DATE NOT NULL,
+  `overall_score` DECIMAL(4,1) NOT NULL,
+  `listening` DECIMAL(4,1) NULL,
+  `reading` DECIMAL(4,1) NULL,
+  `speaking` DECIMAL(4,1) NULL,
+  `writing` DECIMAL(4,1) NULL,
+  `target_score` DECIMAL(4,1) NULL,
+  `target_achieved` TINYINT(1) DEFAULT 0,
+  `achievement_date` DATE NULL,
+  `next_action` VARCHAR(255) NULL,
+  `remarks` TEXT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_pr_student` (`pte_student_id`),
+  INDEX `idx_pr_contact` (`contact_id`),
+  FOREIGN KEY (`pte_student_id`) REFERENCES `pte_students` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

@@ -98,6 +98,7 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
 
   kpis: any[] = [];
   applicationStatusKpis: any[] = [];
+  visaStatusKpis: any[] = [];
   funnel: any[] = [];
   funnelH = 0;
   hoveredStage: number | null = null;
@@ -255,9 +256,24 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
+  public loadVisaStatusKpis(): void {
+    this.api.get('/analytics/visa-status-kpis', { range: this.range }).subscribe({
+      next: (res: any) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          this.visaStatusKpis = res.data;
+          this.build();
+        }
+      },
+      error: (err: any) => {
+        console.error('Error fetching visa status KPIs:', err);
+      }
+    });
+  }
+
   public loadDashboardData(): void {
     this.syncing = true;
     this.loadApplicationStatusKpis();
+    this.loadVisaStatusKpis();
     this.api.get('/analytics/crm-dashboard', { 
       range: this.range,
       year: this.monthlySelectedYear,
@@ -533,7 +549,22 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
       };
     });
 
-    this.kpis = [...baseKpis, ...dynamicStatusKpis].map(k => ({ ...k, display: String(k.value) }));
+    const dynamicVisaKpis = (this.visaStatusKpis || []).map((st: any, idx: number) => {
+      const color = st.color && st.color !== '#475569' ? st.color : statusPalette[(idx + 2) % statusPalette.length];
+      return {
+        label: st.name || st.label,
+        value: Number(st.count !== undefined ? st.count : st.value) || 0,
+        icon: 'i-plane',
+        color: color,
+        tint: color + '18',
+        delta: st.pct || '0%',
+        spark: [0, 0, 0, 0, 0],
+        link: '/reports/visa-leads',
+        queryParams: { status: st.name }
+      };
+    });
+
+    this.kpis = [...baseKpis, ...dynamicStatusKpis, ...dynamicVisaKpis].map(k => ({ ...k, display: String(k.value) }));
 
     // Build Lead Status Pipeline Funnel from backend SP stages (or fallback)
     const stages = (this.rawPipelineStages && this.rawPipelineStages.length > 0)

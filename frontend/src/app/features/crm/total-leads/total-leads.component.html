@@ -42,42 +42,38 @@
   <!-- ── Metric Cards ───────────────────────────────────────── -->
   <section class="metrics-grid" aria-label="Leads Overview">
     <!-- Card 1: Total Leads -->
-    <div class="metric-card metric-blue">
+    <div class="metric-card metric-blue clickable-card" (click)="filterAll()" [class.selected-filter-card]="!activeAgent && !activeFollowup && !activeStatus && !activePayment" title="Show All Leads">
       <div class="metric-icon"><i class="bi bi-people-fill"></i></div>
       <div class="metric-content">
         <span class="metric-label">Total Leads</span>
         <span class="metric-value">{{ (metrics.total || totalLeads) | number }}</span>
-        <!-- <span class="metric-sub">Complete Directory</span> -->
       </div>
     </div>
 
     <!-- Card 2: With Follow-up -->
-    <div class="metric-card metric-green">
+    <div class="metric-card metric-green clickable-card" (click)="filterByFollowup('1')" [class.selected-filter-card]="activeFollowup === '1'" title="Filter With Follow-up Date">
       <div class="metric-icon"><i class="bi bi-calendar-check-fill"></i></div>
       <div class="metric-content">
         <span class="metric-label">With Follow-up Date</span>
         <span class="metric-value">{{ metrics.with_followup | number }}</span>
-        <!-- <span class="metric-sub">Scheduled follow-ups</span> -->
       </div>
     </div>
 
     <!-- Card 3: No Follow-up -->
-    <div class="metric-card metric-orange">
+    <div class="metric-card metric-orange clickable-card" (click)="filterByFollowup('0')" [class.selected-filter-card]="activeFollowup === '0'" title="Filter Without Follow-up Date">
       <div class="metric-icon"><i class="bi bi-calendar-x-fill"></i></div>
       <div class="metric-content">
         <span class="metric-label">Without Follow-up Date</span>
         <span class="metric-value">{{ metrics.without_followup | number }}</span>
-        <!-- <span class="metric-sub">No follow-up set</span> -->
       </div>
     </div>
 
     <!-- Card 4: Unassigned -->
-    <div class="metric-card metric-purple">
+    <div class="metric-card metric-purple clickable-card" (click)="filterByUnassigned()" [class.selected-filter-card]="activeAgent === 'unassigned'" title="Click to filter Unassigned Leads">
       <div class="metric-icon"><i class="bi bi-person-x-fill"></i></div>
       <div class="metric-content">
         <span class="metric-label">Unassigned Leads</span>
         <span class="metric-value">{{ metrics.unassigned | number }}</span>
-        <!-- <span class="metric-sub">Pending agent allocation</span> -->
       </div>
     </div>
 
@@ -87,7 +83,6 @@
       <div class="metric-content">
         <span class="metric-label">Total Payments</span>
         <span class="metric-value">₹{{ (metrics.total_payment_collected || 0) | number:'1.0-0' }}</span>
-        <!-- <span class="metric-sub">{{ metrics.with_payment | number }} Leads with Payments</span> -->
       </div>
     </div>
   </section>
@@ -129,14 +124,28 @@
         </select>
       </div>
 
-      <!-- Filter: Assigned Agent -->
-      <div class="filter-item">
+      <!-- Filter: Assigned Agent (Only for admin, superadmin, manager) -->
+      <div class="filter-item" *ngIf="canFilterAgents">
         <label class="filter-label"><i class="bi bi-person-badge me-1"></i>Agent</label>
         <select class="form-select custom-select" [(ngModel)]="activeAgent" (change)="onFilterChange()">
-          <option value="">All Agents</option>
+          <option value="">{{ isAdmin ? 'All Agents' : 'All Team Members' }}</option>
           <option value="unassigned">Unassigned Leads</option>
           <option *ngFor="let a of agents" [value]="a.id">{{ a.name }}</option>
         </select>
+      </div>
+
+      <!-- Quick Filter: Unassigned Leads -->
+      <div class="filter-item">
+        <label class="filter-label"><i class="bi bi-person-x me-1"></i>Unassigned</label>
+        <button type="button" 
+                class="btn-unassigned-filter" 
+                [class.active]="activeAgent === 'unassigned'" 
+                (click)="filterByUnassigned()" 
+                title="Filter leads that have no assigned employee">
+          <i class="bi bi-person-x-fill"></i>
+          <span>Unassigned Leads</span>
+          <span class="unassigned-bubble" *ngIf="metrics.unassigned > 0">{{ metrics.unassigned }}</span>
+        </button>
       </div>
 
       <!-- Filter: Payment Status -->

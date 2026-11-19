@@ -692,10 +692,71 @@ const getApplicationStatusKpis = async (req, res) => {
   }
 };
 
+const getVisaStatusKpis = async (req, res) => {
+  try {
+    const bizId = req.user.businessId;
+    const userId = req.user.userId || req.user.id;
+    const userRole = req.user.role || 'admin';
+    const range = req.query.range || 'all_time';
+
+    let statusCards = [];
+    try {
+      // 1. Try calling the dedicated stored procedure
+      const [spResults] = await pool.query(
+        'CALL sp_get_visa_status_kpis(?, ?, ?, ?)',
+        [bizId, Number(userId), userRole, range]
+      );
+      statusCards = spResults && spResults[0] ? spResults[0] : [];
+    } catch (spErr) {
+      console.warn('sp_get_visa_status_kpis call failed, using direct dynamic fallback query:', spErr.message);
+      // Direct SQL fallback: dynamically fetch all active statuses from visa_statuses and count from visas
+      const [rows] = await pool.query(`
+        SELECT 
+          vs.id,
+          vs.name,
+          COALESCE(vs.color, '#4f46e5') AS color,
+          vs.stage_order,
+          vs.description,
+          COUNT(v.id) AS count
+        FROM visa_statuses vs
+        LEFT JOIN visas v ON v.business_id = vs.business_id
+          AND (
+            BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
+            OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+          )
+          AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+          AND (v.is_delete = 0 OR v.is_delete IS NULL)
+        WHERE vs.business_id = ?
+          AND vs.is_active = 1
+        GROUP BY vs.id, vs.name, vs.color, vs.stage_order, vs.description
+        ORDER BY vs.stage_order ASC, vs.id ASC
+      `, [bizId]);
+      statusCards = rows;
+    }
+
+    res.json({
+      success: true,
+      data: statusCards.map(r => ({
+        id: r.id,
+        name: r.name,
+        label: r.name,
+        color: r.color || '#4f46e5',
+        stage_order: r.stage_order || 0,
+        count: Number(r.count) || 0,
+        pct: r.pct || '0.0%',
+        percentage: Number(r.percentage) || 0
+      }))
+    });
+  } catch (err) {
+    console.error('getVisaStatusKpis error:', err);
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
 module.exports = { 
   getDashboard, getMessagesAnalytics, getBroadcastsAnalytics, 
   getChatbotAnalytics, getContactGrowth, getCrmDashboardStats,
-  getMonthlyPerformance, getApplicationStatusKpis,
+  getMonthlyPerformance, getApplicationStatusKpis, getVisaStatusKpis,
   getEmployeeProductivity, getStudentPipeline, getFollowUpReport,
   getTeamProductivity, getTodaysActivity, getRawData
 };

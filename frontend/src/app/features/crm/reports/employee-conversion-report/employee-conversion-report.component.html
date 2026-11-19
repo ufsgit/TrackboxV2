@@ -15,12 +15,12 @@
       </span>
     </div>
 
-    <!-- Filter Actions Inline -->
-    <div class="header-actions">
+    <!-- Filter Actions Inline (Only for admin, superadmin, manager) -->
+    <div class="header-actions" *ngIf="canFilterAgents">
       <div class="filter-toolbar" (click)="$event.stopPropagation()">
         
-        <!-- Employee Filter Dropdown -->
-        <div class="filter-dropdown-wrapper">
+        <!-- Employee Filter Dropdown (Only for admin, superadmin, manager) -->
+        <div class="filter-dropdown-wrapper" *ngIf="canFilterAgents">
           <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen" title="Filter by Employee">
             <i class="bi bi-person-fill filter-icon text-indigo"></i>
             <span class="filter-label text-truncate" style="max-width: 140px;">{{ getSelectedEmployeeName() }}</span>

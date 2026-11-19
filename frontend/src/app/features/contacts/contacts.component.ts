@@ -33,6 +33,7 @@ import { ContactQualificationsComponent } from '../../shared/components/contact-
 import { ContactWorkExperiencesComponent } from '../../shared/components/contact-work-experiences/contact-work-experiences.component';
 import { ContactTasksComponent } from '../../shared/components/contact-tasks/contact-tasks.component';
 import { ContactVisaComponent } from '../../shared/components/contact-visa/contact-visa.component';
+import { ContactPteComponent } from '../../shared/components/contact-pte/contact-pte.component';
 import { QualificationsService } from '../../core/services/qualifications.service';
 import { WorkExperiencesService } from '../../core/services/work-experiences.service';
 import { SocketService } from '../../core/services/socket.service';
@@ -52,7 +53,8 @@ import * as XLSX from 'xlsx';
     ContactQualificationsComponent,
     ContactWorkExperiencesComponent,
     ContactTasksComponent,
-    ContactVisaComponent
+    ContactVisaComponent,
+    ContactPteComponent
   ],
   templateUrl: './contacts.component.html',
   styleUrls: ['./contacts.component.css']
@@ -435,8 +437,21 @@ export class ContactsComponent implements OnInit {
 
   getEmployeeName(employeeId: any): string {
     if (!employeeId) return '';
-    const emp = this.employees.find(e => e.id == employeeId);
+    const emp = this.employees.find(e => e.id == employeeId) || this.agents.find(a => a.id == employeeId);
     return emp ? emp.name : '';
+  }
+
+  get canShowAgentFilter(): boolean {
+    return this.isAdmin || (this.agents && this.agents.length > 0);
+  }
+
+  get currentUserId(): number | null {
+    const u = this.auth.currentUser;
+    return u ? (u.id || u.userId || null) : null;
+  }
+
+  isCurrentUser(id: any): boolean {
+    return this.currentUserId !== null && Number(this.currentUserId) === Number(id);
   }
 
   // Application Data
@@ -492,6 +507,23 @@ export class ContactsComponent implements OnInit {
       case 'Approved': return 'bg-success text-white';
       case 'Declined': return 'bg-danger text-white';
       case 'Withdrawn': return 'bg-dark text-white';
+      default: return 'bg-light text-dark border';
+    }
+  }
+
+  contactPteStatus: string = '';
+
+  onPteStatusChange(status: string): void {
+    this.contactPteStatus = status;
+  }
+
+  getPteStatusBadgeClass(): string {
+    switch (this.contactPteStatus) {
+      case 'Recommended': return 'bg-info text-white';
+      case 'Referred': return 'bg-warning text-dark';
+      case 'Joined': return 'bg-primary text-white';
+      case 'Target Achieved': return 'bg-success text-white';
+      case 'Application': return 'bg-purple text-white';
       default: return 'bg-light text-dark border';
     }
   }
@@ -772,8 +804,15 @@ export class ContactsComponent implements OnInit {
     return this.companyConfigService.isEmailEnabled();
   }
 
+  get canFilterAgents(): boolean {
+    return this.auth.canFilterAgents();
+  }
+
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin', 'manager');
+    if (!this.canFilterAgents) {
+      this.activeAgent = this.auth.getCurrentUserId()?.toString() || '';
+    }
     this.initEmailStatusSocket();
     if (this.enableWhatsappQr) {
       this.initWhatsappUnreadSocket();
@@ -927,10 +966,22 @@ export class ContactsComponent implements OnInit {
       next: (res: any) => {
         if (res.success && Array.isArray(res.data)) {
           this.employees = res.data;
-          // Load all active team members/agents/counselors/admins so no one is missing, sorted alphabetically
+          // Load active team members: Current user first, followed by team members sorted alphabetically
           this.agents = [...res.data]
             .filter((u: any) => u && u.is_active !== 0 && u.is_active !== false)
-            .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+            .sort((a: any, b: any) => {
+              if (this.isCurrentUser(a.id)) return -1;
+              if (this.isCurrentUser(b.id)) return 1;
+              return (a.name || '').localeCompare(b.name || '');
+            });
+        }
+      },
+      error: () => {
+        const u = this.auth.currentUser;
+        if (u && !this.agents.length) {
+          const self = { id: u.id || u.userId, name: u.name || 'Me' };
+          this.agents = [self];
+          this.employees = [self];
         }
       }
     });
@@ -1136,6 +1187,8 @@ export class ContactsComponent implements OnInit {
     this.qualificationsCount = 0;
     this.experiencesCount = 0;
     this.tasksCount = 0;
+    this.contactVisaStatus = '';
+    this.contactPteStatus = '';
     this.detailActiveTab = initialTab;
     this.api.get(`/contacts/${contact.id}`).subscribe({
       next: (res: any) => {

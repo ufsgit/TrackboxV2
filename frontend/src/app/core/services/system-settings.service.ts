@@ -175,4 +175,28 @@ export class SystemSettingsService {
   createVisaReasonCategory(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/visa-reason-categories`, data); }
   updateVisaReasonCategory(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-reason-categories/${id}`, data); }
   deleteVisaReasonCategory(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-reason-categories/${id}`); }
+
+  // --- PTE STATUSES ---
+  getPteStatuses(params?: any): Observable<any> { return this.http.get(`${environment.apiUrl}/pte/statuses`, { params }); }
+  createPteStatus(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/pte/statuses`, data); }
+  updatePteStatus(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/pte/statuses/${id}`, data); }
+  deletePteStatus(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/pte/statuses/${id}`); }
+
+  // --- PTE PACKAGES ---
+  getPtePackages(params?: any): Observable<any> { return this.http.get(`${environment.apiUrl}/pte/packages`, { params }); }
+  createPtePackage(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/pte/packages`, data); }
+  updatePtePackage(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/pte/packages/${id}`, data); }
+  deletePtePackage(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/pte/packages/${id}`); }
+
+  // --- PTE BATCHES ---
+  getPteBatches(params?: any): Observable<any> { return this.http.get(`${environment.apiUrl}/pte/batches`, { params }); }
+  createPteBatch(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/pte/batches`, data); }
+  updatePteBatch(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/pte/batches/${id}`, data); }
+  deletePteBatch(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/pte/batches/${id}`); }
+
+  // --- PTE TRAINERS ---
+  getPteTrainers(params?: any): Observable<any> { return this.http.get(`${environment.apiUrl}/pte/trainers`, { params }); }
+  createPteTrainer(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/pte/trainers`, data); }
+  updatePteTrainer(id: number, data: any): Observable<any> { return this.http.put(`${environment.apiUrl}/pte/trainers/${id}`, data); }
+  deletePteTrainer(id: number): Observable<any> { return this.http.delete(`${environment.apiUrl}/pte/trainers/${id}`); }
 }

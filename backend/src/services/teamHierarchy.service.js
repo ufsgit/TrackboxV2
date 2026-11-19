@@ -51,14 +51,14 @@ async function getAccessibleUserIds(user, businessId) {
     while (queue.length > 0) {
       const currentId = queue.shift();
 
-      // Find the team owned by currentId
+      // Find all teams owned/managed by currentId
       const [teamRows] = await p.query(
-        `SELECT id FROM teams WHERE user_id = ? AND business_id = ? LIMIT 1`,
+        `SELECT id FROM teams WHERE user_id = ? AND business_id = ?`,
         [currentId, businessId]
       );
 
-      if (teamRows && teamRows.length > 0) {
-        const teamId = teamRows[0].id;
+      for (const teamRow of teamRows) {
+        const teamId = teamRow.id;
         // Fetch direct subordinates of currentId (excluding currentId itself)
         const [members] = await p.query(
           `SELECT user_id FROM team_members WHERE team_id = ? AND user_id != ?`,
@@ -87,16 +87,22 @@ async function getAccessibleUserIds(user, businessId) {
 /**
  * Builds a SQL filter clause and parameter array for an agent/user field (e.g. c.assigned_to)
  * respecting both the user's team hierarchy and any specific agent filter passed in the request.
+ * Checks both assignment (column) and lead creation (creatorColumn) so leads created by or assigned
+ * to the user/their team members are consistently visible.
  *
  * @param {Object} options
  * @param {Array<number>|null} options.accessibleUserIds - Output from getAccessibleUserIds
  * @param {string|number} [options.requestedAgent] - Value from req.query.agent or req.query.employee or req.query.userId
  * @param {string} [options.column='c.assigned_to'] - SQL column to filter on
+ * @param {string|null} [options.creatorColumn] - SQL column for lead creator (defaults to <prefix>created_by_user)
  * @returns {{ clause: string, params: Array<any> }}
  */
-function buildUserScopeFilter({ accessibleUserIds, requestedAgent, column = 'c.assigned_to' }) {
+function buildUserScopeFilter({ accessibleUserIds, requestedAgent, column = 'c.assigned_to', creatorColumn }) {
   let clause = '';
   const params = [];
+
+  const prefix = column.includes('.') ? column.split('.')[0] + '.' : '';
+  const effCreatorColumn = creatorColumn !== undefined ? creatorColumn : (prefix ? prefix + 'created_by_user' : 'created_by_user');
 
   const hasSpecificAgent = requestedAgent !== undefined && 
                            requestedAgent !== null && 
@@ -113,29 +119,49 @@ function buildUserScopeFilter({ accessibleUserIds, requestedAgent, column = 'c.a
       const requestedId = Number(requestedAgent);
       if (!isNaN(requestedId)) {
         if (accessibleUserIds.includes(requestedId)) {
-          clause = ` AND ${column} = ? `;
-          params.push(requestedId);
+          if (effCreatorColumn) {
+            clause = ` AND (${column} = ? OR ${effCreatorColumn} = ?) `;
+            params.push(requestedId, requestedId);
+          } else {
+            clause = ` AND ${column} = ? `;
+            params.push(requestedId);
+          }
         } else {
           // Security violation: requested agent is outside their team hierarchy
           clause = ' AND 1 = 0 ';
         }
       } else {
-        // Requested by name or string -> handled by caller or fallback
+        // Requested by name or string -> fallback to all accessible
+        if (effCreatorColumn) {
+          clause = ` AND (${column} IN (${accessibleUserIds.map(() => '?').join(',')}) OR ${effCreatorColumn} IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+          params.push(...accessibleUserIds, ...accessibleUserIds);
+        } else {
+          clause = ` AND ${column} IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+          params.push(...accessibleUserIds);
+        }
+      }
+    } else {
+      // No specific agent requested -> include all accessible agents (user + their team members)
+      if (effCreatorColumn) {
+        clause = ` AND (${column} IN (${accessibleUserIds.map(() => '?').join(',')}) OR ${effCreatorColumn} IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
+      } else {
         clause = ` AND ${column} IN (${accessibleUserIds.map(() => '?').join(',')}) `;
         params.push(...accessibleUserIds);
       }
-    } else {
-      // No specific agent requested -> include all accessible agents
-      clause = ` AND ${column} IN (${accessibleUserIds.map(() => '?').join(',')}) `;
-      params.push(...accessibleUserIds);
     }
   } else {
     // Admin: unrestricted access
     if (hasSpecificAgent) {
       const requestedId = Number(requestedAgent);
       if (!isNaN(requestedId)) {
-        clause = ` AND ${column} = ? `;
-        params.push(requestedId);
+        if (effCreatorColumn) {
+          clause = ` AND (${column} = ? OR ${effCreatorColumn} = ?) `;
+          params.push(requestedId, requestedId);
+        } else {
+          clause = ` AND ${column} = ? `;
+          params.push(requestedId);
+        }
       }
     }
   }

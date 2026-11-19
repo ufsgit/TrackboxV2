@@ -6,7 +6,7 @@
         <h2 class="report-title">Team Productivity</h2>
         <!-- <p class="report-subtitle">Real-time overview of team performance and activity metrics</p> -->
       </div>
-      <div class="header-actions">
+      <div class="header-actions" *ngIf="canFilterAgents">
         <div class="filter-toolbar">
           <!-- Custom Date Picker -->
           <div class="filter-dropdown-wrapper">
@@ -45,8 +45,8 @@
 
           <div class="filter-divider"></div>
 
-          <!-- Custom Employee Dropdown -->
-          <div class="filter-dropdown-wrapper">
+          <!-- Custom Employee Dropdown (Only for admin, superadmin, manager) -->
+          <div class="filter-dropdown-wrapper" *ngIf="canFilterAgents">
             <div class="filter-item" (click)="toggleDropdown()" [class.active]="isDropdownOpen">
               <i class="bi bi-person filter-icon"></i>
               <span class="filter-value">{{ getSelectedEmployeeName() }}</span>

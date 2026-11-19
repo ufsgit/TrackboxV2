@@ -209,6 +209,50 @@ export class SystemSettingsComponent implements OnInit {
       permission: 'Courses'
     },
     {
+      id: 'pte-statuses',
+      title: 'PTE Statuses',
+      category: 'system',
+      categoryLabel: 'PTE Coaching',
+      description: 'Customize PTE conversion workflow milestones, pipeline stages, and progression colors.',
+      icon: 'bi-bar-chart-steps',
+      gradient: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+      route: '/system-settings/pte-statuses',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
+      id: 'pte-packages',
+      title: 'PTE Packages',
+      category: 'system',
+      categoryLabel: 'PTE Coaching',
+      description: 'Configure coaching packages, enrollment fees, duration periods, and mock test quotas.',
+      icon: 'bi-box-seam-fill',
+      gradient: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
+      route: '/system-settings/pte-packages',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
+      id: 'pte-batches',
+      title: 'PTE Batches',
+      category: 'system',
+      categoryLabel: 'PTE Coaching',
+      description: 'Manage batch schedules, assigned trainers, class timings, and seat capacity limits.',
+      icon: 'bi-people-fill',
+      gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+      route: '/system-settings/pte-batches',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
+      id: 'pte-trainers',
+      title: 'PTE Trainers',
+      category: 'system',
+      categoryLabel: 'PTE Coaching',
+      description: 'Manage dedicated PTE instructors, language specializations, contacts, and user accounts.',
+      icon: 'bi-person-video3',
+      gradient: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+      route: '/system-settings/pte-trainers',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
       id: 'channels',
       title: 'Source / Channels',
       category: 'system',

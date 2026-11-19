@@ -14,8 +14,8 @@
       </span>
     </div>
 
-    <!-- Filter Control Bar -->
-    <div class="header-actions">
+    <!-- Filter Control Bar (Only for admin, superadmin, manager) -->
+    <div class="header-actions" *ngIf="canFilterAgents">
       <div class="filter-toolbar" (click)="$event.stopPropagation()">
         
         <!-- Year Selector Filter -->
@@ -102,8 +102,8 @@
 
         <div class="toolbar-divider"></div>
 
-        <!-- Staff / Employee Filter -->
-        <div class="filter-dropdown-wrapper">
+        <!-- Staff / Employee Filter (Only for admin, superadmin, manager) -->
+        <div class="filter-dropdown-wrapper" *ngIf="canFilterAgents">
           <div class="filter-btn" (click)="toggleEmployeeDropdown($event)" [class.active]="isEmployeeDropdownOpen">
             <i class="bi bi-person-badge filter-icon user-icon"></i>
             <span class="filter-label">{{ getSelectedEmployeeName() }}</span>

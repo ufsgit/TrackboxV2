@@ -1120,6 +1120,249 @@ async function runMigrations() {
     CONSTRAINT fk_imported_leads_biz FOREIGN KEY (business_id) REFERENCES businesses (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
 
+  // PTE Management Module Tables
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_statuses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    stage_order INT DEFAULT 1,
+    color VARCHAR(50) DEFAULT '#3b82f6',
+    description TEXT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_pstat_biz (business_id),
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_packages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    duration VARCHAR(100) NULL,
+    price DECIMAL(10,2) DEFAULT 0.00,
+    total_sessions INT DEFAULT 20,
+    mock_tests_count INT DEFAULT 5,
+    description TEXT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ppkg_biz (business_id),
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_trainers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NULL,
+    phone VARCHAR(50) NULL,
+    specialization VARCHAR(150) DEFAULT 'PTE Academic',
+    user_id INT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ptrain_biz (business_id),
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_batches (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    business_id INT NOT NULL,
+    batch_name VARCHAR(150) NOT NULL,
+    trainer_id INT NULL,
+    trainer_name VARCHAR(255) NULL,
+    schedule VARCHAR(255) NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    capacity INT NOT NULL DEFAULT 20,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_pb_biz (business_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    original_counsellor_id INT NULL,
+    original_counsellor_name VARCHAR(255) NULL,
+    referring_counsellor_id INT NULL,
+    referring_counsellor_name VARCHAR(255) NULL,
+    recommendation_date DATE NULL,
+    referral_date DATE NULL,
+    join_date DATE NULL,
+    target_achievement_date DATE NULL,
+    application_date DATE NULL,
+    package_name VARCHAR(150) NULL,
+    target_score DECIMAL(4,1) NULL,
+    current_score DECIMAL(4,1) NULL,
+    batch_id INT NULL,
+    batch_name VARCHAR(150) NULL,
+    trainer_id INT NULL,
+    trainer_name VARCHAR(255) NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'Recommended',
+    target_achieved TINYINT(1) DEFAULT 0,
+    application_id INT NULL,
+    followup_date DATE NULL,
+    followup_remarks TEXT NULL,
+    remarks TEXT NULL,
+    created_by INT NULL,
+    is_deleted TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ps_contact (contact_id),
+    INDEX idx_ps_biz (business_id),
+    INDEX idx_ps_batch (batch_id),
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
+    FOREIGN KEY (batch_id) REFERENCES pte_batches(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pte_student_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    batch_id INT NULL,
+    session_date DATE NOT NULL,
+    session_title VARCHAR(255) NULL,
+    status ENUM('Present', 'Absent', 'Late', 'Excused') DEFAULT 'Present',
+    remarks TEXT NULL,
+    marked_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_pa_student (pte_student_id),
+    INDEX idx_pa_contact (contact_id),
+    FOREIGN KEY (pte_student_id) REFERENCES pte_students(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_mock_tests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pte_student_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    test_date DATE NOT NULL,
+    test_title VARCHAR(150) DEFAULT 'Mock Test',
+    overall_score DECIMAL(4,1) NOT NULL,
+    listening DECIMAL(4,1) NULL,
+    reading DECIMAL(4,1) NULL,
+    speaking DECIMAL(4,1) NULL,
+    writing DECIMAL(4,1) NULL,
+    comments TEXT NULL,
+    evaluated_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_pm_student (pte_student_id),
+    INDEX idx_pm_contact (contact_id),
+    FOREIGN KEY (pte_student_id) REFERENCES pte_students(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_exams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pte_student_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    booking_date DATE NULL,
+    exam_date DATE NOT NULL,
+    venue VARCHAR(255) NULL,
+    mode ENUM('Offline Center', 'Online / Home') DEFAULT 'Offline Center',
+    notes TEXT NULL,
+    result_status ENUM('Result Pending', 'Result Received') DEFAULT 'Result Pending',
+    result_received_date DATE NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_pe_student (pte_student_id),
+    INDEX idx_pe_contact (contact_id),
+    FOREIGN KEY (pte_student_id) REFERENCES pte_students(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS pte_results (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pte_student_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    business_id INT NOT NULL,
+    exam_id INT NULL,
+    exam_date DATE NOT NULL,
+    overall_score DECIMAL(4,1) NOT NULL,
+    listening DECIMAL(4,1) NULL,
+    reading DECIMAL(4,1) NULL,
+    speaking DECIMAL(4,1) NULL,
+    writing DECIMAL(4,1) NULL,
+    target_score DECIMAL(4,1) NULL,
+    target_achieved TINYINT(1) DEFAULT 0,
+    achievement_date DATE NULL,
+    next_action VARCHAR(255) NULL,
+    remarks TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_pr_student (pte_student_id),
+    INDEX idx_pr_contact (contact_id),
+    FOREIGN KEY (pte_student_id) REFERENCES pte_students(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  try {
+    const [businesses] = await pool.query('SELECT id FROM businesses');
+    for (const b of businesses) {
+      // Default Batches
+      const [batchCount] = await pool.query('SELECT COUNT(*) as c FROM pte_batches WHERE business_id = ?', [b.id]);
+      if (batchCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO pte_batches (batch_name, schedule, capacity, business_id) VALUES
+          ('PTE Morning Foundation', 'Mon-Fri 08:30 AM - 10:30 AM', 20, ?),
+          ('PTE Fast-Track Intensive', 'Mon-Fri 02:00 PM - 04:30 PM', 15, ?),
+          ('PTE Weekend Masterclass', 'Sat-Sun 10:00 AM - 02:00 PM', 25, ?)
+        `, [b.id, b.id, b.id]);
+      }
+
+      // Default PTE Statuses
+      const [statusCount] = await pool.query('SELECT COUNT(*) as c FROM pte_statuses WHERE business_id = ?', [b.id]);
+      if (statusCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO pte_statuses (name, stage_order, color, description, business_id) VALUES
+          ('Recommended', 1, '#6366f1', 'Initial PTE coaching recommendation', ?),
+          ('Referred', 2, '#8b5cf6', 'Student referred to PTE branch/faculty', ?),
+          ('Joined', 3, '#3b82f6', 'Enrolled and joined regular classes', ?),
+          ('Training', 4, '#06b6d4', 'Active coaching and daily practice', ?),
+          ('Mock Test', 5, '#eab308', 'Engaged in mock tests & evaluations', ?),
+          ('Exam Booked', 6, '#f97316', 'Official Pearson PTE exam date booked', ?),
+          ('Result Pending', 7, '#a855f7', 'Exam completed, awaiting official score report', ?),
+          ('Target Achieved', 8, '#10b981', 'Target score achieved - eligible for university application', ?),
+          ('Target Not Achieved', 9, '#ef4444', 'Target score not achieved - revision needed', ?),
+          ('Application Created', 10, '#059669', 'Handed over for university admission application', ?),
+          ('Dropped', 11, '#64748b', 'Discontinued / dropped out', ?)
+        `, [b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id]);
+      }
+
+      // Default PTE Packages
+      const [pkgCount] = await pool.query('SELECT COUNT(*) as c FROM pte_packages WHERE business_id = ?', [b.id]);
+      if (pkgCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO pte_packages (name, duration, price, total_sessions, mock_tests_count, description, business_id) VALUES
+          ('Standard Coaching (30 Days)', '30 Days', 12000.00, 30, 5, 'Comprehensive 4-week preparation covering all four communicative skills.', ?),
+          ('Comprehensive Mastery (60 Days)', '60 Days', 20000.00, 60, 10, 'In-depth foundation and masterclass with unlimited practice portal access.', ?),
+          ('Crash Course (15 Days)', '15 Days', 8000.00, 15, 3, 'Intensive high-yield test strategies and rapid mock assessment for repeat test-takers.', ?),
+          ('Weekend Fast-Track', '4 Weekends', 10000.00, 8, 4, 'Weekend-only batch tailored for working professionals and university students.', ?),
+          ('One-on-One Mentorship', 'Flexible', 25000.00, 20, 8, 'Dedicated personal trainer with individualized speech analysis and essay reviews.', ?)
+        `, [b.id, b.id, b.id, b.id, b.id]);
+      }
+
+      // Default PTE Trainers
+      const [trainerCount] = await pool.query('SELECT COUNT(*) as c FROM pte_trainers WHERE business_id = ?', [b.id]);
+      if (trainerCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO pte_trainers (name, email, phone, specialization, business_id) VALUES
+          ('Dr. Sarah Jenkins', 'sarah.pte@trackbox.com', '+1-555-0192', 'PTE Speaking & Pronunciation', ?),
+          ('David Wilson', 'david.wilson@trackbox.com', '+1-555-0144', 'PTE Academic Master Trainer', ?),
+          ('Ananya Patel', 'ananya.p@trackbox.com', '+1-555-0178', 'PTE Writing & Grammar Analysis', ?)
+        `, [b.id, b.id, b.id]);
+      }
+    }
+  } catch (batchErr) {
+    console.error('Error seeding default pte settings:', batchErr);
+  }
+
   console.log('✅ Database migrations completed');
 
   await seedData();

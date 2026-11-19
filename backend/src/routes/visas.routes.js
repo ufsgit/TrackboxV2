@@ -16,6 +16,9 @@ router.get('/staff', c.getVisaStaffList);
 router.get('/contact/:contactId', c.getContactVisa);
 router.get('/contact/:contactId/history', c.getVisaHistory);
 
+// Visa Leads Report Page
+router.get('/leads-report', c.getVisaLeadsReport);
+
 // Single Case by ID & Save
 router.get('/:id', c.getVisaById);
 router.post('/', c.saveVisa);

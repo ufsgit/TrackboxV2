@@ -172,7 +172,14 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
     public authService: AuthService
   ) {}
 
+  get canFilterAgents(): boolean {
+    return this.authService.canFilterAgents();
+  }
+
   ngOnInit(): void {
+    if (!this.canFilterAgents) {
+      this.staffFilter = this.authService.getCurrentUserId()?.toString() || 'me';
+    }
     this.fetchMetrics();
     this.fetchCases();
     this.fetchStaffList();
@@ -387,7 +394,7 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.statusFilter = 'all';
     this.visaTypeFilter = 'all';
-    this.staffFilter = 'all';
+    this.staffFilter = this.canFilterAgents ? 'all' : (this.authService.getCurrentUserId()?.toString() || 'me');
     this.deadlineFilter = 'all';
     this.startDate = '';
     this.endDate = '';

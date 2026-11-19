@@ -103,11 +103,18 @@ import Swal from 'sweetalert2';
     </div>
 
     <!-- Add/Edit Modal -->
-    <div class="modal-backdrop" *ngIf="showModal">
-      <div class="modal-content" style="max-width: 520px;">
-        <h4 style="margin-top: 0; margin-bottom: 20px; font-weight: 600; color: #0f172a;">
-          {{ currentItem.id ? 'Edit Visa Status' : 'Add New Visa Status' }}
-        </h4>
+    <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+      <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+        <!-- Modal Header (Pinned) -->
+        <div class="modal-header-custom">
+          <h4 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 1.15rem;">
+            <i class="bi bi-flag-fill text-primary me-2"></i>{{ currentItem.id ? 'Edit Visa Status' : 'Add New Visa Status' }}
+          </h4>
+          <button type="button" class="btn-close-modal" (click)="closeModal()">&times;</button>
+        </div>
+        
+        <!-- Modal Body (Scrollable) -->
+        <div class="modal-body-custom">
         
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.88rem; color: #334155;">Status Name *</label>
@@ -200,9 +207,10 @@ import Swal from 'sweetalert2';
           </div>
         </div>
         
-        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-          <button class="btn btn-light" (click)="closeModal()" style="padding: 10px 20px; border-radius: 8px; background: #f1f5f9; border: none; font-weight: 500;">Cancel</button>
-          <button class="btn btn-primary" (click)="saveItem()" [disabled]="!currentItem.name?.trim()" style="padding: 10px 22px; border-radius: 8px; font-weight: 500;">Save Visa Status</button>
+        <!-- Modal Footer (Pinned) -->
+        <div class="modal-footer-custom">
+          <button class="btn btn-light" (click)="closeModal()" style="padding: 9px 18px; border-radius: 8px; background: #fff; border: 1px solid #cbd5e1; font-weight: 500; color: #475569;">Cancel</button>
+          <button class="btn btn-primary" (click)="saveItem()" [disabled]="!currentItem.name?.trim()" style="padding: 9px 20px; border-radius: 8px; font-weight: 500; background: #4f46e5; border-color: #4f46e5;">Save Visa Status</button>
         </div>
       </div>
     </div>
@@ -216,8 +224,88 @@ import Swal from 'sweetalert2';
     .status-pill { padding: 6px 14px; color: white; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-block; letter-spacing: 0.02em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .btn-icon { padding: 6px; border-radius: 6px; border: none; background: transparent; transition: all 0.2s; }
     .btn-icon:hover { background: #f1f5f9; }
-    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; }
-    .modal-content { background: #fff; border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); border: none; }
+    .modal-backdrop { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0; 
+      width: 100vw; 
+      height: 100vh; 
+      background: rgba(15, 23, 42, 0.6); 
+      backdrop-filter: blur(4px); 
+      z-index: 99999; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 2rem 1rem; 
+      box-sizing: border-box;
+    }
+    .modal-dialog-custom { 
+      background: #fff; 
+      border-radius: 16px; 
+      width: 100%; 
+      max-width: 560px; 
+      max-height: calc(100vh - 4rem); 
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); 
+      border: 1px solid #e2e8f0; 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+      margin: auto;
+      position: relative;
+      z-index: 100000;
+      animation: modalFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header-custom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      border-bottom: 1px solid #f1f5f9;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .btn-close-modal {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-close-modal:hover {
+      color: #0f172a;
+      background-color: #f1f5f9;
+    }
+    .modal-body-custom {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-footer-custom {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      flex-shrink: 0;
+    }
   `]
 })
 export class VisaStatusManagementComponent implements OnInit {

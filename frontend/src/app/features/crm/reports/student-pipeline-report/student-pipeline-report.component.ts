@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, Inject, PLATFORM_ID } from '@angu
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 
@@ -63,12 +64,20 @@ export class StudentPipelineReportComponent implements OnInit {
   constructor(
     private cdr: ChangeDetectorRef, 
     private api: ApiService,
+    public authService: AuthService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
+  get canFilterAgents(): boolean {
+    return this.authService.canFilterAgents();
+  }
+
   ngOnInit() {
+    if (!this.canFilterAgents) {
+      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'All';
+    }
     this.fetchDropdowns();
     this.fetchData();
   }

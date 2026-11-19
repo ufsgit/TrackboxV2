@@ -146,7 +146,7 @@
       </div>
 
       <!-- Dropdown: Channels -->
-      <div class="dropdown custom-filter-dropdown">
+      <div class="dropdown custom-filter-dropdown" [class.show]="isChannelDropdownOpen">
         <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeChannel" type="button" (click)="toggleFilterDropdown('channel', $event)" aria-expanded="false">
           <i class="bi bi-chat-dots me-1 text-muted"></i>
           <span>{{ activeChannel || 'All Source' }}</span>
@@ -159,7 +159,7 @@
       </div>
 
       <!-- Dropdown: Statuses -->
-      <div class="dropdown custom-filter-dropdown">
+      <div class="dropdown custom-filter-dropdown" [class.show]="isStatusDropdownOpen">
         <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeStatus" type="button" (click)="toggleFilterDropdown('status', $event)" aria-expanded="false">
           <i class="bi bi-flag me-1 text-muted"></i>
           <span>{{ activeStatus || 'All Statuses' }}</span>
@@ -181,21 +181,38 @@
         </ul>
       </div>
 
-      <!-- Dropdown: Agents -->
-      <div class="dropdown custom-filter-dropdown" *ngIf="isAdmin">
+      <!-- Dropdown: Agents / Team Members (Only for admin, superadmin, manager) -->
+      <div class="dropdown custom-filter-dropdown" *ngIf="canFilterAgents" [class.show]="isAgentDropdownOpen">
         <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeAgent" type="button" (click)="toggleFilterDropdown('agent', $event)" aria-expanded="false">
-          <i class="bi bi-person me-1 text-muted"></i>
-          <span>{{ activeAgent ? getEmployeeName(activeAgent) : 'All Agents' }}</span>
+          <i class="bi bi-people me-1 text-muted" *ngIf="!isAdmin && activeAgent !== 'unassigned'"></i>
+          <i class="bi bi-person me-1 text-muted" *ngIf="isAdmin && activeAgent !== 'unassigned'"></i>
+          <i class="bi bi-person-x me-1 text-danger" *ngIf="activeAgent === 'unassigned'"></i>
+          <span>{{ activeAgent === 'unassigned' ? 'Unassigned Leads' : (activeAgent ? getEmployeeName(activeAgent) : (isAdmin ? 'All Agents' : 'All Team Members')) }}</span>
           <i class="bi bi-chevron-down chevron-down-icon"></i>
         </button>
         <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isAgentDropdownOpen">
-          <li><a class="dropdown-item" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false">All Agents</a></li>
-          <li><a class="dropdown-item" *ngFor="let agent of agents" [class.active]="activeAgent === agent.id" (click)="activeAgent = agent.id; applyFilters(); isAgentDropdownOpen = false">{{ agent.name }}</a></li>
+          <li>
+            <a class="dropdown-item" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false">
+              {{ isAdmin ? 'All Agents' : 'All Team Members' }}
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item" [class.active]="activeAgent === 'unassigned'" (click)="activeAgent = 'unassigned'; applyFilters(); isAgentDropdownOpen = false">
+              <i class="bi bi-person-x me-1 text-danger"></i>
+              Unassigned Leads
+            </a>
+          </li>
+          <li *ngFor="let agent of agents">
+            <a class="dropdown-item" [class.active]="activeAgent == agent.id" (click)="activeAgent = '' + agent.id; applyFilters(); isAgentDropdownOpen = false">
+              {{ agent.name }}
+              <span class="badge bg-light text-secondary ms-1" *ngIf="isCurrentUser(agent.id)">(You)</span>
+            </a>
+          </li>
         </ul>
       </div>
 
       <!-- Dropdown: Enquiry For -->
-      <div class="dropdown custom-filter-dropdown">
+      <div class="dropdown custom-filter-dropdown" [class.show]="isEnquiryForDropdownOpen">
         <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeEnquiryFor" type="button" (click)="toggleFilterDropdown('enquiryFor', $event)" aria-expanded="false">
           <i class="bi bi-briefcase me-1 text-muted"></i>
           <span>{{ getSelectedEnquiryForName() || 'All Enquiry For' }}</span>
@@ -655,6 +672,10 @@
         <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Visa'" (click)="detailActiveTab = 'Visa'">
           <i class="bi bi-passport me-1"></i> <span>Visa</span>
           <span class="tab-count-badge" [ngClass]="getVisaStatusBadgeClass()" *ngIf="contactVisaStatus">{{ contactVisaStatus }}</span>
+        </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'PTE'" (click)="detailActiveTab = 'PTE'">
+          <i class="bi bi-mortarboard me-1"></i> <span>PTE</span>
+          <span class="tab-count-badge" [ngClass]="getPteStatusBadgeClass()" *ngIf="contactPteStatus">{{ contactPteStatus }}</span>
         </button>
         <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">
           <i class="bi bi-folder2-open"></i> <span>Documents</span>
@@ -1173,6 +1194,16 @@
             [contact]="selectedContact"
             (statusChange)="onVisaStatusChange($event)">
           </app-contact-visa>
+        </div>
+
+        <!-- PTE TAB -->
+        <div *ngIf="detailActiveTab === 'PTE'" class="tab-pane">
+          <app-contact-pte
+            [contactId]="selectedContact?.id"
+            [studentName]="selectedContact?.name"
+            [contact]="selectedContact"
+            (statusChange)="onPteStatusChange($event)">
+          </app-contact-pte>
         </div>
 
         <!-- CONTACT HISTORY TAB -->

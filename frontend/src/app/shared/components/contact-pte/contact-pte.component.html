@@ -1,0 +1,781 @@
+<div class="contact-pte-wrapper">
+
+  <!-- ── 1. Loading State ────────────────────────────────────────── -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="text-muted mt-2 small">Loading PTE coaching profile...</p>
+  </div>
+
+  <!-- ── 2. Empty State (No PTE Record) ────────────────────────── -->
+  <div *ngIf="!loading && !pte" class="empty-pte-card">
+    <div class="empty-icon-bubble">
+      <i class="bi bi-mortarboard"></i>
+    </div>
+    <h4>No PTE Coaching Record for {{ studentName || 'Student' }}</h4>
+    <p>
+      This student has not been recommended or enrolled in the PTE service line yet. Start the PTE conversion workflow to set target score, assign batch, track attendance, mock tests, and exam results.
+    </p>
+    <button type="button" class="btn-start-pte" (click)="openEnrollModal(false)">
+      <i class="bi bi-plus-circle me-1"></i> Start PTE Recommendation / Referral
+    </button>
+  </div>
+
+  <!-- ── 3. Active PTE Profile ─────────────────────────────────── -->
+  <div *ngIf="!loading && pte" class="pte-active-content">
+
+    <!-- Top Summary Header Card -->
+    <header class="pte-header-card">
+      <div class="ph-left">
+        <div class="ph-title-row">
+          <span class="ph-package-pill"><i class="bi bi-award me-1"></i> {{ pte.package_name || 'PTE Coaching' }}</span>
+          <span class="ph-batch-pill" *ngIf="pte.batch_name"><i class="bi bi-people me-1"></i> {{ pte.batch_name }}</span>
+        </div>
+        <div class="ph-meta-row">
+          <div class="ph-meta-item">
+            <span class="label">Target Score:</span>
+            <strong class="val-target">{{ pte.target_score || 65 }}</strong>
+          </div>
+          <div class="ph-meta-item" *ngIf="pte.current_score">
+            <span class="label">Current Score:</span>
+            <strong class="val-current">{{ pte.current_score }}</strong>
+          </div>
+          <div class="ph-meta-item">
+            <span class="label">Attendance:</span>
+            <span class="attendance-badge" [class.good]="pte.attendance?.percentage >= 75" [class.warning]="pte.attendance?.percentage < 75">
+              {{ pte.attendance?.percentage || 0 }}%
+            </span>
+          </div>
+          <div class="ph-meta-item" *ngIf="pte.trainer_name">
+            <span class="label">Trainer:</span>
+            <span>{{ pte.trainer_name }}</span>
+          </div>
+          <div class="ph-meta-item counsellor-item" title="Permanently linked original counsellor (PTE-001)">
+            <span class="label">Original Counsellor:</span>
+            <span class="counsellor-pill"><i class="bi bi-shield-check text-primary me-1"></i>{{ pte.original_counsellor_name || 'Counsellor' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ph-right">
+        <div class="status-wrap">
+          <span class="pte-status-badge" [ngClass]="getStatusBadgeClass()">
+            {{ pte.status }}
+          </span>
+          <span class="target-achieved-badge" *ngIf="pte.target_achieved">
+            <i class="bi bi-trophy-fill me-1"></i> Target Achieved
+          </span>
+        </div>
+
+        <div class="ph-actions">
+          <button type="button" class="btn-action btn-edit" (click)="openEnrollModal(true)" title="Edit PTE Profile">
+            <i class="bi bi-pencil"></i> <span>Edit</span>
+          </button>
+          <button type="button" class="btn-action btn-session" (click)="openAttendanceModal()" title="Mark Session Attendance">
+            <i class="bi bi-calendar-check"></i> <span>Attendance</span>
+          </button>
+          <button type="button" class="btn-action btn-mock" (click)="openMockModal()" title="Add Mock Test Score">
+            <i class="bi bi-journal-check"></i> <span>Mock Test</span>
+          </button>
+          <button type="button" class="btn-action btn-exam" (click)="openExamModal()" title="Book Official Exam">
+            <i class="bi bi-calendar-plus"></i> <span>Exam</span>
+          </button>
+          <button type="button" class="btn-action btn-result" (click)="openResultModal()" title="Log Official Result">
+            <i class="bi bi-patch-check-fill"></i> <span>Log Result</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Visual Conversion Stepper / Timeline (Section 2 & 10) -->
+    <div class="pte-conversion-timeline">
+      <div 
+        class="timeline-step" 
+        *ngFor="let st of conversionStages"
+        [class.completed]="isStageReached(st.key)"
+        [class.current]="pte.status === st.key">
+        <div class="step-circle">
+          <i class="bi" [ngClass]="st.icon"></i>
+        </div>
+        <div class="step-label">{{ st.label }}</div>
+      </div>
+    </div>
+
+    <!-- PTE-003 Alert Banner when Target Achieved -->
+    <div class="target-achieved-banner" *ngIf="pte.target_achieved">
+      <div class="banner-left">
+        <div class="banner-icon-pulse"><i class="bi bi-trophy-fill"></i></div>
+        <div class="banner-text">
+          <strong>PTE-003: Target Achieved (Score: {{ pte.current_score }})!</strong>
+          <span>An automatic Application Follow-up Task has been assigned to counsellor <strong>{{ pte.original_counsellor_name }}</strong> to proceed into university application.</span>
+        </div>
+      </div>
+      <div class="banner-right">
+        <span class="badge-app-status"><i class="bi bi-arrow-right-circle me-1"></i> Ready for Application</span>
+      </div>
+    </div>
+
+    <!-- Sub-Section Tabs Bar -->
+    <nav class="sub-tabs-nav">
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'overview'" (click)="activeSection = 'overview'">
+        <i class="bi bi-speedometer2"></i> <span>Overview</span>
+      </button>
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'referral'" (click)="activeSection = 'referral'">
+        <i class="bi bi-person-lines-fill"></i> <span>Referral & Counsellor</span>
+      </button>
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'batches'" (click)="activeSection = 'batches'">
+        <i class="bi bi-people"></i> <span>Batch & Capacity</span>
+      </button>
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'attendance'" (click)="activeSection = 'attendance'">
+        <i class="bi bi-calendar-check"></i> <span>Attendance</span>
+        <span class="count-pill">{{ pte.attendance?.percentage || 0 }}%</span>
+      </button>
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'mock_tests'" (click)="activeSection = 'mock_tests'">
+        <i class="bi bi-file-earmark-bar-graph"></i> <span>Mock Tests</span>
+        <span class="count-pill">{{ pte.mock_tests?.length || 0 }}</span>
+      </button>
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'exams'" (click)="activeSection = 'exams'">
+        <i class="bi bi-calendar-event"></i> <span>Exams</span>
+        <span class="count-pill">{{ pte.exams?.length || 0 }}</span>
+      </button>
+      <button type="button" class="sub-tab-btn" [class.active]="activeSection === 'results'" (click)="activeSection = 'results'">
+        <i class="bi bi-award"></i> <span>Official Results</span>
+        <span class="count-pill" *ngIf="pte.results?.length">{{ pte.results.length }}</span>
+      </button>
+    </nav>
+
+    <!-- ── Sub-Section 1: OVERVIEW ───────────────────────────── -->
+    <div *ngIf="activeSection === 'overview'" class="sub-pane">
+      <div class="metrics-cards-grid">
+        <div class="metric-card">
+          <div class="mc-icon icon-blue"><i class="bi bi-bullseye"></i></div>
+          <div class="mc-body">
+            <span class="mc-label">Target Score</span>
+            <span class="mc-val">{{ pte.target_score || 65 }}</span>
+            <span class="mc-sub">Minimum threshold</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mc-icon icon-purple"><i class="bi bi-graph-up"></i></div>
+          <div class="mc-body">
+            <span class="mc-label">Latest Score</span>
+            <span class="mc-val">{{ pte.current_score || '—' }}</span>
+            <span class="mc-sub" *ngIf="pte.target_achieved">Target Met</span>
+            <span class="mc-sub" *ngIf="!pte.target_achieved && pte.current_score">Below Target</span>
+            <span class="mc-sub" *ngIf="!pte.current_score">No score logged yet</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mc-icon icon-green"><i class="bi bi-pie-chart"></i></div>
+          <div class="mc-body">
+            <span class="mc-label">Attendance Rate</span>
+            <span class="mc-val">{{ pte.attendance?.percentage || 0 }}%</span>
+            <span class="mc-sub">{{ pte.attendance?.present_sessions || 0 }} of {{ pte.attendance?.total_sessions || 0 }} sessions</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="mc-icon icon-amber"><i class="bi bi-clock-history"></i></div>
+          <div class="mc-body">
+            <span class="mc-label">PTE-002 Conversion</span>
+            <span class="mc-val">{{ pte.conversion_metrics?.days_referral_to_join !== null ? pte.conversion_metrics?.days_referral_to_join + ' d' : '—' }}</span>
+            <span class="mc-sub">Referral to Join duration</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Summary Details Card -->
+      <div class="content-card mt-3">
+        <div class="card-head">
+          <h6><i class="bi bi-info-circle me-1 text-primary"></i> Coaching Journey Details</h6>
+        </div>
+        <div class="grid-2-col">
+          <div class="info-row">
+            <span class="prop-label">Package:</span>
+            <span class="prop-val">{{ pte.package_name || 'Standard' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="prop-label">Assigned Batch:</span>
+            <span class="prop-val">{{ pte.batch_name || 'Unassigned' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="prop-label">Assigned Trainer:</span>
+            <span class="prop-val">{{ pte.trainer_name || 'Unassigned' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="prop-label">Original Counsellor (PTE-001):</span>
+            <span class="prop-val font-weight-bold text-primary">{{ pte.original_counsellor_name }}</span>
+          </div>
+          <div class="info-row" *ngIf="pte.remarks">
+            <span class="prop-label">Coaching Remarks:</span>
+            <span class="prop-val">{{ pte.remarks }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sub-Section 2: REFERRAL & COUNSELLOR (PTE-001) ───── -->
+    <div *ngIf="activeSection === 'referral'" class="sub-pane">
+      <div class="content-card">
+        <div class="card-head">
+          <h6><i class="bi bi-shield-check text-success me-1"></i> PTE-001 Mandatory Counsellor Linkage</h6>
+          <span class="badge-lock"><i class="bi bi-lock-fill me-1"></i> Permanent Relationship</span>
+        </div>
+        <div class="p-3">
+          <div class="counsellor-card-highlight">
+            <div class="c-avatar">{{ (pte.original_counsellor_name || 'C')[0] }}</div>
+            <div class="c-info">
+              <h5>{{ pte.original_counsellor_name }}</h5>
+              <span class="c-role">Original Lead Counsellor (PTE-001)</span>
+              <p class="c-desc">This student was originally acquired by this counsellor. Even if coaching is assigned to trainers or PTE staff, lead attribution is permanently preserved.</p>
+            </div>
+          </div>
+
+          <div class="grid-3-col mt-4">
+            <div class="date-tile">
+              <span class="tile-title">Recommendation Date</span>
+              <span class="tile-date">{{ pte.recommendation_date ? (pte.recommendation_date | date:'dd MMM yyyy') : '—' }}</span>
+            </div>
+            <div class="date-tile">
+              <span class="tile-title">Referral Date</span>
+              <span class="tile-date">{{ pte.referral_date ? (pte.referral_date | date:'dd MMM yyyy') : '—' }}</span>
+            </div>
+            <div class="date-tile">
+              <span class="tile-title">Join Date</span>
+              <span class="tile-date">{{ pte.join_date ? (pte.join_date | date:'dd MMM yyyy') : '—' }}</span>
+            </div>
+          </div>
+
+          <div class="mt-3" *ngIf="pte.followup_remarks">
+            <label class="font-weight-bold small text-muted">Follow-up Remarks</label>
+            <div class="followup-box">{{ pte.followup_remarks }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sub-Section 3: BATCH & CAPACITY (Section 3.3) ────── -->
+    <div *ngIf="activeSection === 'batches'" class="sub-pane">
+      <div class="content-card" *ngIf="pte.batch_capacity">
+        <div class="card-head">
+          <h6><i class="bi bi-people-fill text-primary me-1"></i> Current Batch Capacity: {{ pte.batch_capacity.batch_name }}</h6>
+          <span class="capacity-pill" [class.full]="pte.batch_capacity.available === 0">
+            {{ pte.batch_capacity.available }} Seat(s) Available
+          </span>
+        </div>
+        <div class="p-3">
+          <div class="capacity-bar-wrap">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>Joined: <strong>{{ pte.batch_capacity.joined }}</strong></span>
+              <span>Capacity: <strong>{{ pte.batch_capacity.capacity }}</strong></span>
+            </div>
+            <div class="progress" style="height: 10px; border-radius: 6px;">
+              <div 
+                class="progress-bar" 
+                [style.width.%]="(pte.batch_capacity.joined / pte.batch_capacity.capacity) * 100"
+                [ngClass]="pte.batch_capacity.available <= 2 ? 'bg-danger' : 'bg-primary'">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2-col mt-4">
+            <div class="info-row">
+              <span class="prop-label">Batch Schedule:</span>
+              <span class="prop-val">{{ pte.batch_capacity.schedule || 'Regular Daily' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="prop-label">Assigned Trainer:</span>
+              <span class="prop-val">{{ pte.trainer_name || 'Assigned Staff' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-card mt-3" *ngIf="!pte.batch_capacity">
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-exclamation-circle" style="font-size: 2rem;"></i>
+          <p class="mt-2 mb-2">No batch assigned to this student yet.</p>
+          <button type="button" class="btn btn-sm btn-outline-primary" (click)="openEnrollModal(true)">
+            Assign Batch
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sub-Section 4: ATTENDANCE (Section 3.4) ──────────── -->
+    <div *ngIf="activeSection === 'attendance'" class="sub-pane">
+      <div class="content-card">
+        <div class="card-head">
+          <div class="d-flex align-items-center gap-3">
+            <h6><i class="bi bi-calendar-check text-success me-1"></i> Attendance Log</h6>
+            <span class="attendance-summary-badge">
+              <strong>{{ pte.attendance?.percentage || 0 }}%</strong> Attendance ({{ pte.attendance?.present_sessions || 0 }} / {{ pte.attendance?.total_sessions || 0 }} Sessions)
+            </span>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" (click)="openAttendanceModal()">
+            <i class="bi bi-plus-lg me-1"></i> Mark Session
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="sub-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Session Topic</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!pte.attendance?.records?.length">
+                <td colspan="5" class="text-center text-muted py-4">No attendance sessions logged yet.</td>
+              </tr>
+              <tr *ngFor="let a of pte.attendance?.records">
+                <td>{{ a.session_date | date:'dd MMM yyyy' }}</td>
+                <td>{{ a.session_title || 'Regular Class' }}</td>
+                <td>
+                  <span class="status-pill" [class.status-present]="a.status === 'Present'" [class.status-absent]="a.status === 'Absent'">
+                    {{ a.status }}
+                  </span>
+                </td>
+                <td class="text-muted small">{{ a.remarks || '—' }}</td>
+                <td class="text-end">
+                  <button type="button" class="btn-del-icon" (click)="deleteAttendance(a.id)" title="Delete"><i class="bi bi-trash"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sub-Section 5: MOCK TESTS (Section 3.5) ──────────── -->
+    <div *ngIf="activeSection === 'mock_tests'" class="sub-pane">
+      <div class="content-card">
+        <div class="card-head">
+          <h6><i class="bi bi-journal-text text-primary me-1"></i> Mock Test Scorecard History</h6>
+          <button type="button" class="btn btn-sm btn-primary" (click)="openMockModal()">
+            <i class="bi bi-plus-lg me-1"></i> Log Mock Test
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="sub-table">
+            <thead>
+              <tr>
+                <th>Test Date</th>
+                <th>Title</th>
+                <th>Overall</th>
+                <th>Listening</th>
+                <th>Reading</th>
+                <th>Speaking</th>
+                <th>Writing</th>
+                <th>Comments</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!pte.mock_tests?.length">
+                <td colspan="9" class="text-center text-muted py-4">No mock tests recorded yet.</td>
+              </tr>
+              <tr *ngFor="let m of pte.mock_tests">
+                <td><strong>{{ m.test_date | date:'dd MMM yyyy' }}</strong></td>
+                <td>{{ m.test_title }}</td>
+                <td><span class="score-pill-lg">{{ m.overall_score }}</span></td>
+                <td>{{ m.listening || '—' }}</td>
+                <td>{{ m.reading || '—' }}</td>
+                <td>{{ m.speaking || '—' }}</td>
+                <td>{{ m.writing || '—' }}</td>
+                <td class="text-muted small">{{ m.comments || '—' }}</td>
+                <td class="text-end">
+                  <button type="button" class="btn-del-icon" (click)="deleteMock(m.id)" title="Delete"><i class="bi bi-trash"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sub-Section 6: EXAMS (Section 3.6) ───────────────── -->
+    <div *ngIf="activeSection === 'exams'" class="sub-pane">
+      <div class="content-card">
+        <div class="card-head">
+          <h6><i class="bi bi-calendar-event text-warning me-1"></i> Official Exam Bookings</h6>
+          <button type="button" class="btn btn-sm btn-primary" (click)="openExamModal()">
+            <i class="bi bi-plus-lg me-1"></i> Book Exam
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="sub-table">
+            <thead>
+              <tr>
+                <th>Exam Date</th>
+                <th>Booking Date</th>
+                <th>Venue / Mode</th>
+                <th>Result Status</th>
+                <th>Notes</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!pte.exams?.length">
+                <td colspan="6" class="text-center text-muted py-4">No exams booked yet.</td>
+              </tr>
+              <tr *ngFor="let ex of pte.exams">
+                <td><strong>{{ ex.exam_date | date:'dd MMM yyyy' }}</strong></td>
+                <td>{{ ex.booking_date | date:'dd MMM yyyy' }}</td>
+                <td>{{ ex.venue }} ({{ ex.mode }})</td>
+                <td>
+                  <span class="status-pill" [class.status-pending]="ex.result_status === 'Result Pending'" [class.status-received]="ex.result_status === 'Result Received'">
+                    {{ ex.result_status }}
+                  </span>
+                </td>
+                <td class="text-muted small">{{ ex.notes || '—' }}</td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-sm btn-outline-success" (click)="openResultModal(ex)" *ngIf="ex.result_status === 'Result Pending'">
+                    Log Result
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sub-Section 7: OFFICIAL RESULTS (Section 3.7) ────── -->
+    <div *ngIf="activeSection === 'results'" class="sub-pane">
+      <div class="content-card">
+        <div class="card-head">
+          <h6><i class="bi bi-patch-check-fill text-success me-1"></i> Official Pearson PTE Results</h6>
+          <button type="button" class="btn btn-sm btn-success" (click)="openResultModal()">
+            <i class="bi bi-plus-lg me-1"></i> Log Official Result
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="sub-table">
+            <thead>
+              <tr>
+                <th>Exam Date</th>
+                <th>Overall</th>
+                <th>L / R / S / W</th>
+                <th>Target</th>
+                <th>Target Achieved</th>
+                <th>Next Action</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="!pte.results?.length">
+                <td colspan="7" class="text-center text-muted py-4">No official results logged yet.</td>
+              </tr>
+              <tr *ngFor="let r of pte.results">
+                <td><strong>{{ r.exam_date | date:'dd MMM yyyy' }}</strong></td>
+                <td><span class="score-pill-success">{{ r.overall_score }}</span></td>
+                <td>{{ r.listening }}/{{ r.reading }}/{{ r.speaking }}/{{ r.writing }}</td>
+                <td>{{ r.target_score }}</td>
+                <td>
+                  <span class="status-pill" [class.status-yes]="r.target_achieved" [class.status-no]="!r.target_achieved">
+                    {{ r.target_achieved ? 'YES' : 'NO' }}
+                  </span>
+                </td>
+                <td><span class="badge-next-action">{{ r.next_action }}</span></td>
+                <td class="text-muted small">{{ r.remarks || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 1: ENROLL / REFER / RECOMMEND MODAL                    -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop-custom" *ngIf="showEnrollModal">
+    <div class="modal-dialog-custom">
+      <div class="modal-content-custom">
+        <div class="modal-header-custom">
+          <h5><i class="bi bi-mortarboard me-2 text-primary"></i> {{ isEditing ? 'Edit PTE Profile' : 'Start PTE Workflow' }}</h5>
+          <button type="button" class="btn-close-custom" (click)="showEnrollModal = false">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Current Status</label>
+              <select [(ngModel)]="enrollForm.status" class="form-control-custom">
+                <option *ngFor="let st of statusList" [value]="st">{{ st }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Package</label>
+              <select [(ngModel)]="enrollForm.package_name" class="form-control-custom">
+                <option *ngFor="let p of packageOptions" [value]="p">{{ p }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Score</label>
+              <input type="number" [(ngModel)]="enrollForm.target_score" class="form-control-custom" placeholder="e.g. 65" />
+            </div>
+            <div class="form-group">
+              <label>Current Score (if any)</label>
+              <input type="number" [(ngModel)]="enrollForm.current_score" class="form-control-custom" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label>Assign Batch</label>
+              <select [(ngModel)]="enrollForm.batch_id" class="form-control-custom">
+                <option [ngValue]="null">-- Select Batch --</option>
+                <option *ngFor="let b of batches" [ngValue]="b.id" [disabled]="b.available_seats === 0 && b.id !== enrollForm.batch_id">
+                  {{ b.batch_name }} ({{ b.joined_count }}/{{ b.capacity }} - {{ b.available_seats }} seats left)
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Assign Trainer</label>
+              <select [(ngModel)]="enrollForm.trainer_id" class="form-control-custom">
+                <option [ngValue]="null">-- Select Trainer --</option>
+                <option *ngFor="let t of trainers" [ngValue]="t.id">{{ t.name }} ({{ t.role }})</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Recommendation Date</label>
+              <input type="date" [(ngModel)]="enrollForm.recommendation_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Referral Date</label>
+              <input type="date" [(ngModel)]="enrollForm.referral_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Join Date</label>
+              <input type="date" [(ngModel)]="enrollForm.join_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Follow-up Date</label>
+              <input type="date" [(ngModel)]="enrollForm.followup_date" class="form-control-custom" />
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <label>Follow-up Remarks</label>
+            <input type="text" [(ngModel)]="enrollForm.followup_remarks" class="form-control-custom" placeholder="Follow-up notes" />
+          </div>
+          <div class="form-group mt-2">
+            <label>General Remarks</label>
+            <textarea [(ngModel)]="enrollForm.remarks" class="form-control-custom" rows="2" placeholder="Notes or remarks..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-cancel" (click)="showEnrollModal = false">Cancel</button>
+          <button type="button" class="btn-save" (click)="saveEnrollment()" [disabled]="submitting">
+            <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+            Save Enrollment
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 2: ATTENDANCE MODAL                                    -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop-custom" *ngIf="showAttendanceModal">
+    <div class="modal-dialog-custom modal-sm-custom">
+      <div class="modal-content-custom">
+        <div class="modal-header-custom">
+          <h5><i class="bi bi-calendar-check me-2 text-success"></i> Mark Session Attendance</h5>
+          <button type="button" class="btn-close-custom" (click)="showAttendanceModal = false">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="form-group mb-2">
+            <label>Session Date</label>
+            <input type="date" [(ngModel)]="attendanceForm.session_date" class="form-control-custom" />
+          </div>
+          <div class="form-group mb-2">
+            <label>Session Topic / Title</label>
+            <input type="text" [(ngModel)]="attendanceForm.session_title" class="form-control-custom" placeholder="e.g. Speaking Read Aloud & Repeat" />
+          </div>
+          <div class="form-group mb-2">
+            <label>Status</label>
+            <select [(ngModel)]="attendanceForm.status" class="form-control-custom">
+              <option value="Present">Present</option>
+              <option value="Absent">Absent</option>
+              <option value="Late">Late</option>
+              <option value="Excused">Excused</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Remarks</label>
+            <input type="text" [(ngModel)]="attendanceForm.remarks" class="form-control-custom" placeholder="Optional notes" />
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-cancel" (click)="showAttendanceModal = false">Cancel</button>
+          <button type="button" class="btn-save" (click)="saveAttendance()" [disabled]="submitting">Save Attendance</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 3: MOCK TEST MODAL                                     -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop-custom" *ngIf="showMockModal">
+    <div class="modal-dialog-custom">
+      <div class="modal-content-custom">
+        <div class="modal-header-custom">
+          <h5><i class="bi bi-journal-text me-2 text-primary"></i> Record Mock Test</h5>
+          <button type="button" class="btn-close-custom" (click)="showMockModal = false">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Test Date</label>
+              <input type="date" [(ngModel)]="mockForm.test_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Test Title</label>
+              <input type="text" [(ngModel)]="mockForm.test_title" class="form-control-custom" placeholder="e.g. Full Mock 1" />
+            </div>
+            <div class="form-group">
+              <label>Overall Score</label>
+              <input type="number" [(ngModel)]="mockForm.overall_score" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Listening</label>
+              <input type="number" [(ngModel)]="mockForm.listening" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Reading</label>
+              <input type="number" [(ngModel)]="mockForm.reading" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Speaking</label>
+              <input type="number" [(ngModel)]="mockForm.speaking" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Writing</label>
+              <input type="number" [(ngModel)]="mockForm.writing" class="form-control-custom" />
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <label>Comments / Feedback</label>
+            <textarea [(ngModel)]="mockForm.comments" class="form-control-custom" rows="2" placeholder="Trainer comments"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-cancel" (click)="showMockModal = false">Cancel</button>
+          <button type="button" class="btn-save" (click)="saveMockTest()" [disabled]="submitting">Save Mock Test</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 4: BOOK EXAM MODAL                                     -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop-custom" *ngIf="showExamModal">
+    <div class="modal-dialog-custom">
+      <div class="modal-content-custom">
+        <div class="modal-header-custom">
+          <h5><i class="bi bi-calendar-event me-2 text-warning"></i> Book Official Exam</h5>
+          <button type="button" class="btn-close-custom" (click)="showExamModal = false">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Exam Date</label>
+              <input type="date" [(ngModel)]="examForm.exam_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Booking Date</label>
+              <input type="date" [(ngModel)]="examForm.booking_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Mode</label>
+              <select [(ngModel)]="examForm.mode" class="form-control-custom">
+                <option value="Offline Center">Offline Center</option>
+                <option value="Online / Home">Online / Home</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Venue / Location</label>
+              <input type="text" [(ngModel)]="examForm.venue" class="form-control-custom" placeholder="Center location" />
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <label>Notes / Instructions</label>
+            <textarea [(ngModel)]="examForm.notes" class="form-control-custom" rows="2" placeholder="Passport check, timing notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-cancel" (click)="showExamModal = false">Cancel</button>
+          <button type="button" class="btn-save" (click)="saveExam()" [disabled]="submitting">Book Exam</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 5: LOG RESULT MODAL (PTE-003)                          -->
+  <!-- ============================================================ -->
+  <div class="modal-backdrop-custom" *ngIf="showResultModal">
+    <div class="modal-dialog-custom">
+      <div class="modal-content-custom">
+        <div class="modal-header-custom">
+          <h5><i class="bi bi-patch-check-fill me-2 text-success"></i> Log Official PTE Exam Result</h5>
+          <button type="button" class="btn-close-custom" (click)="showResultModal = false">&times;</button>
+        </div>
+        <div class="modal-body-custom">
+          <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i> Target score is <strong>{{ pte?.target_score || 65 }}</strong>. If overall score is &ge; {{ pte?.target_score || 65 }}, <strong>Target Achieved</strong> is automatically granted and an <strong>Application Follow-up Task (PTE-003)</strong> will be generated.
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Exam Date</label>
+              <input type="date" [(ngModel)]="resultForm.exam_date" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Overall Score</label>
+              <input type="number" [(ngModel)]="resultForm.overall_score" class="form-control-custom" placeholder="e.g. 68" />
+            </div>
+            <div class="form-group">
+              <label>Listening</label>
+              <input type="number" [(ngModel)]="resultForm.listening" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Reading</label>
+              <input type="number" [(ngModel)]="resultForm.reading" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Speaking</label>
+              <input type="number" [(ngModel)]="resultForm.speaking" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+              <label>Writing</label>
+              <input type="number" [(ngModel)]="resultForm.writing" class="form-control-custom" />
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <label>Next Action</label>
+            <input type="text" [(ngModel)]="resultForm.next_action" class="form-control-custom" placeholder="e.g. University application course selection" />
+          </div>
+          <div class="form-group mt-2">
+            <label>Remarks</label>
+            <textarea [(ngModel)]="resultForm.remarks" class="form-control-custom" rows="2" placeholder="Official remarks..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-cancel" (click)="showResultModal = false">Cancel</button>
+          <button type="button" class="btn-save btn-success" (click)="saveResult()" [disabled]="submitting">Save Official Result</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

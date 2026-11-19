@@ -6,7 +6,7 @@
       <p class="text-muted mb-0">Overview of team productivity and lead conversion</p>
     </div>
     
-    <div class="flex items-center gap-16" style="flex-wrap: wrap;">
+    <div class="flex items-center gap-16" style="flex-wrap: wrap;" *ngIf="canFilterAgents">
       <select class="form-select premium-select shadow-sm" [(ngModel)]="dateRange" (change)="onFilterChange()">
         <option value="today">Today</option>
         <option value="yesterday">Yesterday</option>
@@ -15,7 +15,7 @@
         <option value="last_month">Last Month</option>
       </select>
       
-      <select class="form-select premium-select shadow-sm" [(ngModel)]="selectedAgent" (change)="onFilterChange()">
+      <select *ngIf="canFilterAgents" class="form-select premium-select shadow-sm" [(ngModel)]="selectedAgent" (change)="onFilterChange()">
         <option value="all">All Agents</option>
         <option *ngFor="let agent of agents" [value]="agent.id">{{ agent.name }}</option>
       </select>

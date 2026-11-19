@@ -12,6 +12,7 @@ import { ContactQualificationsComponent } from '../contact-qualifications/contac
 import { ContactWorkExperiencesComponent } from '../contact-work-experiences/contact-work-experiences.component';
 import { ContactTasksComponent } from '../contact-tasks/contact-tasks.component';
 import { ContactVisaComponent } from '../contact-visa/contact-visa.component';
+import { ContactPteComponent } from '../contact-pte/contact-pte.component';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 
@@ -25,7 +26,8 @@ import Swal from 'sweetalert2';
     ContactQualificationsComponent,
     ContactWorkExperiencesComponent,
     ContactTasksComponent,
-    ContactVisaComponent
+    ContactVisaComponent,
+    ContactPteComponent
   ],
   templateUrl: './lead-profile-modal.component.html',
   styleUrls: ['./lead-profile-modal.component.css']
@@ -126,6 +128,23 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       case 'Approved': return 'bg-success text-white';
       case 'Declined': return 'bg-danger text-white';
       case 'Withdrawn': return 'bg-dark text-white';
+      default: return 'bg-light text-dark border';
+    }
+  }
+
+  contactPteStatus: string = '';
+
+  onPteStatusChange(status: string): void {
+    this.contactPteStatus = status;
+  }
+
+  getPteStatusBadgeClass(): string {
+    switch (this.contactPteStatus) {
+      case 'Recommended': return 'bg-info text-white';
+      case 'Referred': return 'bg-warning text-dark';
+      case 'Joined': return 'bg-primary text-white';
+      case 'Target Achieved': return 'bg-success text-white';
+      case 'Application': return 'bg-purple text-white';
       default: return 'bg-light text-dark border';
     }
   }

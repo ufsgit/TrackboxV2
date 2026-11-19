@@ -1,0 +1,213 @@
+<div class="visa-report-page">
+  <!-- 1. Header Navigation & Actions -->
+  <header class="report-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()" title="Back to Dashboard">
+        <i class="bi bi-arrow-left"></i>
+        <span>Dashboard</span>
+      </button>
+      <div class="header-titles">
+        <div class="breadcrumb">
+          <span>CRM</span>
+          <i class="bi bi-chevron-right"></i>
+          <span>Reports</span>
+          <i class="bi bi-chevron-right"></i>
+          <span class="active-crumb">{{ getActiveStatusInfo().label }}</span>
+        </div>
+        <div class="title-row">
+          <div class="title-icon" [style.background]="getActiveStatusInfo().tint" [style.color]="getActiveStatusInfo().color">
+            <i class="bi bi-passport"></i>
+          </div>
+          <div>
+            <h1>{{ getActiveStatusInfo().label }} Leads</h1>
+            <p>Showing contacts and leads associated with visa case processing</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="action-btn refresh-btn" (click)="fetchLeads(true)" [disabled]="loading || refreshing" title="Refresh Report">
+        <i class="bi bi-arrow-clockwise" [class.spin]="refreshing"></i>
+        <span>Refresh</span>
+      </button>
+      <button class="action-btn export-btn" (click)="exportToExcel()" [disabled]="leads.length === 0" title="Export to Excel">
+        <i class="bi bi-file-earmark-excel"></i>
+        <span>Export .XLSX</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Dynamic KPI Status Cards Strip -->
+  <section class="kpi-strip">
+    <!-- "All Visas" Card -->
+    <div class="kpi-nav-card" [class.active]="activeStatus === 'all'" (click)="switchStatus('all')">
+      <div class="card-icon" style="background: rgba(37, 99, 235, 0.12); color: #2563EB;">
+        <i class="bi bi-archive"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">All Visas</span>
+        <div class="card-val-row">
+          <span class="card-val">{{ totalAllVisas | number }}</span>
+        </div>
+      </div>
+      <div class="active-indicator" style="background: #2563EB;"></div>
+    </div>
+
+    <!-- Each Status from visa_statuses -->
+    <div 
+      class="kpi-nav-card" 
+      *ngFor="let st of statusSummary"
+      [class.active]="activeStatus.toLowerCase() === st.name.toLowerCase()"
+      (click)="switchStatus(st.name)">
+      <div class="card-icon" [style.background]="hexToRgba(st.color, 0.12)" [style.color]="st.color || '#4f46e5'">
+        <i class="bi bi-send-check" *ngIf="st.name.toLowerCase().includes('submit')"></i>
+        <i class="bi bi-check-circle" *ngIf="st.name.toLowerCase().includes('approv')"></i>
+        <i class="bi bi-x-octagon" *ngIf="st.name.toLowerCase().includes('declin')"></i>
+        <i class="bi bi-shield-check" *ngIf="st.name.toLowerCase().includes('aip')"></i>
+        <i class="bi bi-clock-history" *ngIf="st.name.toLowerCase().includes('assess')"></i>
+        <i class="bi bi-exclamation-diamond" *ngIf="st.name.toLowerCase().includes('rfi')"></i>
+        <i class="bi bi-passport" *ngIf="!st.name.toLowerCase().includes('submit') && !st.name.toLowerCase().includes('approv') && !st.name.toLowerCase().includes('declin') && !st.name.toLowerCase().includes('aip') && !st.name.toLowerCase().includes('assess') && !st.name.toLowerCase().includes('rfi')"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">{{ st.name }}</span>
+        <div class="card-val-row">
+          <span class="card-val">{{ st.count | number }}</span>
+        </div>
+      </div>
+      <div class="active-indicator" [style.background]="st.color || '#4f46e5'"></div>
+    </div>
+  </section>
+
+  <!-- 3. Report Card Table Container -->
+  <section class="report-card">
+    <!-- Filter and Search Bar -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input 
+          type="text" 
+          placeholder="Search student name, phone, email, app ref #..." 
+          [(ngModel)]="searchQuery" 
+          (ngModelChange)="onSearchChange()" 
+        />
+        <button *ngIf="searchQuery" (click)="clearSearch()" class="clear-search-btn" title="Clear">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+
+      <div class="filter-meta">
+        <span class="count-badge">
+          <strong>{{ totalCount | number }}</strong> total record(s)
+        </span>
+      </div>
+    </div>
+
+    <!-- Loading Bar Indicator -->
+    <div class="loading-bar-wrapper" *ngIf="loading">
+      <div class="indeterminate-bar"></div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Student / Lead</th>
+            <th>Contact Details</th>
+            <th>Visa Type & Ref #</th>
+            <th>Current Status</th>
+            <th>Dates</th>
+            <th>Assigned Staff</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Empty State -->
+          <tr *ngIf="!loading && leads.length === 0" class="empty-row">
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i class="bi bi-inbox"></i>
+                </div>
+                <h3>No Visa Leads Found</h3>
+                <p *ngIf="activeStatus !== 'all'">No visa records currently in <strong>{{ activeStatus }}</strong> status.</p>
+                <p *ngIf="activeStatus === 'all'">No visa records have been saved yet.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Data Rows -->
+          <tr *ngFor="let it of leads; let idx = index" class="data-row">
+            <td class="col-idx">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+            <td>
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Visa' }" class="lead-cell" title="View Lead Details">
+                <div class="lead-avatar" [style.background]="hexToRgba(it.status_color || '#4f46e5', 0.15)" [style.color]="it.status_color || '#4f46e5'">
+                  {{ getInitials(it.contact_name) }}
+                </div>
+                <div class="lead-names">
+                  <span class="lead-title">{{ it.contact_name }}</span>
+                  <small class="lead-sub" *ngIf="it.contact_id">Contact #{{ it.contact_id }}</small>
+                </div>
+              </a>
+            </td>
+            <td>
+              <div class="contact-info">
+                <span *ngIf="it.contact_phone && it.contact_phone !== '—'"><i class="bi bi-telephone"></i> {{ it.contact_phone }}</span>
+                <span *ngIf="it.contact_email && it.contact_email !== '—'"><i class="bi bi-envelope"></i> {{ it.contact_email }}</span>
+                <span *ngIf="it.contact_address" class="location-text">
+                  <i class="bi bi-geo-alt"></i> {{ it.contact_address }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="visa-type-cell">
+                <span class="visa-type-pill">{{ it.visa_type || 'Student Visa' }}</span>
+                <small class="app-no" *ngIf="it.application_no">Ref: {{ it.application_no }}</small>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge" [style.background]="hexToRgba(it.status_color, 0.15)" [style.color]="it.status_color" [style.border-color]="it.status_color">
+                {{ it.visa_status }}
+              </span>
+            </td>
+            <td>
+              <div class="date-badge-box">
+                <span class="date-primary" *ngIf="it.submission_date">Sub: {{ it.submission_date | date:'dd MMM yyyy' }}</span>
+                <span class="date-primary" *ngIf="!it.submission_date && it.visa_date">Date: {{ it.visa_date | date:'dd MMM yyyy' }}</span>
+                <span class="date-primary" *ngIf="!it.submission_date && !it.visa_date">Created: {{ it.created_at | date:'dd MMM yyyy' }}</span>
+                <small class="time-secondary" *ngIf="it.outcome_date">Outcome: {{ it.outcome_date | date:'dd MMM yyyy' }}</small>
+              </div>
+            </td>
+            <td>
+              <span class="staff-pill">{{ it.assigned_staff_name || 'Unassigned' }}</span>
+            </td>
+            <td class="text-end">
+              <a [routerLink]="['/contacts']" [queryParams]="{ contactId: it.contact_id, tab: 'Visa' }" class="btn-view-lead" title="Open Lead Profile">
+                <i class="bi bi-box-arrow-up-right"></i>
+                <span>View Lead</span>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. Pagination Footer -->
+    <div class="pagination-footer" *ngIf="totalPages > 1">
+      <div class="page-meta">
+        Showing <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> to <strong>{{ (currentPage * pageSize) > totalCount ? totalCount : (currentPage * pageSize) }}</strong> of <strong>{{ totalCount }}</strong>
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
+          <i class="bi bi-chevron-left"></i> Prev
+        </button>
+        <span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)">
+          Next <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

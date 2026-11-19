@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart, registerables } from 'chart.js';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 Chart.register(...registerables);
 
@@ -60,7 +61,11 @@ export class TimeTrackReportComponent implements OnInit {
   // Hourly table list
   hourlyTableData: HourlyItem[] = [];
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {
+  constructor(
+    private api: ApiService, 
+    public authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -68,7 +73,14 @@ export class TimeTrackReportComponent implements OnInit {
     this.selectedDate = `${year}-${month}-${day}`;
   }
 
+  get canFilterAgents(): boolean {
+    return this.authService.canFilterAgents();
+  }
+
   ngOnInit(): void {
+    if (!this.canFilterAgents) {
+      this.selectedAgent = this.authService.getCurrentUserId()?.toString() || 'all';
+    }
     this.loadAgents();
     this.loadData();
   }

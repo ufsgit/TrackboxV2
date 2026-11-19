@@ -76,6 +76,10 @@
           <i class="bi bi-passport me-1"></i> <span>Visa</span>
           <span class="tab-count-badge" [ngClass]="getVisaStatusBadgeClass()" *ngIf="contactVisaStatus">{{ contactVisaStatus }}</span>
         </button>
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'PTE'" (click)="detailActiveTab = 'PTE'">
+          <i class="bi bi-mortarboard me-1"></i> <span>PTE</span>
+          <span class="tab-count-badge" [ngClass]="getPteStatusBadgeClass()" *ngIf="contactPteStatus">{{ contactPteStatus }}</span>
+        </button>
         <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">
           <i class="bi bi-folder2-open"></i> <span>Documents</span>
           <span class="tab-count-badge" *ngIf="contactDocuments">{{ contactDocuments.length }}</span>
@@ -434,6 +438,16 @@
             [contact]="selectedContact"
             (statusChange)="onVisaStatusChange($event)">
           </app-contact-visa>
+        </div>
+
+        <!-- ==================== PTE TAB ==================== -->
+        <div *ngIf="detailActiveTab === 'PTE'" class="tab-pane">
+          <app-contact-pte
+            [contactId]="contactId"
+            [studentName]="getLeadName()"
+            [contact]="selectedContact"
+            (statusChange)="onPteStatusChange($event)">
+          </app-contact-pte>
         </div>
 
       </div>

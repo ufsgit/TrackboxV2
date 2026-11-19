@@ -90,7 +90,14 @@ export class WorkReportComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
+  get canFilterAgents(): boolean {
+    return this.auth.canFilterAgents();
+  }
+
   ngOnInit() {
+    if (!this.canFilterAgents) {
+      this.selectedAgent = this.auth.getCurrentUserId()?.toString() || 'all';
+    }
     this.fetchData();
     this.loadAgents();
   }
