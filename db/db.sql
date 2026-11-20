@@ -2729,6 +2729,68 @@ INSERT INTO `users` VALUES (70,1,NULL,NULL,'Administrator','admin@trackbox.com',
 UNLOCK TABLES;
 
 --
+-- Table structure for table `visa_checklist_categories`
+--
+
+DROP TABLE IF EXISTS `visa_checklist_categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `visa_checklist_categories` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `business_id` int NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_vcc_business` (`business_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `visa_checklist_categories`
+--
+
+LOCK TABLES `visa_checklist_categories` WRITE;
+/*!40000 ALTER TABLE `visa_checklist_categories` DISABLE KEYS */;
+INSERT INTO `visa_checklist_categories` VALUES (1,'Orientation','Pre-departure briefings, destination guides, and university orientations',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(2,'Travel','Flight bookings, itinerary verification, airline baggage and transit compliance',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(3,'Insurance','Health insurance (OSHC) and comprehensive travel medical coverage',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(4,'Housing','Accommodation arrangements, tenancy contracts, and address verification',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(5,'Finance','Forex cards, currency exchange, international banking, and living expense funds',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(6,'Transit','Airport pickup, transit transfers, and local transport connectivity',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(7,'Compliance','Offer letter, COE, passport validation, and visa grant conditions compliance',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(8,'Custom','Custom or institution-specific pre-departure requirements',1,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(9,'Orientation','Pre-departure briefings, destination guides, and university orientations',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(10,'Travel','Flight bookings, itinerary verification, airline baggage and transit compliance',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(11,'Insurance','Health insurance (OSHC) and comprehensive travel medical coverage',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(12,'Housing','Accommodation arrangements, tenancy contracts, and address verification',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(13,'Finance','Forex cards, currency exchange, international banking, and living expense funds',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(14,'Transit','Airport pickup, transit transfers, and local transport connectivity',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(15,'Compliance','Offer letter, COE, passport validation, and visa grant conditions compliance',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(16,'Custom','Custom or institution-specific pre-departure requirements',6,1,'2026-11-20 07:05:11','2026-11-20 07:05:11'),(17,'test',NULL,1,1,'2026-11-20 07:10:30','2026-11-20 07:10:30');
+/*!40000 ALTER TABLE `visa_checklist_categories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `visa_checklist_templates`
+--
+
+DROP TABLE IF EXISTS `visa_checklist_templates`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `visa_checklist_templates` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL,
+  `category` varchar(100) DEFAULT 'Pre-Departure',
+  `description` varchar(255) DEFAULT NULL,
+  `stage_order` int DEFAULT '0',
+  `is_active` tinyint(1) DEFAULT '1',
+  `business_id` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_vct_business` (`business_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `visa_checklist_templates`
+--
+
+LOCK TABLES `visa_checklist_templates` WRITE;
+/*!40000 ALTER TABLE `visa_checklist_templates` DISABLE KEYS */;
+INSERT INTO `visa_checklist_templates` VALUES (1,'Pre-Departure Briefing Session','Orientation','Mandatory pre-departure briefing and destination orientation',1,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(2,'Flight Ticket & Travel Booking Verification','Travel','Confirm itinerary, airline baggage limits, and transit arrangements',2,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(3,'Health Insurance (OSHC) & Travel Coverage','Insurance','Ensure policy active and valid for student & dependents',3,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(4,'Accommodation Arrangements & Address Confirmation','Housing','Confirm initial housing, landlord contact, and check-in dates',4,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(5,'Forex, Multi-currency Card & Bank Setup','Finance','Arrange international debit cards and initial living funds',5,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(6,'Airport Pickup & Transit Arrangements','Transit','Coordinate airport transfer and local transport passes',6,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(7,'Final Enrolment Pack & Document Compliance','Compliance','Verify offer letter, COE, passport, and entry visa grant notice',7,1,1,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(8,'Pre-Departure Briefing Session','Orientation','Mandatory pre-departure briefing and destination orientation',1,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(9,'Flight Ticket & Travel Booking Verification','Travel','Confirm itinerary, airline baggage limits, and transit arrangements',2,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(10,'Health Insurance (OSHC) & Travel Coverage','Insurance','Ensure policy active and valid for student & dependents',3,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(11,'Accommodation Arrangements & Address Confirmation','Housing','Confirm initial housing, landlord contact, and check-in dates',4,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(12,'Forex, Multi-currency Card & Bank Setup','Finance','Arrange international debit cards and initial living funds',5,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(13,'Airport Pickup & Transit Arrangements','Transit','Coordinate airport transfer and local transport passes',6,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(14,'Final Enrolment Pack & Document Compliance','Compliance','Verify offer letter, COE, passport, and entry visa grant notice',7,1,6,'2026-11-20 06:00:24','2026-11-20 06:00:24'),(15,'test122','test',NULL,8,1,1,'2026-11-20 07:10:43','2026-11-20 07:10:43');
+/*!40000 ALTER TABLE `visa_checklist_templates` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `visa_history`
 --
 
@@ -2961,7 +3023,7 @@ CREATE TABLE `visas` (
 
 LOCK TABLES `visas` WRITE;
 /*!40000 ALTER TABLE `visas` DISABLE KEYS */;
-INSERT INTO `visas` VALUES (12,859,'Anas','918592873809',1,'AIP','2026-11-19',NULL,70,'2026-11-19 08:55:32','2026-11-19 08:55:32','Post-Study Work','234',502,'Priya Sharma','2026-11-19',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,'[{\"id\": \"pda_1\", \"done\": false, \"notes\": \"\", \"title\": \"Pre-Departure Briefing Session\", \"completed_at\": null}, {\"id\": \"pda_2\", \"done\": false, \"notes\": \"\", \"title\": \"Flight Ticket & Travel Booking Verification\", \"completed_at\": null}, {\"id\": \"pda_3\", \"done\": false, \"notes\": \"\", \"title\": \"Health Insurance (OSHC) & Travel Coverage\", \"completed_at\": null}, {\"id\": \"pda_4\", \"done\": false, \"notes\": \"\", \"title\": \"Accommodation Arrangements & Address Confirmation\", \"completed_at\": null}, {\"id\": \"pda_5\", \"done\": false, \"notes\": \"\", \"title\": \"Forex, Multi-currency Card & Bank Setup\", \"completed_at\": null}, {\"id\": \"pda_6\", \"done\": false, \"notes\": \"\", \"title\": \"Airport Pickup & Transit Arrangements\", \"completed_at\": null}, {\"id\": \"pda_7\", \"done\": false, \"notes\": \"\", \"title\": \"Final Enrolment Pack & Document Compliance\", \"completed_at\": null}]',0,0),(13,859,'Anas','918592873809',1,'Withdrawn','2026-11-19',NULL,70,'2026-11-19 09:27:47','2026-11-19 09:27:47','Student Visa','',502,'Priya Sharma','2026-11-19',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,'[{\"id\": \"pda_1\", \"done\": false, \"notes\": \"\", \"title\": \"Pre-Departure Briefing Session\", \"completed_at\": null}, {\"id\": \"pda_2\", \"done\": false, \"notes\": \"\", \"title\": \"Flight Ticket & Travel Booking Verification\", \"completed_at\": null}, {\"id\": \"pda_3\", \"done\": false, \"notes\": \"\", \"title\": \"Health Insurance (OSHC) & Travel Coverage\", \"completed_at\": null}, {\"id\": \"pda_4\", \"done\": false, \"notes\": \"\", \"title\": \"Accommodation Arrangements & Address Confirmation\", \"completed_at\": null}, {\"id\": \"pda_5\", \"done\": false, \"notes\": \"\", \"title\": \"Forex, Multi-currency Card & Bank Setup\", \"completed_at\": null}, {\"id\": \"pda_6\", \"done\": false, \"notes\": \"\", \"title\": \"Airport Pickup & Transit Arrangements\", \"completed_at\": null}, {\"id\": \"pda_7\", \"done\": false, \"notes\": \"\", \"title\": \"Final Enrolment Pack & Document Compliance\", \"completed_at\": null}]',0,0);
+INSERT INTO `visas` VALUES (12,859,'Anas','918592873809',1,'AIP','2026-11-19',NULL,70,'2026-11-19 08:55:32','2026-11-19 08:55:32','Post-Study Work','234',502,'Priya Sharma','2026-11-19',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,'[{\"id\": \"pda_1\", \"done\": false, \"notes\": \"\", \"title\": \"Pre-Departure Briefing Session\", \"completed_at\": null}, {\"id\": \"pda_2\", \"done\": false, \"notes\": \"\", \"title\": \"Flight Ticket & Travel Booking Verification\", \"completed_at\": null}, {\"id\": \"pda_3\", \"done\": false, \"notes\": \"\", \"title\": \"Health Insurance (OSHC) & Travel Coverage\", \"completed_at\": null}, {\"id\": \"pda_4\", \"done\": false, \"notes\": \"\", \"title\": \"Accommodation Arrangements & Address Confirmation\", \"completed_at\": null}, {\"id\": \"pda_5\", \"done\": false, \"notes\": \"\", \"title\": \"Forex, Multi-currency Card & Bank Setup\", \"completed_at\": null}, {\"id\": \"pda_6\", \"done\": false, \"notes\": \"\", \"title\": \"Airport Pickup & Transit Arrangements\", \"completed_at\": null}, {\"id\": \"pda_7\", \"done\": false, \"notes\": \"\", \"title\": \"Final Enrolment Pack & Document Compliance\", \"completed_at\": null}]',0,0),(13,859,'Anas','918592873809',1,'Withdrawn','2026-11-19',NULL,70,'2026-11-19 09:27:47','2026-11-20 07:10:55','Student Visa','',502,'Priya Sharma','2026-11-19',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,'[{\"id\": \"template_1\", \"done\": true, \"notes\": \"\", \"title\": \"Pre-Departure Briefing Session\", \"category\": \"Orientation\", \"description\": \"Mandatory pre-departure briefing and destination orientation\", \"template_id\": 1, \"completed_at\": \"2026-11-20T06:39:05.798Z\"}, {\"id\": \"template_2\", \"done\": true, \"notes\": \"\", \"title\": \"Flight Ticket & Travel Booking Verification\", \"category\": \"Travel\", \"description\": \"Confirm itinerary, airline baggage limits, and transit arrangements\", \"template_id\": 2, \"completed_at\": \"2026-11-20T06:38:40.230Z\"}, {\"id\": \"template_3\", \"done\": true, \"notes\": \"\", \"title\": \"Health Insurance (OSHC) & Travel Coverage\", \"category\": \"Insurance\", \"description\": \"Ensure policy active and valid for student & dependents\", \"template_id\": 3, \"completed_at\": \"2026-11-20T06:38:40.662Z\"}, {\"id\": \"template_4\", \"done\": true, \"notes\": \"\", \"title\": \"Accommodation Arrangements & Address Confirmation\", \"category\": \"Housing\", \"description\": \"Confirm initial housing, landlord contact, and check-in dates\", \"template_id\": 4, \"completed_at\": \"2026-11-20T06:38:41.148Z\"}, {\"id\": \"template_5\", \"done\": true, \"notes\": \"\", \"title\": \"Forex, Multi-currency Card & Bank Setup\", \"category\": \"Finance\", \"description\": \"Arrange international debit cards and initial living funds\", \"template_id\": 5, \"completed_at\": \"2026-11-20T06:38:42.045Z\"}, {\"id\": \"template_6\", \"done\": true, \"notes\": \"\", \"title\": \"Airport Pickup & Transit Arrangements\", \"category\": \"Transit\", \"description\": \"Coordinate airport transfer and local transport passes\", \"template_id\": 6, \"completed_at\": \"2026-11-20T06:38:42.400Z\"}, {\"id\": \"template_7\", \"done\": true, \"notes\": \"\", \"title\": \"Final Enrolment Pack & Document Compliance\", \"category\": \"Compliance\", \"description\": \"Verify offer letter, COE, passport, and entry visa grant notice\", \"template_id\": 7, \"completed_at\": \"2026-11-20T06:38:43.038Z\"}, {\"id\": \"template_15\", \"done\": true, \"notes\": \"\", \"title\": \"test122\", \"category\": \"test\", \"description\": \"\", \"template_id\": 15, \"completed_at\": \"2026-11-20T07:10:55.766Z\"}]',0,0);
 /*!40000 ALTER TABLE `visas` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -3110,4 +3172,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-20 11:05:25
+-- Dump completed on 2026-11-20 12:44:22
