@@ -64,72 +64,41 @@ DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `dashbord_source_count`(
-  IN p_business_id INT,
-  IN p_user_id INT,
-  IN p_user_role VARCHAR(50)
-)
+      IN p_business_id INT,
+      IN p_user_id INT,
+      IN p_user_role VARCHAR(50)
+    )
 BEGIN
-  DECLARE v_manager_branch_id INT DEFAULT NULL;
-
-  /* ========================================================
-     1. ADMIN: All contacts for the business
-     ======================================================== */
-  IF LOWER(p_user_role) = 'admin' THEN
-
-    SELECT 
-      source_name AS name,
-      COUNT(*) AS value
-    FROM (
-      SELECT COALESCE(NULLIF(TRIM(c.channel_preference), ''), 'Unknown') AS source_name
-      FROM contacts c
-      WHERE c.business_id = p_business_id
-    ) t
-    GROUP BY source_name
-    ORDER BY value DESC;
-
-  /* ========================================================
-     2. MANAGER: All contacts in the manager's branch
-     ======================================================== */
-  ELSEIF LOWER(p_user_role) = 'manager' THEN
-
-    -- Fetch the manager's branch_id
-    SELECT branch_id INTO v_manager_branch_id
-    FROM users
-    WHERE id = p_user_id AND business_id = p_business_id
-    LIMIT 1;
-
-    SELECT 
-      source_name AS name,
-      COUNT(*) AS value
-    FROM (
-      SELECT COALESCE(NULLIF(TRIM(c.channel_preference), ''), 'Unknown') AS source_name
-      FROM contacts c
-      WHERE c.business_id = p_business_id
-        AND c.branch_id = v_manager_branch_id
-    ) t
-    GROUP BY source_name
-    ORDER BY value DESC;
-
-  /* ========================================================
-     3. AGENT / OTHER: Only contacts assigned to this agent
-     ======================================================== */
-  ELSE
-
-    SELECT 
-      source_name AS name,
-      COUNT(*) AS value
-    FROM (
-      SELECT COALESCE(NULLIF(TRIM(c.channel_preference), ''), 'Unknown') AS source_name
-      FROM contacts c
-      WHERE c.business_id = p_business_id
-        AND c.assigned_to = p_user_id
-    ) t
-    GROUP BY source_name
-    ORDER BY value DESC;
-
-  END IF;
-
-END$$
+      SELECT 
+        source_name AS name,
+        COUNT(*) AS value
+      FROM (
+        SELECT 
+          COALESCE(
+            ch.name,
+            NULLIF(TRIM(c.channel_preference), ''),
+            'Unknown'
+          ) AS source_name
+        FROM contacts c
+        LEFT JOIN channels ch ON c.channel_id = ch.id
+        WHERE c.business_id = p_business_id
+          AND (
+              -- Admin sees all or check role
+              (p_user_role IN ('admin', 'superadmin'))
+              -- Or assigned to user / team member
+              OR c.assigned_to = p_user_id
+              OR c.assigned_to IN (
+                  SELECT tm.user_id 
+                  FROM teams t
+                  INNER JOIN team_members tm ON tm.team_id = t.id
+                  WHERE t.user_id = p_user_id
+                    AND t.business_id = p_business_id
+              )
+          )
+      ) t
+      GROUP BY source_name
+      ORDER BY value DESC;
+    END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -361,17 +330,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_daily_report_export`(
     IN p_search VARCHAR(255)     -- Search term for lead name and phone
 )
 BEGIN
-    DECLARE v_role VARCHAR(50);
-    DECLARE v_branch_id INT;
-
-    -- 1. Fetch the logged-in user's role and branch_id
-    SELECT `role`, `branch_id` 
-    INTO v_role, v_branch_id
-    FROM `users` 
-    WHERE `id` = p_user_id AND `business_id` = p_business_id
-    LIMIT 1;
-
-    -- 2. Execute Query fetching fields directly from follow_ups (f)
     SELECT 
         f.follow_up_id,
         f.contact_id,
@@ -395,13 +353,12 @@ BEGIN
           OR DATE(f.entry_date_time) BETWEEN p_start_date AND p_end_date
       )
 
-      -- Employee Filter (matches logged-by or assigned-to)
+      -- Employee Filter (strictly by who performed the action: by_user_id)
       AND (
           p_employee IS NULL 
           OR p_employee = '' 
           OR p_employee = 'All' 
-          OR f.by_user_id = p_employee 
-          OR f.to_user_id = p_employee
+          OR f.by_user_id = p_employee
       )
 
       -- Status Filter
@@ -412,7 +369,7 @@ BEGIN
           OR TRIM(LOWER(f.status_name)) = TRIM(LOWER(p_status))
       )
 
-      -- Search Filter (Lead Name and Phone Number only)
+      -- Search Filter
       AND (
           p_search IS NULL 
           OR p_search = '' 
@@ -420,16 +377,16 @@ BEGIN
           OR c.phone LIKE CONCAT('%', p_search, '%')
       )
 
-      -- Role-based data visibility logic:
+      -- Team Scoping: Strictly by_user_id for Self + Team Members
       AND (
-          -- Admin / Superadmin: view all business records
-          (v_role IN ('admin', 'superadmin'))
-          
-          -- Manager: view records for their branch
-          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR f.branch_id = v_branch_id))
-          
-          -- Agent: view records logged by or assigned to them
-          OR (v_role = 'agent' AND (f.by_user_id = p_user_id OR f.to_user_id = p_user_id))
+          f.by_user_id = p_user_id 
+          OR f.by_user_id IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+                AND t.business_id = p_business_id
+          )
       )
     ORDER BY f.entry_date_time DESC, f.follow_up_id DESC;
 END$$
@@ -490,17 +447,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_lead_creation_export`(
     IN p_end_date DATE       -- End Date (or NULL)
 )
 BEGIN
-    DECLARE v_role VARCHAR(50);
-    DECLARE v_branch_id INT;
-
-    -- 1. Fetch the logged-in user's role and branch_id
-    SELECT `role`, `branch_id` 
-    INTO v_role, v_branch_id
-    FROM `users` 
-    WHERE `id` = p_user_id AND `business_id` = p_business_id
-    LIMIT 1;
-
-    -- 2. Execute Query
     SELECT 
         c.id,
         c.name,
@@ -508,30 +454,31 @@ BEGIN
         COALESCE(c.email, 'N/A') AS email,
         COALESCE(c.channel_preference, c.opt_in_source, 'Direct') AS channel_preference,
         c.created_at,
-        COALESCE(u_created.name, 'System') AS created_by,
+        u_created.name AS created_by,
         COALESCE(u_assigned.name, 'Unassigned') AS assigned_to,
         COALESCE(TRIM(c.status_name), 'PENDING') AS status_name
     FROM contacts c
-    LEFT JOIN users u_created ON c.created_by_user = u_created.id
+    INNER JOIN users u_created ON c.created_by_user = u_created.id
     LEFT JOIN users u_assigned ON c.assigned_to = u_assigned.id
     WHERE c.business_id = p_business_id
+      AND c.created_by_user IS NOT NULL  -- Excludes all 'System' / null creations
 
-      -- Date filter on created_at (checks start & end date)
+      -- Date filter on created_at
       AND (
           (p_start_date IS NULL OR p_end_date IS NULL)
           OR DATE(c.created_at) BETWEEN p_start_date AND p_end_date
       )
 
-      -- Role-based data visibility logic:
+      -- Team Scoping: Only leads created by Self OR Team Members
       AND (
-          -- Admin / Superadmin: show all records in business
-          (v_role IN ('admin', 'superadmin'))
-
-          -- Manager: show all records belonging to their branch
-          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u_assigned.branch_id = v_branch_id OR u_created.branch_id = v_branch_id))
-
-          -- Agent: show leads assigned to them or created by them
-          OR (v_role = 'agent' AND (c.assigned_to = p_user_id OR c.created_by_user = p_user_id))
+          c.created_by_user = p_user_id
+          OR c.created_by_user IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+                AND t.business_id = p_business_id
+          )
       )
     ORDER BY c.created_at DESC;
 END$$
@@ -545,14 +492,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_pending_followup_export`(
     IN p_agent VARCHAR(100)
 )
 BEGIN
-    DECLARE v_role VARCHAR(50);
-    DECLARE v_branch_id INT;
-
-    SELECT `role`, `branch_id` INTO v_role, v_branch_id
-    FROM `users`
-    WHERE `id` = p_user_id AND `business_id` = p_business_id
-    LIMIT 1;
-
     SELECT 
         c.id AS lead_id,
         c.name AS leadName,
@@ -567,10 +506,16 @@ BEGIN
       AND c.follow_up_date IS NOT NULL
       AND DATE(c.follow_up_date) < CURDATE()
       AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+      -- Team Scoping: Self + Team Members
       AND (
-          v_role IN ('admin', 'superadmin')
-          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u.branch_id = v_branch_id))
-          OR (v_role = 'agent' AND c.assigned_to = p_user_id)
+          c.assigned_to = p_user_id
+          OR c.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+                AND t.business_id = p_business_id
+          )
       )
       AND (p_agent IS NULL OR p_agent = '' OR p_agent = 'all' OR c.assigned_to = p_agent)
       AND (
@@ -691,14 +636,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_todays_leads_export`(
     IN p_agent VARCHAR(100)
 )
 BEGIN
-    DECLARE v_role VARCHAR(50);
-    DECLARE v_branch_id INT;
-
-    SELECT `role`, `branch_id` INTO v_role, v_branch_id
-    FROM `users`
-    WHERE `id` = p_user_id AND `business_id` = p_business_id
-    LIMIT 1;
-
     SELECT 
         c.id AS lead_id,
         c.name AS leadName,
@@ -715,10 +652,16 @@ BEGIN
       AND c.follow_up_date IS NOT NULL
       AND DATE(c.follow_up_date) = CURDATE()
       AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+      -- Team Scoping: Self + Team Members
       AND (
-          v_role IN ('admin', 'superadmin')
-          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u.branch_id = v_branch_id))
-          OR (v_role = 'agent' AND c.assigned_to = p_user_id)
+          c.assigned_to = p_user_id
+          OR c.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+                AND t.business_id = p_business_id
+          )
       )
       AND (p_agent IS NULL OR p_agent = '' OR p_agent = 'all' OR c.assigned_to = p_agent)
       AND (
@@ -738,14 +681,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_upcoming_followups_export`(
     IN p_agent VARCHAR(100)
 )
 BEGIN
-    DECLARE v_role VARCHAR(50);
-    DECLARE v_branch_id INT;
-
-    SELECT `role`, `branch_id` INTO v_role, v_branch_id
-    FROM `users`
-    WHERE `id` = p_user_id AND `business_id` = p_business_id
-    LIMIT 1;
-
     SELECT 
         c.id AS lead_id,
         c.name AS leadName,
@@ -760,10 +695,16 @@ BEGIN
       AND c.follow_up_date IS NOT NULL
       AND DATE(c.follow_up_date) > CURDATE()
       AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+      -- Team Scoping: Self + Team Members
       AND (
-          v_role IN ('admin', 'superadmin')
-          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u.branch_id = v_branch_id))
-          OR (v_role = 'agent' AND c.assigned_to = p_user_id)
+          c.assigned_to = p_user_id
+          OR c.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+                AND t.business_id = p_business_id
+          )
       )
       AND (p_agent IS NULL OR p_agent = '' OR p_agent = 'all' OR c.assigned_to = p_agent)
       AND (
@@ -783,17 +724,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_won_lost_export`(
     IN p_end_date DATE
 )
 BEGIN
-    DECLARE v_role VARCHAR(50);
-    DECLARE v_branch_id INT;
-
-    -- 1. Fetch the logged-in user's role and branch_id
-    SELECT `role`, `branch_id` 
-    INTO v_role, v_branch_id
-    FROM `users` 
-    WHERE `id` = p_user_id AND `business_id` = p_business_id
-    LIMIT 1;
-
-    -- 2. Execute Query strictly by sale_won_date or sale_lost_date (NO fallback)
     SELECT 
         c.id,
         c.name AS client,
@@ -823,16 +753,16 @@ BEGIN
               END
           ) BETWEEN p_start_date AND p_end_date
       )
-      -- Role-based data visibility logic:
+      -- Team Scoping: Assigned to Self + Team Members
       AND (
-          -- Admin & Superadmin: show all records in business
-          (v_role IN ('admin', 'superadmin'))
-          
-          -- Manager: show all records belonging to their branch
-          OR (v_role = 'manager' AND (c.branch_id = v_branch_id OR u.branch_id = v_branch_id))
-          
-          -- Agent: show only records assigned to them
-          OR (v_role = 'agent' AND c.assigned_to = p_user_id)
+          c.assigned_to = p_user_id
+          OR c.assigned_to IN (
+              SELECT tm.user_id 
+              FROM teams t
+              INNER JOIN team_members tm ON tm.team_id = t.id
+              WHERE t.user_id = p_user_id
+                AND t.business_id = p_business_id
+          )
       )
     ORDER BY date DESC;
 END$$
@@ -2476,78 +2406,6 @@ BEGIN
 DELIMITER ;
 
 DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_save_lead_email`(
-    IN p_business_id INT,
-    IN p_contact_id INT,
-    IN p_campaign_id VARCHAR(50),
-    IN p_brevo_message_id VARCHAR(255),
-    IN p_sender_email VARCHAR(255),
-    IN p_to_email VARCHAR(255),
-    IN p_subject VARCHAR(500),
-    IN p_content LONGTEXT,
-    IN p_status VARCHAR(30),
-    IN p_bounce_reason TEXT
-  )
-BEGIN
-    INSERT INTO lead_emails (
-      business_id,
-      contact_id,
-      campaign_id,
-      brevo_message_id,
-      sender_email,
-      to_email,
-      subject,
-      content,
-      status,
-      bounce_reason,
-      sent_at
-    ) VALUES (
-      p_business_id,
-      p_contact_id,
-      p_campaign_id,
-      p_brevo_message_id,
-      p_sender_email,
-      p_to_email,
-      p_subject,
-      p_content,
-      COALESCE(p_status, 'sent'),
-      p_bounce_reason,
-      NOW()
-    );
-    SELECT LAST_INSERT_ID() AS insertId;
-  END$$
-DELIMITER ;
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_contact_task_status`(
-    IN p_task_id INT,
-    IN p_status TINYINT
-)
-BEGIN
-    UPDATE `contact_tasks`
-    SET 
-        `status` = p_status,
-        `completed_at` = IF(p_status = 1, NOW(), NULL),
-        `updated_at` = NOW()
-    WHERE `id` = p_task_id;
-
-    -- Return the updated task record
-    SELECT * FROM `contact_tasks` WHERE `id` = p_task_id;
-END$$
-DELIMITER ;
-
-
--- ------------------------------------------------------------------------
--- Stored Procedure: sp_get_visa_dashboard_kpis
--- Purpose:
---   Dynamic Visa Dashboard KPI cards and Status Breakdown
---   using `visas` and `visa_statuses`.
--- ------------------------------------------------------------------------
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS `sp_get_visa_dashboard_kpis`$$
-
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_visa_dashboard_kpis`(
   IN p_business_id INT,
   IN p_user_id INT,
@@ -2555,7 +2413,9 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_visa_dashboard_kpis`(
   IN p_range VARCHAR(50)
 )
 BEGIN
+  -- -------------------------------------------------------------
   -- Variable Declarations
+  -- -------------------------------------------------------------
   DECLARE v_agent_team_id INT DEFAULT NULL;
   DECLARE v_is_agent INT DEFAULT 0;
   DECLARE v_date_filter_mode VARCHAR(20) DEFAULT 'all_time';
@@ -2579,7 +2439,9 @@ BEGIN
   DECLARE v_delta_approved VARCHAR(20) DEFAULT '0%';
   DECLARE v_delta_declined VARCHAR(20) DEFAULT '0%';
 
+  -- -------------------------------------------------------------
   -- 1. Role Evaluation & Agent Team Scoping
+  -- -------------------------------------------------------------
   IF p_user_role NOT IN ('admin', 'superadmin') AND p_user_id IS NOT NULL AND p_user_id > 0 THEN
     SET v_is_agent = 1;
     SELECT id INTO v_agent_team_id 
@@ -2603,7 +2465,9 @@ BEGIN
     END IF;
   END IF;
 
-  -- 2. Date Range Parameter Normalization
+  -- -------------------------------------------------------------
+  -- 2. Date Range Normalization ('today', 'this_week', 'this_month', 'last_30_days', 'this_year', 'all_time')
+  -- -------------------------------------------------------------
   IF p_range = 'today' THEN
     SET v_date_filter_mode = 'today';
   ELSEIF p_range = 'this_week' THEN
@@ -2618,7 +2482,9 @@ BEGIN
     SET v_date_filter_mode = 'all_time';
   END IF;
 
-  -- 3. Calculate Overall Visas Total for Current Filter
+  -- -------------------------------------------------------------
+  -- 3. Calculate Overall Visas Count in Selected Period
+  -- -------------------------------------------------------------
   SELECT COUNT(*)
   INTO v_total_visas
   FROM visas v
@@ -2639,7 +2505,9 @@ BEGIN
       OR (v_date_filter_mode = 'this_year' AND YEAR(v.created_at) = YEAR(CURDATE()))
     );
 
-  -- 4. Calculate Last Month Baseline for Comparison
+  -- -------------------------------------------------------------
+  -- 4. Calculate Baseline Metrics (Last Month) for Trend Deltas
+  -- -------------------------------------------------------------
   SELECT 
     COUNT(*),
     SUM(CASE WHEN LOWER(TRIM(v.status)) IN ('approved', 'grant', 'granted') THEN 1 ELSE 0 END),
@@ -2660,7 +2528,9 @@ BEGIN
     AND YEAR(v.created_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
     AND MONTH(v.created_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH));
 
-  -- 5. Calculate Deadline & Overdue Metrics (from visa_requests)
+  -- -------------------------------------------------------------
+  -- 5. Calculate Deadline & Overdue Alerts (from visa_requests)
+  -- -------------------------------------------------------------
   SELECT 
     COALESCE(SUM(CASE WHEN vr.due_date < CURDATE() AND vr.status != 'Closed' THEN 1 ELSE 0 END), 0),
     COALESCE(SUM(CASE WHEN vr.due_date = CURDATE() AND vr.status != 'Closed' THEN 1 ELSE 0 END), 0),
@@ -2692,24 +2562,24 @@ BEGIN
       OR v.assigned_staff_id IN (SELECT user_id FROM tmp_visa_scoped_agents)
     );
 
+  -- -------------------------------------------------------------
   -- 6. Temporary Tables for Dynamic Status Aggregations
+  -- -------------------------------------------------------------
   DROP TEMPORARY TABLE IF EXISTS tmp_status_curr_counts;
   CREATE TEMPORARY TABLE tmp_status_curr_counts (
-    status_id INT,
+    status_id INT PRIMARY KEY,
     status_name VARCHAR(100),
-    cnt INT DEFAULT 0,
-    PRIMARY KEY (status_id)
+    cnt INT DEFAULT 0
   );
 
   DROP TEMPORARY TABLE IF EXISTS tmp_status_prev_counts;
   CREATE TEMPORARY TABLE tmp_status_prev_counts (
-    status_id INT,
+    status_id INT PRIMARY KEY,
     status_name VARCHAR(100),
-    cnt INT DEFAULT 0,
-    PRIMARY KEY (status_id)
+    cnt INT DEFAULT 0
   );
 
-  -- Count visas per status in the selected date range
+  -- Count visas for each configured status in current period
   INSERT INTO tmp_status_curr_counts (status_id, status_name, cnt)
   SELECT 
     vs.id,
@@ -2718,8 +2588,8 @@ BEGIN
   FROM visa_statuses vs
   LEFT JOIN visas v ON v.business_id = vs.business_id
     AND (
-      BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
-      OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+      LOWER(TRIM(v.status)) = LOWER(TRIM(vs.name))
+      OR v.status = CAST(vs.id AS CHAR)
     )
     AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
     AND (v.is_delete = 0 OR v.is_delete IS NULL)
@@ -2740,7 +2610,7 @@ BEGIN
     AND vs.is_active = 1
   GROUP BY vs.id, vs.name;
 
-  -- Count visas per status for baseline (Last Month)
+  -- Count visas per status in baseline (Last Month)
   INSERT INTO tmp_status_prev_counts (status_id, status_name, cnt)
   SELECT 
     vs.id,
@@ -2749,8 +2619,8 @@ BEGIN
   FROM visa_statuses vs
   LEFT JOIN visas v ON v.business_id = vs.business_id
     AND (
-      BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
-      OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+      LOWER(TRIM(v.status)) = LOWER(TRIM(vs.name))
+      OR v.status = CAST(vs.id AS CHAR)
     )
     AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
     AND (v.is_delete = 0 OR v.is_delete IS NULL)
@@ -2765,7 +2635,9 @@ BEGIN
     AND vs.is_active = 1
   GROUP BY vs.id, vs.name;
 
-  -- 7. High-Level Outcome Counts & Success Rate
+  -- -------------------------------------------------------------
+  -- 7. High-Level Outcome Totals & Success Rate
+  -- -------------------------------------------------------------
   SELECT 
     COALESCE(SUM(CASE WHEN LOWER(TRIM(status_name)) IN ('approved', 'grant', 'granted') THEN cnt ELSE 0 END), 0),
     COALESCE(SUM(CASE WHEN LOWER(TRIM(status_name)) IN ('declined', 'refused', 'rejected') THEN cnt ELSE 0 END), 0),
@@ -2776,10 +2648,9 @@ BEGIN
     v_withdrawn_cases
   FROM tmp_status_curr_counts;
 
-  -- Active cases under ongoing processing (all except Approved, Declined, Withdrawn)
   SET v_active_cases = GREATEST(0, v_total_visas - v_approved_cases - v_declined_cases - v_withdrawn_cases);
 
-  -- Success / Approval Rate: Approved / Total completed decisions (Approved + Declined)
+  -- Success / Approval Rate: Approved / (Approved + Declined)
   IF (v_approved_cases + v_declined_cases) > 0 THEN
     SET v_success_rate = ROUND((v_approved_cases / (v_approved_cases + v_declined_cases)) * 100, 1);
   ELSEIF v_approved_cases > 0 THEN
@@ -2788,7 +2659,7 @@ BEGIN
     SET v_success_rate = 0.0;
   END IF;
 
-  -- Trends vs Last Month
+  -- Overall Trend Deltas vs Last Month
   IF v_last_month_total > 0 THEN
     SET v_delta_total = CONCAT(
       IF(v_total_visas >= v_last_month_total, '+', ''),
@@ -2847,6 +2718,7 @@ BEGIN
 
   -- =============================================================
   -- RESULT SET 2: Dynamic Visa Status KPI Cards
+  -- Every status from visa_statuses with count, %, color, delta
   -- =============================================================
   SELECT 
     vs.id AS status_id,
@@ -2886,27 +2758,15 @@ BEGIN
     AND vs.is_active = 1
   ORDER BY vs.stage_order ASC, vs.id ASC;
 
-  -- Clean up temporary tables
+  -- Cleanup
   DROP TEMPORARY TABLE IF EXISTS tmp_status_curr_counts;
   DROP TEMPORARY TABLE IF EXISTS tmp_status_prev_counts;
   DROP TEMPORARY TABLE IF EXISTS tmp_visa_scoped_agents;
 
 END$$
-
 DELIMITER ;
 
-
--- ------------------------------------------------------------------------
--- Stored Procedure: sp_get_visa_status_kpis
--- Purpose:
---   Dynamically retrieves all KPI status cards from `visa_statuses`
---   with counts aggregated from `visas`.
--- ------------------------------------------------------------------------
-
 DELIMITER $$
-
-DROP PROCEDURE IF EXISTS `sp_get_visa_status_kpis`$$
-
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_visa_status_kpis`(
   IN p_business_id INT,
   IN p_user_id INT,
@@ -2921,43 +2781,29 @@ BEGIN
 
   IF p_user_role IS NOT NULL AND p_user_role NOT IN ('admin', 'superadmin') AND p_user_id IS NOT NULL AND p_user_id > 0 THEN
     SET v_is_agent = 1;
-    SELECT id INTO v_agent_team_id 
-    FROM teams 
-    WHERE user_id = p_user_id AND business_id = p_business_id 
-    LIMIT 1;
+    SELECT id INTO v_agent_team_id FROM teams WHERE user_id = p_user_id AND business_id = p_business_id LIMIT 1;
   ELSE
     SET v_is_agent = 0;
   END IF;
 
   DROP TEMPORARY TABLE IF EXISTS tmp_visa_kpi_agents;
-  CREATE TEMPORARY TABLE tmp_visa_kpi_agents (
-    user_id INT PRIMARY KEY
-  );
-
+  CREATE TEMPORARY TABLE tmp_visa_kpi_agents (user_id INT PRIMARY KEY);
   IF v_is_agent = 1 THEN
     INSERT IGNORE INTO tmp_visa_kpi_agents (user_id) VALUES (p_user_id);
     IF v_agent_team_id IS NOT NULL THEN
-      INSERT IGNORE INTO tmp_visa_kpi_agents (user_id)
-      SELECT user_id FROM team_members WHERE team_id = v_agent_team_id;
+      INSERT IGNORE INTO tmp_visa_kpi_agents (user_id) SELECT user_id FROM team_members WHERE team_id = v_agent_team_id;
     END IF;
   END IF;
 
-  IF p_range = 'today' THEN
-    SET v_date_filter_mode = 'today';
-  ELSEIF p_range = 'this_week' THEN
-    SET v_date_filter_mode = 'this_week';
-  ELSEIF p_range = 'this_month' THEN
-    SET v_date_filter_mode = 'this_month';
-  ELSEIF p_range = 'last_30_days' THEN
-    SET v_date_filter_mode = 'last_30_days';
-  ELSEIF p_range = 'this_year' THEN
-    SET v_date_filter_mode = 'this_year';
-  ELSE
-    SET v_date_filter_mode = 'all_time';
+  IF p_range = 'today' THEN SET v_date_filter_mode = 'today';
+  ELSEIF p_range = 'this_week' THEN SET v_date_filter_mode = 'this_week';
+  ELSEIF p_range = 'this_month' THEN SET v_date_filter_mode = 'this_month';
+  ELSEIF p_range = 'last_30_days' THEN SET v_date_filter_mode = 'last_30_days';
+  ELSEIF p_range = 'this_year' THEN SET v_date_filter_mode = 'this_year';
+  ELSE SET v_date_filter_mode = 'all_time';
   END IF;
 
-  SELECT COUNT(*)
-  INTO v_total_visas
+  SELECT COUNT(*) INTO v_total_visas
   FROM visas v
   WHERE v.business_id = p_business_id
     AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
@@ -2976,6 +2822,7 @@ BEGIN
       OR (v_date_filter_mode = 'this_year' AND YEAR(v.created_at) = YEAR(CURDATE()))
     );
 
+  -- Dynamic status list from visa_statuses and counted from visas (collation safe)
   SELECT 
     vs.id,
     vs.name,
@@ -2998,8 +2845,8 @@ BEGIN
   FROM visa_statuses vs
   LEFT JOIN visas v ON v.business_id = vs.business_id
     AND (
-      BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
-      OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+      v.status COLLATE utf8mb4_general_ci = vs.name COLLATE utf8mb4_general_ci
+      OR v.status COLLATE utf8mb4_general_ci = CAST(vs.id AS CHAR) COLLATE utf8mb4_general_ci
     )
     AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
     AND (v.is_delete = 0 OR v.is_delete IS NULL)
@@ -3024,5 +2871,178 @@ BEGIN
   DROP TEMPORARY TABLE IF EXISTS tmp_visa_kpi_agents;
 
 END$$
+DELIMITER ;
 
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_import_excel_lead`(
+        IN  p_business_id         INT,
+        IN  p_name                VARCHAR(255),
+        IN  p_phone               VARCHAR(20),
+        IN  p_country_code        VARCHAR(10),
+        IN  p_email               VARCHAR(255),
+        IN  p_source              VARCHAR(100),
+        IN  p_tags                JSON,
+        IN  p_assigned_to         INT,
+        IN  p_address             TEXT,
+        IN  p_enquiry_for_id      INT,
+        IN  p_branch_id           INT,
+        IN  p_branch_name         VARCHAR(255),
+        IN  p_department_id       INT,
+        IN  p_department_name     VARCHAR(255),
+        IN  p_status_id           INT,
+        IN  p_status_name         VARCHAR(100),
+        IN  p_current_sale_status INT,
+        IN  p_sale_won            TINYINT(1),
+        IN  p_sale_won_date       DATETIME,
+        IN  p_sale_won_by         INT,
+        IN  p_sale_lost           TINYINT(1),
+        IN  p_sale_lost_date      DATETIME,
+        IN  p_sale_lost_by        INT,
+        IN  p_follow_up_date      DATE,
+        IN  p_follow_up           TINYINT(1),
+        IN  p_created_by_user     INT,
+        IN  p_user_list           JSON,
+        IN  p_loss_reason         VARCHAR(255),
+        IN  p_lead_date           DATETIME,
+        OUT p_contact_id          INT,
+        OUT p_channel_id          INT,
+        OUT p_resolved_source     VARCHAR(100)
+    )
+BEGIN
+        -- Step 1: Case-insensitively resolve or insert channel
+        CALL sp_resolve_or_create_channel(
+            p_business_id,
+            p_source,
+            p_channel_id,
+            p_resolved_source
+        );
+
+        -- Step 2: Insert contact with resolved channel_id and channel_preference
+        INSERT INTO contacts (
+            business_id, name, phone, country_code, email, tags,
+            channel_id, channel_preference, opt_in_source,
+            assigned_to, address, enquiry_for_id,
+            branch_id, branch_name, department_id, department_name,
+            status_id, status_name, current_sale_status,
+            sale_won, sale_won_date, sale_won_by,
+            sale_lost, sale_lost_date, sale_lost_by,
+            follow_up_date, follow_up,
+            created_by_user, user_list, loss_reason,
+            created_at
+        ) VALUES (
+            p_business_id, p_name, p_phone, COALESCE(p_country_code, '+91'), p_email, p_tags,
+            p_channel_id, p_resolved_source, 'import',
+            p_assigned_to, p_address, p_enquiry_for_id,
+            p_branch_id, p_branch_name, p_department_id, p_department_name,
+            p_status_id, p_status_name, COALESCE(p_current_sale_status, 0),
+            COALESCE(p_sale_won, 0), p_sale_won_date, p_sale_won_by,
+            COALESCE(p_sale_lost, 0), p_sale_lost_date, p_sale_lost_by,
+            p_follow_up_date, COALESCE(p_follow_up, 0),
+            p_created_by_user, p_user_list, p_loss_reason,
+            COALESCE(p_lead_date, NOW())
+        );
+
+        SET p_contact_id = LAST_INSERT_ID();
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_resolve_or_create_channel`(
+        IN  p_business_id   INT,
+        IN  p_channel_name  VARCHAR(100),
+        OUT p_channel_id    INT,
+        OUT p_resolved_name VARCHAR(100)
+    )
+BEGIN
+        DECLARE v_clean_name VARCHAR(100);
+
+        -- Normalize input: trim and default to 'whatsapp' if null or empty
+        SET v_clean_name = TRIM(p_channel_name);
+        IF v_clean_name IS NULL OR v_clean_name = '' THEN
+            SET v_clean_name = 'whatsapp';
+        END IF;
+
+        -- 1. Case-insensitive lookup against channels table
+        SELECT id, name
+          INTO p_channel_id, p_resolved_name
+          FROM channels
+         WHERE business_id = p_business_id
+           AND LOWER(TRIM(name)) = LOWER(v_clean_name)
+         LIMIT 1;
+
+        -- 2. If not exists, insert new channel and retrieve its new ID
+        IF p_channel_id IS NULL THEN
+            INSERT INTO channels (business_id, name)
+            VALUES (p_business_id, v_clean_name)
+            ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);
+
+            SET p_channel_id = LAST_INSERT_ID();
+
+            SELECT name INTO p_resolved_name
+              FROM channels
+             WHERE id = p_channel_id
+             LIMIT 1;
+        END IF;
+    END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_save_lead_email`(
+    IN p_business_id INT,
+    IN p_contact_id INT,
+    IN p_campaign_id VARCHAR(50),
+    IN p_brevo_message_id VARCHAR(255),
+    IN p_sender_email VARCHAR(255),
+    IN p_to_email VARCHAR(255),
+    IN p_subject VARCHAR(500),
+    IN p_content LONGTEXT,
+    IN p_status VARCHAR(30),
+    IN p_bounce_reason TEXT
+  )
+BEGIN
+    INSERT INTO lead_emails (
+      business_id,
+      contact_id,
+      campaign_id,
+      brevo_message_id,
+      sender_email,
+      to_email,
+      subject,
+      content,
+      status,
+      bounce_reason,
+      sent_at
+    ) VALUES (
+      p_business_id,
+      p_contact_id,
+      p_campaign_id,
+      p_brevo_message_id,
+      p_sender_email,
+      p_to_email,
+      p_subject,
+      p_content,
+      COALESCE(p_status, 'sent'),
+      p_bounce_reason,
+      NOW()
+    );
+    SELECT LAST_INSERT_ID() AS insertId;
+  END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_contact_task_status`(
+    IN p_task_id INT,
+    IN p_status TINYINT
+)
+BEGIN
+    UPDATE `contact_tasks`
+    SET 
+        `status` = p_status,
+        `completed_at` = IF(p_status = 1, NOW(), NULL),
+        `updated_at` = NOW()
+    WHERE `id` = p_task_id;
+
+    -- Return the updated task record
+    SELECT * FROM `contact_tasks` WHERE `id` = p_task_id;
+END$$
 DELIMITER ;
