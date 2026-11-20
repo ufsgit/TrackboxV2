@@ -297,11 +297,11 @@
                   <div class="smp-title">System Settings & Controls</div>
                 </div>
               </div>
-              <a routerLink="/system-settings" class="smp-hub-btn" (click)="isSettingsOpen = false">
+              <!-- <a routerLink="/system-settings" class="smp-hub-btn" (click)="isSettingsOpen = false">
                 <i class="bi bi-grid-fill"></i>
                 <span>Management Hub</span>
                 <i class="bi bi-arrow-right"></i>
-              </a>
+              </a> -->
             </div>
 
             <!-- 5 Thematic Columns Grid -->
@@ -368,6 +368,14 @@
                   <a routerLink="/system-settings/visa-reason-categories" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
                     <span class="smp-icon icon-rose"><i class="bi bi-exclamation-octagon-fill"></i></span>
                     <span class="smp-label">Reason Category</span>
+                  </a>
+                  <a routerLink="/system-settings/visa-checklists" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-emerald"><i class="bi bi-check2-square"></i></span>
+                    <span class="smp-label">Pre-Departure Checklist</span>
+                  </a>
+                  <a routerLink="/system-settings/visa-checklist-categories" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                    <span class="smp-icon icon-teal"><i class="bi bi-tags-fill"></i></span>
+                    <span class="smp-label">Checklist Categories</span>
                   </a>
                 </div>
               </div>
@@ -476,11 +484,11 @@
             <div class="smp-footer">
               <span class="smp-footer-text">
                 <i class="bi bi-info-circle me-1"></i>
-                Looking for detailed cards overview?
+                <!-- Looking for detailed cards overview? -->
               </span>
-              <a routerLink="/system-settings" class="smp-footer-link" (click)="isSettingsOpen = false">
+              <!-- <a routerLink="/system-settings" class="smp-footer-link" (click)="isSettingsOpen = false">
                 Open full Management Hub ➜
-              </a>
+              </a> -->
             </div>
           </div>
         </div>
@@ -806,6 +814,12 @@
         </a>
         <a routerLink="/system-settings/visa-reason-categories" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
           <i class="bi bi-exclamation-octagon"></i> Reason Category
+        </a>
+        <a routerLink="/system-settings/visa-checklists" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-check2-square"></i> Pre-Departure Checklist
+        </a>
+        <a routerLink="/system-settings/visa-checklist-categories" class="popup-item" routerLinkActive="active" (click)="showSystemSettingsMenu = false">
+          <i class="bi bi-tags"></i> Checklist Categories
         </a>
 
         <div class="popup-section-header">General & Lead Settings</div>

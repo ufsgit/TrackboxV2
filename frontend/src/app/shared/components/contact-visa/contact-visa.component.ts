@@ -566,6 +566,30 @@ export class ContactVisaComponent implements OnInit, OnChanges {
     return Math.round((completed / this.visa.pre_departure_data.length) * 100);
   }
 
+  getItemCategory(item: PreDepartureItem): string {
+    const t = (item.title || '').toLowerCase();
+    if (t.includes('briefing') || t.includes('orientation')) return 'Orientation';
+    if (t.includes('flight') || t.includes('ticket') || t.includes('travel')) return 'Travel';
+    if (t.includes('insurance') || t.includes('oshc')) return 'Insurance';
+    if (t.includes('accommodation') || t.includes('housing') || t.includes('address')) return 'Housing';
+    if (t.includes('forex') || t.includes('bank') || t.includes('currency')) return 'Finance';
+    if (t.includes('pickup') || t.includes('transit')) return 'Transit';
+    if (t.includes('enrolment') || t.includes('document') || t.includes('compliance')) return 'Compliance';
+    return 'Pre-Departure';
+  }
+
+  getItemCategoryIcon(item: PreDepartureItem): string {
+    const t = (item.title || '').toLowerCase();
+    if (t.includes('briefing') || t.includes('orientation')) return 'bi-mortarboard-fill text-primary';
+    if (t.includes('flight') || t.includes('ticket') || t.includes('travel')) return 'bi-airplane-fill text-info';
+    if (t.includes('insurance') || t.includes('oshc')) return 'bi-shield-check text-success';
+    if (t.includes('accommodation') || t.includes('housing') || t.includes('address')) return 'bi-house-door-fill text-amber';
+    if (t.includes('forex') || t.includes('bank') || t.includes('currency')) return 'bi-currency-exchange text-indigo';
+    if (t.includes('pickup') || t.includes('transit')) return 'bi-car-front-fill text-teal';
+    if (t.includes('enrolment') || t.includes('document') || t.includes('compliance')) return 'bi-file-earmark-check-fill text-purple';
+    return 'bi-check-circle-fill text-primary';
+  }
+
   // ── Helper Badges & Checks ─────────────────────────────────
   getOverdueRequestsCount(): number {
     if (!this.visa || !this.visa.requests) return 0;

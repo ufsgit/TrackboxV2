@@ -186,6 +186,28 @@ export class SystemSettingsComponent implements OnInit {
       roles: ['admin', 'superadmin', 'manager']
     },
     {
+      id: 'visa-checklists',
+      title: 'Pre-Departure Checklists',
+      category: 'system',
+      categoryLabel: 'Visa',
+      description: 'Configure standard master pre-departure checklist requirements (VISA-003) assigned to approved visas.',
+      icon: 'bi-check2-square',
+      gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+      route: '/system-settings/visa-checklists',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
+      id: 'visa-checklist-categories',
+      title: 'Checklist Categories',
+      category: 'system',
+      categoryLabel: 'Visa',
+      description: 'Configure categorized groupings for pre-departure checklist requirements (Orientation, Travel, Insurance, etc.).',
+      icon: 'bi-tags-fill',
+      gradient: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
+      route: '/system-settings/visa-checklist-categories',
+      roles: ['admin', 'superadmin', 'manager']
+    },
+    {
       id: 'universities',
       title: 'Universities',
       category: 'system',

@@ -1038,6 +1038,75 @@ async function runMigrations() {
     console.error('Error seeding visa reason categories:', rSeedErr);
   }
 
+  // Visa Pre-Departure Checklist Templates Module (VISA-003)
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_checklist_templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'Pre-Departure',
+    description VARCHAR(255) NULL,
+    stage_order INT DEFAULT 0,
+    is_active TINYINT(1) DEFAULT 1,
+    business_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vct_business (business_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  try {
+    const [businesses] = await pool.query('SELECT id FROM businesses');
+    for (const b of businesses) {
+      const [chkCount] = await pool.query('SELECT COUNT(*) as c FROM visa_checklist_templates WHERE business_id = ?', [b.id]);
+      if (chkCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO visa_checklist_templates (title, category, description, stage_order, business_id) VALUES
+          ('Pre-Departure Briefing Session', 'Orientation', 'Mandatory pre-departure briefing and destination orientation', 1, ?),
+          ('Flight Ticket & Travel Booking Verification', 'Travel', 'Confirm itinerary, airline baggage limits, and transit arrangements', 2, ?),
+          ('Health Insurance (OSHC) & Travel Coverage', 'Insurance', 'Ensure policy active and valid for student & dependents', 3, ?),
+          ('Accommodation Arrangements & Address Confirmation', 'Housing', 'Confirm initial housing, landlord contact, and check-in dates', 4, ?),
+          ('Forex, Multi-currency Card & Bank Setup', 'Finance', 'Arrange international debit cards and initial living funds', 5, ?),
+          ('Airport Pickup & Transit Arrangements', 'Transit', 'Coordinate airport transfer and local transport passes', 6, ?),
+          ('Final Enrolment Pack & Document Compliance', 'Compliance', 'Verify offer letter, COE, passport, and entry visa grant notice', 7, ?)
+        `, [b.id, b.id, b.id, b.id, b.id, b.id, b.id]);
+      }
+    }
+  } catch (chkSeedErr) {
+    console.error('Error seeding visa checklist templates:', chkSeedErr);
+  }
+
+  // Visa Pre-Departure Checklist Categories Module (VISA-003)
+  await pool.query(`CREATE TABLE IF NOT EXISTS visa_checklist_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    description VARCHAR(255) NULL,
+    business_id INT NOT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_vcc_business (business_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+  try {
+    const [businesses] = await pool.query('SELECT id FROM businesses');
+    for (const b of businesses) {
+      const [catCount] = await pool.query('SELECT COUNT(*) as c FROM visa_checklist_categories WHERE business_id = ?', [b.id]);
+      if (catCount[0].c === 0) {
+        await pool.query(`
+          INSERT INTO visa_checklist_categories (name, description, business_id) VALUES
+          ('Orientation', 'Pre-departure briefings, destination guides, and university orientations', ?),
+          ('Travel', 'Flight bookings, itinerary verification, airline baggage and transit compliance', ?),
+          ('Insurance', 'Health insurance (OSHC) and comprehensive travel medical coverage', ?),
+          ('Housing', 'Accommodation arrangements, tenancy contracts, and address verification', ?),
+          ('Finance', 'Forex cards, currency exchange, international banking, and living expense funds', ?),
+          ('Transit', 'Airport pickup, transit transfers, and local transport connectivity', ?),
+          ('Compliance', 'Offer letter, COE, passport validation, and visa grant conditions compliance', ?),
+          ('Custom', 'Custom or institution-specific pre-departure requirements', ?)
+        `, [b.id, b.id, b.id, b.id, b.id, b.id, b.id, b.id]);
+      }
+    }
+  } catch (catSeedErr) {
+    console.error('Error seeding visa checklist categories:', catSeedErr);
+  }
+
   // Help Tutorial Videos Module
   await pool.query(`CREATE TABLE IF NOT EXISTS crm_help_videos (
     id INT AUTO_INCREMENT PRIMARY KEY,

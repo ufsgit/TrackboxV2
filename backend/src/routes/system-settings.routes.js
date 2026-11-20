@@ -92,4 +92,16 @@ router.post('/visa-reason-categories', requireRole('admin', 'superadmin', 'manag
 router.put('/visa-reason-categories/:id', requireRole('admin', 'superadmin', 'manager'), c.updateVisaReasonCategory);
 router.delete('/visa-reason-categories/:id', requireRole('admin', 'superadmin', 'manager'), c.deleteVisaReasonCategory);
 
+// Visa Pre-Departure Checklists (VISA-003)
+router.get('/visa-checklists', c.getVisaChecklists);
+router.post('/visa-checklists', requireRole('admin', 'superadmin', 'manager'), c.createVisaChecklist);
+router.put('/visa-checklists/:id', requireRole('admin', 'superadmin', 'manager'), c.updateVisaChecklist);
+router.delete('/visa-checklists/:id', requireRole('admin', 'superadmin', 'manager'), c.deleteVisaChecklist);
+
+// Visa Pre-Departure Checklist Categories (VISA-003)
+router.get('/visa-checklist-categories', c.getVisaChecklistCategories);
+router.post('/visa-checklist-categories', requireRole('admin', 'superadmin', 'manager'), c.createVisaChecklistCategory);
+router.put('/visa-checklist-categories/:id', requireRole('admin', 'superadmin', 'manager'), c.updateVisaChecklistCategory);
+router.delete('/visa-checklist-categories/:id', requireRole('admin', 'superadmin', 'manager'), c.deleteVisaChecklistCategory);
+
 module.exports = router;

@@ -726,6 +726,203 @@ const deleteVisaReasonCategory = async (req, res) => {
   }
 };
 
+// VISA CHECKLIST TEMPLATES (VISA-003)
+const getVisaChecklists = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    // Check if table exists or seed defaults if empty
+    await pool.query(`CREATE TABLE IF NOT EXISTS visa_checklist_templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      category VARCHAR(100) DEFAULT 'Pre-Departure',
+      description VARCHAR(255) NULL,
+      stage_order INT DEFAULT 0,
+      is_active TINYINT(1) DEFAULT 1,
+      business_id INT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_vct_business (business_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+    const [countRows] = await pool.query('SELECT COUNT(*) as c FROM visa_checklist_templates WHERE business_id = ?', [businessId]);
+    if (countRows[0].c === 0) {
+      await pool.query(`
+        INSERT INTO visa_checklist_templates (title, category, description, stage_order, business_id) VALUES
+        ('Pre-Departure Briefing Session', 'Orientation', 'Mandatory pre-departure briefing and destination orientation', 1, ?),
+        ('Flight Ticket & Travel Booking Verification', 'Travel', 'Confirm itinerary, airline baggage limits, and transit arrangements', 2, ?),
+        ('Health Insurance (OSHC) & Travel Coverage', 'Insurance', 'Ensure policy active and valid for student & dependents', 3, ?),
+        ('Accommodation Arrangements & Address Confirmation', 'Housing', 'Confirm initial housing, landlord contact, and check-in dates', 4, ?),
+        ('Forex, Multi-currency Card & Bank Setup', 'Finance', 'Arrange international debit cards and initial living funds', 5, ?),
+        ('Airport Pickup & Transit Arrangements', 'Transit', 'Coordinate airport transfer and local transport passes', 6, ?),
+        ('Final Enrolment Pack & Document Compliance', 'Compliance', 'Verify offer letter, COE, passport, and entry visa grant notice', 7, ?)
+      `, [businessId, businessId, businessId, businessId, businessId, businessId, businessId]);
+    }
+
+    const [rows] = await pool.query(
+      'SELECT * FROM visa_checklist_templates WHERE business_id = ? ORDER BY stage_order ASC, id ASC',
+      [businessId]
+    );
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    console.error('getVisaChecklists error:', err);
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
+const createVisaChecklist = async (req, res) => {
+  try {
+    const { title, category, description, stage_order, is_active } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Checklist requirement title is required' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO visa_checklist_templates (title, category, description, stage_order, is_active, business_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        title.trim(),
+        category || 'Compliance',
+        description || null,
+        parseInt(stage_order, 10) || 0,
+        is_active !== undefined ? (is_active ? 1 : 0) : 1,
+        req.user.businessId
+      ]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_checklist_templates WHERE id = ?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Checklist requirement created' });
+  } catch (err) {
+    console.error('createVisaChecklist error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateVisaChecklist = async (req, res) => {
+  try {
+    const { title, category, description, stage_order, is_active } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Checklist requirement title is required' });
+    }
+    await pool.query(
+      'UPDATE visa_checklist_templates SET title = ?, category = ?, description = ?, stage_order = ?, is_active = ? WHERE id = ? AND business_id = ?',
+      [
+        title.trim(),
+        category || 'Compliance',
+        description || null,
+        parseInt(stage_order, 10) || 0,
+        is_active !== undefined ? (is_active ? 1 : 0) : 1,
+        req.params.id,
+        req.user.businessId
+      ]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_checklist_templates WHERE id = ?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Checklist requirement updated' });
+  } catch (err) {
+    console.error('updateVisaChecklist error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteVisaChecklist = async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM visa_checklist_templates WHERE id = ? AND business_id = ?',
+      [req.params.id, req.user.businessId]
+    );
+    res.json({ success: true, data: null, message: 'Checklist requirement deleted' });
+  } catch (err) {
+    console.error('deleteVisaChecklist error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+// VISA CHECKLIST CATEGORIES (VISA-003)
+const getVisaChecklistCategories = async (req, res) => {
+  try {
+    const businessId = req.user.businessId;
+    await pool.query(`CREATE TABLE IF NOT EXISTS visa_checklist_categories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(150) NOT NULL,
+      description VARCHAR(255) NULL,
+      business_id INT NOT NULL,
+      is_active TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_vcc_business (business_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`);
+
+    const [countRows] = await pool.query('SELECT COUNT(*) as c FROM visa_checklist_categories WHERE business_id = ?', [businessId]);
+    if (countRows[0].c === 0) {
+      await pool.query(`
+        INSERT INTO visa_checklist_categories (name, description, business_id) VALUES
+        ('Orientation', 'Pre-departure briefings, destination guides, and university orientations', ?),
+        ('Travel', 'Flight bookings, itinerary verification, airline baggage and transit compliance', ?),
+        ('Insurance', 'Health insurance (OSHC) and comprehensive travel medical coverage', ?),
+        ('Housing', 'Accommodation arrangements, tenancy contracts, and address verification', ?),
+        ('Finance', 'Forex cards, currency exchange, international banking, and living expense funds', ?),
+        ('Transit', 'Airport pickup, transit transfers, and local transport connectivity', ?),
+        ('Compliance', 'Offer letter, COE, passport validation, and visa grant conditions compliance', ?),
+        ('Custom', 'Custom or institution-specific pre-departure requirements', ?)
+      `, [businessId, businessId, businessId, businessId, businessId, businessId, businessId, businessId]);
+    }
+
+    const [rows] = await pool.query(
+      'SELECT * FROM visa_checklist_categories WHERE business_id = ? ORDER BY name ASC',
+      [businessId]
+    );
+    res.json({ success: true, data: rows, message: 'OK' });
+  } catch (err) {
+    console.error('getVisaChecklistCategories error:', err);
+    res.status(500).json({ success: false, message: err.message, data: [] });
+  }
+};
+
+const createVisaChecklistCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Category name is required' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO visa_checklist_categories (name, description, business_id) VALUES (?, ?, ?)',
+      [name.trim(), description?.trim() || null, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_checklist_categories WHERE id = ?', [result.insertId]);
+    res.status(201).json({ success: true, data: rows[0], message: 'Checklist category created' });
+  } catch (err) {
+    console.error('createVisaChecklistCategory error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const updateVisaChecklistCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Category name is required' });
+    }
+    await pool.query(
+      'UPDATE visa_checklist_categories SET name = ?, description = ? WHERE id = ? AND business_id = ?',
+      [name.trim(), description?.trim() || null, req.params.id, req.user.businessId]
+    );
+    const [rows] = await pool.query('SELECT * FROM visa_checklist_categories WHERE id = ?', [req.params.id]);
+    res.json({ success: true, data: rows[0], message: 'Checklist category updated' });
+  } catch (err) {
+    console.error('updateVisaChecklistCategory error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
+const deleteVisaChecklistCategory = async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM visa_checklist_categories WHERE id = ? AND business_id = ?',
+      [req.params.id, req.user.businessId]
+    );
+    res.json({ success: true, data: null, message: 'Checklist category deleted' });
+  } catch (err) {
+    console.error('deleteVisaChecklistCategory error:', err);
+    res.status(500).json({ success: false, message: err.message, data: null });
+  }
+};
+
 module.exports = {
   getBranches, createBranch, updateBranch, deleteBranch,
   getDepartments, createDepartment, updateDepartment, deleteDepartment,
@@ -741,5 +938,7 @@ module.exports = {
   getCountryCodes,
   getVisaTypes, createVisaType, updateVisaType, deleteVisaType,
   getVisaStatuses, createVisaStatus, updateVisaStatus, deleteVisaStatus,
-  getVisaReasonCategories, createVisaReasonCategory, updateVisaReasonCategory, deleteVisaReasonCategory
+  getVisaReasonCategories, createVisaReasonCategory, updateVisaReasonCategory, deleteVisaReasonCategory,
+  getVisaChecklists, createVisaChecklist, updateVisaChecklist, deleteVisaChecklist,
+  getVisaChecklistCategories, createVisaChecklistCategory, updateVisaChecklistCategory, deleteVisaChecklistCategory
 };

@@ -176,6 +176,18 @@ export class SystemSettingsService {
   updateVisaReasonCategory(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-reason-categories/${id}`, data); }
   deleteVisaReasonCategory(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-reason-categories/${id}`); }
 
+  // --- VISA PRE-DEPARTURE CHECKLISTS (VISA-003) ---
+  getVisaChecklists(): Observable<any> { return this.http.get(`${this.apiUrl}/visa-checklists`); }
+  createVisaChecklist(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/visa-checklists`, data); }
+  updateVisaChecklist(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-checklists/${id}`, data); }
+  deleteVisaChecklist(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-checklists/${id}`); }
+
+  // --- VISA PRE-DEPARTURE CHECKLIST CATEGORIES (VISA-003) ---
+  getVisaChecklistCategories(): Observable<any> { return this.http.get(`${this.apiUrl}/visa-checklist-categories`); }
+  createVisaChecklistCategory(data: any): Observable<any> { return this.http.post(`${this.apiUrl}/visa-checklist-categories`, data); }
+  updateVisaChecklistCategory(id: number, data: any): Observable<any> { return this.http.put(`${this.apiUrl}/visa-checklist-categories/${id}`, data); }
+  deleteVisaChecklistCategory(id: number): Observable<any> { return this.http.delete(`${this.apiUrl}/visa-checklist-categories/${id}`); }
+
   // --- PTE STATUSES ---
   getPteStatuses(params?: any): Observable<any> { return this.http.get(`${environment.apiUrl}/pte/statuses`, { params }); }
   createPteStatus(data: any): Observable<any> { return this.http.post(`${environment.apiUrl}/pte/statuses`, data); }

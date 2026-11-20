@@ -22,6 +22,46 @@ const parseJsonField = (val, fallback = null) => {
   }
 };
 
+// Helper: Resolve pre-departure checklist against master visa_checklist_templates
+const resolvePreDepartureChecklist = async (businessId, savedData) => {
+  try {
+    const [templates] = await pool.query(
+      'SELECT * FROM visa_checklist_templates WHERE business_id = ? AND is_active = 1 ORDER BY stage_order ASC, id ASC',
+      [businessId]
+    );
+
+    if (templates && templates.length > 0) {
+      const parsedSaved = Array.isArray(savedData) ? savedData : (parseJsonField(savedData, []) || []);
+      const savedMap = {};
+      parsedSaved.forEach(item => {
+        if (item.id) savedMap[item.id] = item;
+        if (item.template_id) savedMap['template_' + item.template_id] = item;
+        if (item.title) savedMap[item.title.toLowerCase().trim()] = item;
+      });
+
+      return templates.map(t => {
+        const keyId = 'template_' + t.id;
+        const keyTitle = (t.title || '').toLowerCase().trim();
+        const saved = savedMap[keyId] || savedMap[t.id] || savedMap[keyTitle];
+        return {
+          id: keyId,
+          template_id: t.id,
+          title: t.title,
+          category: t.category || 'Pre-Departure',
+          description: t.description || '',
+          done: saved ? !!saved.done : false,
+          completed_at: saved ? saved.completed_at : null,
+          notes: saved ? (saved.notes || '') : ''
+        };
+      });
+    }
+  } catch (err) {
+    console.error('resolvePreDepartureChecklist error:', err);
+  }
+
+  return parseJsonField(savedData, DEFAULT_PRE_DEPARTURE_ITEMS);
+};
+
 // GET /api/visas
 // List visas with search, filters, pagination and deadline metrics
 const getVisaList = async (req, res) => {
@@ -333,7 +373,7 @@ const getVisaById = async (req, res) => {
     }
 
     const visa = rows[0];
-    visa.pre_departure_data = parseJsonField(visa.pre_departure_data, DEFAULT_PRE_DEPARTURE_ITEMS);
+    visa.pre_departure_data = await resolvePreDepartureChecklist(businessId, visa.pre_departure_data);
 
     // Fetch immigration requests (VISA-001)
     const [requests] = await pool.query(`
@@ -421,7 +461,7 @@ const getContactVisa = async (req, res) => {
     }
 
     if (visa) {
-      visa.pre_departure_data = parseJsonField(visa.pre_departure_data, DEFAULT_PRE_DEPARTURE_ITEMS);
+      visa.pre_departure_data = await resolvePreDepartureChecklist(businessId, visa.pre_departure_data);
 
       // Fetch immigration requests (VISA-001)
       const [reqRows] = await pool.query(`
@@ -743,7 +783,7 @@ const saveVisa = async (req, res) => {
     `, [visaId]);
 
     const updated = updatedRows[0] || {};
-    updated.pre_departure_data = parseJsonField(updated.pre_departure_data, DEFAULT_PRE_DEPARTURE_ITEMS);
+    updated.pre_departure_data = await resolvePreDepartureChecklist(businessId, updated.pre_departure_data);
 
     res.json({
       success: true,
@@ -1006,9 +1046,11 @@ const updatePreDeparture = async (req, res) => {
       [JSON.stringify(pre_departure_data), req.user.id, id, businessId]
     );
 
+    const resolved = await resolvePreDepartureChecklist(businessId, pre_departure_data);
+
     res.json({
       success: true,
-      data: pre_departure_data,
+      data: resolved,
       message: 'Pre-departure checklist updated successfully'
     });
   } catch (err) {

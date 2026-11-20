@@ -1,4 +1,4 @@
-<div class="contact-visa-container">
+     <div class="contact-visa-container">
 
   <!-- ── Loading State ────────────────────────────────────────── -->
   <div *ngIf="loading" class="text-center py-5">
@@ -385,33 +385,112 @@
 
     <!-- 6. SUB-TAB 3: PRE-DEPARTURE ACTIONS (VISA-003) -->
     <div *ngIf="activeSection === 'pre_departure'" class="vtab-pane">
-      <div class="pre-departure-box">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div>
-            <h5 class="mb-0 fw-bold">Pre-Departure Action Checklist (VISA-003)</h5>
-            <small class="text-muted">Triggered automatically on visa approval to prepare student for travel</small>
+      <!-- Progress Bar & Top Summary Banner -->
+      <div class="pre-departure-header-card">
+        <div class="pd-header-top">
+          <div class="d-flex align-items-center gap-2">
+            <div class="pd-icon-bubble">
+              <i class="bi bi-airplane-engines-fill"></i>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h6 class="pd-main-title mb-0">Pre-Departure Action Checklist (VISA-003)</h6>
+                <span class="pd-trigger-badge">Triggered on Approval</span>
+              </div>
+              <span class="pd-subtitle">Prepare and verify student travel, insurance, accommodation, and arrival compliance</span>
+            </div>
           </div>
-          <span class="progress-badge font-bold text-primary fs-6">{{ getPreDepartureProgress() }}%</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" [style.width.%]="getPreDepartureProgress()"></div>
+
+          <div class="pd-progress-box">
+            <div class="d-flex align-items-center justify-content-between gap-3 mb-1">
+              <span class="pd-progress-label">Action Completion:</span>
+              <strong class="pd-progress-percent" [class.text-success]="getPreDepartureProgress() === 100">
+                {{ getPreDepartureProgress() }}%
+              </strong>
+            </div>
+            <div class="progress-track-sm">
+              <div class="progress-fill-sm" [style.width.%]="getPreDepartureProgress()"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="checklist-container mt-3">
-        <div 
-          *ngFor="let item of visa.pre_departure_data" 
-          class="checklist-card"
-          [class.card-done]="item.done"
-          (click)="togglePreDepartureItem(item)">
-          <i class="bi fs-5" [ngClass]="item.done ? 'bi-check-square-fill text-success' : 'bi-square text-muted'"></i>
-          <div class="checklist-text">
-            <span class="item-title" [class.text-decoration-line-through]="item.done">{{ item.title }}</span>
-            <small class="text-success" *ngIf="item.done">
-              <i class="bi bi-check"></i> Completed on {{ item.completed_at | date:'mediumDate' }}
-            </small>
-          </div>
-        </div>
+      <!-- Interactive Data Table (Zero Scrolling) -->
+      <div class="pd-table-wrapper mt-3" *ngIf="visa.pre_departure_data && visa.pre_departure_data.length > 0">
+        <table class="pd-table">
+          <thead>
+            <tr>
+              <th class="th-num">#</th>
+              <th class="th-check">Status</th>
+              <th class="th-title">Action Item / Requirement</th>
+              <th class="th-category">Category</th>
+              <th class="th-date">Completed On</th>
+              <th class="th-action">Toggle</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let item of visa.pre_departure_data; let idx = index" 
+              class="pd-row" 
+              [class.is-done]="item.done"
+              (click)="togglePreDepartureItem(item)">
+              
+              <!-- # -->
+              <td class="td-num">
+                <span class="row-num-badge">{{ idx + 1 }}</span>
+              </td>
+
+              <!-- Status Badge -->
+              <td class="td-check">
+                <span class="status-pill-pd" [class.done]="item.done">
+                  <i class="bi" [ngClass]="item.done ? 'bi-check-circle-fill text-success' : 'bi-clock-history text-muted'"></i>
+                  <span>{{ item.done ? 'Completed' : 'Pending' }}</span>
+                </span>
+              </td>
+
+              <!-- Title -->
+              <td class="td-title">
+                <div class="pd-item-title" [class.text-done]="item.done">
+                  {{ item.title }}
+                </div>
+              </td>
+
+              <!-- Category -->
+              <td class="td-category">
+                <span class="pd-cat-chip">
+                  <i class="bi me-1" [ngClass]="getItemCategoryIcon(item)"></i>
+                  {{ getItemCategory(item) }}
+                </span>
+              </td>
+
+              <!-- Completed Date -->
+              <td class="td-date">
+                <span *ngIf="item.done && item.completed_at" class="pd-date-text">
+                  <i class="bi bi-calendar-check text-success me-1"></i>
+                  {{ item.completed_at | date:'dd MMM yyyy' }}
+                </span>
+                <span *ngIf="!item.done" class="text-muted small">—</span>
+              </td>
+
+              <!-- Quick Toggle Action Button -->
+              <td class="td-action" (click)="$event.stopPropagation()">
+                <button 
+                  type="button" 
+                  class="btn-pd-toggle" 
+                  [class.done]="item.done"
+                  (click)="togglePreDepartureItem(item)"
+                  [title]="item.done ? 'Mark as Pending' : 'Mark as Completed'">
+                  <i class="bi" [ngClass]="item.done ? 'bi-check2' : 'bi-circle'"></i>
+                  <span>{{ item.done ? 'Done' : 'Mark Done' }}</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!visa.pre_departure_data || visa.pre_departure_data.length === 0" class="text-center py-4 text-muted small">
+        No pre-departure checklist items initialized for this visa case.
       </div>
     </div>
 
@@ -723,104 +802,139 @@
   <!-- MODAL: LOG OFFICIAL IMMIGRATION REQUEST (VISA-001)           -->
   <!-- ============================================================ -->
   <div class="modal-backdrop" *ngIf="showRequestModal" (click)="closeRequestModal()"></div>
-  <div class="custom-modal" *ngIf="showRequestModal">
+  <div class="custom-modal request-modal-card" *ngIf="showRequestModal">
+    <!-- Modal Header -->
     <div class="modal-header">
-      <h5 class="modal-title fw-bold">
-        <i class="bi bi-envelope-exclamation text-amber me-2"></i>
-        Log Official Immigration Request (VISA-001)
-      </h5>
-      <button class="btn-close-modal" (click)="closeRequestModal()"><i class="bi bi-x-lg"></i></button>
+      <div class="modal-title-wrap">
+        <div class="modal-icon-badge amber">
+          <i class="bi bi-envelope-exclamation-fill"></i>
+        </div>
+        <div>
+          <h5 class="modal-title">Log Official Immigration Request</h5>
+          <p class="modal-subtitle">VISA-001 Compliance • Record official embassy RFI / PPI / medical notice</p>
+        </div>
+      </div>
+      <button type="button" class="btn-close-modal" (click)="closeRequestModal()"><i class="bi bi-x-lg"></i></button>
     </div>
 
-    <div class="modal-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label required">Request Type</label>
-          <select [(ngModel)]="requestForm.request_type" class="form-select">
+    <!-- Modal Body -->
+    <div class="modal-body request-modal-body">
+      <!-- Grid 1: Request Type & Request Title (2 equal columns) -->
+      <div class="req-grid-2col">
+        <div class="req-field-group">
+          <label class="req-label">Request Type <span class="required-star">*</span></label>
+          <select [(ngModel)]="requestForm.request_type" class="form-select req-input">
             <option *ngFor="let rt of requestTypeOptions" [value]="rt">{{ rt }}</option>
           </select>
         </div>
 
-        <div class="col-md-6">
-          <label class="form-label required">Received Date</label>
-          <input type="date" [(ngModel)]="requestForm.received_date" class="form-control" />
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label required">Official Due Date / Deadline</label>
-          <input type="date" [(ngModel)]="requestForm.due_date" class="form-control border-danger fw-bold" />
-        </div>
-
-        <div class="col-md-6">
-          <label class="form-label required">Request Title</label>
+        <div class="req-field-group">
+          <label class="req-label">Request Title <span class="required-star">*</span></label>
           <input
             type="text"
             [(ngModel)]="requestForm.title"
             placeholder="e.g. Bank Statements / Medicals"
-            class="form-control"
+            class="form-control req-input"
           />
         </div>
+      </div>
 
-        <div class="col-12">
-          <label class="form-label">Official Details & Instructions</label>
-          <textarea
-            [(ngModel)]="requestForm.details"
-            rows="3"
-            class="form-control"
-            placeholder="Enter specific instructions or document requirements from embassy notice..."
-          ></textarea>
+      <!-- Grid 2: Received Date & Official Due Date (2 equal columns) -->
+      <div class="req-grid-2col">
+        <div class="req-field-group">
+          <label class="req-label">Received Date <span class="required-star">*</span></label>
+          <input type="date" [(ngModel)]="requestForm.received_date" class="form-control req-input" />
         </div>
 
-        <!-- Document Linkage (VISA-001) -->
-        <div class="col-12">
-          <label class="form-label">Attach Embassy Notice / Document Link</label>
-          <input
-            type="file"
-            (change)="onDocumentSelected($event)"
-            class="form-control mb-1"
-            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-          />
-          <div *ngIf="uploadingDoc" class="text-primary small">
-            <span class="spinner-border spinner-border-sm me-1"></span> Uploading file...
+        <div class="req-field-group">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="req-label mb-0">Official Due Date / Deadline <span class="required-star">*</span></label>
+            <span class="req-deadline-chip"><i class="bi bi-exclamation-triangle-fill me-1"></i>Strict Deadline</span>
           </div>
-          <div *ngIf="requestForm.document_url" class="text-success small">
-            <i class="bi bi-check-circle"></i> Attached: {{ requestForm.document_name }}
+          <input type="date" [(ngModel)]="requestForm.due_date" class="form-control req-input border-danger fw-bold text-danger" />
+        </div>
+      </div>
+
+      <!-- Row 3: Official Details & Instructions (Textarea) -->
+      <div class="req-field-group">
+        <label class="req-label">Official Details & Instructions</label>
+        <textarea
+          [(ngModel)]="requestForm.details"
+          rows="2"
+          class="form-control req-input req-textarea"
+          placeholder="Enter specific instructions or document requirements from embassy notice..."
+        ></textarea>
+      </div>
+
+      <!-- Grid 4: Attachment & Task Automation (2 equal columns) -->
+      <div class="req-grid-2col">
+        <!-- Attachment Box -->
+        <div class="req-card-box">
+          <div class="rcb-header">
+            <i class="bi bi-paperclip text-primary"></i>
+            <span class="rcb-title">Attach Embassy Notice</span>
+          </div>
+          <div class="rcb-file-wrapper">
+            <label class="btn-file-custom" for="immDocFile">
+              <i class="bi bi-upload me-1"></i> Choose Document
+            </label>
+            <input
+              id="immDocFile"
+              type="file"
+              (change)="onDocumentSelected($event)"
+              class="d-none"
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+            />
+            <span class="rcb-filename" *ngIf="!requestForm.document_url && !uploadingDoc">
+              PDF, PNG, JPG, DOCX
+            </span>
+            <div *ngIf="uploadingDoc" class="text-primary small d-flex align-items-center gap-1">
+              <span class="spinner-border spinner-border-sm"></span> Uploading file...
+            </div>
+            <div *ngIf="requestForm.document_url" class="text-success small fw-semibold d-flex align-items-center gap-1">
+              <i class="bi bi-check-circle-fill"></i> {{ requestForm.document_name }}
+            </div>
           </div>
         </div>
 
-        <!-- Task Linkage (VISA-001) -->
-        <div class="col-12">
-          <div class="form-check">
+        <!-- Task Linkage Box -->
+        <div class="req-card-box" [class.active-task]="requestForm.create_task">
+          <div class="d-flex align-items-start gap-2">
             <input
               type="checkbox"
               id="createTaskChk"
               [(ngModel)]="requestForm.create_task"
-              class="form-check-input"
+              class="form-check-input mt-1"
             />
-            <label for="createTaskChk" class="form-check-label fw-semibold">
-              Auto-create assigned task in Trackbox Task Management with deadline
-            </label>
+            <div class="flex-grow-1">
+              <label for="createTaskChk" class="rcb-title mb-0 cursor-pointer d-block">
+                Auto-create Task in Trackbox
+              </label>
+              <span class="rcb-desc">Assigns deadline task to staff</span>
+              
+              <div *ngIf="requestForm.create_task" class="mt-2">
+                <label class="req-mini-label">Assign Task To:</label>
+                <select 
+                  [(ngModel)]="requestForm.task_assignee_id" 
+                  class="form-select req-input-sm"
+                  (focus)="fetchStaffList()" 
+                  (mousedown)="fetchStaffList()">
+                  <option [ngValue]="null">Case Owner (Default)</option>
+                  <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div class="col-12" *ngIf="requestForm.create_task">
-          <label class="form-label">Assign Task To</label>
-          <select 
-            [(ngModel)]="requestForm.task_assignee_id" 
-            class="form-select"
-            (focus)="fetchStaffList()" 
-            (mousedown)="fetchStaffList()">
-            <option [ngValue]="null">Case Owner (Default)</option>
-            <option *ngFor="let u of staffList" [ngValue]="u.id">{{ u.name }}</option>
-          </select>
         </div>
       </div>
     </div>
 
+    <!-- Modal Footer -->
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary btn-sm" (click)="closeRequestModal()">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" [disabled]="submitting" (click)="saveImmigrationRequest()">
+      <button type="button" class="btn btn-light btn-cancel-custom" (click)="closeRequestModal()">Cancel</button>
+      <button type="button" class="btn btn-primary btn-save-custom" [disabled]="submitting" (click)="saveImmigrationRequest()">
         <span *ngIf="submitting" class="spinner-border spinner-border-sm me-1"></span>
+        <i *ngIf="!submitting" class="bi bi-check-circle-fill me-1"></i>
         <span>Record Request</span>
       </button>
     </div>

@@ -812,66 +812,263 @@
   color: #ef4444;
 }
 
-/* ── Pre-Departure Checklist ─────────────────────────────────── */
-.pre-departure-box {
-  background: linear-gradient(135deg, #e3eeff, #f0fdf4);
-  border: 1px solid #bae6fd;
-  border-radius: 10px;
-  padding: 1rem 1.15rem;
-}
-
-.progress-track {
-  width: 100%;
-  height: 8px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #1a6ff0, #10b981);
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.checklist-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.checklist-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0.85rem;
+/* ── Pre-Departure Checklist (VISA-003) Table Redesign ───────── */
+.pre-departure-header-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.checklist-card:hover {
-  border-color: #93c5fd;
+.pd-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pd-icon-bubble {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.pd-main-title {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pd-trigger-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.pd-subtitle {
+  font-size: 0.73rem;
+  color: #64748b;
+  display: block;
+}
+
+.pd-progress-box {
+  min-width: 170px;
+}
+
+.pd-progress-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.pd-progress-percent {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1a6ff0;
+}
+
+.progress-track-sm {
+  width: 100%;
+  height: 6px;
+  background-color: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.progress-fill-sm {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+/* ── Interactive Data Table ─────────────────────────────────── */
+.pd-table-wrapper {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.pd-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.pd-table thead tr {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pd-table th {
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.th-num, .td-num {
+  width: 44px;
+  text-align: center;
+}
+
+.th-check, .td-check {
+  width: 110px;
+}
+
+.th-category, .td-category {
+  width: 130px;
+}
+
+.th-date, .td-date {
+  width: 125px;
+}
+
+.th-action, .td-action {
+  width: 95px;
+  text-align: right;
+}
+
+.pd-row {
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.pd-row:last-child {
+  border-bottom: none;
+}
+
+.pd-row:hover {
   background-color: #f8fafc;
 }
 
-.checklist-card.card-done {
+.pd-row.is-done {
+  background-color: #fcfdfd;
+}
+
+.pd-row.is-done:hover {
   background-color: #f0fdf4;
-  border-color: #bbf7d0;
 }
 
-.checklist-text {
-  display: flex;
-  flex-direction: column;
+.pd-table td {
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  vertical-align: middle;
 }
 
-.item-title {
-  font-size: 0.85rem;
+.row-num-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.status-pill-pd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.status-pill-pd.done {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.pd-item-title {
+  font-size: 0.82rem;
   font-weight: 600;
   color: #0f172a;
+  transition: all 0.12s ease;
+}
+
+.pd-item-title.text-done {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.pd-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #334155;
+  background: #f8fafc;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.pd-date-text {
+  font-size: 0.74rem;
+  color: #0f172a;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-pd-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.btn-pd-toggle:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.btn-pd-toggle.done {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.btn-pd-toggle.done:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
 }
 
 /* ── History Timeline ───────────────────────────────────────── */
@@ -1497,4 +1694,258 @@
   border: 1px solid #bae6fd;
   border-radius: 6px;
   font-size: 0.85rem;
+}
+
+
+/* ==========================================================================
+   IMMIGRATION REQUEST MODAL (VISA-001) REDESIGN
+   ========================================================================== */
+
+.request-modal-card {
+  max-width: 680px !important;
+  width: 92% !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+.modal-icon-badge.amber {
+  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+  color: #b45309 !important;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2) !important;
+}
+
+.request-modal-body {
+  padding: 14px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  background-color: #ffffff !important;
+}
+
+.req-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.req-field-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.req-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 3px;
+  display: block;
+}
+
+.req-deadline-chip {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.req-input {
+  width: 100%;
+  height: 33px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  color: #0f172a;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.req-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.req-textarea {
+  height: auto;
+  min-height: 48px;
+  resize: vertical;
+  line-height: 1.35;
+}
+
+/* Card boxes inside modal */
+.req-card-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.req-card-box.active-task {
+  background: #fcfdfe;
+  border-color: #c7d2fe;
+}
+
+.rcb-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rcb-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rcb-file-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btn-file-custom {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-file-custom:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.rcb-filename {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rcb-desc {
+  font-size: 0.68rem;
+  color: #64748b;
+  display: block;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.req-mini-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #475569;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.req-input-sm {
+  width: 100%;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: #ffffff;
+}
+
+@media (max-width: 650px) {
+  .req-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- PRE-DEPARTURE ADD ITEM & ACTION BUTTONS --- */
+.btn-add-pd-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+}
+
+.btn-add-pd-item:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+}
+
+.btn-pd-del {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #fee2e2;
+  color: #ef4444;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.15s ease;
+}
+
+.btn-pd-del:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+  transform: scale(1.05);
+}
+
+.pd-modal-dialog {
+  max-width: 520px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
+  border: 1px solid #e2e8f0;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 10001;
+}
+
+.pd-modal-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
 }
