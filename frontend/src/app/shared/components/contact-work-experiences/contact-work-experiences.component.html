@@ -1,6 +1,6 @@
 <div class="exp-wrapper">
   <!-- Section Header -->
-  <div class="tab-section-header exp-section-header">
+  <div class="exp-section-header">
     <div class="exp-title-group">
       <div class="exp-icon-bubble indigo">
         <i class="bi bi-briefcase-fill"></i>
@@ -17,11 +17,11 @@
     </div>
 
     <!-- Actions: Add & Clear All -->
-    <div class="d-flex align-items-center gap-2">
+    <div class="exp-header-actions">
       <button 
         type="button" 
         class="btn-clear-all" 
-        *ngIf="experiences.length > 0 && !showForm"
+        *ngIf="experiences.length > 0"
         (click)="clearAllExperiences()"
         title="Remove all work experiences for this student">
         <i class="bi bi-trash3 me-1"></i>
@@ -31,109 +31,9 @@
       <button 
         type="button" 
         class="btn-add-exp" 
-        *ngIf="!showForm" 
         (click)="openAddForm()">
-        <i class="bi bi-plus-circle-fill"></i>
+        <i class="bi bi-plus-circle-fill me-1"></i>
         <span>Add Experience</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- INLINE / IN-PAGE FORM -->
-  <div class="inline-form-card" *ngIf="showForm">
-    <div class="form-card-header">
-      <div class="d-flex align-items-center gap-2">
-        <div class="form-header-badge">
-          <i class="bi bi-briefcase-fill"></i>
-        </div>
-        <div>
-          <h6 class="form-card-title mb-0">
-            {{ editingIndex !== null ? 'Edit Work Experience' : 'Add New Work Experience' }}
-          </h6>
-          <span class="form-card-sub text-muted">
-            {{ editingIndex !== null ? 'Update employment history and roles' : 'Record employer, position, tenure, and description' }}
-          </span>
-        </div>
-      </div>
-      <button type="button" class="btn-form-close" (click)="cancelForm()" title="Close form">&times;</button>
-    </div>
-
-    <div class="form-card-body">
-      <div class="row g-2">
-        <!-- Employer -->
-        <div class="col-md-6">
-          <label class="form-label-custom">Employer / Company Name *</label>
-          <input 
-            type="text" 
-            class="form-control custom-input" 
-            [(ngModel)]="currentExperience.employer" 
-            placeholder="e.g. Apex Global Tech Ltd, Google">
-        </div>
-
-        <!-- Position -->
-        <div class="col-md-6">
-          <label class="form-label-custom">Position / Job Title *</label>
-          <input 
-            type="text" 
-            class="form-control custom-input" 
-            [(ngModel)]="currentExperience.position" 
-            placeholder="e.g. Software Engineer, Marketing Intern">
-        </div>
-
-        <!-- From Date -->
-        <div class="col-md-6">
-          <label class="form-label-custom">From Date</label>
-          <input 
-            type="date" 
-            class="form-control custom-input" 
-            [(ngModel)]="currentExperience.from_date">
-        </div>
-
-        <!-- To Date -->
-        <div class="col-md-6">
-          <label class="form-label-custom">To Date</label>
-          <input 
-            type="date" 
-            class="form-control custom-input" 
-            [(ngModel)]="currentExperience.to_date" 
-            [disabled]="!!currentExperience.is_current">
-        </div>
-
-        <!-- Current Job Checkbox -->
-        <div class="col-12">
-          <div class="current-job-toggle-box">
-            <input 
-              class="form-check-input mt-0" 
-              type="checkbox" 
-              id="checkCurrentInline" 
-              [(ngModel)]="currentExperience.is_current">
-            <label class="form-check-label ms-2 mb-0" for="checkCurrentInline">
-              <span class="d-block fw-bold text-dark small">I am currently working in this role</span>
-              <span class="text-muted" style="font-size: 0.76rem;">To Date will be displayed as "Present".</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Experience Description -->
-        <div class="col-12">
-          <label class="form-label-custom">Relevant Experience / Responsibilities</label>
-          <textarea 
-            class="form-control custom-input" 
-            rows="2" 
-            [(ngModel)]="currentExperience.experience" 
-            placeholder="Key responsibilities, projects handled, tools used..."></textarea>
-        </div>
-      </div>
-    </div>
-
-    <div class="form-card-footer">
-      <button type="button" class="btn btn-light btn-cancel-custom" (click)="cancelForm()">
-        Cancel
-      </button>
-      <button type="button" class="btn btn-primary btn-save-custom" [disabled]="saving" (click)="saveExperience()">
-        <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-        <i *ngIf="!saving" class="bi bi-check-circle-fill me-1"></i>
-        {{ editingIndex !== null ? 'Update Experience' : 'Save Experience' }}
       </button>
     </div>
   </div>
@@ -145,7 +45,7 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!loading && experiences.length === 0 && !showForm" class="exp-empty-state">
+  <div *ngIf="!loading && experiences.length === 0" class="exp-empty-state">
     <div class="exp-hero-card">
       <div class="exp-hero-icon indigo">
         <i class="bi bi-briefcase"></i>
@@ -169,12 +69,13 @@
       class="exp-record-card" 
       *ngFor="let exp of experiences; let idx = index" 
       [class.is-current]="exp.is_current"
+      [class.is-editing]="editingIndex === idx"
       cdkDrag>
 
       <!-- Drag preview placeholder -->
       <div class="cdk-drag-placeholder-custom" *cdkDragPlaceholder></div>
 
-      <div class="d-flex align-items-start gap-2">
+      <div class="d-flex align-items-center gap-2">
         <!-- Compact Drag Handle -->
         <div class="drag-handle-btn" cdkDragHandle title="Drag to reorder">
           <i class="bi bi-grip-vertical"></i>
@@ -189,28 +90,29 @@
               <span class="badge-current" *ngIf="exp.is_current">
                 <i class="bi bi-check-circle-fill me-1"></i> Employed
               </span>
+              <span class="exp-company-chip">
+                <i class="bi bi-building me-1 text-muted"></i>{{ exp.employer }}
+              </span>
             </div>
 
-            <div class="exp-card-actions">
-              <button type="button" class="btn-exp-edit" (click)="openEditForm(exp, idx)" title="Edit">
-                <i class="bi bi-pencil-square"></i> <span>Edit</span>
-              </button>
-              <button type="button" class="btn-exp-delete" (click)="deleteExperience(exp.id)" title="Delete">
-                <i class="bi bi-trash3"></i> <span>Delete</span>
-              </button>
-            </div>
-          </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="exp-duration-pill">
+                <i class="bi bi-calendar-range me-1 text-primary"></i>
+                <span>{{ exp.from_date ? (exp.from_date | date:'mediumDate') : 'Start not set' }}</span>
+                <span class="mx-1">→</span>
+                <strong *ngIf="exp.is_current" class="text-success">Present</strong>
+                <span *ngIf="!exp.is_current">{{ exp.to_date ? (exp.to_date | date:'mediumDate') : 'Present' }}</span>
+              </span>
 
-          <!-- Sub Row: Employer & Tenure -->
-          <div class="exp-sub-row">
-            <span class="exp-company-text"><i class="bi bi-building me-1"></i>{{ exp.employer }}</span>
-            <span class="exp-duration-pill">
-              <i class="bi bi-calendar-range me-1 text-primary"></i>
-              <span>{{ exp.from_date ? (exp.from_date | date:'mediumDate') : 'Start not set' }}</span>
-              <span class="mx-1">→</span>
-              <strong *ngIf="exp.is_current" class="text-success">Present</strong>
-              <span *ngIf="!exp.is_current">{{ exp.to_date ? (exp.to_date | date:'mediumDate') : 'Present' }}</span>
-            </span>
+              <div class="exp-card-actions">
+                <button type="button" class="btn-action-icon edit" (click)="openEditForm(exp, idx)" title="Edit">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button type="button" class="btn-action-icon delete" (click)="deleteExperience(exp.id)" title="Delete">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Description if exists -->
@@ -218,6 +120,112 @@
             <p class="mb-0 text-muted"><i class="bi bi-card-text me-1"></i>{{ exp.experience }}</p>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== POPUP MODAL (Add / Edit Experience) ==================== -->
+  <div class="exp-modal-overlay" *ngIf="showForm">
+    <!-- Backdrop with blur -->
+    <div class="exp-modal-backdrop" (click)="cancelForm()"></div>
+
+    <div class="exp-modal-card">
+      <!-- Modal Header -->
+      <div class="exp-modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <div class="exp-modal-badge">
+            <i class="bi bi-briefcase-fill"></i>
+          </div>
+          <div>
+            <h6 class="exp-modal-title mb-0">
+              {{ editingIndex !== null ? 'Edit Work Experience' : 'Add New Work Experience' }}
+            </h6>
+            <span class="exp-modal-sub">
+              {{ editingIndex !== null ? 'Update employment history and roles' : 'Record employer, position, tenure, and description' }}
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn-modal-close-icon" (click)="cancelForm()" title="Close popup">&times;</button>
+      </div>
+
+      <!-- Modal Body (Compact Grid) -->
+      <div class="exp-modal-body">
+        <!-- Row 1: Employer & Position (2 columns) -->
+        <div class="exp-form-grid-top">
+          <div class="exp-field-group">
+            <label class="form-label-custom">Employer / Company Name <span class="required-star">*</span></label>
+            <input 
+              type="text" 
+              class="form-control custom-input" 
+              [(ngModel)]="currentExperience.employer" 
+              placeholder="e.g. Apex Global Tech Ltd, Google">
+          </div>
+
+          <div class="exp-field-group">
+            <label class="form-label-custom">Position / Job Title <span class="required-star">*</span></label>
+            <input 
+              type="text" 
+              class="form-control custom-input" 
+              [(ngModel)]="currentExperience.position" 
+              placeholder="e.g. Software Engineer, Marketing Intern">
+          </div>
+        </div>
+
+        <!-- Row 2: Dates & Current Role Toggle -->
+        <div class="exp-form-grid-dates">
+          <div class="exp-field-group">
+            <label class="form-label-custom">From Date</label>
+            <input 
+              type="date" 
+              class="form-control custom-input" 
+              [(ngModel)]="currentExperience.from_date">
+          </div>
+
+          <div class="exp-field-group">
+            <label class="form-label-custom">To Date</label>
+            <input 
+              type="date" 
+              class="form-control custom-input" 
+              [(ngModel)]="currentExperience.to_date" 
+              [disabled]="!!currentExperience.is_current">
+          </div>
+
+          <div class="exp-field-group exp-current-wrapper">
+            <label class="current-job-toggle-compact" for="checkCurrentPopup">
+              <input 
+                class="form-check-input mt-0" 
+                type="checkbox" 
+                id="checkCurrentPopup" 
+                [(ngModel)]="currentExperience.is_current">
+              <span class="toggle-content">
+                <span class="toggle-title">Currently working in this role</span>
+                <span class="toggle-hint">To Date displays as "Present"</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Row 3: Description -->
+        <div class="exp-field-group">
+          <label class="form-label-custom">Relevant Experience / Responsibilities</label>
+          <textarea 
+            class="form-control custom-input exp-textarea" 
+            rows="2" 
+            [(ngModel)]="currentExperience.experience" 
+            placeholder="Key responsibilities, projects handled, tools used..."></textarea>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="exp-modal-footer">
+        <button type="button" class="btn btn-light btn-cancel-custom" (click)="cancelForm()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary btn-save-custom" [disabled]="saving" (click)="saveExperience()">
+          <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!saving" class="bi bi-check-circle-fill me-1"></i>
+          {{ editingIndex !== null ? 'Update Experience' : 'Save Experience' }}
+        </button>
       </div>
     </div>
   </div>

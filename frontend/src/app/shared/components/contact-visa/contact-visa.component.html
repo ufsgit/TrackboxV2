@@ -23,31 +23,76 @@
   <!-- ── Active Visa Case Record ──────────────────────────────── -->
   <div *ngIf="!loading && visa" class="active-visa-content">
 
-    <!-- Case Switcher if student has multiple visa cases -->
-    <div class="cases-switcher-bar" *ngIf="visaCases && visaCases.length > 1">
-      <div class="cs-label">
-        <i class="bi bi-layers-fill text-primary me-1"></i>
-        <span>Visa Cases ({{ visaCases.length }}):</span>
-      </div>
-      <div class="cs-pills">
-        <button 
-          *ngFor="let c of visaCases" 
-          type="button" 
-          class="cs-pill" 
-          [class.active]="c.id === visa.id"
-          (click)="selectCase(c)">
-          <span class="cs-pill-badge">#{{ c.id }}</span>
-          <span class="cs-pill-title">{{ c.visa_type || 'Visa' }}</span>
-          <span class="cs-pill-status" [ngClass]="getStatusBadgeClass(c.status)">{{ c.status }}</span>
+    <!-- ── Previously Added Visa Cases & Case Switcher ── -->
+    <section class="visa-cases-deck-container" *ngIf="visaCases && visaCases.length > 0">
+      <div class="cases-deck-header">
+        <div class="cdh-left">
+          <div class="cdh-icon-bubble">
+            <i class="bi bi-layers-fill"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h6 class="cdh-title mb-0">Visa Applications & Previous Cases</h6>
+              <span class="cdh-count-badge">
+                {{ visaCases.length }} {{ visaCases.length === 1 ? 'Case' : 'Cases' }}
+              </span>
+            </div>
+            <span class="cdh-subtitle">Switch between current and previous visa filings for {{ studentName || 'this student' }}</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn-deck-add-case" (click)="openRegisterModal()" title="Add New Visa Case">
+          <i class="bi bi-plus-circle-fill me-1"></i>
+          <span>Add New Case</span>
         </button>
       </div>
-    </div>
+
+      <!-- Cases Cards Horizontal Deck -->
+      <div class="cases-deck-grid">
+        <div 
+          *ngFor="let c of visaCases" 
+          class="case-deck-card" 
+          [class.active]="c.id === visa.id"
+          (click)="selectCase(c)">
+          
+          <div class="cdc-top">
+            <div class="cdc-id-group">
+              <span class="cdc-id-badge">#{{ c.id }}</span>
+              <span class="cdc-active-indicator" *ngIf="c.id === visa.id">
+                <i class="bi bi-check2-circle me-1"></i>Active View
+              </span>
+            </div>
+            <span class="badge-status-pill" [ngClass]="getStatusBadgeClass(c.status)">
+              <i class="bi" [ngClass]="getStatusIcon(c.status)"></i>
+              {{ c.status }}
+            </span>
+          </div>
+
+          <div class="cdc-body">
+            <div class="cdc-type-title">
+              <i class="bi bi-passport text-muted me-1"></i>{{ c.visa_type || 'Visa Application' }}
+            </div>
+            <div class="cdc-meta-row">
+              <span class="cdc-meta-item" *ngIf="c.application_no">
+                <i class="bi bi-hash"></i>{{ c.application_no }}
+              </span>
+              <span class="cdc-meta-item text-muted" *ngIf="!c.application_no">
+                <i class="bi bi-hash"></i>Ref Pending
+              </span>
+              <span class="cdc-meta-item" *ngIf="c.submission_date">
+                <i class="bi bi-calendar3 me-1"></i>{{ c.submission_date | date:'dd MMM yyyy' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- 1. Top Case Header Summary Card -->
     <header class="visa-header-card">
       <div class="vh-left">
         <div class="vh-type-pill">
-          <i class="bi bi-passport me-1"></i> {{ visa.visa_type || 'Student Visa' }}
+          <i class="bi bi-passport-fill me-1"></i> {{ visa.visa_type || 'Student Visa' }}
         </div>
         <div class="vh-app-no">
           <span class="label">Ref:</span>
@@ -55,7 +100,11 @@
         </div>
         <div class="vh-staff" *ngIf="visa.staff_name || visa.assigned_staff_name">
           <span class="label">Owner:</span>
-          <span>{{ visa.staff_name || visa.assigned_staff_name }}</span>
+          <span><i class="bi bi-person-fill text-muted me-1"></i>{{ visa.staff_name || visa.assigned_staff_name }}</span>
+        </div>
+        <div class="vh-submission" *ngIf="visa.submission_date">
+          <span class="label">Submitted:</span>
+          <span class="text-dark fw-semibold">{{ visa.submission_date | date:'dd MMM yyyy' }}</span>
         </div>
       </div>
 
@@ -66,23 +115,18 @@
         </span>
 
         <div class="vh-actions">
-          <button class="btn-vh-add" (click)="openRegisterModal()" title="Add New Visa Case">
-            <i class="bi bi-plus-lg"></i>
-            <span>Add Case</span>
-          </button>
-
           <button class="btn-vh-rfi" (click)="openAddRequestModal()" title="Log Official Immigration Request">
             <i class="bi bi-envelope-exclamation"></i>
             <span>Log Request</span>
           </button>
 
           <button class="btn-vh-edit" (click)="openEditModal()" title="Edit Visa Details">
-            <i class="bi bi-pencil"></i>
+            <i class="bi bi-pencil-square"></i>
             <span>Edit Case</span>
           </button>
 
           <button class="btn-vh-delete" (click)="deleteVisaCase()" title="Delete Visa Case">
-            <i class="bi bi-trash"></i>
+            <i class="bi bi-trash3"></i>
             <span>Delete</span>
           </button>
         </div>
@@ -155,7 +199,10 @@
       <div class="fields-overview-grid">
         <!-- Submission Date -->
         <div class="field-item">
-          <span class="f-label">Submission Date</span>
+          <div class="f-item-header">
+            <i class="bi bi-calendar-event text-primary"></i>
+            <span class="f-label">Submission Date</span>
+          </div>
           <span class="f-val">
             {{ visa.submission_date ? (visa.submission_date | date:'dd MMM yyyy') : 'Not submitted yet' }}
           </span>
@@ -163,14 +210,20 @@
 
         <!-- Officer / Contact -->
         <div class="field-item">
-          <span class="f-label">Officer / Embassy Contact</span>
+          <div class="f-item-header">
+            <i class="bi bi-person-badge text-indigo"></i>
+            <span class="f-label">Officer / Embassy Contact</span>
+          </div>
           <span class="f-val">{{ visa.officer_name || 'Not recorded' }}</span>
           <span class="f-sub" *ngIf="visa.officer_contact">{{ visa.officer_contact }}</span>
         </div>
 
         <!-- Extension Details -->
         <div class="field-item">
-          <span class="f-label">Extension Request / Approval</span>
+          <div class="f-item-header">
+            <i class="bi bi-clock-history text-amber"></i>
+            <span class="f-label">Extension Request / Approval</span>
+          </div>
           <span class="f-val" *ngIf="visa.extension_requested_date || visa.extension_approved_date">
             Req: {{ visa.extension_requested_date | date:'dd MMM yyyy' }}
             <span *ngIf="visa.extension_approved_date">| Appr: {{ visa.extension_approved_date | date:'dd MMM yyyy' }}</span>
@@ -183,7 +236,10 @@
 
         <!-- Outcome Details -->
         <div class="field-item">
-          <span class="f-label">Outcome Date & Remarks</span>
+          <div class="f-item-header">
+            <i class="bi bi-award text-success"></i>
+            <span class="f-label">Outcome Date & Remarks</span>
+          </div>
           <span class="f-val">
             {{ visa.outcome_date ? (visa.outcome_date | date:'dd MMM yyyy') : 'Pending Outcome' }}
           </span>
@@ -192,7 +248,10 @@
 
         <!-- Expiry / Travel Dates -->
         <div class="field-item">
-          <span class="f-label">Visa Expiry & Travel Dates</span>
+          <div class="f-item-header">
+            <i class="bi bi-airplane text-info"></i>
+            <span class="f-label">Visa Expiry & Travel Dates</span>
+          </div>
           <span class="f-val" *ngIf="visa.visa_expiry_date || visa.travel_date">
             <span *ngIf="visa.visa_expiry_date">Expiry: {{ visa.visa_expiry_date | date:'dd MMM yyyy' }}</span>
             <span *ngIf="visa.travel_date" class="ms-2">| Travel: {{ visa.travel_date | date:'dd MMM yyyy' }}</span>
@@ -204,7 +263,10 @@
 
         <!-- Intake Date -->
         <div class="field-item">
-          <span class="f-label">Course / Intake Start Date</span>
+          <div class="f-item-header">
+            <i class="bi bi-mortarboard text-purple"></i>
+            <span class="f-label">Course / Intake Start Date</span>
+          </div>
           <span class="f-val">
             {{ visa.intake_date ? (visa.intake_date | date:'dd MMM yyyy') : 'Not specified' }}
           </span>
