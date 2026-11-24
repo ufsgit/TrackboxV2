@@ -32,6 +32,8 @@ export class ContactTasksComponent implements OnInit, OnChanges {
 
   // Modal State
   showModal = false;
+  isEditing = false;
+  editingTaskId: number | null = null;
   newTask: ContactTaskItem = this.getEmptyTask();
 
   private searchDebounceTimer: any;
@@ -125,13 +127,38 @@ export class ContactTasksComponent implements OnInit, OnChanges {
   }
 
   openCreateModal(): void {
+    this.isEditing = false;
+    this.editingTaskId = null;
     this.newTask = this.getEmptyTask();
     this.loadTeamUsers(); // Only fetch if not already loaded when opening the dialog
     this.showModal = true;
   }
 
+  openEditModal(task: ContactTaskItem): void {
+    this.isEditing = true;
+    this.editingTaskId = task.id || null;
+    let formattedDate = null;
+    if (task.task_date) {
+      const d = new Date(task.task_date);
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toISOString().split('T')[0];
+      } else {
+        formattedDate = String(task.task_date).split('T')[0];
+      }
+    }
+    this.newTask = {
+      ...task,
+      is_task_date: (task.is_task_date === 1 || task.is_task_date === true) ? 1 : 0,
+      task_date: formattedDate
+    };
+    this.loadTeamUsers();
+    this.showModal = true;
+  }
+
   closeModal(): void {
     this.showModal = false;
+    this.isEditing = false;
+    this.editingTaskId = null;
   }
 
   onAssigneeChange(userId: number): void {
@@ -153,6 +180,34 @@ export class ContactTasksComponent implements OnInit, OnChanges {
     }
 
     this.submitting = true;
+
+    // Handle Edit/Update mode
+    if (this.isEditing && this.editingTaskId) {
+      this.tasksService.updateTask(this.editingTaskId, this.newTask).subscribe({
+        next: (res: any) => {
+          this.submitting = false;
+          if (res?.success) {
+            this.closeModal();
+            Swal.fire({
+              icon: 'success',
+              title: 'Task Updated',
+              text: 'Task details updated successfully.',
+              timer: 1500,
+              showConfirmButton: false
+            });
+            this.loadTasks();
+          } else {
+            Swal.fire('Error', res?.message || 'Could not update task.', 'error');
+          }
+        },
+        error: (err) => {
+          this.submitting = false;
+          Swal.fire('Error', err?.error?.message || err.message, 'error');
+        }
+      });
+      return;
+    }
+
     this.newTask.contact_id = Number(this.contactId);
     this.newTask.contact_name = this.studentName || this.contact?.name || 'Contact';
     this.newTask.contact_phone = this.contact?.phone || null;

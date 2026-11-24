@@ -19,6 +19,9 @@ router.get('/contact/:contactId', controller.getTasksByContact);
 // Create a new task
 router.post('/', controller.createTask);
 
+// Update task details
+router.put('/:id', controller.updateTask);
+
 // Update task status (0 = Pending, 1 = Completed)
 router.patch('/:id/status', controller.updateTaskStatus);
 

@@ -145,10 +145,10 @@
     <div *ngIf="!loading && tasks.length === 0" class="state-container empty-state">
       <div class="empty-icon"><i class="bi bi-clipboard-check"></i></div>
       <h3>No Tasks Found</h3>
-      <p class="text-muted">No tasks match your current filter settings. Try clearing filters or create a new task.</p>
-      <button class="btn-primary mt-3" (click)="openCreateModal()" *ngIf="authService.hasPermission('Tasks', 'save')">
+      <!-- <p class="text-muted">No tasks match your current filter settings. Try clearing filters or create a new task.</p> -->
+      <!-- <button class="btn-primary mt-3" (click)="openCreateModal()" *ngIf="authService.hasPermission('Tasks', 'save')">
         <i class="bi bi-plus-lg me-1"></i> Create Task
-      </button>
+      </button> -->
     </div>
 
     <!-- Tasks Table: 11 Specified Columns -->

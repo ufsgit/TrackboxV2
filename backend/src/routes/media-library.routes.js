@@ -57,24 +57,41 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
     else if (mime.startsWith('video/')) fileType = 'video';
     else if (mime.startsWith('audio/')) fileType = 'audio';
 
-    let relativeUrl = `/uploads/media/${req.file.filename}`;
-
-    // Upload to Cloudflare R2 if configured
-    if (r2Service.isConfigured()) {
-      try {
-        const r2Key = `media/${req.file.filename}`;
-        await r2Service.uploadFile({
-          key: r2Key,
-          filePath: req.file.path,
-          contentType: req.file.mimetype || 'application/octet-stream'
-        });
-        if (r2Service.publicUrl) {
-          relativeUrl = `${r2Service.publicUrl}/${r2Key}`;
-        }
-      } catch (r2Err) {
-        console.error('Error uploading media to Cloudflare R2:', r2Err);
+    // Cloudflare R2 is required — no local fallback
+    if (!r2Service.isConfigured() || !r2Service.publicUrl) {
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
       }
+      return res.status(500).json({
+        success: false,
+        message: 'Cloudflare R2 storage or R2_PUBLIC_URL is not configured on the server. Media cannot be uploaded.'
+      });
     }
+
+    const r2Key = `media/${req.file.filename}`;
+    try {
+      await r2Service.uploadFile({
+        key: r2Key,
+        filePath: req.file.path,
+        contentType: req.file.mimetype || 'application/octet-stream'
+      });
+    } catch (r2Err) {
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
+      }
+      console.error('Error uploading media to Cloudflare R2:', r2Err);
+      return res.status(500).json({
+        success: false,
+        message: `Cloudflare R2 upload failed: ${r2Err.message}`
+      });
+    }
+
+    // Clean up temporary local file after successful upload to R2
+    if (req.file.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+
+    const relativeUrl = `${r2Service.publicUrl}/${r2Key}`;
 
     const [result] = await pool.query(
       `INSERT INTO shared_media_library (business_id, name, file_url, file_type, file_size, uploaded_by)

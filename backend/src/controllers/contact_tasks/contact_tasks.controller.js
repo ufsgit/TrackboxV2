@@ -310,10 +310,81 @@ const getTasksKpi = async (req, res) => {
   }
 };
 
+/**
+ * PUT /api/contact-tasks/:id
+ * Update task details (title, description, assignee, promised date)
+ */
+const updateTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      assigned_to,
+      assigned_to_name,
+      is_task_date,
+      task_date
+    } = req.body;
+
+    if (!title || !assigned_to) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title and assigned_to are required',
+        data: null
+      });
+    }
+
+    let finalAssigneeName = assigned_to_name;
+    if (!finalAssigneeName) {
+      const [u] = await pool.query('SELECT name FROM users WHERE id = ?', [assigned_to]);
+      if (u && u[0]) finalAssigneeName = u[0].name;
+    }
+
+    const taskDateVal = (is_task_date && task_date) ? task_date : null;
+
+    await pool.query(
+      `UPDATE contact_tasks
+       SET title = ?,
+           description = ?,
+           assigned_to = ?,
+           assigned_to_name = ?,
+           is_task_date = ?,
+           task_date = ?,
+           updated_at = NOW()
+       WHERE id = ?`,
+      [
+        title,
+        description || null,
+        assigned_to,
+        finalAssigneeName || '',
+        is_task_date ? 1 : 0,
+        taskDateVal,
+        id
+      ]
+    );
+
+    const [rows] = await pool.query('SELECT * FROM contact_tasks WHERE id = ?', [id]);
+
+    res.json({
+      success: true,
+      message: 'Task updated successfully',
+      data: rows[0] || null
+    });
+  } catch (err) {
+    console.error('Error updating task:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Internal server error',
+      data: null
+    });
+  }
+};
+
 module.exports = {
   getTaskTeamAssignees,
   getTasksByContact,
   createTask,
+  updateTask,
   updateTaskStatus,
   getTasksList,
   getTasksKpi

@@ -1243,31 +1243,51 @@ const uploadContactDocument = async (req, res) => {
     const { documentType, notes } = req.body;
     
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded', data: null });
+
+    // Cloudflare R2 is required — no local fallback
+    if (!r2Service.isConfigured() || !r2Service.publicUrl) {
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Cloudflare R2 storage or R2_PUBLIC_URL is not configured on the server. Document cannot be uploaded.',
+        data: null
+      });
+    }
     
     let folder = 'media';
     if (req.file.mimetype === 'text/csv' || req.file.originalname.endsWith('.csv')) folder = 'csv';
-    let fileUrl = `/uploads/${folder}/${req.file.filename}`;
+    const r2Key = `${folder}/${req.file.filename}`;
 
-    // Upload to Cloudflare R2 if configured
-    if (r2Service.isConfigured()) {
-      try {
-        const r2Key = `${folder}/${req.file.filename}`;
-        await r2Service.uploadFile({
-          key: r2Key,
-          filePath: req.file.path,
-          contentType: req.file.mimetype || 'application/octet-stream',
-          metadata: {
-            contactId: String(contactId),
-            originalName: encodeURIComponent(req.file.originalname)
-          }
-        });
-        if (r2Service.publicUrl) {
-          fileUrl = `${r2Service.publicUrl}/${r2Key}`;
+    try {
+      await r2Service.uploadFile({
+        key: r2Key,
+        filePath: req.file.path,
+        contentType: req.file.mimetype || 'application/octet-stream',
+        metadata: {
+          contactId: String(contactId),
+          originalName: encodeURIComponent(req.file.originalname)
         }
-      } catch (r2Err) {
-        console.error('Error uploading contact document to Cloudflare R2:', r2Err);
+      });
+    } catch (r2Err) {
+      if (req.file.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
       }
+      console.error('Error uploading contact document to Cloudflare R2:', r2Err);
+      return res.status(500).json({
+        success: false,
+        message: `Cloudflare R2 upload failed: ${r2Err.message}`,
+        data: null
+      });
     }
+
+    // Clean up temporary local file after successful upload to R2
+    if (req.file.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+
+    const fileUrl = `${r2Service.publicUrl}/${r2Key}`;
     let fileSizeStr = '';
     if (req.file.size < 1024 * 1024) {
       fileSizeStr = (req.file.size / 1024).toFixed(1) + ' KB';

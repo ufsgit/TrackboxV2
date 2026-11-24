@@ -70,6 +70,10 @@ export class ContactTasksService {
     return this.http.post(this.apiUrl, task);
   }
 
+  updateTask(taskId: number, task: ContactTaskItem): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${taskId}`, task);
+  }
+
   updateTaskStatus(taskId: number, status: number): Observable<any> {
     return this.http.patch(`${this.apiUrl}/${taskId}/status`, { status });
   }

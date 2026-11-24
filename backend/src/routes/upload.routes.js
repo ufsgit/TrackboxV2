@@ -31,41 +31,42 @@ router.post('/', authenticate, upload.single('file'), async (req, res) => {
 
   const processResponse = async (filename, finalPath) => {
     try {
-      let finalUrl;
-      if (r2Service.isConfigured()) {
-        const ext = path.extname(filename).toLowerCase();
-        let mimeType = req.file.mimetype || 'application/octet-stream';
-        if (ext === '.mp3') mimeType = 'audio/mp3';
-        else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
-        else if (ext === '.png') mimeType = 'image/png';
-        else if (ext === '.mp4') mimeType = 'video/mp4';
-        else if (ext === '.pdf') mimeType = 'application/pdf';
-
-        const r2Result = await r2Service.uploadFile({
-          key: filename,
-          filePath: finalPath,
-          contentType: mimeType
-        });
-
-        if (r2Service.publicUrl) {
-          finalUrl = r2Result.url;
-        } else {
-          const host = req.get('host');
-          const protocol = req.protocol;
-          finalUrl = `${protocol}://${host}/uploads/${filename}`;
+      if (!r2Service.isConfigured() || !r2Service.publicUrl) {
+        if (finalPath && fs.existsSync(finalPath)) {
+          try { fs.unlinkSync(finalPath); } catch (_) {}
         }
-      } else {
-        const host = req.get('host');
-        const protocol = req.protocol;
-        finalUrl = `${protocol}://${host}/uploads/${filename}`;
+        return res.status(500).json({
+          success: false,
+          message: 'Cloudflare R2 storage or R2_PUBLIC_URL is not configured on the server. File cannot be uploaded.'
+        });
       }
 
-      res.json({ success: true, url: finalUrl, message: 'File uploaded' });
+      const ext = path.extname(filename).toLowerCase();
+      let mimeType = req.file.mimetype || 'application/octet-stream';
+      if (ext === '.mp3') mimeType = 'audio/mp3';
+      else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+      else if (ext === '.png') mimeType = 'image/png';
+      else if (ext === '.mp4') mimeType = 'video/mp4';
+      else if (ext === '.pdf') mimeType = 'application/pdf';
+
+      const r2Result = await r2Service.uploadFile({
+        key: filename,
+        filePath: finalPath,
+        contentType: mimeType
+      });
+
+      // Clean up temporary local file after successful upload to R2
+      if (finalPath && fs.existsSync(finalPath)) {
+        try { fs.unlinkSync(finalPath); } catch (_) {}
+      }
+
+      res.json({ success: true, url: r2Result.url, message: 'File uploaded to Cloudflare R2' });
     } catch (err) {
+      if (finalPath && fs.existsSync(finalPath)) {
+        try { fs.unlinkSync(finalPath); } catch (_) {}
+      }
       console.error('Error uploading to Cloudflare R2:', err);
-      const host = req.get('host');
-      const protocol = req.protocol;
-      res.json({ success: true, url: `${protocol}://${host}/uploads/${filename}`, message: 'File uploaded (local fallback)' });
+      res.status(500).json({ success: false, message: `Cloudflare R2 upload failed: ${err.message}` });
     }
   };
 

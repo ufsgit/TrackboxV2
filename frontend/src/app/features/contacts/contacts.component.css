@@ -4879,6 +4879,18 @@
   font-weight: 400;
 }
 
+/* Column: Created Date */
+.col-created {
+  min-width: 110px;
+}
+
+.created-date-text {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+}
+
 /* Column: Employee */
 .col-employee {
   min-width: 120px;
@@ -6988,13 +7000,18 @@
    REDESIGNED LEAD DETAIL MODAL & APPLICATION TAB
    ───────────────────────────────────────────────────────────── */
 
+.detail-modal-wrapper {
+  padding: 0 !important;
+}
+
 .detail-modal-card {
-  width: 96vw !important;
-  max-width: 1240px !important;
-  max-height: 90vh !important;
-  border-radius: 20px !important;
-  border: 1px solid rgba(226, 232, 240, 0.9) !important;
-  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25) !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .detail-modal-header {

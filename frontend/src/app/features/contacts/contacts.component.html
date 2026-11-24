@@ -37,13 +37,13 @@
         </button>
       </div>
 
-      <button *ngIf="canTransferLeads" class="leads-btn leads-btn-transfer" (click)="openBulkTransferModal()" title="Bulk Transfer Leads">
+      <!-- <button *ngIf="canTransferLeads" class="leads-btn leads-btn-transfer" (click)="openBulkTransferModal()" title="Bulk Transfer Leads">
         <i class="bi bi-arrow-left-right"></i>
         <span>Bulk Transfer</span>
         <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
           {{ selectedContactIds.size }}
         </span>
-      </button>
+      </button> -->
 
       <!-- <button *ngIf="isEmailEnabled" class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email via Brevo">
         <i class="bi bi-envelope-fill"></i>
@@ -58,10 +58,10 @@
         <span>Excel Import</span>
       </button>
 
-      <button class="leads-btn leads-btn-green" (click)="openAddModal()" title="Add New Lead">
+      <!-- <button class="leads-btn leads-btn-green" (click)="openAddModal()" title="Add New Lead">
         <i class="bi bi-plus-lg"></i>
         <span>Add Lead</span>
-      </button>
+      </button> -->
     </div>
   </div>
 
@@ -298,6 +298,7 @@
               <input type="checkbox" class="leads-checkbox" [checked]="isAllSelected" (change)="toggleSelectAll()" title="Select All On Page">
             </th>
             <th class="col-lead">LEAD</th>
+            <th class="col-created">CREATED DATE</th>
             <th class="col-employee">EMPLOYEE</th>
             <th class="col-email">EMAIL</th>
             <th class="col-status">STATUS</th>
@@ -309,14 +310,14 @@
         <tbody>
           <!-- Loading Spinner -->
           <tr *ngIf="loading">
-            <td colspan="8" class="text-center py-5">
+            <td colspan="9" class="text-center py-5">
               <div class="spinner-border text-primary"></div>
             </td>
           </tr>
 
           <!-- Empty Pipeline State -->
           <tr *ngIf="!loading && contacts.length === 0">
-            <td colspan="8" class="text-center py-5">
+            <td colspan="9" class="text-center py-5">
               <div class="empty-state-wrapper">
                 <div class="empty-state-illustration">
                   <svg width="140" height="140" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -363,6 +364,14 @@
                   <span class="lead-phone">{{ contact.phone || 'No phone' }}</span>
                 </div>
               </div>
+            </td>
+
+            <!-- Created Date -->
+            <td class="col-created">
+              <span class="created-date-text" *ngIf="contact.created_at">
+                {{ contact.created_at | date:'dd MMM yyyy' }}
+              </span>
+              <span *ngIf="!contact.created_at" class="text-muted">-</span>
             </td>
 
             <!-- Employee -->
@@ -881,7 +890,7 @@
               </div>
               <div>
                 <h5 class="app-tab-title">Applications</h5>
-                <span class="app-tab-sub">Manage target universities, degree programs, and track admission milestones</span>
+                <!-- <span class="app-tab-sub">Manage target universities, degree programs, and track admission milestones</span> -->
               </div>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -909,7 +918,7 @@
               </div>
               <h6 class="empty-hero-title">No Applications Registered Yet</h6>
               <p class="empty-hero-desc">
-                Add target universities, degree programs, and track application milestones for {{ selectedContact.name || 'this lead' }}.
+                <!-- Add target universities, degree programs, and track application milestones for {{ selectedContact.name || 'this lead' }}. -->
               </p>
               <button type="button" class="btn-create-first-app" (click)="openAddApplicationModal()">
                 <i class="bi bi-plus-lg me-1"></i> Create First Application
@@ -917,7 +926,7 @@
             </div>
 
             <!-- Guidance Cards to fill empty space and guide user -->
-            <div class="app-guidance-grid">
+            <!-- <div class="app-guidance-grid">
               <div class="guidance-card">
                 <div class="g-icon"><i class="bi bi-buildings"></i></div>
                 <div class="g-text">
@@ -939,7 +948,7 @@
                   <p>Track status from Applied to Offer applied and Visa Approval.</p>
                 </div>
               </div>
-            </div>
+            </div> -->
           </div>
 
           <!-- When applications exist -->
