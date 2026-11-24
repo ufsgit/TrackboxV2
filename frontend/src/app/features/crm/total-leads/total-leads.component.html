@@ -522,6 +522,17 @@
         </div>
       </div>
 
+      <!-- ── Student Basic Profile ── -->
+      <div class="modal-section-card">
+        <div class="section-divider"><i class="bi bi-person-badge"></i> Student Basic Profile</div>
+        <div class="fields-grid">
+          <div class="field-row full-width">
+            <label>Student Basic Profile</label>
+            <textarea class="form-control premium-input" rows="1" [(ngModel)]="newContact.student_basic_profile" placeholder="Enter student basic profile..."></textarea>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Additional Details / Custom Fields ── -->
       <div *ngIf="groupedLeadFields.length > 0">
         <div *ngFor="let group of groupedLeadFields" class="modal-section-card">

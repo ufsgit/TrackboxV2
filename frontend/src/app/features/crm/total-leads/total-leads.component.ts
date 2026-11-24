@@ -83,6 +83,7 @@ export class TotalLeadsComponent implements OnInit {
     country_code: '+91',
     email: '',
     address: '',
+    student_basic_profile: '',
     company: '',
     enquiry_for_id: null,
     status: '',
@@ -493,6 +494,7 @@ export class TotalLeadsComponent implements OnInit {
       country_code: '+91',
       email: '',
       address: '',
+      student_basic_profile: '',
       company: '',
       enquiry_for_id: null,
       status: '',
@@ -617,6 +619,7 @@ export class TotalLeadsComponent implements OnInit {
 
     const payload: any = {
       ...this.newContact,
+      student_basic_profile: this.newContact.student_basic_profile || null,
       follow_up_date: this.newContact.follow_up_date || null,
       tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
       custom_field_values: this.newContact.custom_field_values

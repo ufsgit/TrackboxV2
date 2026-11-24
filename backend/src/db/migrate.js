@@ -57,6 +57,7 @@ async function runMigrations() {
       opt_in_source ENUM('manual','link','whatsapp','import') DEFAULT 'manual',
       channel_preference ENUM('whatsapp','sms','rcs') DEFAULT 'whatsapp',
       current_sale_status INT DEFAULT 0,
+      student_basic_profile TEXT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (business_id) REFERENCES businesses(id)
     )`,
@@ -774,6 +775,7 @@ async function runMigrations() {
   await safeAddColumn('lead_emails', 'last_event_at', 'TIMESTAMP NULL');
   await safeAddColumn('lead_emails', 'sent_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP');
   await safeAddColumn('lead_emails', 'campaign_id', 'VARCHAR(50) NULL');
+  await safeAddColumn('contacts', 'student_basic_profile', 'TEXT NULL');
 
   // Receipts Module
   await pool.query(`CREATE TABLE IF NOT EXISTS receipt_types (

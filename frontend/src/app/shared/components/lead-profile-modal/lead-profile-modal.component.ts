@@ -169,6 +169,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     enquiry_for_id: null,
     channel_preference: '',
     address: '',
+    student_basic_profile: '',
     custom_field_values: {} as Record<string, string>
   };
   leadStatuses: any[] = [];
@@ -544,6 +545,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       enquiry_for_id: this.selectedContact.enquiry_for_id || null,
       channel_preference: this.selectedContact.channel_preference || '',
       address: this.selectedContact.address || '',
+      student_basic_profile: this.selectedContact.student_basic_profile || '',
       custom_field_values: {} as Record<string, string>
     };
 
@@ -634,6 +636,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       channel_preference: this.editForm.channel_preference || null,
       enquiry_for_id: this.editForm.enquiry_for_id || null,
       address: this.editForm.address || null,
+      student_basic_profile: this.editForm.student_basic_profile || null,
       custom_field_values: this.editForm.custom_field_values,
       is_follow_up: false
     };
@@ -643,6 +646,9 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
       next: () => {
         this.savingEdit = false;
         this.showEditModal = false;
+        if (this.selectedContact) {
+          this.selectedContact.student_basic_profile = this.editForm.student_basic_profile;
+        }
         Swal.fire({
           icon: 'success',
           title: 'Lead Updated',

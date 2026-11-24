@@ -157,6 +157,19 @@
               </div>
             </div>
 
+            <!-- Student Basic Profile -->
+            <div class="col-12 mb-4">
+              <div class="detail-section-card">
+                <h5><i class="bi bi-person-badge me-2 text-primary"></i> Student Basic Profile</h5>
+                <div class="detail-grid">
+                  <div class="detail-item" style="grid-column: 1 / -1;">
+                    <label>STUDENT BASIC PROFILE</label>
+                    <span style="white-space: pre-wrap;">{{ selectedContact?.student_basic_profile || '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Custom Fields Section -->
             <div class="col-12">
               <div class="detail-section-card">
@@ -882,6 +895,17 @@
           <div class="field-row full-width">
             <label>Address</label>
             <textarea class="form-control premium-input" rows="1" [(ngModel)]="editForm.address" placeholder="Enter address..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Student Basic Profile ── -->
+      <div class="modal-section-card">
+        <div class="section-divider"><i class="bi bi-person-badge"></i> Student Basic Profile</div>
+        <div class="fields-grid">
+          <div class="field-row full-width">
+            <label>Student Basic Profile</label>
+            <textarea class="form-control premium-input" rows="1" [(ngModel)]="editForm.student_basic_profile" placeholder="Enter student basic profile..."></textarea>
           </div>
         </div>
       </div>

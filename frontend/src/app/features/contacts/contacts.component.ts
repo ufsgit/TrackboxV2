@@ -589,6 +589,7 @@ export class ContactsComponent implements OnInit {
     phone: '',
     email: '',
     address: '',
+    student_basic_profile: '',
     company: '',
     enquiry_for_id: null,
     status: '',
@@ -2122,7 +2123,7 @@ export class ContactsComponent implements OnInit {
     this.loadChannels();
     this.selectedCountryCode = '+91';
     this.newContact = {
-      name: '', phone: '', country_code: '+91', email: '', address: '', company: '', enquiry_for_id: null,
+      name: '', phone: '', country_code: '+91', email: '', address: '', student_basic_profile: '', company: '', enquiry_for_id: null,
       status: '', remark: '', follow_up_date: '',
       tags: 'lead', channel_preference: '', assigned_to: '',
       branch: '', department: '', assign_type: 'employee', assigned_employee: '', loss_reason: '',
@@ -2160,6 +2161,7 @@ export class ContactsComponent implements OnInit {
       country_code: initialCountryCode,
       email: contact.email || '',
       address: contact.address || '',
+      student_basic_profile: contact.student_basic_profile || '',
       company: contact.company || '',
       enquiry_for_id: contact.enquiry_for_id || null,
       status: contact.status || '',
@@ -2299,12 +2301,14 @@ export class ContactsComponent implements OnInit {
         channel_preference: this.newContact.channel_preference || null,
         enquiry_for_id: this.newContact.enquiry_for_id || null,
         address: this.newContact.address || null,
+        student_basic_profile: this.newContact.student_basic_profile || null,
         custom_field_values: this.newContact.custom_field_values,
         is_follow_up: false
       };
     } else {
       payload = {
         ...this.newContact,
+        student_basic_profile: this.newContact.student_basic_profile || null,
         follow_up_date: this.newContact.follow_up_date || null,
         tags: this.newContact.tags ? this.newContact.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [],
         custom_field_values: this.newContact.custom_field_values
@@ -2319,6 +2323,9 @@ export class ContactsComponent implements OnInit {
     request.subscribe({
       next: (res: any) => {
         if (res.success) {
+          if (this.selectedContact && this.editingContactId && this.selectedContact.id === this.editingContactId) {
+            this.selectedContact.student_basic_profile = this.newContact.student_basic_profile;
+          }
           this.loadContacts();
           this.loadTags();
           this.showModal = false;

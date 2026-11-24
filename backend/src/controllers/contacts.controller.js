@@ -264,7 +264,7 @@ const createContact = async (reqOrData, res) => {
 
     const data = isHttp ? (reqOrData.body || {}) : (reqOrData || {});
     let { 
-      name, phone, email, tags, channel_preference, assigned_to, address, 
+      name, phone, email, tags, channel_preference, assigned_to, address, student_basic_profile, 
       custom_field_values, status, remark, follow_up_date, enquiry_for_id, 
       branch_id, branch_name, department_id, department_name, 
       status_id, status_name, country_code,
@@ -434,18 +434,18 @@ const createContact = async (reqOrData, res) => {
       `INSERT INTO contacts (
         business_id, name, phone, country_code, email, tags, 
         opted_in, opt_in_date, opt_out_date, opt_in_source, channel_preference, has_unread_wa,
-        assigned_to, address, enquiry_for_id, loss_reason, 
+        assigned_to, address, student_basic_profile, enquiry_for_id, loss_reason, 
         branch_id, branch_name, department_id, department_name, 
         status_id, status_name, follow_up_date, follow_up,
         current_sale_status, sale_won, sale_won_date, sale_won_by, 
         sale_lost, sale_lost_date, sale_lost_by, 
         created_by_user, user_list, priority, probability_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         bizId, name, phone, country_code || '+91', email || null, JSON.stringify(tags || []),
         opted_in !== undefined ? (opted_in ? 1 : 0) : 0,
         opt_in_date || null, opt_out_date || null, opt_in_source || 'manual', channel_preference || 'whatsapp', has_unread_wa ? 1 : 0,
-        assignTo, address || null, enquiry_for_id || null, loss_reason || null,
+        assignTo, address || null, student_basic_profile || null, enquiry_for_id || null, loss_reason || null,
         branch_id || null, branch_name || null, department_id || null, department_name || null,
         status_id || null, status_name || null, formattedFollowUpDate, formattedFollowUpDate ? 1 : 0,
         current_sale_status, sale_won, sale_won_date, sale_won_by,
@@ -664,7 +664,7 @@ const updateContact = async (req, res) => {
       // Lead detail edits (name, phone, email, address, enquiry_for_id, channel_preference, tags, custom fields) MUST NOT log to follow_ups
       const isLeadDetailEdit = Boolean(
         updateFields.name || updateFields.phone || updateFields.email || 
-        updateFields.address || updateFields.channel_preference || 
+        updateFields.address || updateFields.student_basic_profile || updateFields.channel_preference || 
         updateFields.enquiry_for_id || custom_field_values
       );
 
@@ -721,7 +721,7 @@ const updateContact = async (req, res) => {
     let updates = [];
     let params = [];
 
-    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'follow_up_date', 'enquiry_for_id', 'branch_id', 'branch_name', 'department_id', 'department_name', 'status_id', 'status_name', 'sale_won', 'sale_lost', 'loss_reason'];
+    const allowedFields = ['name', 'phone', 'email', 'tags', 'channel_preference', 'address', 'student_basic_profile', 'follow_up_date', 'enquiry_for_id', 'branch_id', 'branch_name', 'department_id', 'department_name', 'status_id', 'status_name', 'sale_won', 'sale_lost', 'loss_reason'];
     
     for (const key of allowedFields) {
       if (updateFields[key] !== undefined) {
