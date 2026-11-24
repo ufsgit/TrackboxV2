@@ -82,36 +82,36 @@ const getContacts = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         where += ' AND 1 = 0 ';
       } else if (req.query.transferred_only === 'true') {
-        const selfId = Number(req.user.userId);
-        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-        params.push(selfId.toString(), selfId.toString(), selfId);
+        const selfId = Number(req.user.userId || req.user.id);
+        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+        params.push(selfId.toString(), selfId.toString(), selfId, selfId);
       } else if (agent === 'unassigned') {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
-          params.push(reqAgentId, reqAgentId);
+          where += ' AND c.assigned_to = ? ';
+          params.push(reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
-        where += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))`;
-        params.push(...accessibleUserIds, ...accessibleUserIds);
+        where += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        params.push(...accessibleUserIds);
       }
     } else {
       if (req.query.transferred_only === 'true') {
         if (agent) {
-          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-          params.push(agent.toString(), agent, agent);
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+          params.push(agent.toString(), agent, agent, agent);
         } else {
-          where += ` AND JSON_LENGTH(c.user_list) > 1`;
+          where += ` AND (JSON_LENGTH(c.user_list) > 1 OR (c.created_by_user IS NOT NULL AND c.created_by_user != c.assigned_to))`;
         }
       } else if (agent === 'unassigned') {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
       } else if (agent) {
-        where += ' AND (c.assigned_to = ? OR c.created_by_user = ?)';
-        params.push(agent, agent);
+        where += ' AND c.assigned_to = ?';
+        params.push(agent);
       }
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
@@ -163,8 +163,8 @@ const getContacts = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         baseWhere += ' AND 1 = 0 ';
       } else {
-        baseWhere += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))`;
-        baseParams.push(...accessibleUserIds, ...accessibleUserIds);
+        baseWhere += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        baseParams.push(...accessibleUserIds);
       }
     }
     const [[{ overall_total }]] = await pool.query(
@@ -400,7 +400,12 @@ const createContact = async (reqOrData, res) => {
     if (isHttp && reqOrData.user?.role === 'agent') {
       assignTo = reqOrData.user.userId;
     }
-    let userList = assignTo ? [assignTo] : [];
+    let userList = [];
+    if (actingUserId && assignTo && Number(actingUserId) !== Number(assignTo)) {
+      userList = [Number(actingUserId), Number(assignTo)];
+    } else if (assignTo) {
+      userList = [Number(assignTo)];
+    }
     
     let formattedFollowUpDate = null;
     if (follow_up_date) {
@@ -822,7 +827,7 @@ const updateContact = async (req, res) => {
 
     const [rows] = await pool.query('SELECT * FROM contacts WHERE id = ?', [contactId]);
     if (updateFields.assigned_to !== undefined && updateFields.assigned_to !== null) {
-      const io = req.app.get('io');
+      const io = req.app && typeof req.app.get === 'function' ? req.app.get('io') : null;
       await pool.query(
         `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -2776,7 +2781,20 @@ const bulkTransferContacts = async (req, res) => {
   try {
     const bizId = req.user.businessId;
     const userId = req.user.userId || req.user.id;
-    const userRole = req.user.role || 'agent';
+    const userRole = (req.user.role || 'agent').toLowerCase().trim();
+
+    // Permission check: Admins and Team Leaders (users with assigned team members) only
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || Boolean(req.user.is_dev);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+
+    if (!isAdmin) {
+      if (!accessibleUserIds || accessibleUserIds.length <= 1) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Permission denied: Lead transfer is restricted to Admins and Team Leaders with assigned team members.' 
+        });
+      }
+    }
 
     const {
       contact_ids,
@@ -2818,9 +2836,9 @@ const bulkTransferContacts = async (req, res) => {
       `;
       let params = [bizId, ...contact_ids];
 
-      if (userRole === 'agent') {
-        query += ' AND c.assigned_to = ?';
-        params.push(userId);
+      if (!isAdmin && accessibleUserIds !== null) {
+        query += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        params.push(...accessibleUserIds);
       }
 
       const [rows] = await conn.query(query, params);
@@ -2833,9 +2851,9 @@ const bulkTransferContacts = async (req, res) => {
       `;
       let params = [bizId];
 
-      if (userRole === 'agent') {
-        query += ' AND c.assigned_to = ?';
-        params.push(userId);
+      if (!isAdmin && accessibleUserIds !== null) {
+        query += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        params.push(...accessibleUserIds);
       } else if (from_agent_id === 'unassigned') {
         query += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
       } else if (from_agent_id !== 'all') {
@@ -3051,7 +3069,7 @@ const bulkTransferContacts = async (req, res) => {
 
     await conn.commit();
 
-    const io = req.app.get('io');
+    const io = req.app && typeof req.app.get === 'function' ? req.app.get('io') : null;
     for (const [tUserId, count] of notificationCounts.entries()) {
       await pool.query(
         `INSERT INTO notifications (business_id, user_id, type, title, message, reference_id)
@@ -3108,26 +3126,26 @@ const getTotalLeads = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         where += ' AND 1 = 0 ';
       } else if (agent === 'unassigned') {
-        where += ' AND c.assigned_to IS NULL ';
+        where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
-          params.push(reqAgentId, reqAgentId);
+          where += ' AND c.assigned_to = ? ';
+          params.push(reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
-        where += ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.assigned_to IS NULL)`;
-        params.push(...accessibleUserIds, ...accessibleUserIds);
+        where += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
+        params.push(...accessibleUserIds);
       }
     } else {
       // Admin / Superadmin
       if (agent === 'unassigned') {
-        where += ' AND c.assigned_to IS NULL';
+        where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
       } else if (agent) {
-        where += ' AND (c.assigned_to = ? OR c.created_by_user = ?)';
-        params.push(agent, agent);
+        where += ' AND c.assigned_to = ?';
+        params.push(agent);
       }
     }
 

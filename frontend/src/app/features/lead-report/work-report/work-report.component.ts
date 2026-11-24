@@ -91,13 +91,11 @@ export class WorkReportComponent implements OnInit {
   ) {}
 
   get canFilterAgents(): boolean {
-    return this.auth.canFilterAgents();
+    return this.auth.canFilterAgents() || this.agents.length > 1;
   }
 
   ngOnInit() {
-    if (!this.canFilterAgents) {
-      this.selectedAgent = this.auth.getCurrentUserId()?.toString() || 'all';
-    }
+    this.selectedAgent = 'all';
     this.fetchData();
     this.loadAgents();
   }

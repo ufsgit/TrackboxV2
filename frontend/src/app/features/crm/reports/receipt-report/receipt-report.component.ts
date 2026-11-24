@@ -658,7 +658,7 @@ export class ReceiptReportComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.authService.canFilterAgents();
+    return this.authService.canFilterAgents() || this.staffList.length > 1;
   }
 
   @HostListener('document:click')
@@ -669,9 +669,7 @@ export class ReceiptReportComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (!this.canFilterAgents) {
-      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'all';
-    }
+    this.selectedEmployee = 'all';
     this.fetchData();
     this.fetchMonthlyAnalysis();
     this.loadStaffList();

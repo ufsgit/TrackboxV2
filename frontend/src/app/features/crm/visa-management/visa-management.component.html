@@ -213,11 +213,11 @@
           </select>
         </div>
 
-        <!-- 4. Assigned Visa Staff (Only for admin, superadmin, manager) -->
+        <!-- 4. Assigned Visa Staff (Only for admin, superadmin, manager, or team leads) -->
         <div class="filter-col" *ngIf="canFilterAgents">
           <label class="filter-label">Assigned Staff</label>
           <select [(ngModel)]="staffFilter" (change)="onFilterChange()" class="filter-select">
-            <option value="all">All Staff</option>
+            <option value="all">All Team Members</option>
             <option value="me">Assigned to Me</option>
             <option *ngFor="let u of staffList" [value]="u.id">{{ u.name }}</option>
           </select>

@@ -329,7 +329,7 @@ export class LeadFlowReportComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.authService.canFilterAgents();
+    return this.authService.canFilterAgents() || this.users.length > 1;
   }
 
   @HostListener('document:click')
@@ -340,9 +340,7 @@ export class LeadFlowReportComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (!this.canFilterAgents) {
-      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'All';
-    }
+    this.selectedEmployee = 'All';
     this.fetchEmployees();
     this.fetchData();
   }

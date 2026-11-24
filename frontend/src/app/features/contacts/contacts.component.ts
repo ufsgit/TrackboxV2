@@ -806,14 +806,15 @@ export class ContactsComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.auth.canFilterAgents();
+    return this.auth.hasRole('admin', 'superadmin') || (this.agents && this.agents.length > 1);
+  }
+
+  get canTransferLeads(): boolean {
+    return this.auth.hasRole('admin', 'superadmin') || (this.agents && this.agents.length > 1);
   }
 
   ngOnInit() {
     this.isAdmin = this.auth.hasRole('admin', 'superadmin', 'manager');
-    if (!this.canFilterAgents) {
-      this.activeAgent = this.auth.getCurrentUserId()?.toString() || '';
-    }
     this.initEmailStatusSocket();
     if (this.enableWhatsappQr) {
       this.initWhatsappUnreadSocket();
@@ -3440,6 +3441,9 @@ Trackbox CRM Team`;
 
   // ─── Bulk Transfer Actions ───
   openBulkTransferModal() {
+    if (!this.canTransferLeads) {
+      return;
+    }
     if (this.selectedContactIds.size > 0) {
       this.bulkTransferScope = 'selected';
     } else {

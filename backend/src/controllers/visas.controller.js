@@ -1,4 +1,5 @@
 const pool = require('../db/pool');
+const { getAccessibleUserIds } = require('../services/teamHierarchy.service');
 
 // Standard Pre-Departure Checklist Items (VISA-003)
 const DEFAULT_PRE_DEPARTURE_ITEMS = [
@@ -20,6 +21,61 @@ const parseJsonField = (val, fallback = null) => {
   } catch (e) {
     return fallback;
   }
+};
+
+/**
+ * Helper to build SQL WHERE clause and parameters for scoping visas to accessible team members.
+ * Supports team hierarchy resolution, assigned staff, visa creator/updater, and student contact assignment.
+ */
+const buildVisaTeamScope = ({ accessibleUserIds, requestedStaffId = null, vAlias = 'v', cAlias = 'c' }) => {
+  let clause = '';
+  const params = [];
+
+  const hasSpecific = requestedStaffId !== undefined &&
+                      requestedStaffId !== null &&
+                      String(requestedStaffId).trim() !== '' &&
+                      String(requestedStaffId).toLowerCase() !== 'all';
+
+  if (accessibleUserIds !== null) {
+    if (accessibleUserIds.length === 0) {
+      return { clause: ' AND 1 = 0 ', params: [] };
+    }
+
+    const placeholders = accessibleUserIds.map(() => '?').join(',');
+
+    if (hasSpecific) {
+      const targetId = Number(requestedStaffId);
+      if (!isNaN(targetId)) {
+        if (accessibleUserIds.includes(targetId)) {
+          // Permitted specific staff member
+          clause = ` AND (${vAlias}.assigned_staff_id = ? OR (${vAlias}.assigned_staff_id IS NULL AND (${vAlias}.updated_by = ? OR ${cAlias}.assigned_to = ? OR ${cAlias}.created_by_user = ?))) `;
+          params.push(targetId, targetId, targetId, targetId);
+        } else {
+          // Security block: requested staff is outside team hierarchy
+          return { clause: ' AND 1 = 0 ', params: [] };
+        }
+      } else {
+        // Fallback to all accessible
+        clause = ` AND (${vAlias}.assigned_staff_id IN (${placeholders}) OR ${vAlias}.updated_by IN (${placeholders}) OR ${cAlias}.assigned_to IN (${placeholders}) OR ${cAlias}.created_by_user IN (${placeholders})) `;
+        params.push(...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds);
+      }
+    } else {
+      // All accessible team members
+      clause = ` AND (${vAlias}.assigned_staff_id IN (${placeholders}) OR ${vAlias}.updated_by IN (${placeholders}) OR ${cAlias}.assigned_to IN (${placeholders}) OR ${cAlias}.created_by_user IN (${placeholders})) `;
+      params.push(...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds);
+    }
+  } else {
+    // Unrestricted (superadmin / admin / developer)
+    if (hasSpecific) {
+      const targetId = Number(requestedStaffId);
+      if (!isNaN(targetId)) {
+        clause = ` AND (${vAlias}.assigned_staff_id = ? OR (${vAlias}.assigned_staff_id IS NULL AND (${vAlias}.updated_by = ? OR ${cAlias}.assigned_to = ? OR ${cAlias}.created_by_user = ?))) `;
+        params.push(targetId, targetId, targetId, targetId);
+      }
+    }
+  }
+
+  return { clause, params };
 };
 
 // Helper: Resolve pre-departure checklist against master visa_checklist_templates
@@ -79,12 +135,25 @@ const getVisaList = async (req, res) => {
       limit = 10
     } = req.query;
 
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
     const offset = (pageNum - 1) * limitNum;
 
     let whereSql = ` WHERE v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) `;
     const params = [businessId];
+
+    // Team scope filter
+    const staffIdParam = assigned_staff_id === 'me' ? req.user.id : assigned_staff_id;
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      requestedStaffId: staffIdParam,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
+    whereSql += scope.clause;
+    params.push(...scope.params);
 
     // Status filter
     if (status && status !== 'all') {
@@ -96,17 +165,6 @@ const getVisaList = async (req, res) => {
     if (visa_type && visa_type !== 'all') {
       whereSql += ` AND v.visa_type = ? `;
       params.push(visa_type);
-    }
-
-    // Staff filter
-    if (assigned_staff_id && assigned_staff_id !== 'all') {
-      if (assigned_staff_id === 'me') {
-        whereSql += ` AND v.assigned_staff_id = ? `;
-        params.push(req.user.id);
-      } else {
-        whereSql += ` AND v.assigned_staff_id = ? `;
-        params.push(assigned_staff_id);
-      }
     }
 
     // Date range (submission or outcome)
@@ -250,23 +308,36 @@ const getVisaList = async (req, res) => {
 const getVisaMetrics = async (req, res) => {
   try {
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const { assigned_staff_id, agent } = req.query;
+    const requestedStaff = assigned_staff_id || agent;
+    const staffIdParam = requestedStaff === 'me' ? req.user.id : requestedStaff;
+
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      requestedStaffId: staffIdParam,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
 
     // Overall & Status counts
     const [statusRows] = await pool.query(`
       SELECT 
         COUNT(*) as total_cases,
-        SUM(CASE WHEN status = 'Preparation' THEN 1 ELSE 0 END) as preparation_count,
-        SUM(CASE WHEN status = 'Ready' THEN 1 ELSE 0 END) as ready_count,
-        SUM(CASE WHEN status = 'Submitted' THEN 1 ELSE 0 END) as submitted_count,
-        SUM(CASE WHEN status = 'Under Assessment' THEN 1 ELSE 0 END) as under_assessment_count,
-        SUM(CASE WHEN status = 'RFI-PPI' THEN 1 ELSE 0 END) as rfi_ppi_count,
-        SUM(CASE WHEN status = 'AIP' THEN 1 ELSE 0 END) as aip_count,
-        SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
-        SUM(CASE WHEN status = 'Declined' THEN 1 ELSE 0 END) as declined_count,
-        SUM(CASE WHEN status = 'Withdrawn' THEN 1 ELSE 0 END) as withdrawn_count
-      FROM visas
-      WHERE business_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)
-    `, [businessId]);
+        SUM(CASE WHEN v.status = 'Preparation' THEN 1 ELSE 0 END) as preparation_count,
+        SUM(CASE WHEN v.status = 'Ready' THEN 1 ELSE 0 END) as ready_count,
+        SUM(CASE WHEN v.status = 'Submitted' THEN 1 ELSE 0 END) as submitted_count,
+        SUM(CASE WHEN v.status = 'Under Assessment' THEN 1 ELSE 0 END) as under_assessment_count,
+        SUM(CASE WHEN v.status = 'RFI-PPI' THEN 1 ELSE 0 END) as rfi_ppi_count,
+        SUM(CASE WHEN v.status = 'AIP' THEN 1 ELSE 0 END) as aip_count,
+        SUM(CASE WHEN v.status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
+        SUM(CASE WHEN v.status = 'Declined' THEN 1 ELSE 0 END) as declined_count,
+        SUM(CASE WHEN v.status = 'Withdrawn' THEN 1 ELSE 0 END) as withdrawn_count
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      WHERE v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
+    `, [businessId, ...scope.params]);
 
     // Deadlines summary (VISA-002)
     const [deadlineRows] = await pool.query(`
@@ -276,28 +347,34 @@ const getVisaMetrics = async (req, res) => {
         SUM(CASE WHEN vr.due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND vr.status != 'Closed' THEN 1 ELSE 0 END) as due_7_days_deadlines
       FROM visa_requests vr
       JOIN visas v ON vr.visa_id = v.id
+      LEFT JOIN contacts c ON v.contact_id = c.id
       WHERE vr.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
-    `, [businessId]);
+      ${scope.clause}
+    `, [businessId, ...scope.params]);
 
     // Imminent travel (within 30 days)
     const [travelRows] = await pool.query(`
       SELECT COUNT(*) as travel_soon_count
-      FROM visas
-      WHERE business_id = ? 
-        AND (is_deleted = 0 OR is_deleted IS NULL)
-        AND travel_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-    `, [businessId]);
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      WHERE v.business_id = ? 
+        AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+        AND v.travel_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      ${scope.clause}
+    `, [businessId, ...scope.params]);
 
     // Categorized Decline Reasons (VISA-004)
     const [declineRows] = await pool.query(`
       SELECT 
-        COALESCE(NULLIF(TRIM(decline_category), ''), 'Uncategorized') as category,
+        COALESCE(NULLIF(TRIM(v.decline_category), ''), 'Uncategorized') as category,
         COUNT(*) as count
-      FROM visas
-      WHERE business_id = ? AND status = 'Declined' AND (is_deleted = 0 OR is_deleted IS NULL)
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      WHERE v.business_id = ? AND v.status = 'Declined' AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
       GROUP BY category
       ORDER BY count DESC
-    `, [businessId]);
+    `, [businessId, ...scope.params]);
 
     const s = statusRows[0] || {};
     const d = deadlineRows[0] || {};
@@ -347,6 +424,13 @@ const getVisaById = async (req, res) => {
   try {
     const { id } = req.params;
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
 
     const [rows] = await pool.query(`
       SELECT 
@@ -365,11 +449,12 @@ const getVisaById = async (req, res) => {
       LEFT JOIN users u ON v.assigned_staff_id = u.id
       LEFT JOIN users up ON v.updated_by = up.id
       WHERE v.id = ? AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
       LIMIT 1
-    `, [id, businessId]);
+    `, [id, businessId, ...scope.params]);
 
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Visa case record not found' });
+      return res.status(404).json({ success: false, message: 'Visa case record not found or access denied' });
     }
 
     const visa = rows[0];
@@ -416,6 +501,13 @@ const getContactVisa = async (req, res) => {
     const { contactId } = req.params;
     const businessId = req.user.businessId;
     const requestedVisaId = req.query.visa_id ? Number(req.query.visa_id) : null;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
 
     const [rows] = await pool.query(`
       SELECT 
@@ -429,8 +521,9 @@ const getContactVisa = async (req, res) => {
       LEFT JOIN users u ON v.updated_by = u.id
       LEFT JOIN users s ON v.assigned_staff_id = s.id
       WHERE v.contact_id = ? AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
       ORDER BY v.id DESC
-    `, [contactId, businessId]);
+    `, [contactId, businessId, ...scope.params]);
 
     const [countRows] = await pool.query(`
       SELECT 
@@ -504,6 +597,7 @@ const saveVisa = async (req, res) => {
   try {
     const businessId = req.user.businessId;
     const userId = req.user.id;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
     const {
       id,
       contact_id,
@@ -531,6 +625,42 @@ const saveVisa = async (req, res) => {
 
     if (!contact_id) {
       return res.status(400).json({ success: false, message: 'Student/Contact ID is required' });
+    }
+
+    // Team Scoping Permission Check:
+    // User must have access to either the student contact OR the existing visa case
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.status(403).json({ success: false, message: 'You do not have permission to manage visa cases.' });
+      }
+
+      // Check student contact access
+      const [contactCheck] = await pool.query(`
+        SELECT id FROM contacts 
+        WHERE id = ? AND business_id = ? 
+          AND (assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}))
+        LIMIT 1
+      `, [contact_id, businessId, ...accessibleUserIds, ...accessibleUserIds]);
+
+      let hasPermission = contactCheck.length > 0;
+
+      // If existing visa case, also allow if assigned to or updated by accessible team member
+      if (!hasPermission && id) {
+        const [visaCheck] = await pool.query(`
+          SELECT id FROM visas 
+          WHERE id = ? AND business_id = ? 
+            AND (assigned_staff_id IN (${accessibleUserIds.map(() => '?').join(',')}) OR updated_by IN (${accessibleUserIds.map(() => '?').join(',')}))
+          LIMIT 1
+        `, [id, businessId, ...accessibleUserIds, ...accessibleUserIds]);
+        hasPermission = visaCheck.length > 0;
+      }
+
+      if (!hasPermission) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You do not have permission to create or modify visa cases for this student.'
+        });
+      }
     }
 
     // Resolve assigned staff name if ID provided but name not
@@ -677,8 +807,9 @@ const saveVisa = async (req, res) => {
           description,
           pre_departure_triggered,
           pre_departure_data,
+          created_by,
           updated_by
-        ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         contact_id,
         businessId,
@@ -706,6 +837,7 @@ const saveVisa = async (req, res) => {
         description || null,
         triggerPreDeparture ? 1 : 0,
         preDepartureJson,
+        userId,
         userId
       ]);
       visaId = insertResult.insertId;
@@ -823,14 +955,20 @@ const addVisaRequest = async (req, res) => {
       });
     }
 
-    // Verify visa case
+    // Verify visa case with team scoping
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const scope = buildVisaTeamScope({ accessibleUserIds, vAlias: 'v', cAlias: 'c' });
     const [vRows] = await pool.query(
-      'SELECT v.*, c.name as contact_name, c.phone as contact_phone, c.branch_id, c.branch_name, c.department_id, c.department_name FROM visas v LEFT JOIN contacts c ON v.contact_id = c.id WHERE v.id = ? AND v.business_id = ?',
-      [id, businessId]
+      `SELECT v.*, c.name as contact_name, c.phone as contact_phone, c.branch_id, c.branch_name, c.department_id, c.department_name 
+       FROM visas v 
+       LEFT JOIN contacts c ON v.contact_id = c.id 
+       WHERE v.id = ? AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+       ${scope.clause}`,
+      [id, businessId, ...scope.params]
     );
 
     if (vRows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Visa case not found' });
+      return res.status(404).json({ success: false, message: 'Visa case not found or access denied' });
     }
 
     const visa = vRows[0];
@@ -931,18 +1069,26 @@ const updateVisaRequest = async (req, res) => {
   try {
     const { id, requestId } = req.params;
     const businessId = req.user.businessId;
-    const { status, details, document_name, document_url } = req.body;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
 
+    // Permission check with team scoping
+    const scope = buildVisaTeamScope({ accessibleUserIds, vAlias: 'v', cAlias: 'c' });
     const [rows] = await pool.query(
-      'SELECT * FROM visa_requests WHERE id = ? AND visa_id = ? AND business_id = ?',
-      [requestId, id, businessId]
+      `SELECT vr.* 
+       FROM visa_requests vr 
+       JOIN visas v ON vr.visa_id = v.id 
+       LEFT JOIN contacts c ON v.contact_id = c.id 
+       WHERE vr.id = ? AND vr.visa_id = ? AND vr.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+       ${scope.clause}`,
+      [requestId, id, businessId, ...scope.params]
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Request not found' });
+      return res.status(404).json({ success: false, message: 'Request not found or access denied' });
     }
 
     const current = rows[0];
+    const { status, details, document_name, document_url } = req.body;
 
     await pool.query(`
       UPDATE visa_requests SET
@@ -979,6 +1125,17 @@ const deleteVisaRequest = async (req, res) => {
   try {
     const { id, requestId } = req.params;
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    // Permission check with team scoping
+    const scope = buildVisaTeamScope({ accessibleUserIds, vAlias: 'v', cAlias: 'c' });
+    const [vRows] = await pool.query(
+      `SELECT v.id FROM visas v LEFT JOIN contacts c ON v.contact_id = c.id WHERE v.id = ? AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ${scope.clause}`,
+      [id, businessId, ...scope.params]
+    );
+    if (vRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Visa case not found or access denied' });
+    }
 
     await pool.query(
       'DELETE FROM visa_requests WHERE id = ? AND visa_id = ? AND business_id = ?',
@@ -998,13 +1155,25 @@ const deleteVisa = async (req, res) => {
   try {
     const { id } = req.params;
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
 
-    const [existing] = await pool.query(
-      'SELECT contact_id FROM visas WHERE id = ? AND business_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)', 
-      [id, businessId]
-    );
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
+
+    const [existing] = await pool.query(`
+      SELECT v.contact_id 
+      FROM visas v 
+      LEFT JOIN contacts c ON v.contact_id = c.id 
+      WHERE v.id = ? AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
+      LIMIT 1
+    `, [id, businessId, ...scope.params]);
+
     if (existing.length === 0) {
-      return res.status(404).json({ success: false, message: 'Visa case record not found' });
+      return res.status(404).json({ success: false, message: 'Visa case record not found or access denied' });
     }
 
     const contactId = existing[0].contact_id;
@@ -1035,6 +1204,18 @@ const updatePreDeparture = async (req, res) => {
   try {
     const { id } = req.params;
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    // Permission check with team scoping
+    const scope = buildVisaTeamScope({ accessibleUserIds, vAlias: 'v', cAlias: 'c' });
+    const [vRows] = await pool.query(
+      `SELECT v.id FROM visas v LEFT JOIN contacts c ON v.contact_id = c.id WHERE v.id = ? AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) ${scope.clause}`,
+      [id, businessId, ...scope.params]
+    );
+    if (vRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Visa case not found or access denied' });
+    }
+
     const { pre_departure_data } = req.body;
 
     if (!pre_departure_data || !Array.isArray(pre_departure_data)) {
@@ -1064,6 +1245,17 @@ const updatePreDeparture = async (req, res) => {
 const getDeadlineAlerts = async (req, res) => {
   try {
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const { assigned_staff_id, agent } = req.query;
+    const requestedStaff = assigned_staff_id || agent;
+    const staffIdParam = requestedStaff === 'me' ? req.user.id : requestedStaff;
+
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      requestedStaffId: staffIdParam,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
 
     // Overdue or upcoming RFI / PPI requests
     const [requests] = await pool.query(`
@@ -1085,8 +1277,9 @@ const getDeadlineAlerts = async (req, res) => {
         AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
         AND vr.status != 'Closed'
         AND vr.due_date <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)
+        ${scope.clause}
       ORDER BY vr.due_date ASC
-    `, [businessId]);
+    `, [businessId, ...scope.params]);
 
     // Upcoming travel departures within 30 days
     const [travels] = await pool.query(`
@@ -1103,8 +1296,9 @@ const getDeadlineAlerts = async (req, res) => {
       WHERE v.business_id = ?
         AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
         AND v.travel_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        ${scope.clause}
       ORDER BY v.travel_date ASC
-    `, [businessId]);
+    `, [businessId, ...scope.params]);
 
     res.json({
       success: true,
@@ -1125,18 +1319,44 @@ const getDeadlineAlerts = async (req, res) => {
 const getDeclineAnalytics = async (req, res) => {
   try {
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const { assigned_staff_id, agent } = req.query;
+    const requestedStaff = assigned_staff_id || agent;
+    const staffIdParam = requestedStaff === 'me' ? req.user.id : requestedStaff;
+
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      requestedStaffId: staffIdParam,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
+
+    const subScope = buildVisaTeamScope({
+      accessibleUserIds,
+      requestedStaffId: staffIdParam,
+      vAlias: 'v2',
+      cAlias: 'c2'
+    });
 
     // Aggregated by decline_category
     const [categorySummary] = await pool.query(`
       SELECT 
-        COALESCE(NULLIF(TRIM(decline_category), ''), 'Uncategorized') as category,
+        COALESCE(NULLIF(TRIM(v.decline_category), ''), 'Uncategorized') as category,
         COUNT(*) as total_count,
-        ROUND((COUNT(*) * 100.0 / (SELECT NULLIF(COUNT(*), 0) FROM visas WHERE business_id = ? AND status = 'Declined' AND (is_deleted = 0 OR is_deleted IS NULL))), 1) as percentage
-      FROM visas
-      WHERE business_id = ? AND status = 'Declined' AND (is_deleted = 0 OR is_deleted IS NULL)
+        ROUND((COUNT(*) * 100.0 / NULLIF((
+          SELECT COUNT(*) 
+          FROM visas v2 
+          LEFT JOIN contacts c2 ON v2.contact_id = c2.id 
+          WHERE v2.business_id = ? AND v2.status = 'Declined' AND (v2.is_deleted = 0 OR v2.is_deleted IS NULL)
+          ${subScope.clause}
+        ), 0)), 1) as percentage
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      WHERE v.business_id = ? AND v.status = 'Declined' AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
       GROUP BY category
       ORDER BY total_count DESC
-    `, [businessId, businessId]);
+    `, [businessId, ...subScope.params, businessId, ...scope.params]);
 
     // Detailed cases list for management drill-down
     const [detailedCases] = await pool.query(`
@@ -1157,8 +1377,9 @@ const getDeclineAnalytics = async (req, res) => {
       JOIN contacts c ON v.contact_id = c.id
       LEFT JOIN users u ON v.assigned_staff_id = u.id
       WHERE v.business_id = ? AND v.status = 'Declined' AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      ${scope.clause}
       ORDER BY v.outcome_date DESC, v.id DESC
-    `, [businessId]);
+    `, [businessId, ...scope.params]);
 
     res.json({
       success: true,
@@ -1180,15 +1401,27 @@ const getAvailableStudents = async (req, res) => {
   try {
     const businessId = req.user.businessId;
     const { query = '' } = req.query;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    let contactScope = '';
+    const scopeParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      contactScope = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+      scopeParams.push(...accessibleUserIds, ...accessibleUserIds);
+    }
 
     let sql = `
       SELECT c.id, c.name, c.phone, c.email, c.branch_name, c.department_name,
              v.id as existing_visa_id, v.status as existing_visa_status
       FROM contacts c
-      LEFT JOIN visas v ON c.id = v.contact_id AND v.business_id = ?
+      LEFT JOIN visas v ON c.id = v.contact_id AND v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       WHERE c.business_id = ?
+      ${contactScope}
     `;
-    const params = [businessId, businessId];
+    const params = [businessId, businessId, ...scopeParams];
 
     if (query && query.trim()) {
       sql += ` AND (c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?) `;
@@ -1206,16 +1439,28 @@ const getAvailableStudents = async (req, res) => {
 };
 
 // GET /api/visas/staff
-// List staff / counselors for assigned visa staff
+// List staff / counselors for assigned visa staff (filtered to accessible team members)
 const getVisaStaffList = async (req, res) => {
   try {
     const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    let userScope = '';
+    const params = [businessId];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      userScope = ` AND id IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+      params.push(...accessibleUserIds);
+    }
+
     const [users] = await pool.query(`
       SELECT id, name, email, role
       FROM users
-      WHERE business_id = ? AND is_active = 1
+      WHERE business_id = ? AND is_active = 1 ${userScope}
       ORDER BY name ASC
-    `, [businessId]);
+    `, params);
 
     res.json({ success: true, data: users, message: 'OK' });
   } catch (err) {
@@ -1228,14 +1473,27 @@ const getVisaHistory = async (req, res) => {
   try {
     const { contactId } = req.params;
     const { status } = req.query;
+    const businessId = req.user.businessId;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+
+    let scopeClause = '';
+    const scopeParams = [];
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        return res.json({ success: true, data: [], message: 'OK' });
+      }
+      scopeClause = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})) `;
+      scopeParams.push(...accessibleUserIds, ...accessibleUserIds);
+    }
 
     let query = `
       SELECT vh.*, u.name as user_name
       FROM visa_history vh
+      JOIN contacts c ON vh.contact_id = c.id
       LEFT JOIN users u ON vh.changed_by = u.id
-      WHERE vh.contact_id = ?
+      WHERE vh.contact_id = ? AND c.business_id = ? ${scopeClause}
     `;
-    const params = [contactId];
+    const params = [contactId, businessId, ...scopeParams];
 
     if (status && status !== 'all') {
       query += ` AND vh.status = ?`;
@@ -1260,8 +1518,21 @@ const getVisaLeadsReport = async (req, res) => {
       status = 'all',
       search = '',
       page = 1,
-      limit = 20
+      limit = 20,
+      assigned_staff_id,
+      agent
     } = req.query;
+
+    const accessibleUserIds = await getAccessibleUserIds(req.user, businessId);
+    const requestedStaff = assigned_staff_id || agent;
+    const staffIdParam = requestedStaff === 'me' ? req.user.id : requestedStaff;
+
+    const scope = buildVisaTeamScope({
+      accessibleUserIds,
+      requestedStaffId: staffIdParam,
+      vAlias: 'v',
+      cAlias: 'c'
+    });
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
@@ -1287,8 +1558,8 @@ const getVisaLeadsReport = async (req, res) => {
     }
 
     // 1. Where clause
-    let whereSql = ` WHERE v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) AND (v.is_delete = 0 OR v.is_delete IS NULL) `;
-    const params = [businessId];
+    let whereSql = ` WHERE v.business_id = ? AND (v.is_deleted = 0 OR v.is_deleted IS NULL) AND (v.is_delete = 0 OR v.is_delete IS NULL) ${scope.clause} `;
+    const params = [businessId, ...scope.params];
 
     if (targetStatusName !== 'all') {
       if (targetStatusId) {
@@ -1371,27 +1642,34 @@ const getVisaLeadsReport = async (req, res) => {
         vs.stage_order,
         COUNT(v.id) as count
       FROM visa_statuses vs
-      LEFT JOIN visas v ON v.business_id = vs.business_id
-        AND (
-          BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
-          OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
-        )
-        AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
-        AND (v.is_delete = 0 OR v.is_delete IS NULL)
+      LEFT JOIN (
+        SELECT v.id, v.business_id, v.status
+        FROM visas v
+        LEFT JOIN contacts c ON v.contact_id = c.id
+        WHERE v.business_id = ?
+          AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+          AND (v.is_delete = 0 OR v.is_delete IS NULL)
+          ${scope.clause}
+      ) v ON (
+        BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
+        OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+      )
       WHERE vs.business_id = ?
         AND vs.is_active = 1
       GROUP BY vs.id, vs.name, vs.color, vs.stage_order
       ORDER BY vs.stage_order ASC, vs.id ASC
-    `, [businessId]);
+    `, [businessId, ...scope.params, businessId]);
 
     // Total active across all statuses
     const [overallCount] = await pool.query(`
       SELECT COUNT(*) as total_all
-      FROM visas
-      WHERE business_id = ?
-        AND (is_deleted = 0 OR is_deleted IS NULL)
-        AND (is_delete = 0 OR is_delete IS NULL)
-    `, [businessId]);
+      FROM visas v
+      LEFT JOIN contacts c ON v.contact_id = c.id
+      WHERE v.business_id = ?
+        AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+        AND (v.is_delete = 0 OR v.is_delete IS NULL)
+        ${scope.clause}
+    `, [businessId, ...scope.params]);
 
     res.json({
       success: true,

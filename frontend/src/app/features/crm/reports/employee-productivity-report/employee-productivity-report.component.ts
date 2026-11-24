@@ -73,13 +73,11 @@ export class EmployeeProductivityReportComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.authService.canFilterAgents();
+    return this.authService.canFilterAgents() || this.users.length > 1;
   }
 
   ngOnInit() {
-    if (!this.canFilterAgents) {
-      this.selectedEmployee = this.authService.getCurrentUserId() || this.authService.getCurrentUserName() || 'All';
-    }
+    this.selectedEmployee = 'All';
     this.fetchUsers();
     this.fetchData();
   }

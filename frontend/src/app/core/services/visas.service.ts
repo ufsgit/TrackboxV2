@@ -154,8 +154,12 @@ export class VisasService {
   }
 
   // KPI Metrics
-  getMetrics(): Observable<{ success: boolean; data: VisaMetrics }> {
-    return this.http.get<{ success: boolean; data: VisaMetrics }>(`${this.apiUrl}/metrics`);
+  getMetrics(params?: { assigned_staff_id?: string | number }): Observable<{ success: boolean; data: VisaMetrics }> {
+    let httpParams = new HttpParams();
+    if (params?.assigned_staff_id && params.assigned_staff_id !== 'all') {
+      httpParams = httpParams.set('assigned_staff_id', params.assigned_staff_id.toString());
+    }
+    return this.http.get<{ success: boolean; data: VisaMetrics }>(`${this.apiUrl}/metrics`, { params: httpParams });
   }
 
   // Single Case Record
@@ -192,13 +196,21 @@ export class VisasService {
   }
 
   // VISA-002: Deadlines & Overdue Alerts
-  getDeadlineAlerts(): Observable<{ success: boolean; data: { immigration_requests: any[]; upcoming_travels: any[] } }> {
-    return this.http.get<any>(`${this.apiUrl}/deadline-alerts`);
+  getDeadlineAlerts(params?: { assigned_staff_id?: string | number }): Observable<{ success: boolean; data: { immigration_requests: any[]; upcoming_travels: any[] } }> {
+    let httpParams = new HttpParams();
+    if (params?.assigned_staff_id && params.assigned_staff_id !== 'all') {
+      httpParams = httpParams.set('assigned_staff_id', params.assigned_staff_id.toString());
+    }
+    return this.http.get<any>(`${this.apiUrl}/deadline-alerts`, { params: httpParams });
   }
 
   // VISA-004: Decline Analytics
-  getDeclineAnalytics(): Observable<{ success: boolean; data: { summary: any[]; cases: any[] } }> {
-    return this.http.get<any>(`${this.apiUrl}/decline-analytics`);
+  getDeclineAnalytics(params?: { assigned_staff_id?: string | number }): Observable<{ success: boolean; data: { summary: any[]; cases: any[] } }> {
+    let httpParams = new HttpParams();
+    if (params?.assigned_staff_id && params.assigned_staff_id !== 'all') {
+      httpParams = httpParams.set('assigned_staff_id', params.assigned_staff_id.toString());
+    }
+    return this.http.get<any>(`${this.apiUrl}/decline-analytics`, { params: httpParams });
   }
 
   // Helper Lookups

@@ -74,13 +74,11 @@ export class TimeTrackReportComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.authService.canFilterAgents();
+    return this.authService.canFilterAgents() || this.agents.length > 1;
   }
 
   ngOnInit(): void {
-    if (!this.canFilterAgents) {
-      this.selectedAgent = this.authService.getCurrentUserId()?.toString() || 'all';
-    }
+    this.selectedAgent = 'all';
     this.loadAgents();
     this.loadData();
   }

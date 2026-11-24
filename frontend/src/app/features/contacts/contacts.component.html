@@ -37,7 +37,7 @@
         </button>
       </div>
 
-            <button class="leads-btn leads-btn-transfer" (click)="openBulkTransferModal()" title="Bulk Transfer Leads">
+      <button *ngIf="canTransferLeads" class="leads-btn leads-btn-transfer" (click)="openBulkTransferModal()" title="Bulk Transfer Leads">
         <i class="bi bi-arrow-left-right"></i>
         <span>Bulk Transfer</span>
         <span *ngIf="selectedContactIds.size > 0" class="leads-count-bubble">
@@ -275,7 +275,7 @@
       </div>
 
             <div class="selection-right">
-        <button class="selection-transfer-btn" (click)="openBulkTransferModal()">
+        <button *ngIf="canTransferLeads" class="selection-transfer-btn" (click)="openBulkTransferModal()">
           <i class="bi bi-arrow-left-right"></i>
           <span>Transfer {{ selectedContactIds.size }} leads</span>
         </button>

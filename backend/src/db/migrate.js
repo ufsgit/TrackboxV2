@@ -851,6 +851,7 @@ async function runMigrations() {
   await safeAddColumn('visas', 'contact_phone', "VARCHAR(50) NULL");
   await safeAddColumn('visas', 'is_delete', "TINYINT(1) DEFAULT 0");
   await safeAddColumn('visas', 'is_deleted', "TINYINT(1) DEFAULT 0");
+  await safeAddColumn('visas', 'created_by', "INT NULL");
   await safeAddColumn('visas', 'application_no', "VARCHAR(100) NULL");
   await safeAddColumn('visas', 'assigned_staff_id', "INT NULL");
   await safeAddColumn('visas', 'assigned_staff_name', "VARCHAR(255) NULL");

@@ -144,7 +144,7 @@ export class TotalLeadsComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.auth.canFilterAgents();
+    return this.auth.canFilterAgents() || this.agents.length > 1;
   }
 
   filterByUnassigned(): void {
@@ -175,9 +175,6 @@ export class TotalLeadsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (!this.canFilterAgents) {
-      this.activeAgent = this.auth.getCurrentUserId()?.toString() || '';
-    }
     this.loadStatuses();
     this.loadLeadStatuses();
     this.loadAgents();

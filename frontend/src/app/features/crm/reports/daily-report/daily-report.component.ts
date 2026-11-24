@@ -69,7 +69,7 @@ export class DailyReportComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.authService.canFilterAgents();
+    return this.authService.canFilterAgents() || this.users.length > 1;
   }
 
   @HostListener('document:click')
@@ -132,9 +132,7 @@ export class DailyReportComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (!this.canFilterAgents) {
-      this.selectedEmployee = this.authService.getCurrentUserId()?.toString() || this.authService.getCurrentUserName() || 'All';
-    }
+    this.selectedEmployee = 'All';
     this.fetchDropdowns();
     this.fetchData();
   }

@@ -159,8 +159,9 @@ const getCrmDashboardStats = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         agentClause = 'AND 1 = 0';
       } else {
-        agentClause = `AND assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
-        queryParams.push(...accessibleUserIds);
+        const placeholders = accessibleUserIds.map(() => '?').join(',');
+        agentClause = `AND (assigned_to IN (${placeholders}) OR created_by_user IN (${placeholders}))`;
+        queryParams.push(...accessibleUserIds, ...accessibleUserIds);
       }
     }
 
@@ -695,57 +696,91 @@ const getApplicationStatusKpis = async (req, res) => {
 const getVisaStatusKpis = async (req, res) => {
   try {
     const bizId = req.user.businessId;
-    const userId = req.user.userId || req.user.id;
-    const userRole = req.user.role || 'admin';
     const range = req.query.range || 'all_time';
 
-    let statusCards = [];
-    try {
-      // 1. Try calling the dedicated stored procedure
-      const [spResults] = await pool.query(
-        'CALL sp_get_visa_status_kpis(?, ?, ?, ?)',
-        [bizId, Number(userId), userRole, range]
-      );
-      statusCards = spResults && spResults[0] ? spResults[0] : [];
-    } catch (spErr) {
-      console.warn('sp_get_visa_status_kpis call failed, using direct dynamic fallback query:', spErr.message);
-      // Direct SQL fallback: dynamically fetch all active statuses from visa_statuses and count from visas
-      const [rows] = await pool.query(`
-        SELECT 
-          vs.id,
-          vs.name,
-          COALESCE(vs.color, '#4f46e5') AS color,
-          vs.stage_order,
-          vs.description,
-          COUNT(v.id) AS count
-        FROM visa_statuses vs
-        LEFT JOIN visas v ON v.business_id = vs.business_id
-          AND (
-            BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
-            OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
-          )
-          AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
-          AND (v.is_delete = 0 OR v.is_delete IS NULL)
-        WHERE vs.business_id = ?
-          AND vs.is_active = 1
-        GROUP BY vs.id, vs.name, vs.color, vs.stage_order, vs.description
-        ORDER BY vs.stage_order ASC, vs.id ASC
-      `, [bizId]);
-      statusCards = rows;
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+
+    let visaScopeClause = '';
+    const innerParams = [bizId];
+
+    if (accessibleUserIds !== null) {
+      if (accessibleUserIds.length === 0) {
+        visaScopeClause = 'AND 1 = 0';
+      } else {
+        const placeholders = accessibleUserIds.map(() => '?').join(',');
+        visaScopeClause = `AND (
+          v.assigned_staff_id IN (${placeholders}) OR
+          v.updated_by IN (${placeholders}) OR
+          c.assigned_to IN (${placeholders}) OR
+          c.created_by_user IN (${placeholders})
+        )`;
+        innerParams.push(...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds);
+      }
     }
 
-    res.json({
-      success: true,
-      data: statusCards.map(r => ({
+    let dateClause = '';
+    if (range === 'today') {
+      dateClause = 'AND DATE(v.created_at) = CURDATE()';
+    } else if (range === 'this_week') {
+      dateClause = 'AND YEARWEEK(v.created_at, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (range === 'this_month') {
+      dateClause = 'AND YEAR(v.created_at) = YEAR(CURDATE()) AND MONTH(v.created_at) = MONTH(CURDATE())';
+    } else if (range === 'last_30_days') {
+      dateClause = 'AND v.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)';
+    } else if (range === 'this_year') {
+      dateClause = 'AND YEAR(v.created_at) = YEAR(CURDATE())';
+    }
+
+    const query = `
+      SELECT 
+        vs.id,
+        vs.name,
+        COALESCE(vs.color, '#4f46e5') AS color,
+        vs.stage_order,
+        vs.description,
+        COUNT(v.id) AS count
+      FROM visa_statuses vs
+      LEFT JOIN (
+        SELECT v.id, v.status
+        FROM visas v
+        LEFT JOIN contacts c ON v.contact_id = c.id
+        WHERE v.business_id = ?
+          AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+          AND (v.is_delete = 0 OR v.is_delete IS NULL)
+          ${visaScopeClause}
+          ${dateClause}
+      ) v ON (
+        BINARY LOWER(TRIM(v.status)) = BINARY LOWER(TRIM(vs.name))
+        OR BINARY TRIM(v.status) = BINARY CAST(vs.id AS CHAR)
+      )
+      WHERE vs.business_id = ?
+        AND vs.is_active = 1
+      GROUP BY vs.id, vs.name, vs.color, vs.stage_order, vs.description
+      ORDER BY vs.stage_order ASC, vs.id ASC
+    `;
+    const params = [...innerParams, bizId];
+
+    const [rows] = await pool.query(query, params);
+
+    const totalCount = rows.reduce((acc, r) => acc + (Number(r.count) || 0), 0);
+    const statusCards = rows.map(r => {
+      const cnt = Number(r.count) || 0;
+      const percentage = totalCount > 0 ? Math.round((cnt / totalCount) * 1000) / 10 : 0;
+      return {
         id: r.id,
         name: r.name,
         label: r.name,
         color: r.color || '#4f46e5',
         stage_order: r.stage_order || 0,
-        count: Number(r.count) || 0,
-        pct: r.pct || '0.0%',
-        percentage: Number(r.percentage) || 0
-      }))
+        count: cnt,
+        pct: `${percentage.toFixed(1)}%`,
+        percentage
+      };
+    });
+
+    res.json({
+      success: true,
+      data: statusCards
     });
   } catch (err) {
     console.error('getVisaStatusKpis error:', err);

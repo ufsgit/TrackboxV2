@@ -173,13 +173,11 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
   ) {}
 
   get canFilterAgents(): boolean {
-    return this.authService.canFilterAgents();
+    return this.authService.canFilterAgents() || this.staffList.length > 1;
   }
 
   ngOnInit(): void {
-    if (!this.canFilterAgents) {
-      this.staffFilter = this.authService.getCurrentUserId()?.toString() || 'me';
-    }
+    this.staffFilter = 'all';
     this.fetchMetrics();
     this.fetchCases();
     this.fetchStaffList();
@@ -329,7 +327,8 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
 
   fetchMetrics(): void {
     this.metricsLoading = true;
-    this.visasService.getMetrics().subscribe({
+    const staffId = this.staffFilter !== 'all' ? this.staffFilter : undefined;
+    this.visasService.getMetrics({ assigned_staff_id: staffId }).subscribe({
       next: (res) => {
         this.metricsLoading = false;
         if (res.success && res.data) {
@@ -355,7 +354,8 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
   }
 
   fetchDeadlineAlerts(): void {
-    this.visasService.getDeadlineAlerts().subscribe({
+    const staffId = this.staffFilter !== 'all' ? this.staffFilter : undefined;
+    this.visasService.getDeadlineAlerts({ assigned_staff_id: staffId }).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.deadlineAlerts = res.data;
@@ -366,7 +366,8 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
   }
 
   fetchDeclineAnalytics(): void {
-    this.visasService.getDeclineAnalytics().subscribe({
+    const staffId = this.staffFilter !== 'all' ? this.staffFilter : undefined;
+    this.visasService.getDeclineAnalytics({ assigned_staff_id: staffId }).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.declineAnalytics = res.data;
@@ -388,6 +389,8 @@ export class VisaManagementComponent implements OnInit, OnDestroy {
   onFilterChange(): void {
     this.currentPage = 1;
     this.fetchCases();
+    this.fetchMetrics();
+    this.fetchDeadlineAlerts();
   }
 
   resetFilters(): void {

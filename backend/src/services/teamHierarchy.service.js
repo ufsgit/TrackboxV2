@@ -18,35 +18,13 @@ async function getAccessibleUserIds(user, businessId) {
   }
 
   // Breadth-First Search (BFS) for recursive subordinate resolution
+  // Strictly team-based: User + their assigned team members in teams/team_members
   const accessibleIds = new Set([userId]);
   const queue = [userId];
   const visited = new Set([userId]);
 
   try {
     const p = pool.promise ? pool.promise() : pool;
-
-    // Branch Manager: Has access to all users belonging to their Branch
-    if (role === 'manager') {
-      const [uRows] = await p.query(
-        `SELECT branch_id FROM users WHERE id = ? AND business_id = ? LIMIT 1`,
-        [userId, businessId]
-      );
-      if (uRows.length && uRows[0].branch_id) {
-        const branchId = uRows[0].branch_id;
-        const [branchUsers] = await p.query(
-          `SELECT id FROM users WHERE branch_id = ? AND business_id = ?`,
-          [branchId, businessId]
-        );
-        for (const bu of branchUsers) {
-          const bUserId = Number(bu.id);
-          accessibleIds.add(bUserId);
-          if (!visited.has(bUserId)) {
-            visited.add(bUserId);
-            queue.push(bUserId);
-          }
-        }
-      }
-    }
 
     while (queue.length > 0) {
       const currentId = queue.shift();
