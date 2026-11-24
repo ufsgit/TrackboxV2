@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ApplicationsService } from '../../../core/services/applications.service';
@@ -76,8 +77,16 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     documentType: '',
     file: null,
     fileName: '',
+    fileSize: '',
+    fileType: '',
+    previewUrl: null,
+    safePreviewUrl: null,
+    previewBlobUrl: null,
+    isImage: false,
+    isPdf: false,
     notes: ''
   };
+  uploadingDoc = false;
   documentOptions: string[] = [
     'Passport',
     'Academic Transcript',
@@ -181,7 +190,8 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     private receiptsService: ReceiptsService,
     private settingsService: SystemSettingsService,
     private courseService: CourseService,
-    public auth: AuthService
+    public auth: AuthService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -574,7 +584,20 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   }
 
   closeEditModal() {
-    this.showEditModal = false;
+    Swal.fire({
+      title: 'Do you want to close this lead?',
+      text: 'Any unsaved changes will be lost.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Close',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.showEditModal = false;
+      }
+    });
   }
 
   saveEdit() {
@@ -891,23 +914,102 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
   }
 
   openUploadDocumentModal() {
+    this.clearSelectedFile();
     this.uploadDocData = {
       documentType: '',
       file: null,
       fileName: '',
+      fileSize: '',
+      fileType: '',
+      previewUrl: null,
+      safePreviewUrl: null,
+      previewBlobUrl: null,
+      isImage: false,
+      isPdf: false,
       notes: ''
     };
+    this.uploadingDoc = false;
     this.showUploadDocumentModal = true;
   }
 
   closeUploadDocumentModal() {
+    if (this.uploadingDoc) return;
+    this.clearSelectedFile();
     this.showUploadDocumentModal = false;
   }
 
   onFileSelected(event: any) {
     if (event.target.files && event.target.files.length > 0) {
-      this.uploadDocData.file = event.target.files[0];
-      this.uploadDocData.fileName = event.target.files[0].name;
+      this.handleSelectedFile(event.target.files[0]);
+    }
+  }
+
+  onFileDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      this.handleSelectedFile(event.dataTransfer.files[0]);
+    }
+  }
+
+  handleSelectedFile(file: File) {
+    if (this.uploadDocData.previewBlobUrl) {
+      try { URL.revokeObjectURL(this.uploadDocData.previewBlobUrl); } catch (_) {}
+    }
+
+    const fileSizeStr = file.size < 1024 * 1024
+      ? (file.size / 1024).toFixed(1) + ' KB'
+      : (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+    const isImage = file.type ? file.type.startsWith('image/') : /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.name);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const blobUrl = URL.createObjectURL(file);
+
+    this.uploadDocData.file = file;
+    this.uploadDocData.fileName = file.name;
+    this.uploadDocData.fileSize = fileSizeStr;
+    this.uploadDocData.isImage = isImage;
+    this.uploadDocData.isPdf = isPdf;
+    this.uploadDocData.previewBlobUrl = blobUrl;
+    this.uploadDocData.safePreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
+
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.uploadDocData.previewUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      this.uploadDocData.previewUrl = null;
+    }
+  }
+
+  clearSelectedFile(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (this.uploadDocData.previewBlobUrl) {
+      try { URL.revokeObjectURL(this.uploadDocData.previewBlobUrl); } catch (_) {}
+    }
+    this.uploadDocData.file = null;
+    this.uploadDocData.fileName = '';
+    this.uploadDocData.fileSize = '';
+    this.uploadDocData.isImage = false;
+    this.uploadDocData.isPdf = false;
+    this.uploadDocData.previewUrl = null;
+    this.uploadDocData.safePreviewUrl = null;
+    this.uploadDocData.previewBlobUrl = null;
+
+    const nativeInput = document.getElementById('fileUploadInputNative') as HTMLInputElement;
+    if (nativeInput) {
+      nativeInput.value = '';
+    }
+  }
+
+  openPdfPreview() {
+    if (this.uploadDocData.previewBlobUrl) {
+      window.open(this.uploadDocData.previewBlobUrl, '_blank');
     }
   }
 
@@ -924,6 +1026,7 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
     const cId = this.contactId || this.selectedContact?.id;
     if (!cId) return;
 
+    this.uploadingDoc = true;
     const formData = new FormData();
     formData.append('documentType', this.uploadDocData.documentType);
     formData.append('notes', this.uploadDocData.notes || '');
@@ -931,11 +1034,12 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
 
     this.api.upload(`/contacts/${cId}/documents`, formData).subscribe({
       next: (res: any) => {
+        this.uploadingDoc = false;
         if (res && res.success) {
           Swal.fire({
             icon: 'success',
             title: 'Uploaded',
-            text: 'Document uploaded successfully.',
+            text: 'Document uploaded successfully to Cloudflare.',
             timer: 1500,
             showConfirmButton: false
           });
@@ -944,7 +1048,8 @@ export class LeadProfileModalComponent implements OnInit, OnChanges {
         }
       },
       error: (err: any) => {
-        Swal.fire('Error', err.error?.message || 'Failed to upload document', 'error');
+        this.uploadingDoc = false;
+        Swal.fire('Error', err.error?.message || 'Failed to upload document to Cloudflare', 'error');
       }
     });
   }

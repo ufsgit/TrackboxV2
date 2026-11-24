@@ -584,7 +584,7 @@ export class TeamsManagementComponent implements OnInit {
         (menu === 'Channel' && p.menuName === 'Source') ||
         (menu === 'Year' && p.menuName === 'Academic Year') ||
         (menu === 'Tasks' && (p.menuName === 'Task' || p.menuName === 'Tasks')) ||
-        (menu === 'Email' && (p.menuName === 'Email' || p.menuName === 'Email Leads'))
+        (menu === 'Email' && (p.menuName === 'Email' || p.menuName === ' Students Data'))
       );
       this.permissionsList.push({
         menuName: menu,

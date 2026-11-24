@@ -88,7 +88,7 @@ export class AuthService {
         ((menuName === 'Leads' || menuName === 'CRM / Leads') && p.menuName === 'CRM') ||
         (menuName === 'Tasks' && (p.menuName === 'Tasks' || p.menuName === 'Task')) ||
         (menuName === 'Task' && (p.menuName === 'Tasks' || p.menuName === 'Task')) ||
-        (menuName === 'Email' && (p.menuName === 'Email' || p.menuName === 'Email Leads'))
+        (menuName === 'Email' && (p.menuName === 'Email' || p.menuName === 'Students Data'))
       );
       if (perm) {
         if (action === 'view') return perm.view;

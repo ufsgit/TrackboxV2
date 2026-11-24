@@ -920,9 +920,9 @@
               <p class="empty-hero-desc">
                 <!-- Add target universities, degree programs, and track application milestones for {{ selectedContact.name || 'this lead' }}. -->
               </p>
-              <button type="button" class="btn-create-first-app" (click)="openAddApplicationModal()">
+              <!-- <button type="button" class="btn-create-first-app" (click)="openAddApplicationModal()">
                 <i class="bi bi-plus-lg me-1"></i> Create First Application
-              </button>
+              </button> -->
             </div>
 
             <!-- Guidance Cards to fill empty space and guide user -->
@@ -1085,7 +1085,7 @@
                     Total: ₹{{ totalReceiptAmount | number:'1.2-2' }}
                   </span>
                 </div>
-                <span class="receipt-sub">Record client payments, fees, tuition deposits, and track collection audit</span>
+                <!-- <span class="receipt-sub">Record client payments, fees, tuition deposits, and track collection audit</span> -->
               </div>
             </div>
 
@@ -1371,10 +1371,10 @@
         </div>
         <div>
           <h4 style="margin:0;font-weight:800;font-size:1.35rem;color:#0f172a;letter-spacing:-0.02em;">{{ editingContactId ? 'Edit Lead' : 'Add New Lead' }}</h4>
-          <p style="margin:2px 0 0;font-size:0.82rem;color:#64748b;font-weight:500;">Fill in the lead details below</p>
+          <!-- <p style="margin:2px 0 0;font-size:0.82rem;color:#64748b;font-weight:500;">Fill in the lead details below</p> -->
         </div>
       </div>
-      <button class="close-btn" (click)="showModal = false" style="font-size:1.4rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748b; transition:all 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">&times;</button>
+      <button class="close-btn" (click)="closeLeadModal()" ...>&times;</button>
     </div>
 
     <!-- Scrollable Body -->
@@ -1572,7 +1572,7 @@
 
     <!-- Footer -->
     <div class="modal-footer-fs">
-      <button class="btn btn-light px-5 py-2" (click)="showModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;color:#475569;font-size:0.9rem;transition:all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">Cancel</button>
+      <!-- <button class="btn btn-light px-5 py-2" (click)="showModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;color:#475569;font-size:0.9rem;transition:all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background=''">Cancel</button> -->
       <button class="btn px-5 py-2" (click)="saveContact()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10B981,#059669);color:#fff;border:none;font-size:0.9rem;box-shadow:0 4px 12px rgba(16,185,129,0.35);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(16,185,129,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(16,185,129,0.35)'">
         <i class="bi bi-check2-circle me-2"></i>
         {{ editingContactId ? 'Update Lead' : 'Save Lead' }}
@@ -1746,7 +1746,7 @@
     <div class="modal-footer-fs">
       <button class="btn btn-light px-4 py-2" (click)="showAddLeadModal = false" style="border-radius:10px;font-weight:600;border:1px solid #e2e8f0;">Cancel</button>
       <button class="btn px-4 py-2 ms-2" (click)="saveLead()" style="border-radius:10px;font-weight:700;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;">Save Lead</button>
-    </div>
+    </div> 
   </div>
 </div>
 
@@ -1772,7 +1772,7 @@
               {{ currentApplication.id ? 'EDITING #' + currentApplication.id : 'NEW APPLICATION' }}
             </span>
           </div>
-          <p class="app-modal-subtitle">Specify institution, academic program, admissions intake, and current stage.</p>
+          <!-- <p class="app-modal-subtitle">Specify institution, academic program, admissions intake, and current stage.</p> -->
         </div>
       </div>
       <button class="app-close-btn" (click)="showAddApplicationModal = false" title="Close Modal">
@@ -2121,7 +2121,7 @@
 </app-chat-modal>
 
 <!-- =================== UPLOAD DOCUMENT MODAL =================== -->
-<div class="custom-modal center-modal" *ngIf="showUploadDocumentModal" style="backdrop-filter: blur(8px);">
+<div class="custom-modal center-modal" *ngIf="showUploadDocumentModal" style="backdrop-filter: blur(8px); z-index: 2500;">
   <div class="modal-backdrop" (click)="closeUploadDocumentModal()"></div>
   <div class="modal-card popup-card" style="background: linear-gradient(145deg, #ffffff, #f8fafc); box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.15); border: 1px solid rgba(255, 255, 255, 0.8); overflow: visible;">
 
@@ -2153,12 +2153,77 @@
       <!-- File Row -->
       <div class="mb-4">
         <label style="font-weight: 600; color: #334155; font-size: 0.95rem; margin-bottom: 10px; display: block;">File <span class="text-danger">*</span></label>
-        <div style="position: relative; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; text-align: center; background: #f8fafc; transition: all 0.2s ease; cursor: pointer;" onmouseover="this.style.borderColor='#818cf8'; this.style.background='#eef2ff'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+        
+        <!-- Dropzone when no file selected -->
+        <div *ngIf="!uploadDocData.file" 
+             (dragover)="$event.preventDefault()" 
+             (drop)="onFileDrop($event)"
+             style="position: relative; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; text-align: center; background: #f8fafc; transition: all 0.2s ease; cursor: pointer;" 
+             onmouseover="this.style.borderColor='#818cf8'; this.style.background='#eef2ff'" 
+             onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
           <input type="file" id="fileUploadInputNative" class="form-control" (change)="onFileSelected($event)" style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
           <div style="position: relative; z-index: 1;">
             <i class="bi bi-file-earmark-arrow-up" style="font-size: 2.2rem; color: #818cf8; margin-bottom: 12px; display: inline-block;"></i>
             <h6 style="margin: 0; font-weight: 600; color: #334155; font-size: 1rem;">Click to select file</h6>
             <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #64748b;">or drag and drop it here</p>
+          </div>
+        </div>
+
+        <!-- Selected File Preview Container -->
+        <div *ngIf="uploadDocData.file" style="border: 2px solid #818cf8; border-radius: 12px; padding: 16px; background: #f8faff; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);">
+          <!-- Header: File info & Change action -->
+          <div class="d-flex align-items-center justify-content-between mb-3 pb-2" style="border-bottom: 1px solid #e0e7ff;">
+            <div class="d-flex align-items-center overflow-hidden me-2" style="gap: 12px;">
+              <div style="width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+                   [ngStyle]="{'background': uploadDocData.isImage ? '#e0e7ff' : (uploadDocData.isPdf ? '#fee2e2' : '#f1f5f9')}">
+                <i class="bi" 
+                   [ngClass]="{
+                     'bi-file-earmark-image text-primary': uploadDocData.isImage,
+                     'bi-file-earmark-pdf text-danger': uploadDocData.isPdf,
+                     'bi-file-earmark-text text-secondary': !uploadDocData.isImage && !uploadDocData.isPdf
+                   }" 
+                   style="font-size: 1.5rem;"></i>
+              </div>
+              <div class="overflow-hidden">
+                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                  <span class="text-truncate" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; max-width: 280px;" [title]="uploadDocData.fileName">{{ uploadDocData.fileName }}</span>
+                  <span class="badge bg-success text-white px-2 py-1" style="font-size: 0.72rem; font-weight: 600; border-radius: 6px;"><i class="bi bi-check-circle-fill me-1"></i>Selected</span>
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size: 0.82rem;">{{ uploadDocData.fileSize }}</small>
+              </div>
+            </div>
+            
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="clearSelectedFile($event)" style="border-radius: 8px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap;" title="Change selected file">
+              <i class="bi bi-arrow-repeat"></i> Change
+            </button>
+          </div>
+
+          <!-- Image Preview -->
+          <div *ngIf="uploadDocData.isImage && uploadDocData.previewUrl" class="text-center p-2 mb-2" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <img [src]="uploadDocData.previewUrl" alt="Document Preview" style="max-height: 180px; max-width: 100%; border-radius: 6px; object-fit: contain; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div class="mt-2 text-muted small" style="font-weight: 500;"><i class="bi bi-eye text-primary me-1"></i> Preview verified</div>
+          </div>
+
+          <!-- PDF Preview Banner & Quick View -->
+          <div *ngIf="uploadDocData.isPdf" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 12px 16px;" class="mb-2">
+            <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
+              <div class="d-flex align-items-center" style="gap: 10px;">
+                <i class="bi bi-file-earmark-pdf-fill text-danger" style="font-size: 1.8rem;"></i>
+                <div>
+                  <div style="font-weight: 600; font-size: 0.9rem; color: #334155;">PDF Ready to Upload</div>
+                  <small class="text-muted">Click to preview pages in browser</small>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="openPdfPreview()" style="font-weight: 600; border-radius: 8px; padding: 5px 14px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-box-arrow-up-right"></i> Open Preview
+              </button>
+            </div>
+          </div>
+
+          <!-- Other Files Preview -->
+          <div *ngIf="!uploadDocData.isImage && !uploadDocData.isPdf" class="p-3 text-center mb-2" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <i class="bi bi-file-earmark-check text-success" style="font-size: 2rem;"></i>
+            <p class="mb-0 mt-1 small text-muted">Document selected and ready to save to Cloudflare.</p>
           </div>
         </div>
       </div>
@@ -2171,8 +2236,11 @@
       
       <!-- Actions -->
       <div class="d-flex justify-content-end mt-2 pt-2" style="gap: 16px;">
-        <button class="btn btn-light" (click)="closeUploadDocumentModal()" style="font-weight: 600; padding: 10px 28px; border: 1px solid #cbd5e1; border-radius: 10px; color: #475569; background: white; transition: all 0.2s ease;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">Cancel</button>
-        <button class="btn btn-primary" (click)="saveDocument()" style="font-weight: 600; padding: 10px 28px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.3)'">Save Document</button>
+        <button class="btn btn-light" [disabled]="uploadingDoc" (click)="closeUploadDocumentModal()" style="font-weight: 600; padding: 10px 28px; border: 1px solid #cbd5e1; border-radius: 10px; color: #475569; background: white; transition: all 0.2s ease;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">Cancel</button>
+        <button class="btn btn-primary" [disabled]="uploadingDoc" (click)="saveDocument()" style="font-weight: 600; padding: 10px 28px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(99, 102, 241, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(99, 102, 241, 0.3)'">
+          <span *ngIf="uploadingDoc" class="spinner-border spinner-border-sm" role="status"></span>
+          <span>{{ uploadingDoc ? 'Uploading to Cloudflare...' : 'Save Document' }}</span>
+        </button>
       </div>
 
 

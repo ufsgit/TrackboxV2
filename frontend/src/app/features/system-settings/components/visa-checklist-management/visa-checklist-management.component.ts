@@ -22,17 +22,11 @@ export interface VisaChecklistItem {
   template: `
     <!-- Top Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 12px;">
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <a routerLink="/system-settings" class="btn btn-light" style="display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 14px; font-weight: 500; color: #475569; background: #fff; border: 1px solid #cbd5e1; text-decoration: none;" title="Back to Settings">
-          <i class="bi bi-arrow-left"></i> Settings
-        </a>
-        <div>
-          <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-            <i class="bi bi-check2-square text-success"></i> Pre-Departure Checklist Management
-            <span style="font-size: 0.72rem; padding: 3px 8px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; font-weight: 600;">VISA-003</span>
-          </h3>
-           
-        </div>
+      <div>
+        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+          <i class="bi bi-check2-square text-success"></i> Pre-Departure Checklist Management
+          <span style="font-size: 0.72rem; padding: 3px 8px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; font-weight: 600;">VISA-003</span>
+        </h3>
       </div>
       <button class="btn btn-primary" (click)="openModal()" style="display: flex; align-items: center; gap: 8px; border-radius: 8px; padding: 10px 18px; font-weight: 600; background: #059669; border: none; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);">
         <i class="bi bi-plus-lg"></i> Add Requirement

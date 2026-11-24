@@ -11,6 +11,7 @@ import {
 } from '../../core/utils/impressive-alert';
 import { Component, OnInit, HostListener, Inject } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
@@ -247,7 +248,20 @@ export class ContactsComponent implements OnInit {
   
   // File Upload Modal
   showUploadDocumentModal = false;
-  uploadDocData: any = { documentType: '', file: null, fileName: '', notes: '' };
+  uploadDocData: any = {
+    documentType: '',
+    file: null,
+    fileName: '',
+    fileSize: '',
+    fileType: '',
+    previewUrl: null,
+    safePreviewUrl: null,
+    previewBlobUrl: null,
+    isImage: false,
+    isPdf: false,
+    notes: ''
+  };
+  uploadingDoc = false;
   documentOptions = ['Passport', 'Visa', 'Offer Letter', 'Resume', 'Other'];
 
   // Bulk Import Modal
@@ -285,19 +299,102 @@ export class ContactsComponent implements OnInit {
   showImportDetailsView = false; // Used to toggle full page import view
 
   openUploadDocumentModal() {
-    this.uploadDocData = { documentType: '', file: null, fileName: '', notes: '' };
+    this.clearSelectedFile();
+    this.uploadDocData = {
+      documentType: '',
+      file: null,
+      fileName: '',
+      fileSize: '',
+      fileType: '',
+      previewUrl: null,
+      safePreviewUrl: null,
+      previewBlobUrl: null,
+      isImage: false,
+      isPdf: false,
+      notes: ''
+    };
+    this.uploadingDoc = false;
     this.showUploadDocumentModal = true;
   }
 
   closeUploadDocumentModal() {
+    if (this.uploadingDoc) return;
+    this.clearSelectedFile();
     this.showUploadDocumentModal = false;
   }
 
   onFileSelected(event: any) {
     if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      this.uploadDocData.file = file;
-      this.uploadDocData.fileName = file.name;
+      this.handleSelectedFile(event.target.files[0]);
+    }
+  }
+
+  onFileDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      this.handleSelectedFile(event.dataTransfer.files[0]);
+    }
+  }
+
+  handleSelectedFile(file: File) {
+    if (this.uploadDocData.previewBlobUrl) {
+      try { URL.revokeObjectURL(this.uploadDocData.previewBlobUrl); } catch (_) {}
+    }
+
+    const fileSizeStr = file.size < 1024 * 1024
+      ? (file.size / 1024).toFixed(1) + ' KB'
+      : (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+    const isImage = file.type ? file.type.startsWith('image/') : /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(file.name);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const blobUrl = URL.createObjectURL(file);
+
+    this.uploadDocData.file = file;
+    this.uploadDocData.fileName = file.name;
+    this.uploadDocData.fileSize = fileSizeStr;
+    this.uploadDocData.isImage = isImage;
+    this.uploadDocData.isPdf = isPdf;
+    this.uploadDocData.previewBlobUrl = blobUrl;
+    this.uploadDocData.safePreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
+
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.uploadDocData.previewUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      this.uploadDocData.previewUrl = null;
+    }
+  }
+
+  clearSelectedFile(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (this.uploadDocData.previewBlobUrl) {
+      try { URL.revokeObjectURL(this.uploadDocData.previewBlobUrl); } catch (_) {}
+    }
+    this.uploadDocData.file = null;
+    this.uploadDocData.fileName = '';
+    this.uploadDocData.fileSize = '';
+    this.uploadDocData.isImage = false;
+    this.uploadDocData.isPdf = false;
+    this.uploadDocData.previewUrl = null;
+    this.uploadDocData.safePreviewUrl = null;
+    this.uploadDocData.previewBlobUrl = null;
+
+    const nativeInput = document.getElementById('fileUploadInputNative') as HTMLInputElement;
+    if (nativeInput) {
+      nativeInput.value = '';
+    }
+  }
+
+  openPdfPreview() {
+    if (this.uploadDocData.previewBlobUrl) {
+      window.open(this.uploadDocData.previewBlobUrl, '_blank');
     }
   }
 
@@ -311,31 +408,32 @@ export class ContactsComponent implements OnInit {
       return;
     }
 
+    this.uploadingDoc = true;
     const formData = new FormData();
     formData.append('documentType', this.uploadDocData.documentType);
-    formData.append('notes', this.uploadDocData.notes);
+    formData.append('notes', this.uploadDocData.notes || '');
     formData.append('file', this.uploadDocData.file);
 
     this.api.upload(`/contacts/${this.selectedContact.id}/documents`, formData).subscribe({
       next: (res: any) => {
+        this.uploadingDoc = false;
         if (res.success) {
-          this.showAction('Document uploaded successfully!');
+          this.showAction('Document uploaded successfully to Cloudflare!');
           this.loadDocuments(this.selectedContact.id);
           this.closeUploadDocumentModal();
         }
       },
       error: (err) => {
-        Swal.fire('Error', err.error?.message || 'Error uploading document', 'error');
+        this.uploadingDoc = false;
+        Swal.fire('Error', err.error?.message || 'Error uploading document to Cloudflare', 'error');
       }
     });
   }
 
   clearDocument() {
-    this.uploadDocData = { documentType: '', file: null, fileName: '', notes: '' };
-    const nativeInput = document.getElementById('fileUploadInputNative') as HTMLInputElement;
-    if (nativeInput) {
-      nativeInput.value = '';
-    }
+    this.clearSelectedFile();
+    this.uploadDocData.documentType = '';
+    this.uploadDocData.notes = '';
   }
 
   branches: any[] = [];
@@ -798,7 +896,8 @@ export class ContactsComponent implements OnInit {
     private courseService: CourseService,
     private socketService: SocketService,
     public companyConfigService: CompanyConfigService,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(DOCUMENT) private document: Document,
+    private sanitizer: DomSanitizer
   ) {}
 
   get isEmailEnabled(): boolean {
@@ -2202,6 +2301,24 @@ export class ContactsComponent implements OnInit {
 
     this.activeCategoryTab = 'all';
     this.showModal = true;
+  }
+
+  closeLeadModal() {
+    Swal.fire({
+      title: 'Do you want to close this lead?',
+      text: 'Any unsaved changes will be lost.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Close',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.showModal = false;
+        this.editingContactId = null;
+      }
+    });
   }
 
   saveContact() {

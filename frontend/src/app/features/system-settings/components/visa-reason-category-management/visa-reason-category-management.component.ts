@@ -12,18 +12,13 @@ import Swal from 'sweetalert2';
   imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem;">
-      <div style="display: flex; align-items: center; gap: 14px;">
-        <a routerLink="/system-settings" class="btn btn-light" style="display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 14px; font-weight: 500; color: #475569; background: #fff; border: 1px solid #cbd5e1; text-decoration: none;" title="Back to Settings">
-          <i class="bi bi-arrow-left"></i> Settings
-        </a>
-        <div>
-          <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #0f172a;">
-            <i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Visa Reason Category Management
-          </h3>
-          <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem;">
-            Configure categorized refusal grounds, decline clauses, and official immigration rejection reasons (VISA-004).
-          </p>
-        </div>
+      <div>
+        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #0f172a;">
+          <i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Visa Reason Category Management
+        </h3>
+        <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem;">
+          Configure categorized refusal grounds, decline clauses, and official immigration rejection reasons (VISA-004).
+        </p>
       </div>
       <button class="btn btn-primary" (click)="openModal()" style="display: flex; align-items: center; gap: 8px; border-radius: 8px; padding: 10px 18px; font-weight: 500;">
         <i class="bi bi-plus-lg"></i> Add Reason Category

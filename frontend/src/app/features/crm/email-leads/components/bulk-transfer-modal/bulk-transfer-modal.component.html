@@ -1,0 +1,282 @@
+<!-- BULK TRANSFER MODAL OVERLAY -->
+<div class="custom-modal center-modal leads-bulk-transfer-modal-overlay" *ngIf="isOpen">
+  <!-- Backdrop -->
+  <div class="modal-backdrop" (click)="closeModal()"></div>
+
+  <!-- Modal Dialog -->
+  <div class="modal-card leads-bulk-transfer-dialog" (click)="$event.stopPropagation()">
+    
+    <!-- Top Accent Bar -->
+    <div class="transfer-top-accent-bar"></div>
+
+    <!-- Header -->
+    <div class="transfer-modal-header">
+      <div class="header-main-left">
+        <div class="transfer-icon-tile">
+          <i class="bi bi-arrow-left-right"></i>
+        </div>
+        <div class="header-identity">
+          <div class="identity-top-row">
+            <h3 class="dashboard-header-title">Bulk Transfer Leads</h3>
+            <span class="transfer-badge">
+              <i class="bi bi-shield-check"></i> Audit Tracked
+            </span>
+            <span class="transfer-count-badge">
+              <i class="bi bi-check2-circle"></i> {{ effectiveLeadCount }} Selected
+            </span>
+          </div>
+          <div class="identity-sub-row">
+            <span class="protocol-tag">Reallocate pipeline leads with automated timeline logging</span>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-close-modal" (click)="closeModal()" [disabled]="transferLoading" title="Close dialog">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="transfer-modal-body-scroll">
+
+      <!-- Step 1: Destination Branch & Department -->
+      <div class="transfer-section-block">
+        <div class="section-block-header">
+          <div class="step-badge">1</div>
+          <div class="step-info">
+            <span class="step-title">Destination Branch & Department</span>
+            <span class="step-subtitle">Optionally relocate these leads to a specific branch and department</span>
+          </div>
+        </div>
+
+        <div class="scope-params-grid">
+          <!-- Branch -->
+          <div class="scope-field-card">
+            <label class="field-micro-label">
+              <i class="bi bi-building text-primary me-1"></i> Target Branch
+            </label>
+            <div class="input-select-wrapper">
+              <select [(ngModel)]="selectedBranch" (change)="onBranchChange()" class="premium-form-select">
+                <option value="">-- Keep Existing Branch --</option>
+                <option *ngFor="let b of branches" [value]="b.id">{{ b.name }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Department -->
+          <div class="scope-field-card">
+            <label class="field-micro-label">
+              <i class="bi bi-diagram-3 text-info me-1"></i> Target Department
+            </label>
+            <div class="input-select-wrapper">
+              <select [(ngModel)]="selectedDepartment" (change)="onDepartmentChange()" class="premium-form-select">
+                <option value="">-- Keep Existing Department --</option>
+                <option *ngFor="let d of getFilteredDepartments()" [value]="d.id">{{ d.name }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Pipeline Status Reassignment -->
+      <div class="transfer-section-block mt-4">
+        <div class="section-block-header">
+          <div class="step-badge">2</div>
+          <div class="step-info">
+            <span class="step-title">Pipeline Status Reassignment (Optional)</span>
+            <span class="step-subtitle">Transition selected leads to a specific stage during reallocation</span>
+          </div>
+        </div>
+
+        <div class="optional-params-card">
+          <div class="param-row-item">
+            <label class="param-label">
+              <i class="bi bi-funnel text-success me-1"></i> New Pipeline Status
+            </label>
+            <div class="param-control">
+              <div class="input-select-wrapper">
+                <select [(ngModel)]="selectedStatus" class="premium-form-select">
+                  <option value="">-- Retain Current Status (No Change) --</option>
+                  <option *ngFor="let s of leadStatuses" [value]="s.id">{{ s.name }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Destination & Allocation Mode -->
+      <div class="transfer-section-block mt-4">
+        <div class="section-block-header">
+          <div class="step-badge">3</div>
+          <div class="step-info">
+            <span class="step-title">Assignee & Distribution Method <span class="text-danger">*</span></span>
+            <span class="step-subtitle">Assign entire batch to one employee or split across team members</span>
+          </div>
+        </div>
+
+        <!-- Mode Toggle Segmented Control -->
+        <div class="distribution-mode-toggle">
+          <button type="button" 
+                  class="mode-pill-btn" 
+                  [class.active]="targetType === 'single'" 
+                  (click)="targetType = 'single'">
+            <i class="bi bi-person-check-fill me-1"></i> Single Assignee
+            <span class="sub-hint">100% to one employee</span>
+          </button>
+          <button type="button" 
+                  class="mode-pill-btn" 
+                  [class.active]="targetType === 'split'" 
+                  (click)="targetType = 'split'">
+            <i class="bi bi-pie-chart-fill me-1"></i> Split Allocation
+            <span class="sub-hint">Distribute counts across team</span>
+          </button>
+        </div>
+
+        <!-- Mode A: Single Assignee -->
+        <div class="destination-card single-assignee-card" *ngIf="targetType === 'single'">
+          <label class="destination-label">
+            <i class="bi bi-person-fill text-primary me-1"></i> Select Destination Employee
+          </label>
+          <div class="input-select-wrapper">
+            <select [(ngModel)]="targetAgent" class="premium-form-select large-select">
+              <option value="" disabled selected>-- Choose Team Member / Counselor --</option>
+              <option *ngFor="let a of getFilteredEmployees()" [value]="a.id">
+                {{ a.name }} &bull; {{ a.designation_name || a.role || 'Agent' }} ({{ a.branch_name || 'No Branch' }})
+              </option>
+            </select>
+          </div>
+          <div class="destination-meta-card mt-3" *ngIf="targetAgentObj">
+            <div class="meta-avatar">
+              {{ targetAgentObj.name.slice(0, 2).toUpperCase() }}
+            </div>
+            <div class="meta-details">
+              <span class="meta-name">{{ targetAgentObj.name }}</span>
+              <span class="meta-role">{{ targetAgentObj.designation_name || targetAgentObj.role || 'Counselor' }} &bull; {{ targetAgentObj.email || targetAgentObj.phone || 'Active User' }}</span>
+            </div>
+            <div class="meta-tag">
+              <i class="bi bi-arrow-right-circle text-primary me-1"></i> Receiving {{ effectiveLeadCount }} leads
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode B: Multi-Employee Split Allocation -->
+        <div class="destination-card split-view-card" *ngIf="targetType === 'split'">
+          <div class="split-controls-header">
+            <div class="split-helper-text">
+              <i class="bi bi-info-circle me-1 text-primary"></i>
+              Specify lead counts for each corresponding team member:
+            </div>
+            <button type="button" class="btn-magic-split" (click)="autoDistributeCounts()" [disabled]="allocations.length === 0">
+              <i class="bi bi-magic me-1"></i> Auto-Split Evenly
+            </button>
+          </div>
+
+          <div class="allocation-rows-container">
+            <div class="allocation-row-item-pro" *ngFor="let alloc of allocations; let i = index">
+              <div class="alloc-col-agent">
+                <div class="input-select-wrapper">
+                  <select [(ngModel)]="alloc.userId" (change)="onAllocationUserChange(i)" class="premium-form-select">
+                    <option value="" disabled selected>-- Choose Employee --</option>
+                    <option *ngFor="let a of getFilteredEmployees()" [value]="a.id">
+                      {{ a.name }} &bull; {{ a.designation_name || a.role || 'Agent' }} ({{ a.branch_name || 'No Branch' }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div class="alloc-col-count">
+                <div class="count-input-wrapper">
+                  <input type="number" [(ngModel)]="alloc.count" min="1" class="form-control premium-count-input" placeholder="Count">
+                  <span class="count-suffix">leads</span>
+                </div>
+              </div>
+              <button type="button" class="btn-remove-row" (click)="removeAllocation(i)" title="Remove employee">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+
+            <!-- Empty State -->
+            <div class="allocation-empty-state" *ngIf="allocations.length === 0">
+              <div class="empty-icon-circle">
+                <i class="bi bi-people"></i>
+              </div>
+              <div class="empty-title">No Employees Added to Split</div>
+              <div class="empty-desc">Add employees corresponding to the branch & department and specify how many leads each person receives.</div>
+              <button type="button" class="btn-add-member-primary" (click)="addAllocation()">
+                <i class="bi bi-plus-circle me-1"></i> Add First Employee
+              </button>
+            </div>
+          </div>
+
+          <!-- Split Footer Bar -->
+          <div class="split-footer-bar" *ngIf="allocations.length > 0">
+            <button type="button" class="btn-add-another-member" (click)="addAllocation()">
+              <i class="bi bi-plus-lg me-1"></i> Add Another Employee
+            </button>
+            <div class="allocation-meter-pill">
+              <span>Allocated:</span>
+              <strong class="mx-1">{{ totalAllocated }}</strong>
+              <span class="text-muted">/ {{ effectiveLeadCount }} leads</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Transfer Remarks & Audit Note -->
+      <div class="transfer-section-block mt-4">
+        <div class="section-block-header">
+          <div class="step-badge">4</div>
+          <div class="step-info">
+            <span class="step-title">Transfer Remarks & Audit Note</span>
+            <span class="step-subtitle">Document the reason for this reallocation for permanent audit records</span>
+          </div>
+        </div>
+
+        <div class="optional-params-card">
+          <div class="remarks-box">
+            <label class="param-label">
+              <i class="bi bi-pencil-square text-secondary me-1"></i> Transfer Remarks / Reason
+            </label>
+            <div class="remarks-input-wrapper">
+              <input type="text" [(ngModel)]="remarks" class="form-control premium-remarks-input" placeholder="e.g. Territory redistribution, counselor transfer, email batch reallocation...">
+            </div>
+            <div class="remarks-helper-note">
+              <i class="bi bi-info-circle me-1"></i>
+              This note is permanently recorded in each lead's activity timeline and audit log.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Preview Strip -->
+      <div class="transfer-preview-strip mt-4">
+        <div class="preview-strip-icon">
+          <i class="bi bi-lightning-charge-fill"></i>
+        </div>
+        <div class="preview-strip-text">
+          <span class="preview-strip-title">Transfer Action Preview:</span>
+          <span class="preview-strip-detail">
+            Reassigning <strong>{{ effectiveLeadCount }} selected leads</strong>
+            to <strong>{{ targetType === 'single' ? (targetAgentObj?.name || 'Chosen Assignee') : (allocations.length + ' split recipients') }}</strong>
+            &bull; Branch: <span class="badge-subtle">{{ branchName }}</span>
+            &bull; Department: <span class="badge-subtle">{{ departmentName }}</span>
+            &bull; Status: <span class="badge-subtle">{{ statusName }}</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="transfer-modal-footer">
+      <button type="button" class="btn-cancel-transfer" (click)="closeModal()" [disabled]="transferLoading">
+        Cancel
+      </button>
+      <button type="button" class="btn-execute-transfer" (click)="executeTransfer()" [disabled]="transferLoading || effectiveLeadCount === 0">
+        <span *ngIf="transferLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+        <i *ngIf="!transferLoading" class="bi bi-arrow-left-right me-2"></i>
+        <span>{{ transferLoading ? 'Reallocating Leads...' : 'Execute Bulk Transfer' }}</span>
+      </button>
+    </div>
+
+  </div>
+</div>

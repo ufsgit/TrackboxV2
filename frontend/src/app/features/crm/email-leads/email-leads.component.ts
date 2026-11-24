@@ -8,11 +8,12 @@ import { ApiService } from '../../../core/services/api.service';
 import { SystemSettingsService } from '../../../core/services/system-settings.service';
 import { CompanyConfigService } from '../../../core/services/company-config.service';
 import { SendEmailModalComponent } from './components/send-email-modal/send-email-modal.component';
+import { BulkTransferModalComponent } from './components/bulk-transfer-modal/bulk-transfer-modal.component';
 
 @Component({
   selector: 'app-email-leads',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SendEmailModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SendEmailModalComponent, BulkTransferModalComponent],
   templateUrl: './email-leads.component.html',
   styleUrls: ['./email-leads.component.css']
 })
@@ -40,6 +41,7 @@ export class EmailLeadsComponent implements OnInit, OnDestroy {
 
   // Modal Control
   showBulkEmailModal = false;
+  showBulkTransferModal = false;
 
   constructor(
     private api: ApiService,
@@ -106,7 +108,7 @@ export class EmailLeadsComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.loading = false;
-        console.error('Error loading email leads:', err);
+        console.error('Error loading Students Data:', err);
       }
     });
   }
@@ -245,6 +247,19 @@ export class EmailLeadsComponent implements OnInit, OnDestroy {
   }
 
   onEmailSent(): void {
+    this.clearSelection();
+    this.loadLeads();
+  }
+
+  openBulkTransferModal(): void {
+    this.showBulkTransferModal = true;
+  }
+
+  closeBulkTransferModal(): void {
+    this.showBulkTransferModal = false;
+  }
+
+  onTransferCompleted(): void {
     this.clearSelection();
     this.loadLeads();
   }

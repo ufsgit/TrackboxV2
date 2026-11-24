@@ -224,9 +224,9 @@
             <p class="empty-sub">
               Add target universities, degree programs, and track admission milestones for {{ getLeadName() }}.
             </p>
-            <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 py-2 mt-2" (click)="openAddApplicationModal()">
+            <!-- <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 py-2 mt-2" (click)="openAddApplicationModal()">
               <i class="bi bi-plus-lg me-1"></i> Add First Application
-            </button>
+            </button> -->
           </div>
 
           <!-- Applications List -->
@@ -348,7 +348,7 @@
                     Total: ₹{{ totalReceiptAmount | number:'1.2-2' }}
                   </span>
                 </div>
-                <span class="receipt-sub">Record client payments, fees, tuition deposits, and track collection audit</span>
+                <!-- <span class="receipt-sub">Record client payments, fees, tuition deposits, and track collection audit</span> -->
               </div>
             </div>
 
@@ -491,7 +491,7 @@
               {{ currentApplication.id ? 'EDITING #' + currentApplication.id : 'NEW APPLICATION' }}
             </span>
           </div>
-          <p class="app-modal-subtitle">Specify institution, academic program, admissions intake, and current stage.</p>
+          <!-- <p class="app-modal-subtitle">Specify institution, academic program, admissions intake, and current stage.</p> -->
         </div>
       </div>
       <button class="app-close-btn" (click)="showAddApplicationModal = false" title="Close Modal">
@@ -707,12 +707,75 @@
       <!-- File Picker -->
       <div class="mb-4">
         <label class="upload-label">File <span class="text-danger">*</span></label>
-        <div class="upload-dropzone-modern">
+        
+        <!-- Dropzone when no file selected -->
+        <div *ngIf="!uploadDocData.file" 
+             (dragover)="$event.preventDefault()" 
+             (drop)="onFileDrop($event)"
+             class="upload-dropzone-modern">
           <input type="file" id="fileUploadInputNative" (change)="onFileSelected($event)" class="upload-file-input">
           <div style="position: relative; z-index: 1;">
             <i class="bi bi-file-earmark-arrow-up upload-file-icon"></i>
-            <h6 class="upload-dropzone-title">{{ uploadDocData.fileName || 'Click to select file' }}</h6>
-            <p class="upload-dropzone-subtitle">{{ uploadDocData.fileName ? 'File chosen' : 'or drag and drop it here' }}</p>
+            <h6 class="upload-dropzone-title">Click to select file</h6>
+            <p class="upload-dropzone-subtitle">or drag and drop it here</p>
+          </div>
+        </div>
+
+        <!-- Selected File Preview Container -->
+        <div *ngIf="uploadDocData.file" style="border: 2px solid #818cf8; border-radius: 12px; padding: 16px; background: #f8faff; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);">
+          <!-- Header: File info & Change action -->
+          <div class="d-flex align-items-center justify-content-between mb-3 pb-2" style="border-bottom: 1px solid #e0e7ff;">
+            <div class="d-flex align-items-center overflow-hidden me-2" style="gap: 12px;">
+              <div style="width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
+                   [ngStyle]="{'background': uploadDocData.isImage ? '#e0e7ff' : (uploadDocData.isPdf ? '#fee2e2' : '#f1f5f9')}">
+                <i class="bi" 
+                   [ngClass]="{
+                     'bi-file-earmark-image text-primary': uploadDocData.isImage,
+                     'bi-file-earmark-pdf text-danger': uploadDocData.isPdf,
+                     'bi-file-earmark-text text-secondary': !uploadDocData.isImage && !uploadDocData.isPdf
+                   }" 
+                   style="font-size: 1.5rem;"></i>
+              </div>
+              <div class="overflow-hidden">
+                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                  <span class="text-truncate" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; max-width: 280px;" [title]="uploadDocData.fileName">{{ uploadDocData.fileName }}</span>
+                  <span class="badge bg-success text-white px-2 py-1" style="font-size: 0.72rem; font-weight: 600; border-radius: 6px;"><i class="bi bi-check-circle-fill me-1"></i>Selected</span>
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size: 0.82rem;">{{ uploadDocData.fileSize }}</small>
+              </div>
+            </div>
+            
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="clearSelectedFile($event)" style="border-radius: 8px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap;" title="Change selected file">
+              <i class="bi bi-arrow-repeat"></i> Change
+            </button>
+          </div>
+
+          <!-- Image Preview -->
+          <div *ngIf="uploadDocData.isImage && uploadDocData.previewUrl" class="text-center p-2 mb-2" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <img [src]="uploadDocData.previewUrl" alt="Document Preview" style="max-height: 180px; max-width: 100%; border-radius: 6px; object-fit: contain; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div class="mt-2 text-muted small" style="font-weight: 500;"><i class="bi bi-eye text-primary me-1"></i> Preview verified</div>
+          </div>
+
+          <!-- PDF Preview Banner & Quick View -->
+          <div *ngIf="uploadDocData.isPdf" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 12px 16px;" class="mb-2">
+            <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
+              <div class="d-flex align-items-center" style="gap: 10px;">
+                <i class="bi bi-file-earmark-pdf-fill text-danger" style="font-size: 1.8rem;"></i>
+                <div>
+                  <div style="font-weight: 600; font-size: 0.9rem; color: #334155;">PDF Ready to Upload</div>
+                  <small class="text-muted">Click to preview pages in browser</small>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="openPdfPreview()" style="font-weight: 600; border-radius: 8px; padding: 5px 14px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-box-arrow-up-right"></i> Open Preview
+              </button>
+            </div>
+          </div>
+
+          <!-- Other Files Preview -->
+          <div *ngIf="!uploadDocData.isImage && !uploadDocData.isPdf" class="p-3 text-center mb-2" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <i class="bi bi-file-earmark-check text-success" style="font-size: 2rem;"></i>
+            <p class="mb-0 mt-1 small text-muted">Document selected and ready to save to Cloudflare.</p>
           </div>
         </div>
       </div>
@@ -725,8 +788,11 @@
 
       <!-- Actions -->
       <div class="upload-actions">
-        <button type="button" class="upload-btn-cancel" (click)="closeUploadDocumentModal()">Cancel</button>
-        <button type="button" class="upload-btn-submit" (click)="saveDocument()">Save Document</button>
+        <button type="button" class="upload-btn-cancel" [disabled]="uploadingDoc" (click)="closeUploadDocumentModal()">Cancel</button>
+        <button type="button" class="upload-btn-submit d-inline-flex align-items-center gap-2" [disabled]="uploadingDoc" (click)="saveDocument()">
+          <span *ngIf="uploadingDoc" class="spinner-border spinner-border-sm" role="status"></span>
+          <span>{{ uploadingDoc ? 'Uploading to Cloudflare...' : 'Save Document' }}</span>
+        </button>
       </div>
     </div>
   </div>

@@ -7,7 +7,7 @@
       </div>
       <div>
         <div class="leads-title-with-badge">
-          <h1 class="leads-main-title">Email Leads</h1>
+          <h1 class="leads-main-title"> Students Data</h1>
           <span class="leads-count-pill" *ngIf="totalLeads > 0">
             {{ totalLeads }} Leads
           </span>
@@ -16,7 +16,26 @@
     </div>
 
     <div class="leads-actions-col">
-      <button class="leads-btn leads-btn-accent" (click)="openBulkEmailModal()" title="Send Bulk Email">
+      <!-- Bulk Transfer Action Button -->
+      <button class="leads-btn leads-btn-transfer" 
+              (click)="openBulkTransferModal()" 
+              [disabled]="selectedContactIds.size === 0 && !isAllPagesSelected"
+              title="Bulk Transfer Leads to another agent or branch">
+        <i class="bi bi-arrow-left-right"></i>
+        <span>Bulk Transfer</span>
+        <span *ngIf="isAllPagesSelected" class="leads-count-bubble">
+          {{ totalLeads }}
+        </span>
+        <span *ngIf="!isAllPagesSelected && selectedContactIds.size > 0" class="leads-count-bubble">
+          {{ selectedContactIds.size }}
+        </span>
+      </button>
+
+      <!-- Send Email Action Button -->
+      <button class="leads-btn leads-btn-accent" 
+              (click)="openBulkEmailModal()" 
+              [disabled]="selectedContactIds.size === 0 && !isAllPagesSelected"
+              title="Send Bulk Email">
         <i class="bi bi-envelope-fill"></i>
         <span>Send Email</span>
         <span *ngIf="isAllPagesSelected" class="leads-count-bubble">
@@ -230,3 +249,15 @@
   (close)="closeBulkEmailModal()"
   (emailSent)="onEmailSent()"
 ></app-send-email-modal>
+
+<!-- Bulk Transfer Modal Component -->
+<app-bulk-transfer-modal
+  [isOpen]="showBulkTransferModal"
+  [selectedContactIds]="selectedContactIds"
+  [isAllAcrossPages]="isAllPagesSelected"
+  [totalLeads]="totalLeads"
+  [searchQuery]="searchQuery"
+  [activeStatus]="activeStatus"
+  (close)="closeBulkTransferModal()"
+  (transferCompleted)="onTransferCompleted()"
+></app-bulk-transfer-modal>
