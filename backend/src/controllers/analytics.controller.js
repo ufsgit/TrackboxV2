@@ -133,10 +133,13 @@ const getCrmDashboardStats = async (req, res) => {
     const userId = req.user.userId || req.user.id;
     const range = req.query.range || 'today';
 
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    const spRole = accessibleUserIds === null ? 'superadmin' : 'agent';
+
     // Call Stored Procedure with comprehensive IF conditions for all 7 KPIs
     const [spResults] = await pool.query(
       'CALL sp_get_crm_dashboard_kpis(?, ?, ?, ?)',
-      [bizId, Number(userId), req.user.role || 'admin', range]
+      [bizId, Number(userId), spRole, range]
     );
 
     const kpiData = (spResults && spResults[0] && spResults[0][0]) ? spResults[0][0] : {};
@@ -154,7 +157,6 @@ const getCrmDashboardStats = async (req, res) => {
     let agentClause = '';
     const queryParams = [bizId];
 
-    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
     if (accessibleUserIds !== null) {
       if (accessibleUserIds.length === 0) {
         agentClause = 'AND 1 = 0';
@@ -181,7 +183,7 @@ const getCrmDashboardStats = async (req, res) => {
     // Call Stored Procedure for Lead Status Pipeline Card
     const [pipelineResults] = await pool.query(
       'CALL sp_get_crm_dashboard_pipeline(?, ?, ?, ?)',
-      [bizId, Number(userId), req.user.role || 'admin', range]
+      [bizId, Number(userId), spRole, range]
     );
 
     const pipelineStages = (pipelineResults && pipelineResults[0]) ? pipelineResults[0] : [];
@@ -190,7 +192,7 @@ const getCrmDashboardStats = async (req, res) => {
     const monthlyPerformance = await fetchMonthlyPerformance(
       bizId,
       userId,
-      req.user.role,
+      spRole,
       range,
       req.query.year,
       req.query.monthlyMode
@@ -198,8 +200,8 @@ const getCrmDashboardStats = async (req, res) => {
 
     // Call Stored Procedure for Lead Source Analysis
     const [sourceResults] = await pool.query(
-    'CALL dashbord_source_count(?, ?, ?)',
-    [bizId, Number(userId), req.user.role || 'agent']
+      'CALL dashbord_source_count(?, ?, ?)',
+      [bizId, Number(userId), spRole]
     );
 
     const sourceRows = (sourceResults && sourceResults[0]) ? sourceResults[0] : [];
@@ -213,7 +215,7 @@ const getCrmDashboardStats = async (req, res) => {
     // Call Stored Procedure for Team Performance Table
     const [teamResults] = await pool.query(
       'CALL sp_get_crm_dashboard_team_performance(?, ?, ?, ?)',
-      [bizId, Number(userId), req.user.role || 'admin', range]
+      [bizId, Number(userId), spRole, range]
     );
 
     const teamPalette = ['#2F7BF5', '#1FB874', '#F59B2B', '#8B5CF6', '#F0568C', '#06B6D4'];
@@ -628,7 +630,9 @@ const getMonthlyPerformance = async (req, res) => {
     const bizId = req.user.businessId;
     const userId = req.user.userId || req.user.id;
     const { range, year, mode } = req.query;
-    const data = await fetchMonthlyPerformance(bizId, userId, req.user.role, range, year, mode);
+    const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    const spRole = accessibleUserIds === null ? 'superadmin' : 'agent';
+    const data = await fetchMonthlyPerformance(bizId, userId, spRole, range, year, mode);
     res.json({ success: true, data, message: 'Monthly performance fetched successfully' });
   } catch (err) {
     console.error('getMonthlyPerformance error:', err);

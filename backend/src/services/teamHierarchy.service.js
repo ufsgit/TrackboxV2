@@ -11,9 +11,41 @@ async function getAccessibleUserIds(user, businessId) {
   const userId = Number(user.userId || user.id);
   const role = (user.role || '').toLowerCase().trim();
   const isDev = user.is_dev === 1 || user.is_dev === true || user.isDev === true;
+  const username = (user.username || '').toLowerCase().trim();
+  const email = (user.email || '').toLowerCase().trim();
+  const name = (user.name || '').toLowerCase().trim();
 
-  // Superadmin, Admin, and Developer have full business-wide access
-  if (role === 'superadmin' || role === 'admin' || isDev) {
+  // Superadmin / Developer / 'ufs' user have full business-wide access (unrestricted)
+  let isSuperAdmin =
+    role === 'superadmin' ||
+    isDev ||
+    username === 'ufs' ||
+    email === 'ufs' ||
+    name === 'ufs' ||
+    email.startsWith('ufs@') ||
+    email.includes('ufs');
+
+  // If credentials are not on user object but role is admin, double check users table
+  if (!isSuperAdmin && !username && !email && role === 'admin' && userId) {
+    try {
+      const p = pool.promise ? pool.promise() : pool;
+      const [uRows] = await p.query('SELECT username, email, is_dev, role FROM users WHERE id = ?', [userId]);
+      if (uRows && uRows.length > 0) {
+        const dbU = uRows[0];
+        const dbUsername = (dbU.username || '').toLowerCase().trim();
+        const dbEmail = (dbU.email || '').toLowerCase().trim();
+        const dbDev = dbU.is_dev === 1 || dbU.is_dev === true;
+        const dbRole = (dbU.role || '').toLowerCase().trim();
+        if (dbRole === 'superadmin' || dbDev || dbUsername === 'ufs' || dbEmail === 'ufs' || dbEmail.includes('ufs')) {
+          isSuperAdmin = true;
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
+  if (isSuperAdmin) {
     return null;
   }
 

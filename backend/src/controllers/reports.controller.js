@@ -314,28 +314,17 @@ const getStatusReport = async (req, res) => {
 
 
 /**
- * Helper to build team-based filter for contacts c (Self + Team members only, NO role bypass)
+ * Helper to build team-based filter for contacts c (centralized via teamHierarchy service)
  */
 const buildContactsRoleFilter = async (user, businessId, agentParam) => {
-  const userId = user.userId || user.id;
-
-  let clause = ` AND (
-    c.assigned_to = ?
-    OR c.assigned_to IN (
-      SELECT tm.user_id 
-      FROM teams t 
-      INNER JOIN team_members tm ON tm.team_id = t.id 
-      WHERE t.user_id = ? AND t.business_id = ?
-    )
-  ) `;
-  const params = [userId, userId, businessId];
-
-  if (agentParam && agentParam !== 'all') {
-    clause += ' AND c.assigned_to = ? ';
-    params.push(agentParam);
-  }
-
-  return { clause, params, userRole: user.role || 'user', userBranchId: null };
+  const accessibleUserIds = await getAccessibleUserIds(user, businessId);
+  const userScope = buildUserScopeFilter({
+    accessibleUserIds,
+    requestedAgent: agentParam,
+    column: 'c.assigned_to',
+    creatorColumn: 'c.created_by_user'
+  });
+  return { clause: userScope.clause, params: userScope.params, userRole: user.role || 'user', userBranchId: null };
 };
 
 /**

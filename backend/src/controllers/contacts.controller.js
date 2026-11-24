@@ -90,14 +90,15 @@ const getContacts = async (req, res) => {
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND c.assigned_to = ? ';
-          params.push(reqAgentId);
+          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
+          params.push(reqAgentId, reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
-        where += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
-        params.push(...accessibleUserIds);
+        const placeholders = accessibleUserIds.map(() => '?').join(',');
+        where += ` AND (c.assigned_to IN (${placeholders}) OR c.created_by_user IN (${placeholders}))`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
       }
     } else {
       if (req.query.transferred_only === 'true') {
@@ -3150,14 +3151,15 @@ const getTotalLeads = async (req, res) => {
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND c.assigned_to = ? ';
-          params.push(reqAgentId);
+          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
+          params.push(reqAgentId, reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
-        where += ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})`;
-        params.push(...accessibleUserIds);
+        const placeholders = accessibleUserIds.map(() => '?').join(',');
+        where += ` AND (c.assigned_to IN (${placeholders}) OR c.created_by_user IN (${placeholders}))`;
+        params.push(...accessibleUserIds, ...accessibleUserIds);
       }
     } else {
       // Admin / Superadmin
