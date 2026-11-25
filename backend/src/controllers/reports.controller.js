@@ -321,8 +321,7 @@ const buildContactsRoleFilter = async (user, businessId, agentParam) => {
   const userScope = buildUserScopeFilter({
     accessibleUserIds,
     requestedAgent: agentParam,
-    column: 'c.assigned_to',
-    creatorColumn: 'c.created_by_user'
+    column: 'c.assigned_to'
   });
   return { clause: userScope.clause, params: userScope.params, userRole: user.role || 'user', userBranchId: null };
 };
@@ -2023,8 +2022,8 @@ const getLeadCreationReport = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         teamClause = ' AND 1 = 0 ';
       } else {
-        teamClause = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})) `;
-        teamParams.push(...accessibleUserIds, ...accessibleUserIds);
+        teamClause = ` AND c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        teamParams.push(...accessibleUserIds);
       }
     }
 
@@ -2835,8 +2834,8 @@ const getLeadFlowReport = async (req, res) => {
       if (accessibleUserIds.length === 0) {
         teamFilter = ' AND 1 = 0 ';
       } else {
-        teamFilter = ` AND (c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})) `;
-        teamParams.push(...accessibleUserIds, ...accessibleUserIds);
+        teamFilter = ` AND c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')}) `;
+        teamParams.push(...accessibleUserIds);
       }
     }
 
@@ -2844,8 +2843,8 @@ const getLeadFlowReport = async (req, res) => {
     let employeeFilter = '';
     const employeeParams = [];
     if (employee && employee !== 'All') {
-      employeeFilter = ` AND (c.assigned_to = ? OR c.created_by_user = ?) `;
-      employeeParams.push(employee, employee);
+      employeeFilter = ` AND c.assigned_to = ? `;
+      employeeParams.push(employee);
     }
 
     const whereClause = `
@@ -4436,10 +4435,9 @@ const getEnquiryForReport = async (req, res) => {
         const selfId = Number(req.user.userId || req.user.id);
         userFilter = `AND (
           c.assigned_to IN (${accessibleUserIds.map(() => '?').join(',')})
-          OR c.created_by_user IN (${accessibleUserIds.map(() => '?').join(',')})
           OR (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?))
         )`;
-        queryParams.push(...accessibleUserIds, ...accessibleUserIds, selfId.toString(), selfId.toString());
+        queryParams.push(...accessibleUserIds, selfId.toString(), selfId.toString());
       }
     }
 

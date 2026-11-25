@@ -90,15 +90,15 @@ const getContacts = async (req, res) => {
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
-          params.push(reqAgentId, reqAgentId);
+          where += ' AND c.assigned_to = ? ';
+          params.push(reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
-        where += ` AND (c.assigned_to IN (${placeholders}) OR c.created_by_user IN (${placeholders}))`;
-        params.push(...accessibleUserIds, ...accessibleUserIds);
+        where += ` AND c.assigned_to IN (${placeholders})`;
+        params.push(...accessibleUserIds);
       }
     } else {
       if (req.query.transferred_only === 'true') {
@@ -3151,15 +3151,15 @@ const getTotalLeads = async (req, res) => {
       } else if (agent) {
         const reqAgentId = Number(agent);
         if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND (c.assigned_to = ? OR c.created_by_user = ?) ';
-          params.push(reqAgentId, reqAgentId);
+          where += ' AND c.assigned_to = ? ';
+          params.push(reqAgentId);
         } else {
           where += ' AND 1 = 0 ';
         }
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
-        where += ` AND (c.assigned_to IN (${placeholders}) OR c.created_by_user IN (${placeholders}))`;
-        params.push(...accessibleUserIds, ...accessibleUserIds);
+        where += ` AND c.assigned_to IN (${placeholders})`;
+        params.push(...accessibleUserIds);
       }
     } else {
       // Admin / Superadmin

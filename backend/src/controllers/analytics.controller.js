@@ -136,23 +136,6 @@ const getCrmDashboardStats = async (req, res) => {
     const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
     const spRole = accessibleUserIds === null ? 'superadmin' : 'agent';
 
-    // Call Stored Procedure with comprehensive IF conditions for all 7 KPIs
-    const [spResults] = await pool.query(
-      'CALL sp_get_crm_dashboard_kpis(?, ?, ?, ?)',
-      [bizId, Number(userId), spRole, range]
-    );
-
-    const kpiData = (spResults && spResults[0] && spResults[0][0]) ? spResults[0][0] : {};
-
-    const totalLeads = Number(kpiData.totalLeads) || 0;
-    const pendingLeads = kpiData.pendingLeads !== undefined ? Number(kpiData.pendingLeads) : Math.max(0, totalLeads - (Number(kpiData.wonDeals) || 0) - (Number(kpiData.lostDeals) || 0));
-    const pendingFollowUps = Number(kpiData.pendingFollowUps) || 0;
-    const todaysFollowUps = Number(kpiData.todaysFollowUps) || 0;
-    const upcomingFollowUps = Number(kpiData.upcomingFollowUps) || 0;
-    const wonDeals = Number(kpiData.wonDeals) || 0;
-    const lostDeals = Number(kpiData.lostDeals) || 0;
-    const conversionRate = parseFloat(kpiData.conversionRate) || 0.0;
-
     // Build role filter clause for status funnel and charts
     let agentClause = '';
     const queryParams = [bizId];
@@ -162,8 +145,8 @@ const getCrmDashboardStats = async (req, res) => {
         agentClause = 'AND 1 = 0';
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
-        agentClause = `AND (assigned_to IN (${placeholders}) OR created_by_user IN (${placeholders}))`;
-        queryParams.push(...accessibleUserIds, ...accessibleUserIds);
+        agentClause = `AND assigned_to IN (${placeholders})`;
+        queryParams.push(...accessibleUserIds);
       }
     }
 
@@ -179,6 +162,40 @@ const getCrmDashboardStats = async (req, res) => {
     } else if (range === 'this_year') {
       dateClause = 'AND YEAR(created_at) = YEAR(CURDATE())';
     }
+
+    let kpiData = {};
+    try {
+      const sqlAgentClause = agentClause.replace(/assigned_to/g, 'c.assigned_to').replace(/created_by_user/g, 'c.created_by_user');
+      const sqlDateClause = dateClause.replace(/created_at/g, 'c.created_at');
+      const [[rawKpi]] = await pool.query(`
+        SELECT 
+          COUNT(*) as totalLeads,
+          SUM(CASE WHEN (c.sale_won = 1 OR UPPER(TRIM(COALESCE(c.status_name, ''))) IN ('WON', 'CONVERTED')) THEN 1 ELSE 0 END) as wonDeals,
+          SUM(CASE WHEN (c.sale_lost = 1 OR UPPER(TRIM(COALESCE(c.status_name, ''))) IN ('LOST', 'SALES LOSS')) THEN 1 ELSE 0 END) as lostDeals,
+          SUM(CASE WHEN c.follow_up = 1 AND DATE(c.follow_up_date) < CURDATE() THEN 1 ELSE 0 END) as pendingFollowUps,
+          SUM(CASE WHEN c.follow_up = 1 AND DATE(c.follow_up_date) = CURDATE() THEN 1 ELSE 0 END) as todaysFollowUps,
+          SUM(CASE WHEN c.follow_up = 1 AND DATE(c.follow_up_date) > CURDATE() THEN 1 ELSE 0 END) as upcomingFollowUps
+        FROM contacts c
+        WHERE c.business_id = ? ${sqlAgentClause} ${sqlDateClause}
+      `, queryParams);
+      kpiData = rawKpi || {};
+    } catch (e) {
+      console.error('Direct KPI query error, falling back to SP:', e);
+      const [spResults] = await pool.query(
+        'CALL sp_get_crm_dashboard_kpis(?, ?, ?, ?)',
+        [bizId, Number(userId), spRole, range]
+      );
+      kpiData = (spResults && spResults[0] && spResults[0][0]) ? spResults[0][0] : {};
+    }
+
+    const totalLeads = Number(kpiData.totalLeads) || 0;
+    const wonDeals = Number(kpiData.wonDeals) || 0;
+    const lostDeals = Number(kpiData.lostDeals) || 0;
+    const pendingLeads = kpiData.pendingLeads !== undefined ? Number(kpiData.pendingLeads) : Math.max(0, totalLeads - wonDeals - lostDeals);
+    const pendingFollowUps = Number(kpiData.pendingFollowUps) || 0;
+    const todaysFollowUps = Number(kpiData.todaysFollowUps) || 0;
+    const upcomingFollowUps = Number(kpiData.upcomingFollowUps) || 0;
+    const conversionRate = totalLeads > 0 ? parseFloat(((wonDeals / totalLeads) * 100).toFixed(1)) : 0.0;
 
     // Call Stored Procedure for Lead Status Pipeline Card
     const [pipelineResults] = await pool.query(
@@ -198,19 +215,37 @@ const getCrmDashboardStats = async (req, res) => {
       req.query.monthlyMode
     );
 
-    // Call Stored Procedure for Lead Source Analysis
-    const [sourceResults] = await pool.query(
-      'CALL dashbord_source_count(?, ?, ?)',
-      [bizId, Number(userId), spRole]
-    );
-
-    const sourceRows = (sourceResults && sourceResults[0]) ? sourceResults[0] : [];
-    const sourcePalette = ['#2F7BF5', '#F0568C', '#1FB874', '#F2C230', '#8B5CF6', '#9AA7BD', '#06B6D4', '#EC4899'];
-    const sources = sourceRows.map((s, idx) => ({
-      name: s.name,
-      value: Number(s.value || 0),
-      color: sourcePalette[idx % sourcePalette.length]
-    }));
+    // Lead Source Analysis (strictly scoped to assigned leads)
+    let sources = [];
+    try {
+      const [sourceRows] = await pool.query(`
+        SELECT 
+          COALESCE(NULLIF(TRIM(c.opt_in_source), ''), NULLIF(TRIM(c.channel_preference), ''), 'Unknown') as name,
+          COUNT(*) as value
+        FROM contacts c
+        WHERE c.business_id = ? ${sqlAgentClause} ${sqlDateClause}
+        GROUP BY name
+        ORDER BY value DESC
+      `, queryParams);
+      const sourcePalette = ['#2F7BF5', '#F0568C', '#1FB874', '#F2C230', '#8B5CF6', '#9AA7BD', '#06B6D4', '#EC4899'];
+      sources = sourceRows.map((s, idx) => ({
+        name: s.name,
+        value: Number(s.value || 0),
+        color: sourcePalette[idx % sourcePalette.length]
+      }));
+    } catch (e) {
+      const [sourceResults] = await pool.query(
+        'CALL dashbord_source_count(?, ?, ?)',
+        [bizId, Number(userId), spRole]
+      );
+      const sourceRows = (sourceResults && sourceResults[0]) ? sourceResults[0] : [];
+      const sourcePalette = ['#2F7BF5', '#F0568C', '#1FB874', '#F2C230', '#8B5CF6', '#9AA7BD', '#06B6D4', '#EC4899'];
+      sources = sourceRows.map((s, idx) => ({
+        name: s.name,
+        value: Number(s.value || 0),
+        color: sourcePalette[idx % sourcePalette.length]
+      }));
+    }
 
     // Call Stored Procedure for Team Performance Table
     const [teamResults] = await pool.query(
@@ -245,7 +280,7 @@ const getCrmDashboardStats = async (req, res) => {
     // Call Stored Procedure for Recent Leads
     const [recentResults] = await pool.query(
       'CALL sp_get_crm_dashboard_recent_leads(?, ?, ?, ?)',
-      [bizId, Number(userId), req.user.role || 'admin', range]
+      [bizId, Number(userId), spRole, range]
     );
 
     const recentRows = (recentResults && recentResults[0]) ? recentResults[0] : [];
@@ -653,8 +688,8 @@ const getApplicationStatusKpis = async (req, res) => {
         agentClause = 'AND 1 = 0';
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
-        agentClause = `AND (c.assigned_to IN (${placeholders}) OR a.created_by IN (${placeholders}))`;
-        params.push(...accessibleUserIds, ...accessibleUserIds);
+        agentClause = `AND c.assigned_to IN (${placeholders})`;
+        params.push(...accessibleUserIds);
       }
     }
 
@@ -713,12 +748,10 @@ const getVisaStatusKpis = async (req, res) => {
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
         visaScopeClause = `AND (
-          v.assigned_staff_id IN (${placeholders}) OR
-          v.updated_by IN (${placeholders}) OR
           c.assigned_to IN (${placeholders}) OR
-          c.created_by_user IN (${placeholders})
+          v.assigned_staff_id IN (${placeholders})
         )`;
-        innerParams.push(...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds, ...accessibleUserIds);
+        innerParams.push(...accessibleUserIds, ...accessibleUserIds);
       }
     }
 

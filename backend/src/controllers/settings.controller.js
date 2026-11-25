@@ -37,6 +37,7 @@ const getTeam = async (req, res) => {
     const isSuperAdmin = userRole === 'superadmin' || isDev || username === 'ufs' || email === 'ufs' || email.includes('ufs');
     const isAdmin = userRole === 'admin' || isSuperAdmin;
 
+    const accessibleUserIds = await getAccessibleUserIds(req.user, req.user.businessId);
 
     let query = `SELECT u.id, u.name, u.email, u.phone, u.username, u.employee_code, u.designation_id, u.date_of_joining, u.role, u.is_active, u.created_at, u.branch_id, u.department_id, u.permissions, u.allowed_custom_field_categories, b.name as branch_name, d.name as department_name, des.name as designation_name
        FROM users u 

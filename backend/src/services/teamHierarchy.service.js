@@ -25,7 +25,7 @@ async function getAccessibleUserIds(user, businessId) {
     email.startsWith('ufs@') ||
     email.includes('ufs');
 
-  // If credentials are not on user object but role is admin, double check users table
+  // If credentials are not on user object but role is admin, double check users table to see if it is ufs
   if (!isSuperAdmin && !username && !email && role === 'admin' && userId) {
     try {
       const p = pool.promise ? pool.promise() : pool;
@@ -107,12 +107,11 @@ async function getAccessibleUserIds(user, businessId) {
  * @param {string|null} [options.creatorColumn] - SQL column for lead creator (defaults to <prefix>created_by_user)
  * @returns {{ clause: string, params: Array<any> }}
  */
-function buildUserScopeFilter({ accessibleUserIds, requestedAgent, column = 'c.assigned_to', creatorColumn }) {
+function buildUserScopeFilter({ accessibleUserIds, requestedAgent, column = 'c.assigned_to', creatorColumn = null }) {
   let clause = '';
   const params = [];
 
-  const prefix = column.includes('.') ? column.split('.')[0] + '.' : '';
-  const effCreatorColumn = creatorColumn !== undefined ? creatorColumn : (prefix ? prefix + 'created_by_user' : 'created_by_user');
+  const effCreatorColumn = creatorColumn || null;
 
   const hasSpecificAgent = requestedAgent !== undefined && 
                            requestedAgent !== null && 
