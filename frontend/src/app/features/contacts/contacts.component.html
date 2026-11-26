@@ -181,34 +181,71 @@
         </ul>
       </div>
 
-      <!-- Dropdown: Agents / Team Members (Only for admin, superadmin, manager) -->
-      <div class="dropdown custom-filter-dropdown" *ngIf="canFilterAgents" [class.show]="isAgentDropdownOpen">
+      <!-- Dropdown: Agents / Team Members with Branch & Department Cascade -->
+      <div class="dropdown custom-filter-dropdown" [class.show]="isAgentDropdownOpen">
         <button class="leads-dropdown-btn dropdown-toggle" [class.filter-applied]="!!activeAgent" type="button" (click)="toggleFilterDropdown('agent', $event)" aria-expanded="false">
-          <i class="bi bi-people me-1 text-muted" *ngIf="!isAdmin && activeAgent !== 'unassigned'"></i>
-          <i class="bi bi-person me-1 text-muted" *ngIf="isAdmin && activeAgent !== 'unassigned'"></i>
+          <i class="bi bi-people me-1 text-muted" *ngIf="activeAgent !== 'unassigned'"></i>
           <i class="bi bi-person-x me-1 text-danger" *ngIf="activeAgent === 'unassigned'"></i>
-          <span>{{ activeAgent === 'unassigned' ? 'Unassigned Leads' : (activeAgent ? getEmployeeName(activeAgent) : (isAdmin ? 'All Agents' : 'All Team Members')) }}</span>
-          <i class="bi bi-chevron-down chevron-down-icon"></i>
+          <span>{{ activeAgent === 'unassigned' ? 'Unassigned Leads' : (activeAgent ? getEmployeeName(activeAgent) : 'All Agents') }}</span>
+          <span *ngIf="activeAgent" class="df-pill-clear-btn ms-1" (click)="clearAgentFilter($event)" title="Clear Agent Filter">
+            <i class="bi bi-x"></i>
+          </span>
+          <i *ngIf="!activeAgent" class="bi bi-chevron-down chevron-down-icon"></i>
         </button>
-        <ul class="dropdown-menu custom-dropdown-menu shadow-sm" [class.show]="isAgentDropdownOpen">
-          <li>
-            <a class="dropdown-item" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false">
-              {{ isAdmin ? 'All Agents' : 'All Team Members' }}
+
+        <div class="dropdown-menu custom-dropdown-menu shadow-lg p-2" [class.show]="isAgentDropdownOpen" style="min-width: 270px;" (click)="$event.stopPropagation()">
+          
+          <!-- Cascade Filters: Branch & Department Header -->
+          <div class="p-2 border-bottom mb-2 bg-light rounded-3">
+            <!-- Branch Filter -->
+            <div class="mb-2">
+              <label class="form-label mb-1 text-muted" style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Branch</label>
+              <select class="form-select form-select-sm" [(ngModel)]="filterAgentBranch" (change)="onFilterAgentBranchChange()" style="border-radius: 8px; font-size: 0.82rem;">
+                <option value="">All Branches</option>
+                <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
+              </select>
+            </div>
+            <!-- Department Filter -->
+            <div>
+              <label class="form-label mb-1 text-muted" style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Department</label>
+              <select class="form-select form-select-sm" [(ngModel)]="filterAgentDepartment" (change)="onFilterAgentDepartmentChange()" style="border-radius: 8px; font-size: 0.82rem;">
+                <option value="">All Departments</option>
+                <option *ngFor="let d of getFilteredAgentDepartments()" [value]="d.name">{{ d.name }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Quick Agent Options -->
+          <div style="max-height: 220px; overflow-y: auto;">
+            <a class="dropdown-item py-1 px-2 rounded-2" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false" style="font-size: 0.85rem; font-weight: 600;">
+              All Agents
             </a>
-          </li>
-          <li>
-            <a class="dropdown-item" [class.active]="activeAgent === 'unassigned'" (click)="activeAgent = 'unassigned'; applyFilters(); isAgentDropdownOpen = false">
+            <a class="dropdown-item py-1 px-2 rounded-2" [class.active]="activeAgent === 'unassigned'" (click)="activeAgent = 'unassigned'; applyFilters(); isAgentDropdownOpen = false" style="font-size: 0.85rem; font-weight: 600;">
               <i class="bi bi-person-x me-1 text-danger"></i>
               Unassigned Leads
             </a>
-          </li>
-          <li *ngFor="let agent of agents">
-            <a class="dropdown-item" [class.active]="activeAgent == agent.id" (click)="activeAgent = '' + agent.id; applyFilters(); isAgentDropdownOpen = false">
-              {{ agent.name }}
-              <span class="badge bg-light text-secondary ms-1" *ngIf="isCurrentUser(agent.id)">(You)</span>
-            </a>
-          </li>
-        </ul>
+            <div class="dropdown-divider my-1"></div>
+            
+            <!-- Filtered Agents List -->
+            <ng-container *ngIf="getFilteredAgents().length > 0; else noAgentsFound">
+              <a *ngFor="let agent of getFilteredAgents()" 
+                 class="dropdown-item py-1 px-2 rounded-2" 
+                 [class.active]="activeAgent == agent.id" 
+                 (click)="activeAgent = '' + agent.id; applyFilters(); isAgentDropdownOpen = false"
+                 style="font-size: 0.85rem;">
+                <div class="d-flex align-items-center justify-content-between">
+                  <span>{{ agent.name }}</span>
+                  <span class="badge bg-light text-secondary ms-1" *ngIf="isCurrentUser(agent.id)" style="font-size: 0.68rem;">(You)</span>
+                </div>
+              </a>
+            </ng-container>
+            <ng-template #noAgentsFound>
+              <div class="text-muted text-center py-2" style="font-size: 0.78rem;">
+                No employees found for this department
+              </div>
+            </ng-template>
+          </div>
+        </div>
       </div>
 
       <!-- Dropdown: Enquiry For -->
@@ -222,6 +259,95 @@
           <li><a class="dropdown-item" [class.active]="!activeEnquiryFor" (click)="activeEnquiryFor = ''; applyFilters(); isEnquiryForDropdownOpen = false">All Enquiry For</a></li>
           <li><a class="dropdown-item" *ngFor="let eq of enquiryFors" [class.active]="activeEnquiryFor === '' + eq.id || activeEnquiryFor === eq.name" (click)="activeEnquiryFor = '' + eq.id; applyFilters(); isEnquiryForDropdownOpen = false">{{ eq.name }}</a></li>
         </ul>
+      </div>
+
+      <!-- Dropdown: Follow-up Date Filter (Redesigned) -->
+      <div class="dropdown custom-filter-dropdown followup-date-filter-dropdown" [class.show]="isFollowupDateDropdownOpen">
+        <button class="leads-dropdown-btn dropdown-toggle" 
+                [class.filter-applied]="!!followupDateLabel" 
+                type="button" 
+                (click)="toggleFilterDropdown('followupDate', $event)" 
+                aria-expanded="false"
+                title="Filter by Follow-up Date">
+          <i class="bi bi-calendar3 me-1 text-primary"></i>
+          <span>{{ followupDateLabel || 'Follow-up Date' }}</span>
+          <span *ngIf="followupDateLabel" class="df-pill-clear-btn" (click)="clearFollowupDateFilter($event)" title="Clear Date Filter">
+            <i class="bi bi-x"></i>
+          </span>
+          <i *ngIf="!followupDateLabel" class="bi bi-chevron-down chevron-down-icon"></i>
+        </button>
+
+        <div class="dropdown-menu custom-dropdown-menu date-filter-popover shadow-lg" 
+             [class.show]="isFollowupDateDropdownOpen" 
+             (click)="$event.stopPropagation()">
+          
+          <!-- Header -->
+          <div class="df-header">
+            <div class="df-title">
+              <i class="bi bi-calendar-check text-primary me-1"></i>
+              <span>Follow-up Date</span>
+            </div>
+            <button type="button" class="df-reset-btn" *ngIf="activeFollowupPreset || activeFollowupDate" (click)="clearFollowupDateFilter($event)">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+          </div>
+
+          <!-- Quick Filter Presets -->
+          <div class="df-section-label">Quick Presets</div>
+          <div class="df-presets-grid">
+            <button type="button" 
+                    class="df-preset-chip" 
+                    [class.active]="!activeFollowupPreset && !activeFollowupDate" 
+                    (click)="clearFollowupDateFilter($event)">
+              <span class="preset-dot dot-all"></span> All Dates
+            </button>
+            <button type="button" 
+                    class="df-preset-chip" 
+                    [class.active]="activeFollowupPreset === 'today'" 
+                    (click)="setFollowupPreset('today', 'Today')">
+              <span class="preset-dot dot-today"></span> Today
+            </button>
+            <button type="button" 
+                    class="df-preset-chip" 
+                    [class.active]="activeFollowupPreset === 'tomorrow'" 
+                    (click)="setFollowupPreset('tomorrow', 'Tomorrow')">
+              <span class="preset-dot dot-tomorrow"></span> Tomorrow
+            </button>
+            <button type="button" 
+                    class="df-preset-chip" 
+                    [class.active]="activeFollowupPreset === 'this_week'" 
+                    (click)="setFollowupPreset('this_week', 'This Week')">
+              <span class="preset-dot dot-week"></span> This Week
+            </button>
+            <button type="button" 
+                    class="df-preset-chip chip-overdue" 
+                    [class.active]="activeFollowupPreset === 'overdue'" 
+                    (click)="setFollowupPreset('overdue', 'Overdue')">
+              <span class="preset-dot dot-overdue"></span> Overdue
+            </button>
+          </div>
+
+          <div class="df-divider"></div>
+
+          <!-- Specific Date Picker Section -->
+          <div class="df-section-label">Custom Date</div>
+          <div class="df-custom-date-box">
+            <div class="df-date-input-wrap">
+              <i class="bi bi-calendar-event df-input-icon"></i>
+              <input type="date" 
+                     class="df-date-input" 
+                     [(ngModel)]="customFollowupDate" 
+                     (change)="onCustomFollowupDateChange()">
+            </div>
+            <button type="button" 
+                    class="df-apply-btn" 
+                    [disabled]="!customFollowupDate"
+                    (click)="onCustomFollowupDateChange()">
+              Apply
+            </button>
+          </div>
+
+        </div>
       </div>
 
       <!-- Has Applications Filter Button -->
@@ -668,40 +794,41 @@
 
       <!-- Tabs Navigation (Clean & Cohesive) -->
       <div class="detail-tabs">
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="detailActiveTab = 'Profile'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Profile'" (click)="selectDetailTab('Profile')">
           <i class="bi bi-person"></i> <span>Profile</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="detailActiveTab = 'Timeline'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Timeline'" (click)="selectDetailTab('Timeline')">
           <i class="bi bi-clock-history"></i> <span>Timeline</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="detailActiveTab = 'Application'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Application'" (click)="selectDetailTab('Application')">
           <i class="bi bi-mortarboard"></i> <span>Application</span>
-          <span class="tab-count-badge" *ngIf="selectedContactApplications">{{ selectedContactApplications.length }}</span>
+          <span class="tab-count-badge" *ngIf="applicationsCount > 0">{{ applicationsCount }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Visa'" (click)="detailActiveTab = 'Visa'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Visa'" (click)="selectDetailTab('Visa')">
           <i class="bi bi-passport me-1"></i> <span>Visa</span>
           <span class="tab-count-badge" [ngClass]="getVisaStatusBadgeClass()" *ngIf="contactVisaStatus">{{ contactVisaStatus }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'PTE'" (click)="detailActiveTab = 'PTE'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'PTE'" (click)="selectDetailTab('PTE')">
           <i class="bi bi-mortarboard me-1"></i> <span>PTE</span>
           <span class="tab-count-badge" [ngClass]="getPteStatusBadgeClass()" *ngIf="contactPteStatus">{{ contactPteStatus }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="detailActiveTab = 'Documents'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Documents'" (click)="selectDetailTab('Documents')">
           <i class="bi bi-folder2-open"></i> <span>Documents</span>
+          <span class="tab-count-badge" *ngIf="documentsCount > 0">{{ documentsCount }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Receipt'" (click)="detailActiveTab = 'Receipt'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Receipt'" (click)="selectDetailTab('Receipt')">
           <i class="bi bi-receipt me-1"></i> <span>Receipt</span>
-          <span class="tab-count-badge" *ngIf="selectedContactReceipts">{{ selectedContactReceipts.length }}</span>
+          <span class="tab-count-badge" *ngIf="receiptsCount > 0">{{ receiptsCount }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Qualifications'" (click)="detailActiveTab = 'Qualifications'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Qualifications'" (click)="selectDetailTab('Qualifications')">
           <i class="bi bi-mortarboard me-1"></i> <span>Qualifications</span>
           <span class="tab-count-badge" *ngIf="qualificationsCount > 0">{{ qualificationsCount }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'WorkExperience'" (click)="detailActiveTab = 'WorkExperience'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'WorkExperience'" (click)="selectDetailTab('WorkExperience')">
           <i class="bi bi-briefcase me-1"></i> <span>Work Experience</span>
           <span class="tab-count-badge" *ngIf="experiencesCount > 0">{{ experiencesCount }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Tasks'" (click)="detailActiveTab = 'Tasks'">
+        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Tasks'" (click)="selectDetailTab('Tasks')">
           <i class="bi bi-check2-square me-1"></i> <span>Tasks</span>
           <span class="tab-count-badge" *ngIf="tasksCount > 0">{{ tasksCount }}</span>
         </button>
@@ -746,15 +873,15 @@
                 <div class="detail-grid">
                   <div class="detail-item">
                     <label>Phone</label>
-                    <span>{{ selectedContact.phone || 'ΓÇö' }}</span>
+                    <span>{{ selectedContact.phone || '-' }}</span>
                   </div>
                   <div class="detail-item">
                     <label>Email</label>
-                    <span>{{ selectedContact.email || 'ΓÇö' }}</span>
+                    <span>{{ selectedContact.email || 'No mail' }}</span>
                   </div>
                   <!-- <div class="detail-item">
                     <label>Lead Source</label>
-                    <span>{{ selectedContact.leadSource || 'ΓÇö' }}</span>
+                    <span>{{ selectedContact.leadSource || '-' }}</span>
                   </div>
                   <div class="detail-item">
                     <label>Assigned To</label>
@@ -762,22 +889,107 @@
                   </div>
                   <div class="detail-item">
                     <label>Interested Products</label>
-                    <span>{{ selectedContact.interestedProducts || 'ΓÇö' }}</span>
+                    <span>{{ selectedContact.interestedProducts || '-' }}</span>
                   </div> -->
                 </div>
               </div>
             </div>
 
-            <!-- Student Basic Profile -->
+            <!-- Student Basic Profile (Redesigned) -->
             <div class="col-12 mb-4">
-              <div class="detail-section-card">
-                <h5><i class="bi bi-person-badge me-2 text-primary"></i> Student Basic Profile</h5>
-                <div class="detail-grid">
-                  <div class="detail-item" style="grid-column: 1 / -1;">
-                    <label>Student Basic Profile</label>
-                    <span style="white-space: pre-wrap;">{{ selectedContact.student_basic_profile || '—' }}</span>
+              <div class="detail-section-card sbp-card">
+                <!-- Header -->
+                <div class="sbp-header">
+                  <div class="sbp-title-group">
+                    <div class="sbp-icon-box">
+                      <i class="bi bi-person-vcard-fill"></i>
+                    </div>
+                    <div>
+                      <h5 class="sbp-title">Student Basic Profile</h5>
+                      <span class="sbp-subtitle">Academic background, candidate summary, and consultation notes</span>
+                    </div>
+                  </div>
+
+                  <!-- Actions: Edit / Save / Cancel -->
+                  <div class="sbp-actions">
+                    <button *ngIf="!isEditingStudentProfile" 
+                            type="button" 
+                            class="sbp-btn sbp-btn-edit"
+                            (click)="startEditStudentProfile()"
+                            title="Edit Student Basic Profile">
+                      <i class="bi bi-pencil-square"></i>
+                      <span>Edit Profile</span>
+                    </button>
+
+                    <ng-container *ngIf="isEditingStudentProfile">
+                      <button type="button" 
+                              class="sbp-btn sbp-btn-cancel"
+                              [disabled]="isSavingStudentProfile"
+                              (click)="cancelEditStudentProfile()">
+                        <i class="bi bi-x-lg"></i>
+                        <span>Cancel</span>
+                      </button>
+                      <button type="button" 
+                              class="sbp-btn sbp-btn-save"
+                              [disabled]="isSavingStudentProfile"
+                              (click)="saveStudentBasicProfile()">
+                        <span *ngIf="isSavingStudentProfile" class="spinner-border spinner-border-sm me-1"></span>
+                        <i *ngIf="!isSavingStudentProfile" class="bi bi-check2-circle"></i>
+                        <span>Save Changes</span>
+                      </button>
+                    </ng-container>
                   </div>
                 </div>
+
+                <!-- View Mode: With Content -->
+                <div *ngIf="!isEditingStudentProfile && selectedContact.student_basic_profile" class="sbp-view-box">
+                  <div class="sbp-content-text">{{ selectedContact.student_basic_profile }}</div>
+                </div>
+
+                <!-- View Mode: Empty State -->
+                <div *ngIf="!isEditingStudentProfile && !selectedContact.student_basic_profile" class="sbp-empty-box" (click)="startEditStudentProfile()">
+                  <div class="sbp-empty-icon">
+                    <i class="bi bi-file-earmark-text"></i>
+                  </div>
+                  <div class="sbp-empty-text">
+                    <h6>No student profile summary added yet</h6>
+                    <p>Click here to add educational history, background details, or counsellor notes.</p>
+                  </div>
+                  <button type="button" class="sbp-add-prompt-btn">
+                    <i class="bi bi-plus-lg"></i> Add Summary
+                  </button>
+                </div>
+
+                <!-- Edit Mode -->
+                <div *ngIf="isEditingStudentProfile" class="sbp-edit-container">
+                  <div class="sbp-textarea-wrapper">
+                    <textarea class="sbp-textarea" 
+                              rows="5" 
+                              [(ngModel)]="editingStudentProfileText" 
+                              placeholder="Enter student background, current qualifications, career goals, or specific counsellor notes..."></textarea>
+                  </div>
+                  <div class="sbp-edit-footer">
+                    <span class="sbp-tip text-muted">
+                      <i class="bi bi-info-circle me-1"></i>Markdown and line breaks are preserved automatically.
+                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                      <button type="button" 
+                              class="sbp-btn sbp-btn-cancel"
+                              [disabled]="isSavingStudentProfile"
+                              (click)="cancelEditStudentProfile()">
+                        Cancel
+                      </button>
+                      <button type="button" 
+                              class="sbp-btn sbp-btn-save"
+                              [disabled]="isSavingStudentProfile"
+                              (click)="saveStudentBasicProfile()">
+                        <span *ngIf="isSavingStudentProfile" class="spinner-border spinner-border-sm me-1"></span>
+                        <span>Save Profile</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
             <div class="col-12">
@@ -785,7 +997,7 @@
                 <div class="detail-grid" *ngIf="selectedContact.custom_fields && selectedContact.custom_fields.length > 0">
                   <div class="detail-item" *ngFor="let field of selectedContact.custom_fields">
                     <label>{{ field.label }}</label>
-                    <span>{{ formatFieldValue(field) || 'ΓÇö' }}</span>
+                    <span>{{ formatFieldValue(field) || '-' }}</span>
                   </div>
                 </div>
                 <div class="text-muted small p-3" *ngIf="!selectedContact.custom_fields || selectedContact.custom_fields.length === 0">

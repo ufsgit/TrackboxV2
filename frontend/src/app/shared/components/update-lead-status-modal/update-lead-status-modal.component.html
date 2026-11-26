@@ -41,7 +41,7 @@
       <ng-container *ngIf="isTransferStatus(quickStatusData.status)">
         <div style="display: flex; align-items: center; margin-bottom: 16px;">
           <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">BRANCH</label>
-          <select class="form-select premium-input" [(ngModel)]="quickStatusData.branch" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.branch" (change)="onBranchChange()" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
             <option value="">Select Branch</option>
             <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
           </select>
@@ -49,9 +49,10 @@
 
         <div style="display: flex; align-items: center; margin-bottom: 16px;" *ngIf="quickStatusData.branch">
           <label style="width: 140px; font-weight: 700; font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; flex-shrink: 0;">DEPARTMENT</label>
-          <select class="form-select premium-input" [(ngModel)]="quickStatusData.department" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
+          <select class="form-select premium-input" [(ngModel)]="quickStatusData.department" (change)="onDepartmentChange()" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
             <option value="">Select Department</option>
             <option *ngFor="let d of getFilteredDepartments(quickStatusData.branch)" [value]="d.name">{{ d.name }}</option>
+            <option value="" disabled *ngIf="getFilteredDepartments(quickStatusData.branch).length === 0">No departments found for this branch</option>
           </select>
         </div>
 
@@ -60,6 +61,7 @@
           <select class="form-select premium-input" [(ngModel)]="quickStatusData.assigned_employee" style="flex: 1; border-radius: 12px; border: 1px solid #e2e8f0; padding: 8px 14px; font-size: 0.95rem;">
             <option value="">Select Employee</option>
             <option *ngFor="let e of getFilteredEmployees(quickStatusData.branch, quickStatusData.department)" [value]="e.id">{{ e.name }}</option>
+            <option value="" disabled *ngIf="getFilteredEmployees(quickStatusData.branch, quickStatusData.department).length === 0">No employees found for this department</option>
           </select>
         </div>
       </ng-container>

@@ -141,12 +141,39 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
             this.quickStatusData.follow_up_date = rawDate;
           }
           this.quickStatusData.branch = c.branch_name || c.branch || this.quickStatusData.branch || '';
+          this.quickStatusData.branch_id = c.branch_id || this.quickStatusData.branch_id || null;
           this.quickStatusData.department = c.department_name || c.department || this.quickStatusData.department || '';
+          this.quickStatusData.department_id = c.department_id || this.quickStatusData.department_id || null;
           this.quickStatusData.assigned_employee = c.assigned_to || this.quickStatusData.assigned_employee || '';
           this.quickStatusData.loss_reason = c.loss_reason || this.quickStatusData.loss_reason || '';
+          this.resolveBranchAndDept();
         }
       }
     });
+  }
+
+  resolveBranchAndDept() {
+    if (this.quickStatusData.branch && this.branches.length > 0) {
+      const b = this.branches.find(br => 
+        br.name === this.quickStatusData.branch || 
+        String(br.name).toLowerCase().trim() === String(this.quickStatusData.branch).toLowerCase().trim()
+      );
+      if (b) {
+        this.quickStatusData.branch_id = b.id;
+        this.quickStatusData.branch = b.name;
+      }
+    }
+    if (this.quickStatusData.department && this.departments.length > 0) {
+      const branchId = this.quickStatusData.branch_id;
+      const d = this.departments.find(dp => 
+        (dp.name === this.quickStatusData.department || String(dp.name).toLowerCase().trim() === String(this.quickStatusData.department).toLowerCase().trim()) &&
+        (branchId ? Number(dp.branch_id) === Number(branchId) : true)
+      );
+      if (d) {
+        this.quickStatusData.department_id = d.id;
+        this.quickStatusData.department = d.name;
+      }
+    }
   }
 
   loadStatuses() {
@@ -160,7 +187,10 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
   loadBranches() {
     this.api.get('/system-settings/branches').subscribe({
       next: (res: any) => {
-        if (res.success) this.branches = res.data || [];
+        if (res.success) {
+          this.branches = res.data || [];
+          this.resolveBranchAndDept();
+        }
       }
     });
   }
@@ -168,15 +198,21 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
   loadDepartments() {
     this.api.get('/system-settings/departments').subscribe({
       next: (res: any) => {
-        if (res.success) this.departments = res.data || [];
+        if (res.success) {
+          this.departments = res.data || [];
+          this.resolveBranchAndDept();
+        }
       }
     });
   }
 
   loadTeam() {
-    this.api.get('/settings/team').subscribe({
+    this.api.get('/settings/team', { for_assignment: 'true' }).subscribe({
       next: (res: any) => {
-        if (res.success) this.employees = res.data || [];
+        if (res.success) {
+          this.employees = res.data || [];
+          this.resolveBranchAndDept();
+        }
       }
     });
   }
@@ -197,24 +233,64 @@ export class UpdateLeadStatusModalComponent implements OnInit, OnChanges {
     return fn === 'Yes' || fn === true || fn === 1 || String(fn).toLowerCase() === 'yes' || String(fn).toLowerCase() === 'true' || String(fn) === '1';
   }
 
+  onBranchChange(): void {
+    // Cascading reset: changing branch resets department and employee
+    this.quickStatusData.department = '';
+    this.quickStatusData.department_id = null;
+    this.quickStatusData.assigned_employee = '';
+    
+    const b = this.branches.find(br => 
+      br.name === this.quickStatusData.branch || 
+      String(br.name).toLowerCase().trim() === String(this.quickStatusData.branch).toLowerCase().trim()
+    );
+    this.quickStatusData.branch_id = b ? b.id : null;
+  }
+
+  onDepartmentChange(): void {
+    // Cascading reset: changing department resets employee
+    this.quickStatusData.assigned_employee = '';
+    
+    const branchId = this.quickStatusData.branch_id;
+    const d = this.departments.find(dp => 
+      (dp.name === this.quickStatusData.department || String(dp.name).toLowerCase().trim() === String(this.quickStatusData.department).toLowerCase().trim()) && 
+      (branchId ? Number(dp.branch_id) === Number(branchId) : true)
+    );
+    this.quickStatusData.department_id = d ? d.id : null;
+  }
+
   getFilteredDepartments(branchName: string): any[] {
-    if (!branchName) return this.departments;
-    const b = this.branches.find(br => br.name === branchName);
-    if (!b) return this.departments;
-    return this.departments.filter(d => d.branch_id === b.id);
+    if (!branchName) return [];
+    const b = this.branches.find(br => 
+      br.name === branchName || 
+      String(br.name).toLowerCase().trim() === String(branchName).toLowerCase().trim()
+    );
+    if (!b) return [];
+    return this.departments.filter(d => Number(d.branch_id) === Number(b.id));
   }
 
   getFilteredEmployees(branchName: string, deptName: string): any[] {
-    let filtered = this.employees;
-    if (branchName) {
-      const b = this.branches.find(br => br.name === branchName);
-      if (b) filtered = filtered.filter(e => e.branch_id === b.id || e.branch === branchName);
-    }
-    if (deptName) {
-      const d = this.departments.find(dp => dp.name === deptName);
-      if (d) filtered = filtered.filter(e => e.department_id === d.id || e.department === deptName);
-    }
-    return filtered;
+    if (!branchName || !deptName) return [];
+    const b = this.branches.find(br => 
+      br.name === branchName || 
+      String(br.name).toLowerCase().trim() === String(branchName).toLowerCase().trim()
+    );
+    const branchId = b ? Number(b.id) : null;
+    
+    const d = this.departments.find(dp => 
+      (dp.name === deptName || String(dp.name).toLowerCase().trim() === String(deptName).toLowerCase().trim()) && 
+      (branchId ? Number(dp.branch_id) === branchId : true)
+    );
+    const deptId = d ? Number(d.id) : null;
+
+    return this.employees.filter(e => {
+      const matchBranch = branchId 
+        ? (Number(e.branch_id) === branchId || String(e.branch_name || e.branch || '').toLowerCase().trim() === String(branchName).toLowerCase().trim())
+        : true;
+      const matchDept = deptId 
+        ? (Number(e.department_id) === deptId || String(e.department_name || e.department || '').toLowerCase().trim() === String(deptName).toLowerCase().trim())
+        : true;
+      return matchBranch && matchDept;
+    });
   }
 
   onViewProfile() {

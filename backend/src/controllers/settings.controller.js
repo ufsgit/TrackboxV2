@@ -47,7 +47,7 @@ const getTeam = async (req, res) => {
        WHERE u.business_id=? AND (u.is_dev = 0 OR u.is_dev IS NULL)`;
     const queryParams = [req.user.businessId];
 
-    if (!isAdmin && accessibleUserIds !== null) {
+    if (!isAdmin && accessibleUserIds !== null && req.query.for_assignment !== 'true' && req.query.scope !== 'all') {
       if (accessibleUserIds.length === 0) {
         return res.json({ success: true, data: [], message: 'OK' });
       }

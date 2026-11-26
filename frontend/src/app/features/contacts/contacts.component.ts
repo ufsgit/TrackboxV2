@@ -76,6 +76,10 @@ export class ContactsComponent implements OnInit {
   isWaMsgModalOpen = false;
   selectedWaContact: any = null;
   activeEnquiryFor = '';
+  activeFollowupPreset: string = '';
+  activeFollowupDate: string = '';
+  customFollowupDate: string = '';
+  followupDateLabel: string = '';
   allTags: string[] = [];
   transferredOnly: boolean = false;
   filterWithApplications: boolean = false;
@@ -202,6 +206,7 @@ export class ContactsComponent implements OnInit {
   isAgentDropdownOpen = false;
   isTagDropdownOpen = false;
   isEnquiryForDropdownOpen = false;
+  isFollowupDateDropdownOpen = false;
 
   toggleFilterDropdown(dropdownName: string, event: Event) {
     event.stopPropagation();
@@ -211,6 +216,7 @@ export class ContactsComponent implements OnInit {
     if (dropdownName !== 'agent') this.isAgentDropdownOpen = false;
     if (dropdownName !== 'tag') this.isTagDropdownOpen = false;
     if (dropdownName !== 'enquiryFor') this.isEnquiryForDropdownOpen = false;
+    if (dropdownName !== 'followupDate') this.isFollowupDateDropdownOpen = false;
 
     switch(dropdownName) {
       case 'channel': this.isChannelDropdownOpen = !this.isChannelDropdownOpen; break;
@@ -218,6 +224,7 @@ export class ContactsComponent implements OnInit {
       case 'agent': this.isAgentDropdownOpen = !this.isAgentDropdownOpen; break;
       case 'tag': this.isTagDropdownOpen = !this.isTagDropdownOpen; break;
       case 'enquiryFor': this.isEnquiryForDropdownOpen = !this.isEnquiryForDropdownOpen; break;
+      case 'followupDate': this.isFollowupDateDropdownOpen = !this.isFollowupDateDropdownOpen; break;
     }
   }
 
@@ -230,6 +237,7 @@ export class ContactsComponent implements OnInit {
     this.isAgentDropdownOpen = false;
     this.isTagDropdownOpen = false;
     this.isEnquiryForDropdownOpen = false;
+    this.isFollowupDateDropdownOpen = false;
   }
 
   // Lead Details Panel
@@ -588,7 +596,55 @@ export class ContactsComponent implements OnInit {
   qualificationsCount: number = 0;
   experiencesCount: number = 0;
   tasksCount: number = 0;
+  applicationsCount: number = 0;
+  receiptsCount: number = 0;
+  documentsCount: number = 0;
+  loadedDetailTabs: Set<string> = new Set<string>();
   contactVisaStatus: string = '';
+
+  // Student Basic Profile inline edit
+  isEditingStudentProfile: boolean = false;
+  editingStudentProfileText: string = '';
+  isSavingStudentProfile: boolean = false;
+
+  startEditStudentProfile(): void {
+    this.editingStudentProfileText = this.selectedContact?.student_basic_profile || '';
+    this.isEditingStudentProfile = true;
+  }
+
+  cancelEditStudentProfile(): void {
+    this.isEditingStudentProfile = false;
+    this.editingStudentProfileText = '';
+  }
+
+  saveStudentBasicProfile(): void {
+    if (!this.selectedContact?.id) return;
+    this.isSavingStudentProfile = true;
+    const payload = {
+      student_basic_profile: this.editingStudentProfileText.trim()
+    };
+    this.api.put(`/contacts/${this.selectedContact.id}`, payload).subscribe({
+      next: (res: any) => {
+        this.isSavingStudentProfile = false;
+        if (res.success) {
+          const updatedVal = this.editingStudentProfileText.trim();
+          this.selectedContact.student_basic_profile = updatedVal;
+          const match = this.contacts.find((c: any) => c.id === this.selectedContact.id);
+          if (match) {
+            match.student_basic_profile = updatedVal;
+          }
+          this.isEditingStudentProfile = false;
+          this.showAction('Student basic profile updated successfully');
+        } else {
+          Swal.fire('Error', res.message || 'Failed to update student profile', 'error');
+        }
+      },
+      error: (err: any) => {
+        this.isSavingStudentProfile = false;
+        Swal.fire('Error', err.error?.message || 'Error updating student profile', 'error');
+      }
+    });
+  }
 
   onVisaStatusChange(status: string): void {
     this.contactVisaStatus = status;
@@ -905,7 +961,7 @@ export class ContactsComponent implements OnInit {
   }
 
   get canFilterAgents(): boolean {
-    return this.auth.hasRole('admin', 'superadmin') || (this.agents && this.agents.length > 1);
+    return true; // Available for all users in this CRM
   }
 
   get canTransferLeads(): boolean {
@@ -1062,8 +1118,66 @@ export class ContactsComponent implements OnInit {
     this.settingsService.getEnquiryFors().subscribe({ next: (res: any) => { if(res.success) this.enquiryFors = res.data; }});
   }
 
+  filterAgentBranch: string = '';
+  filterAgentDepartment: string = '';
+
+  onFilterAgentBranchChange() {
+    this.filterAgentDepartment = '';
+  }
+
+  onFilterAgentDepartmentChange() {
+    // Handled dynamically
+  }
+
+  getFilteredAgentDepartments(): any[] {
+    if (!this.filterAgentBranch) return this.departments || [];
+    const b = (this.branches || []).find(br => 
+      br.name === this.filterAgentBranch || 
+      String(br.name).toLowerCase().trim() === String(this.filterAgentBranch).toLowerCase().trim()
+    );
+    if (!b) return this.departments || [];
+    return (this.departments || []).filter(d => Number(d.branch_id) === Number(b.id));
+  }
+
+  getFilteredAgents(): any[] {
+    let list = this.agents || [];
+    if (this.filterAgentBranch) {
+      const b = (this.branches || []).find(br => 
+        br.name === this.filterAgentBranch || 
+        String(br.name).toLowerCase().trim() === String(this.filterAgentBranch).toLowerCase().trim()
+      );
+      const branchId = b ? Number(b.id) : null;
+      if (branchId) {
+        list = list.filter(a => Number(a.branch_id) === branchId || a.branch_name === this.filterAgentBranch);
+      }
+    }
+    if (this.filterAgentDepartment) {
+      const d = (this.departments || []).find(dp => 
+        dp.name === this.filterAgentDepartment || 
+        String(dp.name).toLowerCase().trim() === String(this.filterAgentDepartment).toLowerCase().trim()
+      );
+      const deptId = d ? Number(d.id) : null;
+      if (deptId) {
+        list = list.filter(a => Number(a.department_id) === deptId || a.department_name === this.filterAgentDepartment);
+      }
+    }
+    return list;
+  }
+
+  clearAgentFilter(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.activeAgent = '';
+    this.filterAgentBranch = '';
+    this.filterAgentDepartment = '';
+    this.isAgentDropdownOpen = false;
+    this.applyFilters();
+  }
+
   loadAgents() {
-    this.api.get('/settings/team').subscribe({
+    this.api.get('/settings/team', { for_assignment: 'true' }).subscribe({
       next: (res: any) => {
         if (res.success && Array.isArray(res.data)) {
           this.employees = res.data;
@@ -1168,12 +1282,8 @@ export class ContactsComponent implements OnInit {
     });
   }
 
-  loadContacts() {
-    this.loading = true;
-    const params: any = {
-      page: this.currentPage,
-      limit: this.pageSize
-    };
+  getCommonFilterParams(): any {
+    const params: any = {};
     const sVal = (this.activeStatus || '').trim().toLowerCase();
     const isNotFollowUp = sVal === 'status is not follow up' || sVal === 'not follow up' || sVal === 'no follow up' || sVal === 'no date';
     if (!isNotFollowUp) {
@@ -1189,6 +1299,18 @@ export class ContactsComponent implements OnInit {
     if (this.filterWithApplications) params.has_applications = 1;
     if (this.activeAppStatusFilter) params.app_status = this.activeAppStatusFilter;
     if (this.activeReceiptTypeFilter) params.receipt_type = this.activeReceiptTypeFilter;
+    if (this.activeFollowupPreset) params.followup_preset = this.activeFollowupPreset;
+    if (this.activeFollowupDate) params.followup_date = this.activeFollowupDate;
+    return params;
+  }
+
+  loadContacts() {
+    this.loading = true;
+    const params: any = {
+      page: this.currentPage,
+      limit: this.pageSize,
+      ...this.getCommonFilterParams()
+    };
     
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {
@@ -1288,8 +1410,15 @@ export class ContactsComponent implements OnInit {
     this.qualificationsCount = 0;
     this.experiencesCount = 0;
     this.tasksCount = 0;
+    this.applicationsCount = 0;
+    this.receiptsCount = 0;
+    this.documentsCount = 0;
+    this.loadedDetailTabs.clear();
     this.contactVisaStatus = '';
     this.contactPteStatus = '';
+    this.isEditingStudentProfile = false;
+    this.editingStudentProfileText = '';
+    this.isSavingStudentProfile = false;
     this.detailActiveTab = initialTab;
     this.api.get(`/contacts/${contact.id}`).subscribe({
       next: (res: any) => {
@@ -1299,14 +1428,12 @@ export class ContactsComponent implements OnInit {
             tags: Array.isArray(res.data.tags) ? res.data.tags : JSON.parse(res.data.tags || '[]')
           };
           this.generateDummyData();
-          this.loadApplications(contact.id);
-          this.loadLeads(contact.id);
-          this.loadDocuments(contact.id);
-          this.loadContactHistory(contact.id);
-          this.loadReceiptTypes();
-          this.loadReceipts(contact.id);
-          this.loadVisa(contact.id);
+          // Load only counts upfront so all badges are visible immediately
           this.loadAcademicCounts(contact.id);
+          // If opened directly with a specific non-profile tab, load only that tab's data
+          if (initialTab && initialTab !== 'Profile') {
+            this.loadTabData(initialTab, contact.id);
+          }
         }
         this.detailLoading = false;
       },
@@ -1329,11 +1456,20 @@ export class ContactsComponent implements OnInit {
     this.qualificationsCount = 0;
     this.experiencesCount = 0;
     this.tasksCount = 0;
+    this.applicationsCount = 0;
+    this.receiptsCount = 0;
+    this.documentsCount = 0;
+    this.loadedDetailTabs.clear();
     this.selectedContactApplications = [];
     this.selectedContactReceipts = [];
     this.selectedContactQualifications = [];
     this.selectedContactExperiences = [];
     this.visaHistoryList = [];
+    this.contactVisaStatus = '';
+    this.contactPteStatus = '';
+    this.isEditingStudentProfile = false;
+    this.editingStudentProfileText = '';
+    this.isSavingStudentProfile = false;
 
     if (!navigateBack) return;
 
@@ -1353,13 +1489,58 @@ export class ContactsComponent implements OnInit {
     }
   }
 
+  // --- TAB NAVIGATION & ON-DEMAND LAZY LOADING ---
+  selectDetailTab(tabName: string): void {
+    this.detailActiveTab = tabName;
+    if (this.selectedContact?.id) {
+      this.loadTabData(tabName, this.selectedContact.id);
+    }
+  }
+
+  loadTabData(tabName: string, contactId: number): void {
+    if (this.loadedDetailTabs.has(tabName)) return;
+
+    switch (tabName) {
+      case 'Application':
+        this.loadApplications(contactId);
+        this.loadedDetailTabs.add(tabName);
+        break;
+      case 'Timeline':
+        this.loadContactHistory(contactId);
+        this.loadedDetailTabs.add(tabName);
+        break;
+      case 'Documents':
+        this.loadDocuments(contactId);
+        this.loadedDetailTabs.add(tabName);
+        break;
+      case 'Receipt':
+        this.loadReceiptTypes();
+        this.loadReceipts(contactId);
+        this.loadedDetailTabs.add(tabName);
+        break;
+      case 'Visa':
+        this.loadVisa(contactId);
+        this.loadedDetailTabs.add(tabName);
+        break;
+      case 'Contact History':
+        this.loadContactHistory(contactId);
+        this.loadedDetailTabs.add(tabName);
+        break;
+      default:
+        break;
+    }
+  }
+
   // --- APPLICATIONS LOGIC ---
   loadApplications(contactId: number) {
     this.loadingApplications = true;
     this.selectedContactApplications = [];
     this.appsService.getApplications(contactId).subscribe({
       next: (res: any) => {
-        if (res.success) this.selectedContactApplications = res.data;
+        if (res.success) {
+          this.selectedContactApplications = res.data;
+          this.applicationsCount = res.data.length;
+        }
         this.loadingApplications = false;
       },
       error: () => {
@@ -1373,6 +1554,7 @@ export class ContactsComponent implements OnInit {
       next: (res: any) => {
         if (res.success) {
           this.contactDocuments = res.data;
+          this.documentsCount = res.data.length;
         }
       }
     });
@@ -1399,6 +1581,7 @@ export class ContactsComponent implements OnInit {
           next: (res: any) => {
             if (res.success) {
               this.contactDocuments = this.contactDocuments.filter((d: any) => d.id !== doc.id);
+              this.documentsCount = this.contactDocuments.length;
               this.showAction('Document deleted successfully');
             } else {
               Swal.fire('Error', res.message || 'Failed to delete document', 'error');
@@ -1702,6 +1885,7 @@ export class ContactsComponent implements OnInit {
       next: (res: any) => {
         if (res.success) {
           this.selectedContactReceipts = res.data;
+          this.receiptsCount = res.data.length;
           this.totalReceiptAmount = res.totalAmount || 0;
         }
         this.loadingReceipts = false;
@@ -1816,16 +2000,31 @@ export class ContactsComponent implements OnInit {
           this.qualificationsCount = res.data.qualifications_count || 0;
           this.experiencesCount = res.data.experiences_count || 0;
           this.tasksCount = res.data.tasks_count || 0;
+          this.applicationsCount = res.data.applications_count || 0;
+          this.receiptsCount = res.data.receipts_count || 0;
+          this.documentsCount = res.data.documents_count || 0;
+          if (res.data.visa_status) {
+            this.contactVisaStatus = res.data.visa_status;
+          }
+          if (res.data.pte_status) {
+            this.contactPteStatus = res.data.pte_status;
+          }
         } else {
           this.qualificationsCount = 0;
           this.experiencesCount = 0;
           this.tasksCount = 0;
+          this.applicationsCount = 0;
+          this.receiptsCount = 0;
+          this.documentsCount = 0;
         }
       },
       error: () => {
         this.qualificationsCount = 0;
         this.experiencesCount = 0;
         this.tasksCount = 0;
+        this.applicationsCount = 0;
+        this.receiptsCount = 0;
+        this.documentsCount = 0;
       }
     });
   }
@@ -2814,7 +3013,7 @@ export class ContactsComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.activeEnquiryFor || this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter);
+    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.activeEnquiryFor || this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter || this.activeFollowupPreset || this.activeFollowupDate);
   }
 
   resetAllFilters() {
@@ -2822,13 +3021,64 @@ export class ContactsComponent implements OnInit {
     this.activeChannel = '';
     this.activeStatus = '';
     this.activeAgent = '';
+    this.filterAgentBranch = '';
+    this.filterAgentDepartment = '';
     this.activeTag = '';
     this.activeEnquiryFor = '';
+    this.activeFollowupPreset = '';
+    this.activeFollowupDate = '';
+    this.customFollowupDate = '';
+    this.followupDateLabel = '';
     this.transferredOnly = false;
     this.filterWithApplications = false;
     this.activeAppStatusFilter = '';
     this.activeReceiptTypeFilter = '';
     this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  setFollowupPreset(preset: string, label: string) {
+    this.activeFollowupPreset = preset;
+    this.activeFollowupDate = '';
+    this.customFollowupDate = '';
+    this.followupDateLabel = label;
+    this.isFollowupDateDropdownOpen = false;
+    this.applyFilters();
+  }
+
+  onCustomFollowupDateChange() {
+    if (this.customFollowupDate) {
+      this.activeFollowupDate = this.customFollowupDate;
+      this.activeFollowupPreset = '';
+      try {
+        const parts = this.customFollowupDate.split('-');
+        if (parts.length === 3) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          this.followupDateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } else {
+          this.followupDateLabel = this.customFollowupDate;
+        }
+      } catch (e) {
+        this.followupDateLabel = this.customFollowupDate;
+      }
+    } else {
+      this.activeFollowupDate = '';
+      this.followupDateLabel = '';
+    }
+    this.isFollowupDateDropdownOpen = false;
+    this.applyFilters();
+  }
+
+  clearFollowupDateFilter(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.activeFollowupPreset = '';
+    this.activeFollowupDate = '';
+    this.customFollowupDate = '';
+    this.followupDateLabel = '';
+    this.isFollowupDateDropdownOpen = false;
     this.applyFilters();
   }
 
@@ -2850,22 +3100,10 @@ export class ContactsComponent implements OnInit {
 
   loadCalendarData(autoOpenToday: boolean = false) {
     this.calendarLoading = true;
-    // We fetch a larger limit to ensure we get most leads for the calendar view. 
-    // In a production scenario with millions of leads, we'd want a dedicated endpoint.
-    const params: any = { limit: 5000 };
-    const sVal = (this.activeStatus || '').trim().toLowerCase();
-    const isNotFollowUp = sVal === 'status is not follow up' || sVal === 'not follow up' || sVal === 'no follow up' || sVal === 'no date';
-    if (!isNotFollowUp) {
-      params.has_followup = 1;
-    }
-    if (this.searchQuery) params.search = this.searchQuery;
-    if (this.activeTag) params.tags = this.activeTag;
-    if (this.activeChannel) params.channel = this.activeChannel;
-    if (this.activeStatus) params.status = this.activeStatus;
-    if (this.activeAgent) params.agent = this.activeAgent;
-    if (this.activeEnquiryFor) params.enquiry_for = this.activeEnquiryFor;
-    if (this.transferredOnly) params.transferred_only = true;
-    if (this.filterWithApplications) params.has_applications = 1;
+    const params: any = {
+      limit: 5000,
+      ...this.getCommonFilterParams()
+    };
 
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {

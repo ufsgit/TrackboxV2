@@ -118,7 +118,29 @@ BEGIN
 
     (SELECT COUNT(*) 
      FROM contact_tasks 
-     WHERE contact_id = p_contact_id AND status = 0) AS tasks_count;
+     WHERE contact_id = p_contact_id AND status = 0) AS tasks_count,
+
+    (SELECT COUNT(*) 
+     FROM applications 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS applications_count,
+
+    (SELECT COUNT(*) 
+     FROM receipts 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS receipts_count,
+
+    (SELECT COUNT(*) 
+     FROM user_document_upload 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS documents_count,
+
+    (SELECT status 
+     FROM visas 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id AND (is_deleted = 0 OR is_deleted IS NULL) 
+     ORDER BY id DESC LIMIT 1) AS visa_status,
+
+    (SELECT status 
+     FROM pte_students 
+     WHERE contact_id = p_contact_id AND business_id = p_business_id AND (is_deleted = 0 OR is_deleted IS NULL) 
+     ORDER BY id DESC LIMIT 1) AS pte_status;
 END$$
 DELIMITER ;
 

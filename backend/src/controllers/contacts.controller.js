@@ -43,7 +43,7 @@ const paginate = (page, limit) => {
 
 const getContacts = async (req, res) => {
   try {
-    const { page, limit, tags, channel, search, status, agent, has_followup, has_applications, app_status, receipt_type, enquiry_for } = req.query;
+    const { page, limit, tags, channel, search, status, agent, has_followup, has_applications, app_status, receipt_type, enquiry_for, followup_date, followup_from, followup_to, followup_preset } = req.query;
     const { offset, limit: lim, page: p } = paginate(page, limit);
     const bizId = req.user.businessId;
 
@@ -88,13 +88,8 @@ const getContacts = async (req, res) => {
       } else if (agent === 'unassigned') {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else if (agent) {
-        const reqAgentId = Number(agent);
-        if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND c.assigned_to = ? ';
-          params.push(reqAgentId);
-        } else {
-          where += ' AND 1 = 0 ';
-        }
+        where += ' AND c.assigned_to = ? ';
+        params.push(Number(agent));
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
         where += ` AND c.assigned_to IN (${placeholders})`;
@@ -138,6 +133,29 @@ const getContacts = async (req, res) => {
       where += ` AND (c.enquiry_for_id = ? OR EXISTS (SELECT 1 FROM enquiry_fors ef WHERE ef.id = c.enquiry_for_id AND LOWER(TRIM(ef.name)) = LOWER(TRIM(?))))`;
       params.push(enquiry_for, enquiry_for);
     }
+    if (followup_date) {
+      where += ' AND DATE(c.follow_up_date) = DATE(?)';
+      params.push(followup_date);
+    } else if (followup_from && followup_to) {
+      where += ' AND DATE(c.follow_up_date) BETWEEN DATE(?) AND DATE(?)';
+      params.push(followup_from, followup_to);
+    } else if (followup_from) {
+      where += ' AND DATE(c.follow_up_date) >= DATE(?)';
+      params.push(followup_from);
+    } else if (followup_to) {
+      where += ' AND DATE(c.follow_up_date) <= DATE(?)';
+      params.push(followup_to);
+    } else if (followup_preset === 'today') {
+      where += ' AND DATE(c.follow_up_date) = CURDATE()';
+    } else if (followup_preset === 'tomorrow') {
+      where += ' AND DATE(c.follow_up_date) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)';
+    } else if (followup_preset === 'this_week') {
+      where += ' AND YEARWEEK(c.follow_up_date, 1) = YEARWEEK(CURDATE(), 1)';
+    } else if (followup_preset === 'overdue') {
+      where += ' AND DATE(c.follow_up_date) < CURDATE() AND c.follow_up_date IS NOT NULL';
+    } else if (followup_preset === 'no_date') {
+      where += ' AND c.follow_up_date IS NULL';
+    }
 
     const [[{ total, with_followup, without_followup }]] = await pool.query(`
       SELECT 
@@ -154,7 +172,7 @@ const getContacts = async (req, res) => {
       LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
       ${where} 
-      ORDER BY c.created_at DESC, c.id DESC 
+      ORDER BY (c.follow_up_date IS NULL) ASC, c.follow_up_date ASC, c.id ASC 
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 
@@ -3002,28 +3020,15 @@ const bulkTransferContacts = async (req, res) => {
       const finalStatusId = resolvedStatusId !== null ? resolvedStatusId : (contact.status_id || null);
       const finalStatusName = resolvedStatusId !== null ? resolvedStatusName : (contact.status_name || null);
 
-      await conn.query(
-        `INSERT INTO follow_ups (
-          contact_id, contact_name, follow_up_date, by_user_id, by_user_name,
-          to_user_id, to_user_name, status_id, status_name,
-          branch_id, branch_name, department_id, department_name, remarks
-        ) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          contactId,
-          contact.name || contact.phone || 'Lead',
-          userId,
-          byUserName,
-          targetUserId,
-          targetUserName,
-          finalStatusId,
-          finalStatusName,
-          finalBranchId,
-          finalBranchName,
-          finalDeptId,
-          finalDeptName,
-          transferRemarks
-        ]
-      );
+      // Lead transfer is an administrative assignment event, not a counseling follow-up call.
+      // We log transfer notes to contact_history instead of polluting the follow_ups table
+      // so counselor notes and follow-up schedules are never overwritten or hidden.
+      if (transferRemarks) {
+        await conn.query(
+          'INSERT INTO contact_history (contact_id, business_id, user_id, field_name, old_value, new_value) VALUES (?, ?, ?, ?, ?, ?)',
+          [contactId, bizId, userId, 'transfer_note', '', transferRemarks]
+        );
+      }
 
       let currentList = contact.user_list ? (typeof contact.user_list === 'string' ? JSON.parse(contact.user_list) : contact.user_list) : [];
       if (!Array.isArray(currentList)) currentList = [];
@@ -3034,7 +3039,7 @@ const bulkTransferContacts = async (req, res) => {
         currentList.push(targetUserId);
       }
 
-      const updateFields = ['assigned_to = ?', 'user_list = ?', 'follow_up_count = COALESCE(follow_up_count, 0) + 1'];
+      const updateFields = ['assigned_to = ?', 'user_list = ?'];
       const updateParams = [targetUserId, JSON.stringify(currentList)];
 
       if (resolvedBranchId !== null) {
@@ -3149,13 +3154,8 @@ const getTotalLeads = async (req, res) => {
       } else if (agent === 'unassigned') {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else if (agent) {
-        const reqAgentId = Number(agent);
-        if (accessibleUserIds.includes(reqAgentId)) {
-          where += ' AND c.assigned_to = ? ';
-          params.push(reqAgentId);
-        } else {
-          where += ' AND 1 = 0 ';
-        }
+        where += ' AND c.assigned_to = ? ';
+        params.push(Number(agent));
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
         where += ` AND c.assigned_to IN (${placeholders})`;
@@ -3233,7 +3233,7 @@ const getTotalLeads = async (req, res) => {
       LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
       ${where}
-      ORDER BY c.created_at DESC, c.id DESC
+      ORDER BY (c.follow_up_date IS NULL) ASC, c.follow_up_date ASC, c.id ASC
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 

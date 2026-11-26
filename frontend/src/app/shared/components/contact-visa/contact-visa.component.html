@@ -115,10 +115,10 @@
         </span>
 
         <div class="vh-actions">
-          <button class="btn-vh-rfi" (click)="openAddRequestModal()" title="Log Official Immigration Request">
+          <!-- <button class="btn-vh-rfi" (click)="openAddRequestModal()" title="Log Official Immigration Request">
             <i class="bi bi-envelope-exclamation"></i>
             <span>Log Request</span>
-          </button>
+          </button> -->
 
           <button class="btn-vh-edit" (click)="openEditModal()" title="Edit Visa Details">
             <i class="bi bi-pencil-square"></i>
@@ -163,7 +163,7 @@
         <i class="bi bi-info-circle"></i> Case Overview
       </button>
 
-      <button 
+      <!-- <button 
         type="button" 
         class="vtab-btn" 
         [class.active]="activeSection === 'requests'" 
@@ -172,7 +172,7 @@
         <span class="vtab-counter" *ngIf="visa.requests && visa.requests.length > 0">
           {{ visa.requests.length }}
         </span>
-      </button>
+      </button> -->
 
       <button 
         type="button" 
@@ -298,8 +298,8 @@
       </div>
     </div>
 
-    <!-- 5. SUB-TAB 2: IMMIGRATION REQUESTS (VISA-001) -->
-    <div *ngIf="activeSection === 'requests'" class="vtab-pane">
+    <!-- 5. SUB-TAB 2: IMMIGRATION REQUESTS (VISA-001) - HIDDEN -->
+    <div *ngIf="false && activeSection === 'requests'" class="vtab-pane">
       <div class="tab-pane-header">
         <div>
           <h5 class="tab-pane-title">Official Immigration Requests (RFI / PPI)</h5>
