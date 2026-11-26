@@ -193,30 +193,25 @@
           <i *ngIf="!activeAgent" class="bi bi-chevron-down chevron-down-icon"></i>
         </button>
 
-        <div class="dropdown-menu custom-dropdown-menu shadow-lg p-2" [class.show]="isAgentDropdownOpen" style="min-width: 270px;" (click)="$event.stopPropagation()">
+        <div class="dropdown-menu custom-dropdown-menu shadow-lg p-2" [class.show]="isAgentDropdownOpen" style="min-width: 250px;" (click)="$event.stopPropagation()">
           
-          <!-- Cascade Filters: Branch & Department Header -->
-          <div class="p-2 border-bottom mb-2 bg-light rounded-3">
-            <!-- Branch Filter -->
-            <div class="mb-2">
-              <label class="form-label mb-1 text-muted" style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Branch</label>
-              <select class="form-select form-select-sm" [(ngModel)]="filterAgentBranch" (change)="onFilterAgentBranchChange()" style="border-radius: 8px; font-size: 0.82rem;">
-                <option value="">All Branches</option>
-                <option *ngFor="let b of branches" [value]="b.name">{{ b.name }}</option>
-              </select>
-            </div>
-            <!-- Department Filter -->
-            <div>
-              <label class="form-label mb-1 text-muted" style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Department</label>
-              <select class="form-select form-select-sm" [(ngModel)]="filterAgentDepartment" (change)="onFilterAgentDepartmentChange()" style="border-radius: 8px; font-size: 0.82rem;">
-                <option value="">All Departments</option>
-                <option *ngFor="let d of getFilteredAgentDepartments()" [value]="d.name">{{ d.name }}</option>
-              </select>
+          <!-- Agent Search Box -->
+          <div class="p-1 mb-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light border-end-0 text-muted" style="border-radius: 8px 0 0 8px;">
+                <i class="bi bi-search" style="font-size: 0.78rem;"></i>
+              </span>
+              <input type="text" 
+                     class="form-control form-control-sm border-start-0 bg-light" 
+                     placeholder="Search users / agents..." 
+                     [(ngModel)]="agentSearchText" 
+                     (click)="$event.stopPropagation()"
+                     style="border-radius: 0 8px 8px 0; font-size: 0.82rem;">
             </div>
           </div>
 
           <!-- Quick Agent Options -->
-          <div style="max-height: 220px; overflow-y: auto;">
+          <div style="max-height: 240px; overflow-y: auto;">
             <a class="dropdown-item py-1 px-2 rounded-2" [class.active]="!activeAgent" (click)="activeAgent = ''; applyFilters(); isAgentDropdownOpen = false" style="font-size: 0.85rem; font-weight: 600;">
               All Agents
             </a>
@@ -226,7 +221,7 @@
             </a>
             <div class="dropdown-divider my-1"></div>
             
-            <!-- Filtered Agents List -->
+            <!-- All Users / Filtered Agents List -->
             <ng-container *ngIf="getFilteredAgents().length > 0; else noAgentsFound">
               <a *ngFor="let agent of getFilteredAgents()" 
                  class="dropdown-item py-1 px-2 rounded-2" 
@@ -241,7 +236,7 @@
             </ng-container>
             <ng-template #noAgentsFound>
               <div class="text-muted text-center py-2" style="font-size: 0.78rem;">
-                No employees found for this department
+                No users found
               </div>
             </ng-template>
           </div>

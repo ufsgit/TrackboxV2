@@ -81,7 +81,7 @@ export class ContactsComponent implements OnInit {
   customFollowupDate: string = '';
   followupDateLabel: string = '';
   allTags: string[] = [];
-  transferredOnly: boolean = false;
+  transferredOnly: boolean = true;
   filterWithApplications: boolean = false;
   activeAppStatusFilter: string = '';
   activeReceiptTypeFilter: string = '';
@@ -221,7 +221,12 @@ export class ContactsComponent implements OnInit {
     switch(dropdownName) {
       case 'channel': this.isChannelDropdownOpen = !this.isChannelDropdownOpen; break;
       case 'status': this.isStatusDropdownOpen = !this.isStatusDropdownOpen; break;
-      case 'agent': this.isAgentDropdownOpen = !this.isAgentDropdownOpen; break;
+      case 'agent': 
+        this.isAgentDropdownOpen = !this.isAgentDropdownOpen; 
+        if (this.isAgentDropdownOpen) {
+          this.agentSearchText = '';
+        }
+        break;
       case 'tag': this.isTagDropdownOpen = !this.isTagDropdownOpen; break;
       case 'enquiryFor': this.isEnquiryForDropdownOpen = !this.isEnquiryForDropdownOpen; break;
       case 'followupDate': this.isFollowupDateDropdownOpen = !this.isFollowupDateDropdownOpen; break;
@@ -1012,6 +1017,10 @@ export class ContactsComponent implements OnInit {
         this.activeEnquiryFor = params['enquiry_for'];
         shouldFilter = true;
       }
+      if (params['transferred_only'] !== undefined) {
+        this.transferredOnly = params['transferred_only'] === 'true' || params['transferred_only'] === '1';
+        shouldFilter = true;
+      }
       if (shouldFilter) {
         this.applyFilters();
       }
@@ -1120,6 +1129,7 @@ export class ContactsComponent implements OnInit {
 
   filterAgentBranch: string = '';
   filterAgentDepartment: string = '';
+  agentSearchText: string = '';
 
   onFilterAgentBranchChange() {
     this.filterAgentDepartment = '';
@@ -1141,25 +1151,12 @@ export class ContactsComponent implements OnInit {
 
   getFilteredAgents(): any[] {
     let list = this.agents || [];
-    if (this.filterAgentBranch) {
-      const b = (this.branches || []).find(br => 
-        br.name === this.filterAgentBranch || 
-        String(br.name).toLowerCase().trim() === String(this.filterAgentBranch).toLowerCase().trim()
+    if (this.agentSearchText && this.agentSearchText.trim()) {
+      const q = this.agentSearchText.trim().toLowerCase();
+      list = list.filter(a => 
+        (a.name && a.name.toLowerCase().includes(q)) || 
+        (a.email && a.email.toLowerCase().includes(q))
       );
-      const branchId = b ? Number(b.id) : null;
-      if (branchId) {
-        list = list.filter(a => Number(a.branch_id) === branchId || a.branch_name === this.filterAgentBranch);
-      }
-    }
-    if (this.filterAgentDepartment) {
-      const d = (this.departments || []).find(dp => 
-        dp.name === this.filterAgentDepartment || 
-        String(dp.name).toLowerCase().trim() === String(this.filterAgentDepartment).toLowerCase().trim()
-      );
-      const deptId = d ? Number(d.id) : null;
-      if (deptId) {
-        list = list.filter(a => Number(a.department_id) === deptId || a.department_name === this.filterAgentDepartment);
-      }
     }
     return list;
   }
@@ -1170,6 +1167,7 @@ export class ContactsComponent implements OnInit {
       event.preventDefault();
     }
     this.activeAgent = '';
+    this.agentSearchText = '';
     this.filterAgentBranch = '';
     this.filterAgentDepartment = '';
     this.isAgentDropdownOpen = false;
@@ -3013,7 +3011,7 @@ export class ContactsComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.activeEnquiryFor || this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter || this.activeFollowupPreset || this.activeFollowupDate);
+    return !!(this.searchQuery || this.activeChannel || this.activeStatus || this.activeAgent || this.activeTag || this.activeEnquiryFor || !this.transferredOnly || this.filterWithApplications || this.activeAppStatusFilter || this.activeFollowupPreset || this.activeFollowupDate);
   }
 
   resetAllFilters() {
@@ -3029,7 +3027,7 @@ export class ContactsComponent implements OnInit {
     this.activeFollowupDate = '';
     this.customFollowupDate = '';
     this.followupDateLabel = '';
-    this.transferredOnly = false;
+    this.transferredOnly = true;
     this.filterWithApplications = false;
     this.activeAppStatusFilter = '';
     this.activeReceiptTypeFilter = '';
