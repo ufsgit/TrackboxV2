@@ -536,14 +536,23 @@ export class ContactsComponent implements OnInit {
   // Dynamic Filtering Helpers
   getFilteredDepartments(branchName: string) {
     if (!branchName) return [];
-    const branch = this.branches.find(b => b.name === branchName);
+    const branch = this.branches.find(b => b.name === branchName || String(b.name).toLowerCase().trim() === String(branchName).toLowerCase().trim());
     if (!branch) return [];
-    return this.departments.filter(d => d.branch_id === branch.id);
+    return this.departments.filter(d => Number(d.branch_id) === Number(branch.id));
   }
 
   getFilteredEmployees(branchName: string, departmentName: string) {
     if (!branchName || !departmentName) return [];
-    return this.employees.filter(e => e.branch_name === branchName && e.department_name === departmentName);
+    const branch = this.branches.find(b => b.name === branchName || String(b.name).toLowerCase().trim() === String(branchName).toLowerCase().trim());
+    const branchId = branch ? Number(branch.id) : null;
+    const dept = this.departments.find(d => (d.name === departmentName || String(d.name).toLowerCase().trim() === String(departmentName).toLowerCase().trim()) && (branchId ? Number(d.branch_id) === branchId : true));
+    const deptId = dept ? Number(dept.id) : null;
+
+    return (this.employees || []).filter(e => {
+      const matchBranch = branchId ? (Number(e.branch_id) === branchId || String(e.branch_name || '').toLowerCase().trim() === String(branchName).toLowerCase().trim()) : true;
+      const matchDept = deptId ? (Number(e.department_id) === deptId || String(e.department_name || '').toLowerCase().trim() === String(departmentName).toLowerCase().trim()) : true;
+      return matchBranch && matchDept;
+    });
   }
 
   getEmployeeName(employeeId: any): string {
@@ -2595,8 +2604,11 @@ export class ContactsComponent implements OnInit {
       this.newContact.department_name = selDept.name;
     }
 
-    if (this.newContact.assign_type === 'employee' && this.newContact.assigned_employee) {
-      const selEmp = this.employees?.find((e: any) => e.name === this.newContact.assigned_employee);
+    if (this.newContact.assigned_employee) {
+      const selEmp = this.employees?.find((e: any) => 
+        e.name === this.newContact.assigned_employee || 
+        String(e.id) === String(this.newContact.assigned_employee)
+      );
       if (selEmp) {
         this.newContact.assigned_to = selEmp.id;
       }
@@ -3098,10 +3110,24 @@ export class ContactsComponent implements OnInit {
 
   loadCalendarData(autoOpenToday: boolean = false) {
     this.calendarLoading = true;
+
+    // Calculate the start and end date of the currently viewed calendar month
+    const year = this.calendarCurrentDate.getFullYear();
+    const month = this.calendarCurrentDate.getMonth();
+    const lastDay = new Date(year, month + 1, 0);
+
+    const fromDateStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const toDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+
     const params: any = {
-      limit: 5000,
-      ...this.getCommonFilterParams()
+      ...this.getCommonFilterParams(),
+      followup_from: fromDateStr,
+      followup_to: toDateStr
     };
+    // Remove global limit 5000 and single-date filters so month range is strictly loaded
+    delete params.limit;
+    if (params.followup_preset) delete params.followup_preset;
+    if (params.followup_date) delete params.followup_date;
 
     this.api.get('/contacts', params).subscribe({
       next: (res: any) => {

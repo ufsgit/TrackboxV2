@@ -90,7 +90,7 @@ export class ExcelImportComponent implements OnInit {
   }
 
   loadAgents() {
-    this.api.get('/settings/team').subscribe({
+    this.api.get('/settings/team', { for_assignment: 'true' }).subscribe({
       next: (res: any) => {
         if (res.success) {
           this.employees = res.data;
@@ -143,14 +143,23 @@ export class ExcelImportComponent implements OnInit {
 
   getFilteredDepartments(branchName: string) {
     if (!branchName) return [];
-    const branch = this.branches.find(b => b.name === branchName);
+    const branch = this.branches.find(b => b.name === branchName || String(b.name).toLowerCase().trim() === String(branchName).toLowerCase().trim());
     if (!branch) return [];
-    return this.departments.filter(d => d.branch_id === branch.id);
+    return this.departments.filter(d => Number(d.branch_id) === Number(branch.id));
   }
 
   getFilteredEmployees(branchName: string, departmentName: string) {
     if (!branchName || !departmentName) return [];
-    return this.employees.filter(e => e.branch_name === branchName && e.department_name === departmentName);
+    const branch = this.branches.find(b => b.name === branchName || String(b.name).toLowerCase().trim() === String(branchName).toLowerCase().trim());
+    const branchId = branch ? Number(branch.id) : null;
+    const dept = this.departments.find(d => (d.name === departmentName || String(d.name).toLowerCase().trim() === String(departmentName).toLowerCase().trim()) && (branchId ? Number(d.branch_id) === branchId : true));
+    const deptId = dept ? Number(dept.id) : null;
+
+    return (this.employees || []).filter(e => {
+      const matchBranch = branchId ? (Number(e.branch_id) === branchId || String(e.branch_name || '').toLowerCase().trim() === String(branchName).toLowerCase().trim()) : true;
+      const matchDept = deptId ? (Number(e.department_id) === deptId || String(e.department_name || '').toLowerCase().trim() === String(departmentName).toLowerCase().trim()) : true;
+      return matchBranch && matchDept;
+    });
   }
 
   onFileChange(event: any) {

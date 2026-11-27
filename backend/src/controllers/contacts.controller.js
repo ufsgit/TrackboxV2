@@ -78,28 +78,50 @@ const getContacts = async (req, res) => {
     }
 
     const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    const selfId = Number(req.user.userId || req.user.id);
+
     if (accessibleUserIds !== null) {
       if (accessibleUserIds.length === 0) {
         where += ' AND 1 = 0 ';
-      } else if (req.query.transferred_only === 'true') {
-        const selfId = Number(req.user.userId || req.user.id);
-        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-        params.push(selfId.toString(), selfId.toString(), selfId, selfId);
       } else if (agent === 'unassigned') {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
+        if (req.query.transferred_only === 'true') {
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?)`;
+          params.push(selfId.toString(), selfId.toString(), selfId);
+        }
       } else if (agent) {
-        where += ' AND c.assigned_to = ? ';
-        params.push(Number(agent));
+        const targetAgentId = Number(agent);
+        if (targetAgentId === selfId) {
+          if (req.query.transferred_only === 'true') {
+            where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+            params.push(selfId.toString(), selfId.toString(), selfId, selfId);
+          } else {
+            where += ' AND c.assigned_to = ? ';
+            params.push(selfId);
+          }
+        } else {
+          // Logged-in agent selects another agent (e.g. Swa): only show leads assigned to Swa that this user created or was part of
+          where += ' AND c.assigned_to = ? ';
+          params.push(targetAgentId);
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?)`;
+          params.push(selfId.toString(), selfId.toString(), selfId);
+        }
+      } else if (req.query.transferred_only === 'true') {
+        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+        params.push(selfId.toString(), selfId.toString(), selfId, selfId);
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
         where += ` AND c.assigned_to IN (${placeholders})`;
         params.push(...accessibleUserIds);
       }
     } else {
+      // Admin / Superadmin
       if (req.query.transferred_only === 'true') {
-        if (agent) {
-          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-          params.push(agent.toString(), agent, agent, agent);
+        if (agent === 'unassigned') {
+          where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) AND (JSON_LENGTH(c.user_list) > 1 OR (c.created_by_user IS NOT NULL AND c.created_by_user != c.assigned_to))';
+        } else if (agent) {
+          where += ' AND c.assigned_to = ? AND (JSON_LENGTH(c.user_list) > 1 OR (c.created_by_user IS NOT NULL AND c.created_by_user != c.assigned_to))';
+          params.push(Number(agent));
         } else {
           where += ` AND (JSON_LENGTH(c.user_list) > 1 OR (c.created_by_user IS NOT NULL AND c.created_by_user != c.assigned_to))`;
         }
@@ -107,7 +129,7 @@ const getContacts = async (req, res) => {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
       } else if (agent) {
         where += ' AND c.assigned_to = ?';
-        params.push(agent);
+        params.push(Number(agent));
       }
     }
     if (channel) { where += ' AND c.channel_preference = ?'; params.push(channel); }
@@ -415,10 +437,7 @@ const createContact = async (reqOrData, res) => {
       }
     }
 
-    let assignTo = assigned_to || null;
-    if (isHttp && reqOrData.user?.role === 'agent') {
-      assignTo = reqOrData.user.userId;
-    }
+    let assignTo = assigned_to ? Number(assigned_to) : (actingUserId ? Number(actingUserId) : null);
     let userList = [];
     if (actingUserId && assignTo && Number(actingUserId) !== Number(assignTo)) {
       userList = [Number(actingUserId), Number(assignTo)];
@@ -957,6 +976,7 @@ const importContacts = async (req, res) => {
     const globalDepartmentId = req.body.department_id || null;
     const globalStatusId = req.body.status_id || null;
     const globalEnquirySourceId = req.body.enquiry_source_id || null;
+    const globalAssignedTo = req.body.assigned_to ? Number(req.body.assigned_to) : null;
 
     const [statusRows] = await conn.query('SELECT id, name, type FROM statuses');
     const statusMap = new Map();
@@ -988,6 +1008,22 @@ const importContacts = async (req, res) => {
       [req.user.userId]
     );
     const uploaderInfo = uploaderRows[0] || {};
+
+    // Get assigned user info if globalAssignedTo is provided
+    let globalAssignedUserInfo = null;
+    if (globalAssignedTo) {
+      const [assignedUserRows] = await conn.query(
+        `SELECT u.id, u.branch_id, b.name as branch_name, u.department_id, d.name as department_name 
+         FROM users u 
+         LEFT JOIN branches b ON u.branch_id = b.id 
+         LEFT JOIN departments d ON u.department_id = d.id 
+         WHERE u.id = ?`,
+        [globalAssignedTo]
+      );
+      if (assignedUserRows.length > 0) {
+        globalAssignedUserInfo = assignedUserRows[0];
+      }
+    }
     
     // Get info for all assigned users to avoid querying in the loop
     const userDetailsMap = {};
@@ -1030,15 +1066,15 @@ const importContacts = async (req, res) => {
       if (!phone) continue; // Skip rows without phone
 
       // Distribution Logic
-      let assignTo = req.user.userId; // Default to uploader
-      let branch_id = globalBranchId || uploaderInfo.branch_id || null;
-      let branch_name = globalBranchName || uploaderInfo.branch_name || null;
-      let department_id = globalDepartmentId || uploaderInfo.department_id || null;
-      let department_name = globalDepartmentName || uploaderInfo.department_name || null;
+      let assignTo = globalAssignedTo || req.user.userId; // Default to selected employee, fallback to uploader
+      let branch_id = globalBranchId || (globalAssignedUserInfo?.branch_id) || uploaderInfo.branch_id || null;
+      let branch_name = globalBranchName || (globalAssignedUserInfo?.branch_name) || uploaderInfo.branch_name || null;
+      let department_id = globalDepartmentId || (globalAssignedUserInfo?.department_id) || uploaderInfo.department_id || null;
+      let department_name = globalDepartmentName || (globalAssignedUserInfo?.department_name) || uploaderInfo.department_name || null;
 
       if (assignments && assignments.length > 0 && currentUserAssignmentIndex < assignments.length) {
         const currentAssignment = assignments[currentUserAssignmentIndex];
-        assignTo = currentAssignment.userId;
+        assignTo = Number(currentAssignment.userId);
         
         // Only use agent's branch/dept if global wasn't provided
         const targetUserDetails = userDetailsMap[assignTo];
@@ -1069,16 +1105,19 @@ const importContacts = async (req, res) => {
         continue;
       }
 
-      const userList = [assignTo];
+      const uploaderId = Number(req.user.userId || req.user.id);
+      const userList = (uploaderId && assignTo && uploaderId !== Number(assignTo))
+        ? [uploaderId, Number(assignTo)]
+        : [Number(assignTo)];
       const enquiryForId = globalEnquirySourceId || null;
       const statusId = sObj ? sObj.id : null;
 
       const [result] = await conn.query(
         `INSERT INTO contacts 
-         (business_id, name, phone, email, tags, address, opt_in_source, assigned_to, branch_id, branch_name, department_id, department_name, user_list, enquiry_for_id, status_id) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+         (business_id, name, phone, email, tags, address, opt_in_source, assigned_to, branch_id, branch_name, department_id, department_name, user_list, enquiry_for_id, status_id, created_by_user) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
          ON DUPLICATE KEY UPDATE name=VALUES(name), tags=VALUES(tags), address=VALUES(address), assigned_to=VALUES(assigned_to), branch_id=VALUES(branch_id), branch_name=VALUES(branch_name), department_id=VALUES(department_id), department_name=VALUES(department_name), user_list=VALUES(user_list), enquiry_for_id=IFNULL(VALUES(enquiry_for_id), enquiry_for_id), status_id=IFNULL(VALUES(status_id), status_id)`,
-        [bizId, name, phone, email, tags, address, 'import', assignTo, branch_id, branch_name, department_id, department_name, JSON.stringify(userList), enquiryForId, statusId]
+        [bizId, name, phone, email, tags, address, 'import', assignTo, branch_id, branch_name, department_id, department_name, JSON.stringify(userList), enquiryForId, statusId, uploaderId]
       );
       
       // Check if it's a new insert or update by checking affectedRows.
@@ -1700,7 +1739,7 @@ const processLegacyImportContacts = async (conn, req, res, leads, statusAndAssig
       }
 
       const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-      const userList  = [assignedTo];
+      const userList = (userId && assignedTo && Number(userId) !== Number(assignedTo)) ? [Number(userId), Number(assignedTo)] : [Number(assignedTo)];
 
       // Resolve Channel via Stored Procedure sp_resolve_or_create_channel
       let rowChannelId = null;
@@ -2045,7 +2084,7 @@ const processBulkImportContacts = async (conn, req, res, leads, statusAndAssignm
     const remark = rowRemark || defaultRemark || 'Imported via Excel';
 
     const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const userList = [assignedTo];
+    const userList = (userId && assignedTo && Number(userId) !== Number(assignedTo)) ? [Number(userId), Number(assignedTo)] : [Number(assignedTo)];
 
     candidateRows.push({
       actualRowNumber,
@@ -2378,23 +2417,49 @@ const buildContactFilterWhere = (bizId, user, { channel, status, tag, search, ag
   if (user.role === 'agent') {
     const selfId = Number(user.userId);
     if (transferred_only === 'true') {
-      where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-      params.push(selfId.toString(), selfId.toString(), selfId);
+      if (agent) {
+        const targetAgentId = Number(agent);
+        if (targetAgentId === selfId) {
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+          params.push(selfId.toString(), selfId.toString(), selfId, selfId);
+        } else {
+          where += ' AND c.assigned_to = ?';
+          params.push(targetAgentId);
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?)`;
+          params.push(selfId.toString(), selfId.toString(), selfId);
+        }
+      } else {
+        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
+        params.push(selfId.toString(), selfId.toString(), selfId, selfId);
+      }
     } else {
-      where += ` AND (c.assigned_to = ? OR JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?))`;
-      params.push(selfId, selfId.toString(), selfId.toString());
+      if (agent) {
+        const targetAgentId = Number(agent);
+        if (targetAgentId === selfId) {
+          where += ' AND c.assigned_to = ?';
+          params.push(selfId);
+        } else {
+          where += ' AND c.assigned_to = ?';
+          params.push(targetAgentId);
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?)`;
+          params.push(selfId.toString(), selfId.toString(), selfId);
+        }
+      } else {
+        where += ` AND (c.assigned_to = ? OR JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?))`;
+        params.push(selfId, selfId.toString(), selfId.toString());
+      }
     }
   } else {
     if (transferred_only === 'true') {
       if (agent) {
-        where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?)) AND (c.assigned_to != ? OR c.assigned_to IS NULL)`;
-        params.push(agent.toString(), agent, agent);
+        where += ' AND c.assigned_to = ? AND (JSON_LENGTH(c.user_list) > 1 OR (c.created_by_user IS NOT NULL AND c.created_by_user != c.assigned_to))';
+        params.push(Number(agent));
       } else {
-        where += ` AND JSON_LENGTH(c.user_list) > 1`;
+        where += ` AND (JSON_LENGTH(c.user_list) > 1 OR (c.created_by_user IS NOT NULL AND c.created_by_user != c.assigned_to))`;
       }
     } else if (agent) {
       where += ' AND c.assigned_to = ?';
-      params.push(agent);
+      params.push(Number(agent));
     }
   }
 
@@ -3148,14 +3213,23 @@ const getTotalLeads = async (req, res) => {
 
     // Hierarchy / Accessibility scope
     const accessibleUserIds = await getAccessibleUserIds(req.user, bizId);
+    const selfId = Number(req.user.userId || req.user.id);
     if (accessibleUserIds !== null) {
       if (accessibleUserIds.length === 0) {
         where += ' AND 1 = 0 ';
       } else if (agent === 'unassigned') {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0) ';
       } else if (agent) {
-        where += ' AND c.assigned_to = ? ';
-        params.push(Number(agent));
+        const targetAgentId = Number(agent);
+        if (targetAgentId === selfId) {
+          where += ' AND c.assigned_to = ? ';
+          params.push(selfId);
+        } else {
+          where += ' AND c.assigned_to = ? ';
+          params.push(targetAgentId);
+          where += ` AND (JSON_CONTAINS(c.user_list, JSON_QUOTE(?)) OR JSON_CONTAINS(c.user_list, ?) OR c.created_by_user = ?)`;
+          params.push(selfId.toString(), selfId.toString(), selfId);
+        }
       } else {
         const placeholders = accessibleUserIds.map(() => '?').join(',');
         where += ` AND c.assigned_to IN (${placeholders})`;
@@ -3167,7 +3241,7 @@ const getTotalLeads = async (req, res) => {
         where += ' AND (c.assigned_to IS NULL OR c.assigned_to = 0)';
       } else if (agent) {
         where += ' AND c.assigned_to = ?';
-        params.push(agent);
+        params.push(Number(agent));
       }
     }
 
