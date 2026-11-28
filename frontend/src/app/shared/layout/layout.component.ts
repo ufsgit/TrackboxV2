@@ -76,6 +76,79 @@ export class LayoutComponent implements OnInit {
   isCheckedIn = false;
   currentEmployeeName = 'Current User';
 
+  // Global Check Phone Popover State
+  showPhoneCheckModal = false;
+  phoneSearchNumber = '';
+  isCheckingPhone = false;
+  phoneCheckResult: {
+    searched: boolean;
+    exists: boolean;
+    message?: string;
+    data?: any;
+  } = { searched: false, exists: false, data: null };
+
+  togglePhoneCheckModal(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.showPhoneCheckModal = !this.showPhoneCheckModal;
+    if (this.showPhoneCheckModal) {
+      this.showNotificationDropdown = false;
+      this.showUserProfileDropdown = false;
+      this.isDepartmentDropdownOpen = false;
+      this.isSettingsOpen = false;
+      this.isReportsOpen = false;
+    }
+  }
+
+  closePhoneCheckModal() {
+    this.showPhoneCheckModal = false;
+  }
+
+  onCheckPhoneNumber() {
+    const raw = (this.phoneSearchNumber || '').trim();
+    if (!raw) return;
+
+    this.isCheckingPhone = true;
+    this.phoneCheckResult.searched = false;
+
+    this.apiService.checkContactPhone(raw).subscribe({
+      next: (res: any) => {
+        this.isCheckingPhone = false;
+        if (res && res.success) {
+          this.phoneCheckResult = {
+            searched: true,
+            exists: !!res.exists,
+            message: res.message,
+            data: res.data || null
+          };
+        } else {
+          this.phoneCheckResult = {
+            searched: true,
+            exists: false,
+            message: res?.message || 'Number not found in CRM.',
+            data: null
+          };
+        }
+      },
+      error: (err: any) => {
+        this.isCheckingPhone = false;
+        console.error('Error checking phone:', err);
+        this.phoneCheckResult = {
+          searched: true,
+          exists: false,
+          message: err?.error?.message || 'Error checking phone number.',
+          data: null
+        };
+      }
+    });
+  }
+
+  clearPhoneCheck() {
+    this.phoneSearchNumber = '';
+    this.phoneCheckResult = { searched: false, exists: false, data: null };
+  }
+
   // Help Video Modal State
   showHelpVideoModal = false;
   helpVideoLoading = false;
@@ -131,6 +204,7 @@ export class LayoutComponent implements OnInit {
       this.showNotificationDropdown = false;
       this.showUserProfileDropdown = false;
       this.isMobileMenuOpen = false;
+      this.showPhoneCheckModal = false;
     });
   }
 
@@ -311,6 +385,9 @@ export class LayoutComponent implements OnInit {
     const target = event.target as HTMLElement;
     if (!target.closest('.notification-wrapper')) {
       this.showNotificationDropdown = false;
+    }
+    if (!target.closest('.phone-checker-nav-wrapper')) {
+      this.showPhoneCheckModal = false;
     }
     if (!target.closest('.user-profile-wrapper')) {
       this.showUserProfileDropdown = false;

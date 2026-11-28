@@ -72,10 +72,10 @@
           <i class="bi bi-mortarboard"></i> <span>Application</span>
           <span class="tab-count-badge" *ngIf="selectedContactApplications">{{ selectedContactApplications.length }}</span>
         </button>
-        <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Visa'" (click)="detailActiveTab = 'Visa'">
+        <!-- <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'Visa'" (click)="detailActiveTab = 'Visa'">
           <i class="bi bi-passport me-1"></i> <span>Visa</span>
           <span class="tab-count-badge" [ngClass]="getVisaStatusBadgeClass()" *ngIf="contactVisaStatus">{{ contactVisaStatus }}</span>
-        </button>
+        </button> -->
         <button type="button" class="tab-btn" [class.active]="detailActiveTab === 'PTE'" (click)="detailActiveTab = 'PTE'">
           <i class="bi bi-mortarboard me-1"></i> <span>PTE</span>
           <span class="tab-count-badge" [ngClass]="getPteStatusBadgeClass()" *ngIf="contactPteStatus">{{ contactPteStatus }}</span>

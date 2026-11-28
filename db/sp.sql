@@ -118,29 +118,7 @@ BEGIN
 
     (SELECT COUNT(*) 
      FROM contact_tasks 
-     WHERE contact_id = p_contact_id AND status = 0) AS tasks_count,
-
-    (SELECT COUNT(*) 
-     FROM applications 
-     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS applications_count,
-
-    (SELECT COUNT(*) 
-     FROM receipts 
-     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS receipts_count,
-
-    (SELECT COUNT(*) 
-     FROM user_document_upload 
-     WHERE contact_id = p_contact_id AND business_id = p_business_id) AS documents_count,
-
-    (SELECT status 
-     FROM visas 
-     WHERE contact_id = p_contact_id AND business_id = p_business_id AND (is_deleted = 0 OR is_deleted IS NULL) 
-     ORDER BY id DESC LIMIT 1) AS visa_status,
-
-    (SELECT status 
-     FROM pte_students 
-     WHERE contact_id = p_contact_id AND business_id = p_business_id AND (is_deleted = 0 OR is_deleted IS NULL) 
-     ORDER BY id DESC LIMIT 1) AS pte_status;
+     WHERE contact_id = p_contact_id AND status = 0) AS tasks_count;
 END$$
 DELIMITER ;
 
@@ -338,6 +316,151 @@ BEGIN
   WHERE w.contact_id = p_contact_id 
     AND w.business_id = p_business_id
   ORDER BY w.sort_order ASC, w.from_date DESC, w.id ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_crm_dashboard_pipeline`(
+  IN p_business_id INT,
+  IN p_user_id     INT,
+  IN p_user_role   VARCHAR(50),
+  IN p_range       VARCHAR(50)
+)
+BEGIN
+  -- Count Variables
+  DECLARE v_total_leads    INT DEFAULT 0;
+  DECLARE v_pending_leads  INT DEFAULT 0;
+  DECLARE v_upcoming_leads INT DEFAULT 0;
+  DECLARE v_won_leads      INT DEFAULT 0;
+  DECLARE v_lost_leads     INT DEFAULT 0;
+
+  -- Percentage Variables
+  DECLARE v_pct_pending    VARCHAR(10) DEFAULT '0%';
+  DECLARE v_pct_upcoming   VARCHAR(10) DEFAULT '0%';
+  DECLARE v_pct_won        VARCHAR(10) DEFAULT '0%';
+  DECLARE v_pct_lost       VARCHAR(10) DEFAULT '0%';
+
+  /* -------------------------------------------------------------
+     1. Temporary Table: Resolve Me + All Teammates (Bidirectional)
+     ------------------------------------------------------------- */
+  DROP TEMPORARY TABLE IF EXISTS tmp_my_team;
+  CREATE TEMPORARY TABLE tmp_my_team (user_id INT PRIMARY KEY);
+
+  -- Add myself
+  INSERT IGNORE INTO tmp_my_team (user_id) VALUES (p_user_id);
+
+  -- Add teammates (both teams I own and teams I am a member of)
+  INSERT IGNORE INTO tmp_my_team (user_id)
+  SELECT DISTINCT tm.user_id
+  FROM team_members tm
+  WHERE tm.team_id IN (
+    SELECT t.id FROM teams t WHERE t.user_id = p_user_id AND t.business_id = p_business_id
+    UNION
+    SELECT tm2.team_id FROM team_members tm2 WHERE tm2.user_id = p_user_id
+  );
+
+  /* -------------------------------------------------------------
+     2. Single Query: Calculate All Counts Accurately
+     ------------------------------------------------------------- */
+  SELECT 
+    COUNT(*),
+    -- Won
+    COALESCE(SUM(CASE 
+      WHEN c.current_sale_status = 1 OR c.sale_won = 1 THEN 1 
+      ELSE 0 
+    END), 0),
+    -- Lost
+    COALESCE(SUM(CASE 
+      WHEN c.current_sale_status = 2 OR c.sale_lost = 1 THEN 1 
+      ELSE 0 
+    END), 0),
+    -- Pending: Strictly Past follow_up_date AND not Won/Lost
+    COALESCE(SUM(CASE 
+      WHEN c.follow_up_date IS NOT NULL 
+           AND DATE(c.follow_up_date) < CURDATE() 
+           AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+           AND COALESCE(c.sale_won, 0) = 0
+           AND COALESCE(c.sale_lost, 0) = 0 THEN 1 
+      ELSE 0 
+    END), 0),
+    -- Upcoming: Strictly Future follow_up_date AND not Won/Lost
+    COALESCE(SUM(CASE 
+      WHEN c.follow_up_date IS NOT NULL 
+           AND DATE(c.follow_up_date) > CURDATE() 
+           AND COALESCE(c.current_sale_status, 0) NOT IN (1, 2)
+           AND COALESCE(c.sale_won, 0) = 0
+           AND COALESCE(c.sale_lost, 0) = 0 THEN 1 
+      ELSE 0 
+    END), 0)
+  INTO 
+    v_total_leads,
+    v_won_leads,
+    v_lost_leads,
+    v_pending_leads,
+    v_upcoming_leads
+  FROM contacts c
+  WHERE c.business_id = p_business_id
+    AND c.assigned_to IN (SELECT user_id FROM tmp_my_team);
+
+  /* -------------------------------------------------------------
+     3. Calculate Percentage Values
+     ------------------------------------------------------------- */
+  IF v_total_leads > 0 THEN
+    SET v_pct_pending  = CONCAT(ROUND((v_pending_leads / v_total_leads) * 100, 1), '%');
+    SET v_pct_upcoming = CONCAT(ROUND((v_upcoming_leads / v_total_leads) * 100, 1), '%');
+    SET v_pct_won      = CONCAT(ROUND((v_won_leads / v_total_leads) * 100, 1), '%');
+    SET v_pct_lost     = CONCAT(ROUND((v_lost_leads / v_total_leads) * 100, 1), '%');
+  ELSE
+    SET v_pct_pending  = '0%';
+    SET v_pct_upcoming = '0%';
+    SET v_pct_won      = '0%';
+    SET v_pct_lost     = '0%';
+  END IF;
+
+  /* -------------------------------------------------------------
+     4. Output Funnel Stage Rows
+     ------------------------------------------------------------- */
+  SELECT 
+    'Total Leads' AS label,
+    v_total_leads AS value,
+    '100%' AS pct,
+    '#3B82F6' AS colorA,
+    '#2563EB' AS colorB,
+    1 AS sequence
+  UNION ALL
+  SELECT 
+    'Pending' AS label,
+    v_pending_leads AS value,
+    v_pct_pending AS pct,
+    '#22B8CF' AS colorA,
+    '#0E9FB5' AS colorB,
+    2 AS sequence
+  UNION ALL
+  SELECT 
+    'Upcoming' AS label,
+    v_upcoming_leads AS value,
+    v_pct_upcoming AS pct,
+    '#3DD598' AS colorA,
+    '#1FB874' AS colorB,
+    3 AS sequence
+  UNION ALL
+  SELECT 
+    'Won' AS label,
+    v_won_leads AS value,
+    v_pct_won AS pct,
+    '#F8B84E' AS colorA,
+    '#F59B2B' AS colorB,
+    4 AS sequence
+  UNION ALL
+  SELECT 
+    'Lost' AS label,
+    v_lost_leads AS value,
+    v_pct_lost AS pct,
+    '#F472A0' AS colorA,
+    '#E8508A' AS colorB,
+    5 AS sequence
+  ORDER BY sequence ASC;
+
 END$$
 DELIMITER ;
 
@@ -985,6 +1108,52 @@ BEGIN
     AND w.business_id = p_business_id
   ORDER BY w.sort_order ASC, w.from_date DESC, w.id ASC;
 END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_check_contact_phone_exists`(
+          IN p_business_id   INT,
+          IN p_phone         VARCHAR(50),
+          IN p_country_code  VARCHAR(10)
+      )
+BEGIN
+          DECLARE v_clean_digits VARCHAR(50);
+          DECLARE v_last10       VARCHAR(10);
+          DECLARE v_c_code       VARCHAR(10);
+
+          SET v_c_code = TRIM(COALESCE(p_country_code, ''));
+          IF v_c_code != '' AND NOT v_c_code LIKE '+%' THEN
+              SET v_c_code = CONCAT('+', v_c_code);
+          END IF;
+
+          SET v_clean_digits = REGEXP_REPLACE(COALESCE(p_phone, ''), '[^0-9]', '');
+          IF LENGTH(v_clean_digits) >= 10 THEN
+              SET v_last10 = RIGHT(v_clean_digits, 10);
+          ELSE
+              SET v_last10 = v_clean_digits;
+          END IF;
+
+          SELECT 
+              c.id,
+              c.name,
+              c.phone,
+              COALESCE(c.country_code, '+91')        AS country_code,
+              COALESCE(c.status_name, 'Unassigned')  AS status_name,
+              c.assigned_to,
+              COALESCE(u.name, 'Unassigned')         AS assigned_agent,
+              c.created_at,
+              1                                      AS already_exists
+          FROM contacts c
+          LEFT JOIN users u ON c.assigned_to = u.id
+          WHERE c.business_id = p_business_id
+            AND (
+                c.phone = TRIM(p_phone)
+                OR (v_c_code != '' AND c.phone = CONCAT(v_c_code, v_clean_digits))
+                OR (v_last10 != '' AND c.phone LIKE CONCAT('%', v_last10))
+            )
+          ORDER BY c.id DESC
+          LIMIT 1;
+      END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -1766,196 +1935,6 @@ BEGIN
 
   DROP TEMPORARY TABLE IF EXISTS tmp_trailing_months;
 
-END$$
-DELIMITER ;
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_get_crm_dashboard_pipeline`(
-  IN p_business_id INT,
-  IN p_user_id INT,
-  IN p_user_role VARCHAR(50),
-  IN p_range VARCHAR(50)
-)
-BEGIN
-  DECLARE v_agent_team_id INT DEFAULT NULL;
-  DECLARE v_is_agent INT DEFAULT 0;
-  DECLARE v_date_filter_mode VARCHAR(20) DEFAULT 'all_time';
-
-  DECLARE v_total_leads INT DEFAULT 0;
-  DECLARE v_pending_leads INT DEFAULT 0;
-  DECLARE v_upcoming_leads INT DEFAULT 0;
-  DECLARE v_won_leads INT DEFAULT 0;
-  DECLARE v_lost_leads INT DEFAULT 0;
-
-  DECLARE v_pct_pending VARCHAR(10) DEFAULT '0%';
-  DECLARE v_pct_upcoming VARCHAR(10) DEFAULT '0%';
-  DECLARE v_pct_won VARCHAR(10) DEFAULT '0%';
-  DECLARE v_pct_lost VARCHAR(10) DEFAULT '0%';
-
-  /* -------------------------------------------------------------
-     1. IF CONDITION: Role Evaluation & Team Scoping
-     ------------------------------------------------------------- */
-  IF p_user_role NOT IN ('admin', 'superadmin') THEN
-    SET v_is_agent = 1;
-    SELECT id INTO v_agent_team_id 
-    FROM teams 
-    WHERE user_id = p_user_id AND business_id = p_business_id 
-    LIMIT 1;
-  ELSE
-    SET v_is_agent = 0;
-  END IF;
-
-  /* -------------------------------------------------------------
-     2. Temporary Table for Scoped Agent Team Members
-     ------------------------------------------------------------- */
-  DROP TEMPORARY TABLE IF EXISTS tmp_pipeline_agents;
-  CREATE TEMPORARY TABLE tmp_pipeline_agents (
-    user_id INT PRIMARY KEY
-  );
-
-  IF v_is_agent = 1 THEN
-    INSERT IGNORE INTO tmp_pipeline_agents (user_id) VALUES (p_user_id);
-    IF v_agent_team_id IS NOT NULL THEN
-      INSERT IGNORE INTO tmp_pipeline_agents (user_id)
-      SELECT user_id FROM team_members WHERE team_id = v_agent_team_id;
-    END IF;
-  END IF;
-
-  /* -------------------------------------------------------------
-     3. IF CONDITION: Date Range Filter Normalization
-     ------------------------------------------------------------- */
-  IF p_range = 'today' THEN
-    SET v_date_filter_mode = 'today';
-  ELSEIF p_range = 'this_week' THEN
-    SET v_date_filter_mode = 'this_week';
-  ELSEIF p_range = 'this_month' THEN
-    SET v_date_filter_mode = 'this_month';
-  ELSEIF p_range = 'last_30_days' THEN
-    SET v_date_filter_mode = 'last_30_days';
-  ELSEIF p_range = 'this_year' THEN
-    SET v_date_filter_mode = 'this_year';
-  ELSE
-    SET v_date_filter_mode = 'all_time';
-  END IF;
-
-  /* -------------------------------------------------------------
-     4. Calculate Lead Status Pipeline Counts
-     ------------------------------------------------------------- */
-  SELECT 
-    COUNT(*),
-    SUM(CASE 
-      WHEN (c.sale_won = 1 OR UPPER(TRIM(COALESCE(c.status_name, ''))) IN ('WON', 'CONVERTED')) THEN 1 
-      ELSE 0 
-    END),
-    SUM(CASE 
-      WHEN (c.sale_lost = 1 OR UPPER(TRIM(COALESCE(c.status_name, ''))) IN ('LOST', 'SALES LOSS')) THEN 1 
-      ELSE 0 
-    END)
-  INTO 
-    v_total_leads,
-    v_won_leads,
-    v_lost_leads
-  FROM contacts c
-  WHERE c.business_id = p_business_id
-    AND (
-      v_is_agent = 0 
-      OR c.assigned_to IN (SELECT user_id FROM tmp_pipeline_agents)
-    )
-    AND (
-      v_date_filter_mode = 'all_time'
-      OR (v_date_filter_mode = 'today' AND DATE(c.created_at) = CURDATE())
-      OR (v_date_filter_mode = 'this_week' AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1))
-      OR (v_date_filter_mode = 'this_month' AND YEAR(c.created_at) = YEAR(CURDATE()) AND MONTH(c.created_at) = MONTH(CURDATE()))
-      OR (v_date_filter_mode = 'last_30_days' AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
-      OR (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
-    );
-
-  -- Upcoming follow-ups (future scheduled follow-ups)
-  SELECT
-    SUM(CASE 
-      WHEN c.follow_up = 1 AND DATE(c.follow_up_date) > CURDATE() AND (c.sale_won = 0 OR c.sale_won IS NULL) AND (c.sale_lost = 0 OR c.sale_lost IS NULL) THEN 1 
-      ELSE 0 
-    END)
-  INTO
-    v_upcoming_leads
-  FROM contacts c
-  WHERE c.business_id = p_business_id
-    AND (
-      v_is_agent = 0 
-      OR c.assigned_to IN (SELECT user_id FROM tmp_pipeline_agents)
-    )
-    AND (
-      v_date_filter_mode = 'all_time'
-      OR (v_date_filter_mode = 'today' AND DATE(c.created_at) = CURDATE())
-      OR (v_date_filter_mode = 'this_week' AND YEARWEEK(c.created_at, 1) = YEARWEEK(CURDATE(), 1))
-      OR (v_date_filter_mode = 'this_month' AND YEAR(c.created_at) = YEAR(CURDATE()) AND MONTH(c.created_at) = MONTH(CURDATE()))
-      OR (v_date_filter_mode = 'last_30_days' AND c.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
-      OR (v_date_filter_mode = 'this_year' AND YEAR(c.created_at) = YEAR(CURDATE()))
-    );
-
-  -- Pending leads: all active leads not won, lost, or upcoming
-  SET v_pending_leads = GREATEST(0, v_total_leads - COALESCE(v_won_leads, 0) - COALESCE(v_lost_leads, 0) - COALESCE(v_upcoming_leads, 0));
-
-  /* -------------------------------------------------------------
-     5. IF CONDITIONS: Calculate Stage Conversion Percentages
-     ------------------------------------------------------------- */
-  IF v_total_leads > 0 THEN
-    SET v_pct_pending = CONCAT(ROUND((COALESCE(v_pending_leads, 0) / v_total_leads) * 100, 1), '%');
-    SET v_pct_upcoming = CONCAT(ROUND((COALESCE(v_upcoming_leads, 0) / v_total_leads) * 100, 1), '%');
-    SET v_pct_won = CONCAT(ROUND((COALESCE(v_won_leads, 0) / v_total_leads) * 100, 1), '%');
-    SET v_pct_lost = CONCAT(ROUND((COALESCE(v_lost_leads, 0) / v_total_leads) * 100, 1), '%');
-  ELSE
-    SET v_pct_pending = '0%';
-    SET v_pct_upcoming = '0%';
-    SET v_pct_won = '0%';
-    SET v_pct_lost = '0%';
-  END IF;
-
-  /* -------------------------------------------------------------
-     6. Output Funnel Stage Rows
-     ------------------------------------------------------------- */
-  SELECT 
-    'Total Leads' AS label,
-    COALESCE(v_total_leads, 0) AS value,
-    '100%' AS pct,
-    '#3B82F6' AS colorA,
-    '#2563EB' AS colorB,
-    1 AS sequence
-  UNION ALL
-  SELECT 
-    'Pending' AS label,
-    COALESCE(v_pending_leads, 0) AS value,
-    v_pct_pending AS pct,
-    '#22B8CF' AS colorA,
-    '#0E9FB5' AS colorB,
-    2 AS sequence
-  UNION ALL
-  SELECT 
-    'Upcoming' AS label,
-    COALESCE(v_upcoming_leads, 0) AS value,
-    v_pct_upcoming AS pct,
-    '#3DD598' AS colorA,
-    '#1FB874' AS colorB,
-    3 AS sequence
-  UNION ALL
-  SELECT 
-    'Won' AS label,
-    COALESCE(v_won_leads, 0) AS value,
-    v_pct_won AS pct,
-    '#F8B84E' AS colorA,
-    '#F59B2B' AS colorB,
-    4 AS sequence
-  UNION ALL
-  SELECT 
-    'Lost' AS label,
-    COALESCE(v_lost_leads, 0) AS value,
-    v_pct_lost AS pct,
-    '#F472A0' AS colorA,
-    '#E8508A' AS colorB,
-    5 AS sequence
-  ORDER BY sequence ASC;
-
-  DROP TEMPORARY TABLE IF EXISTS tmp_pipeline_agents;
 END$$
 DELIMITER ;
 

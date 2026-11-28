@@ -354,7 +354,7 @@
                     <span class="smp-icon icon-blue"><i class="bi bi-calendar-event"></i></span>
                     <span class="smp-label">Academic Year</span>
                   </a>
-                  <a routerLink="/system-settings/visa-types" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
+                  <!-- <a routerLink="/system-settings/visa-types" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
                     <span class="smp-icon icon-indigo"><i class="bi bi-passport"></i></span>
                     <span class="smp-label">Visa Type</span>
                   </a>
@@ -373,7 +373,7 @@
                   <a routerLink="/system-settings/visa-checklist-categories" routerLinkActive="active" class="smp-item" (click)="isSettingsOpen = false">
                     <span class="smp-icon icon-teal"><i class="bi bi-tags-fill"></i></span>
                     <span class="smp-label">Checklist Categories</span>
-                  </a>
+                  </a> -->
                 </div>
               </div>
 
@@ -648,6 +648,93 @@
       <i class="bi" [class.bi-box-arrow-in-right]="!isCheckedIn" [class.bi-box-arrow-left]="isCheckedIn"></i>
       <span>{{ isCheckedIn ? 'Check Out' : 'Check In' }}</span>
     </button>
+
+    <!-- Check Phone Quick Trigger & Popover Wrapper -->
+    <div class="phone-checker-nav-wrapper">
+      <button type="button" class="check-phone-nav-btn" [class.active]="showPhoneCheckModal" (click)="togglePhoneCheckModal($event)" title="Check if phone number exists in CRM">
+        <i class="bi bi-search"></i>
+        <span>Check Phone</span>
+      </button>
+
+      <!-- Fast Floating Popover / Dropdown Modal -->
+      <div class="phone-check-header-popover" *ngIf="showPhoneCheckModal" (click)="$event.stopPropagation()">
+        <div class="header-popover-title-row">
+          <div class="popover-heading">
+            <i class="bi bi-shield-check"></i>
+            <span>Check Number in CRM</span>
+          </div>
+          <button type="button" class="btn-popover-close" (click)="closePhoneCheckModal()" title="Close">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <div class="header-popover-input-bar">
+          <div class="popover-input-wrap">
+            <i class="bi bi-telephone"></i>
+            <input 
+              type="text"
+              [(ngModel)]="phoneSearchNumber"
+              (keyup.enter)="onCheckPhoneNumber()"
+              placeholder="Enter phone number..."
+              class="popover-phone-input"
+            />
+            <button *ngIf="phoneSearchNumber" type="button" class="btn-clear-input" (click)="clearPhoneCheck()" title="Clear">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <button 
+            type="button" 
+            class="btn-popover-search" 
+            (click)="onCheckPhoneNumber()" 
+            [disabled]="!phoneSearchNumber || isCheckingPhone"
+          >
+            <span *ngIf="isCheckingPhone" class="spinner-border spinner-border-sm" role="status"></span>
+            <span *ngIf="!isCheckingPhone">Check</span>
+          </button>
+        </div>
+
+        <!-- Popover Results -->
+        <div *ngIf="phoneCheckResult.searched" class="popover-result-card" [class.is-existing]="phoneCheckResult.exists" [class.is-fresh]="!phoneCheckResult.exists">
+          <!-- Exists View -->
+          <div *ngIf="phoneCheckResult.exists && phoneCheckResult.data">
+            <div class="result-badge badge-red">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i> Already Exists in CRM
+            </div>
+            <div class="lead-meta-box">
+              <div class="lead-title">{{ phoneCheckResult.data.name || 'Unnamed Lead' }}</div>
+              <div class="meta-row">
+                <span class="meta-k">Phone:</span>
+                <span class="meta-v">{{ phoneCheckResult.data.country_code }} {{ phoneCheckResult.data.phone }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-k">Assigned Agent:</span>
+                <span class="meta-v highlight-agent">{{ phoneCheckResult.data.assigned_agent || 'Unassigned' }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-k">Status:</span>
+                <span class="meta-v">{{ phoneCheckResult.data.status_name || 'No Status' }}</span>
+              </div>
+              <div class="meta-row" *ngIf="phoneCheckResult.data.created_at">
+                <span class="meta-k">Registered:</span>
+                <span class="meta-v">{{ phoneCheckResult.data.created_at | date:'mediumDate' }}</span>
+              </div>
+            </div>
+            <div class="result-alert-note">
+              <i class="bi bi-info-circle me-1"></i> Already handled by <strong>{{ phoneCheckResult.data.assigned_agent }}</strong>
+            </div>
+          </div>
+
+          <!-- Fresh View -->
+          <div *ngIf="!phoneCheckResult.exists" class="fresh-lead-box">
+            <div class="result-badge badge-green">
+              <i class="bi bi-check-circle-fill me-1"></i> Fresh Number
+            </div>
+            <p class="fresh-lead-msg">No record found in CRM.</p>
+            <span class="fresh-lead-sub">You can safely create a new lead for this number.</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Add Lead Button -->
     <button class="add-lead-btn" (click)="navigateToAddLead()" title="Add New Lead">
