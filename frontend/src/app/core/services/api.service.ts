@@ -44,4 +44,8 @@ export class ApiService {
   getBlob(path: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}${path}`, { responseType: 'blob' });
   }
+
+  checkContactPhone(phone: string, countryCode?: string): Observable<any> {
+    return this.get('/contacts/check-phone', { phone, country_code: countryCode });
+  }
 }

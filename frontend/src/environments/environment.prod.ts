@@ -1,10 +1,10 @@
 export const environment = {
   production: true,
 
-  // apiUrl: 'http://localhost:3000/api',
-  // baseUrl: 'http://localhost:3000/api',
-  // socketUrl: 'http://localhost:3000',
-  // enableWhatsappQr: false,
+  apiUrl: 'http://localhost:3000/api',
+  baseUrl: 'http://localhost:3000/api',
+  socketUrl: 'http://localhost:3000',
+  enableWhatsappQr: false,
 
 
    // apiUrl: 'https://democrmapi.trackbox.live/api',
@@ -12,10 +12,10 @@ export const environment = {
   // socketUrl: 'https://democrm.trackbox.live',
   // enableWhatsappQr: false,
 
-  apiUrl: 'https://choicecampaignapi.ufstech.co.in/api',
-  baseUrl: 'https://choicecampaignapi.ufstech.co.in/api',
-  socketUrl: 'https://choicecampaign.ufstech.co.in',
-  enableWhatsappQr: false,
+  // apiUrl: 'https://choicecampaignapi.ufstech.co.in/api',
+  // baseUrl: 'https://choicecampaignapi.ufstech.co.in/api',
+  // socketUrl: 'https://choicecampaign.ufstech.co.in',
+  // enableWhatsappQr: false,
 
   // apiUrl: 'https://demo5api.ufstech.co.in/api',
   //   baseUrl: 'https://demo5api.ufstech.co.in/api',

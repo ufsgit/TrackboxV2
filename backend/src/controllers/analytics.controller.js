@@ -199,7 +199,7 @@ const getCrmDashboardStats = async (req, res) => {
 
     // Call Stored Procedure for Lead Status Pipeline Card
     const [pipelineResults] = await pool.query(
-      'CALL sp_get_crm_dashboard_pipeline(?, ?, ?, ?)',
+      'CALL get_crm_dashboard_pipeline(?, ?, ?, ?)',
       [bizId, Number(userId), spRole, range]
     );
 

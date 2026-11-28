@@ -7,6 +7,7 @@ const upload = require('../middleware/upload');
 router.use(authenticate);
 router.get('/', c.getContacts);
 router.get('/total-leads', c.getTotalLeads);
+router.get('/check-phone', c.checkPhoneExists);
 router.get('/agents', settingsController.getTeam);
 router.get('/export', c.exportContacts);
 router.get('/tags', c.getUniqueTags);

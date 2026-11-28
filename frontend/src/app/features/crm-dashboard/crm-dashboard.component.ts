@@ -65,6 +65,70 @@ export class CrmDashboardComponent implements OnInit, OnChanges, OnDestroy {
   range = 'all_time';
   rangeMenuOpen = false;
 
+  // Phone Existence Checker
+  phoneSearchNumber: string = '';
+  isCheckingPhone: boolean = false;
+  phoneCheckResult: {
+    searched: boolean;
+    exists: boolean;
+    message?: string;
+    data?: {
+      id: number;
+      name: string;
+      phone: string;
+      country_code: string;
+      status_name: string;
+      assigned_agent: string;
+      created_at: string;
+    } | null;
+  } = { searched: false, exists: false, data: null };
+
+  onCheckPhoneNumber(): void {
+    const raw = (this.phoneSearchNumber || '').trim();
+    if (!raw) {
+      return;
+    }
+
+    this.isCheckingPhone = true;
+    this.phoneCheckResult.searched = false;
+
+    this.api.checkContactPhone(raw).subscribe({
+      next: (res: any) => {
+        this.isCheckingPhone = false;
+        if (res && res.success) {
+          this.phoneCheckResult = {
+            searched: true,
+            exists: !!res.exists,
+            message: res.message,
+            data: res.data || null
+          };
+        } else {
+          this.phoneCheckResult = {
+            searched: true,
+            exists: false,
+            message: res?.message || 'Number not found in CRM.',
+            data: null
+          };
+        }
+      },
+      error: (err: any) => {
+        this.isCheckingPhone = false;
+        console.error('Error checking phone:', err);
+        this.phoneCheckResult = {
+          searched: true,
+          exists: false,
+          message: err?.error?.message || 'Error checking phone number.',
+          data: null
+        };
+      }
+    });
+  }
+
+  clearPhoneCheck(): void {
+    this.phoneSearchNumber = '';
+    this.phoneCheckResult = { searched: false, exists: false, data: null };
+  }
+
   get currentRangeLabel(): string {
     const f = this.ranges.find(r => r.value === this.range);
     return f ? f.label : 'All Time';

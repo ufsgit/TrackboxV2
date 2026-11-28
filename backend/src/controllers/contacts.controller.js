@@ -194,7 +194,7 @@ const getContacts = async (req, res) => {
       LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
       ${where} 
-      ORDER BY (c.follow_up_date IS NULL) ASC, c.follow_up_date ASC, c.id ASC 
+      ORDER BY c.created_at DESC, c.id DESC 
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 
@@ -3307,7 +3307,7 @@ const getTotalLeads = async (req, res) => {
       LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN enquiry_fors e ON c.enquiry_for_id = e.id
       ${where}
-      ORDER BY (c.follow_up_date IS NULL) ASC, c.follow_up_date ASC, c.id ASC
+      ORDER BY c.created_at DESC, c.id DESC
       LIMIT ? OFFSET ?
     `, [...params, lim, offset]);
 
@@ -3334,9 +3334,65 @@ const getTotalLeads = async (req, res) => {
   }
 };
 
+const checkPhoneExists = async (req, res) => {
+  try {
+    const bizId = req.user?.business_id || req.user?.businessId || 1;
+    const phone = req.query.phone ? String(req.query.phone).trim() : '';
+    const countryCode = req.query.country_code ? String(req.query.country_code).trim() : '';
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required to search.',
+        exists: false,
+        data: null
+      });
+    }
+
+    const [results] = await pool.query(
+      'CALL sp_check_contact_phone_exists(?, ?, ?)',
+      [bizId, phone, countryCode || null]
+    );
+
+    const rows = results[0] || [];
+    if (rows.length > 0) {
+      const contact = rows[0];
+      return res.json({
+        success: true,
+        exists: true,
+        message: 'Phone number already exists in CRM.',
+        data: {
+          id: contact.id,
+          name: contact.name,
+          phone: contact.phone,
+          country_code: contact.country_code,
+          status_name: contact.status_name,
+          assigned_agent: contact.assigned_agent,
+          created_at: contact.created_at
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      exists: false,
+      message: 'Phone number is available (not found in CRM).',
+      data: null
+    });
+  } catch (error) {
+    console.error('[checkPhoneExists] error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error checking phone number.',
+      error: error.message
+    });
+  }
+};
+
 module.exports = { 
   getContacts, 
   getTotalLeads,
+  checkPhoneExists,
   getContact, 
   createContact, 
   updateContact, 
